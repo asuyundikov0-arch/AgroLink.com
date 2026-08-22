@@ -1,6 +1,6 @@
-import { getAuth } from "@clerk/express";
+import { clerkClient, getAuth } from "@clerk/express";
 import type { NextFunction, Request, Response } from "express";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { appRoles, db, roleApplicationsTable, type AppRole } from "@workspace/db";
 
 export { appRoles, type AppRole };
@@ -13,26 +13,21 @@ export type RoleAccess = {
   department: string;
 };
 
-function isConfiguredGeneralDirector(application: typeof roleApplicationsTable.$inferSelect) {
-  const configuredEmail = process.env.INITIAL_GENERAL_DIRECTOR_EMAIL?.trim().toLowerCase();
-  return application.requestedRole === "general_director"
-    && Boolean(configuredEmail)
-    && application.email.trim().toLowerCase() === configuredEmail;
+export function getConfiguredInitialDirectorEmail(): string | null {
+  const email = process.env.INITIAL_GENERAL_DIRECTOR_EMAIL?.trim().toLowerCase();
+  return email || null;
 }
 
-async function ensureConfiguredDirectorApproved(application: typeof roleApplicationsTable.$inferSelect) {
-  if (application.status !== "pending" || !isConfiguredGeneralDirector(application)) return application;
-  const [updated] = await db.update(roleApplicationsTable)
-    .set({
-      status: "approved",
-      reviewComment: "Доступ генерального директора подтверждён защищённой настройкой запуска.",
-      reviewedByUserId: "system-bootstrap",
-      reviewedByName: "Система",
-      reviewedAt: new Date(),
-    })
-    .where(eq(roleApplicationsTable.id, application.id))
-    .returning();
-  return updated ?? application;
+export function isConfiguredInitialDirectorEmail(email: string): boolean {
+  return getConfiguredInitialDirectorEmail() === email.trim().toLowerCase();
+}
+
+async function hasConfiguredInitialDirectorEmail(userId: string): Promise<boolean> {
+  if (!getConfiguredInitialDirectorEmail()) return false;
+  const user = await clerkClient.users.getUser(userId);
+  const primaryEmail = user.primaryEmailAddress;
+  return primaryEmail?.verification?.status === "verified"
+    && isConfiguredInitialDirectorEmail(primaryEmail.emailAddress);
 }
 
 export async function getAccess(req: Request): Promise<RoleAccess> {
@@ -42,24 +37,65 @@ export async function getAccess(req: Request): Promise<RoleAccess> {
     return { userId: "", role: null, displayName: "", email: "", department: "" };
   }
 
-  const [application] = await db
+  let [application] = await db
     .select()
     .from(roleApplicationsTable)
     .where(eq(roleApplicationsTable.userId, userId))
     .orderBy(desc(roleApplicationsTable.requestedAt))
     .limit(1);
-  const effectiveApplication = application ? await ensureConfiguredDirectorApproved(application) : undefined;
 
-  if (!effectiveApplication || effectiveApplication.status !== "approved" || !appRoles.includes(effectiveApplication.requestedRole as AppRole)) {
-    return { userId, role: null, displayName: effectiveApplication?.displayName ?? "", email: effectiveApplication?.email ?? "", department: effectiveApplication?.department ?? "" };
+  if (
+    application
+    && application.status === "pending"
+    && application.requestedRole === "general_director"
+  ) {
+    const approvedDirectors = await db
+      .select({ id: roleApplicationsTable.id })
+      .from(roleApplicationsTable)
+      .where(and(
+        eq(roleApplicationsTable.requestedRole, "general_director"),
+        eq(roleApplicationsTable.status, "approved"),
+      ))
+      .limit(1);
+
+    if (approvedDirectors.length === 0 && await hasConfiguredInitialDirectorEmail(userId)) {
+      const [approvedApplication] = await db
+        .update(roleApplicationsTable)
+        .set({
+          status: "approved",
+          reviewComment: "Генеральный директор назначен через защищённую настройку запуска.",
+          reviewedByUserId: "system-bootstrap",
+          reviewedByName: "Система",
+          reviewedAt: new Date(),
+        })
+        .where(and(
+          eq(roleApplicationsTable.id, application.id),
+          eq(roleApplicationsTable.status, "pending"),
+        ))
+        .returning();
+      if (approvedApplication) {
+        application = approvedApplication;
+      } else {
+        const [currentApplication] = await db
+          .select()
+          .from(roleApplicationsTable)
+          .where(eq(roleApplicationsTable.id, application.id))
+          .limit(1);
+        application = currentApplication ?? application;
+      }
+    }
+  }
+
+  if (!application || application.status !== "approved" || !appRoles.includes(application.requestedRole as AppRole)) {
+    return { userId, role: null, displayName: application?.displayName ?? "", email: application?.email ?? "", department: application?.department ?? "" };
   }
 
   return {
     userId,
-    role: effectiveApplication.requestedRole as AppRole,
-    displayName: effectiveApplication.displayName,
-    email: effectiveApplication.email,
-    department: effectiveApplication.department,
+    role: application.requestedRole as AppRole,
+    displayName: application.displayName,
+    email: application.email,
+    department: application.department,
   };
 }
 

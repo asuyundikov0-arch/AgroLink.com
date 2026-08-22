@@ -336,6 +336,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RoleRequest"
+        "200":
+          description: Existing role request resubmitted or synchronized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleRequest"
   /role-requests/{id}:
     patch:
       operationId: reviewRoleRequest

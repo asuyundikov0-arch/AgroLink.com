@@ -1,4 +1,4 @@
-import { clerkClient } from "@clerk/express";
+import { clerkClient, getAuth } from "@clerk/express";
 import { and, desc, eq } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import {
@@ -17,7 +17,14 @@ import {
   type AppRole,
   type RoleApplicationStatus,
 } from "@workspace/db";
-import { getAccess, requireApprovedRole, requireAuth, type AppRole as AccessRole, type RoleAccess } from "../middlewares/auth";
+import {
+  getAccess,
+  isConfiguredInitialDirectorEmail,
+  requireApprovedRole,
+  requireAuth,
+  type AppRole as AccessRole,
+  type RoleAccess,
+} from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -54,9 +61,10 @@ async function clerkProfile(userId: string) {
   const displayName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim()
     || user.username
     || "Сотрудник";
-  const email = user.primaryEmailAddress?.emailAddress ?? "";
+  const primaryEmail = user.primaryEmailAddress;
+  const email = primaryEmail?.emailAddress ?? "";
   if (!email) throw new Error("У зарегистрированного пользователя не указан e-mail");
-  return { displayName, email };
+  return { displayName, email, emailVerified: primaryEmail?.verification?.status === "verified" };
 }
 
 router.get("/role-requests/me", requireAuth, async (req, res, next): Promise<void> => {
@@ -77,13 +85,41 @@ router.get("/role-requests/me", requireAuth, async (req, res, next): Promise<voi
 router.post("/role-requests", requireAuth, async (req, res, next): Promise<void> => {
   try {
     const body = CreateRoleRequestBody.parse(req.body);
+    const userId = getAuth(req).userId ?? "";
+    const [existingBeforeAccessSync] = await db
+      .select()
+      .from(roleApplicationsTable)
+      .where(eq(roleApplicationsTable.userId, userId))
+      .limit(1);
+    const approvedDirectorsBeforeAccessSync = await db
+      .select({ id: roleApplicationsTable.id })
+      .from(roleApplicationsTable)
+      .where(and(
+        eq(roleApplicationsTable.requestedRole, "general_director"),
+        eq(roleApplicationsTable.status, "approved"),
+      ))
+      .limit(1);
     const access = await getAccess(req);
     const [existing] = await db
       .select()
       .from(roleApplicationsTable)
       .where(eq(roleApplicationsTable.userId, access.userId))
       .limit(1);
+    const profile = await clerkProfile(access.userId);
+    const initialDirector = body.requestedRole === "general_director"
+      && approvedDirectorsBeforeAccessSync.length === 0
+      && profile.emailVerified
+      && isConfiguredInitialDirectorEmail(profile.email);
 
+    if (
+      existingBeforeAccessSync?.status === "pending"
+      && existing?.status === "approved"
+      && initialDirector
+      && existing.requestedRole === "general_director"
+    ) {
+      res.status(200).json(CreateRoleRequestResponse.parse(serializeApplication(existing)));
+      return;
+    }
     if (existing?.status === "pending") {
       res.status(409).json({ error: "Заявка уже ожидает согласования" });
       return;
@@ -93,38 +129,29 @@ router.post("/role-requests", requireAuth, async (req, res, next): Promise<void>
       return;
     }
 
-    const profile = await clerkProfile(access.userId);
-    const approvedDirectors = await db
-      .select({ id: roleApplicationsTable.id })
-      .from(roleApplicationsTable)
-      .where(and(
-        eq(roleApplicationsTable.requestedRole, "general_director"),
-        eq(roleApplicationsTable.status, "approved"),
-      ))
-      .limit(1);
-    const configuredInitialDirectorEmail = process.env.INITIAL_GENERAL_DIRECTOR_EMAIL?.trim().toLowerCase();
-    const configuredDirector = body.requestedRole === "general_director"
-      && configuredInitialDirectorEmail === profile.email.toLowerCase();
-    if (body.requestedRole === "general_director" && approvedDirectors.length === 0 && !configuredDirector) {
+    if (
+      body.requestedRole === "general_director"
+      && approvedDirectorsBeforeAccessSync.length === 0
+      && !initialDirector
+    ) {
       res.status(403).json({
         error: "Первого генерального директора должен назначить администратор в защищённой настройке запуска.",
       });
       return;
     }
-    const autoApproveDirector = configuredDirector;
     const values = {
       userId: access.userId,
       email: profile.email,
       displayName: profile.displayName,
       department: body.department,
       requestedRole: body.requestedRole,
-      status: autoApproveDirector ? "approved" : "pending",
-      reviewComment: autoApproveDirector
+      status: initialDirector ? "approved" : "pending",
+      reviewComment: initialDirector
         ? "Первый генеральный директор назначен для запуска процесса согласования."
         : "",
-      reviewedByUserId: autoApproveDirector ? "system-bootstrap" : "",
-      reviewedByName: autoApproveDirector ? "Система" : "",
-      reviewedAt: autoApproveDirector ? new Date() : null,
+      reviewedByUserId: initialDirector ? "system-bootstrap" : "",
+      reviewedByName: initialDirector ? "Система" : "",
+      reviewedAt: initialDirector ? new Date() : null,
     };
 
     const [application] = existing
