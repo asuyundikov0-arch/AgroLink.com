@@ -23,7 +23,11 @@ import type {
   Activity,
   DashboardSummary,
   HealthStatus,
+  ListReportsParams,
   ListTemplatesParams,
+  Report,
+  ReportInput,
+  ReportStatusUpdate,
   Template,
   TemplateInput
 } from './api.schemas';
@@ -589,4 +593,231 @@ export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>
 
 
 
+
+export const getListReportsUrl = (params?: ListReportsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/reports?${stringifiedParams}` : `/api/reports`
+}
+
+/**
+ * @summary List completed reports
+ */
+export const listReports = async (params?: ListReportsParams, options?: Parameters<typeof customFetch>[1]): Promise<Report[]> => {
+
+  return customFetch<Report[]>(getListReportsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListReportsQueryKey = (params?: ListReportsParams,) => {
+    return [
+    `/api/reports`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListReportsQueryOptions = <TData = Awaited<ReturnType<typeof listReports>>, TError = ErrorType<unknown>>(params?: ListReportsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListReportsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listReports>>> = ({ signal }) => listReports(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listReports>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListReportsQueryResult = NonNullable<Awaited<ReturnType<typeof listReports>>>
+export type ListReportsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List completed reports
+ */
+
+export function useListReports<TData = Awaited<ReturnType<typeof listReports>>, TError = ErrorType<unknown>>(
+ params?: ListReportsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListReportsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateReportUrl = () => {
+
+
+
+
+  return `/api/reports`
+}
+
+/**
+ * @summary Submit a completed report
+ */
+export const createReport = async (reportInput: ReportInput, options?: Parameters<typeof customFetch>[1]): Promise<Report> => {
+
+  return customFetch<Report>(getCreateReportUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(reportInput)
+  }
+);}
+
+
+
+
+
+export const getCreateReportMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReport>>, TError,{data: BodyType<ReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createReport>>, TError,{data: BodyType<ReportInput>}, TContext> => {
+
+const mutationKey = ['createReport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createReport>>, {data: BodyType<ReportInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createReport(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateReportMutationResult = NonNullable<Awaited<ReturnType<typeof createReport>>>
+    export type CreateReportMutationBody = BodyType<ReportInput>
+    export type CreateReportMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Submit a completed report
+ */
+export const useCreateReport = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReport>>, TError,{data: BodyType<ReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createReport>>,
+        TError,
+        {data: BodyType<ReportInput>},
+        TContext
+      > => {
+      return useMutation(getCreateReportMutationOptions(options));
+    }
+
+export const getUpdateReportStatusUrl = (id: number,) => {
+
+
+
+
+  return `/api/reports/${id}/status`
+}
+
+/**
+ * @summary Update report review status
+ */
+export const updateReportStatus = async (id: number,
+    reportStatusUpdate: ReportStatusUpdate, options?: Parameters<typeof customFetch>[1]): Promise<Report> => {
+
+  return customFetch<Report>(getUpdateReportStatusUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(reportStatusUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateReportStatusMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateReportStatus>>, TError,{id: number;data: BodyType<ReportStatusUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateReportStatus>>, TError,{id: number;data: BodyType<ReportStatusUpdate>}, TContext> => {
+
+const mutationKey = ['updateReportStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateReportStatus>>, {id: number;data: BodyType<ReportStatusUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateReportStatus(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateReportStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateReportStatus>>>
+    export type UpdateReportStatusMutationBody = BodyType<ReportStatusUpdate>
+    export type UpdateReportStatusMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update report review status
+ */
+export const useUpdateReportStatus = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateReportStatus>>, TError,{id: number;data: BodyType<ReportStatusUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateReportStatus>>,
+        TError,
+        {id: number;data: BodyType<ReportStatusUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateReportStatusMutationOptions(options));
+    }
 

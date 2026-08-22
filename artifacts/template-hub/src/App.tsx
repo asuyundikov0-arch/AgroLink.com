@@ -9,10 +9,12 @@ import {
   Check,
   ChevronDown,
   CircleHelp,
+  ClipboardCheck,
   Clock3,
   CloudUpload,
   Copy,
   Download,
+  FileCheck2,
   FileSpreadsheet,
   Filter,
   FolderOpen,
@@ -21,6 +23,7 @@ import {
   Menu,
   MoreHorizontal,
   Search,
+  Send,
   Settings as SettingsIcon,
   ShieldCheck,
   SlidersHorizontal,
@@ -30,20 +33,26 @@ import {
   Users,
   X,
   Zap,
+  RotateCcw,
 } from 'lucide-react';
 import {
   type Activity,
   type DashboardSummary,
+  type Report,
   type Template,
   type TemplateInput,
+  useCreateReport,
   useCreateTemplate,
   useDeleteTemplate,
   useGetDashboardSummary,
   useGetTemplate,
   useListActivity,
+  useListReports,
   useListTemplates,
+  useUpdateReportStatus,
   getGetDashboardSummaryQueryKey,
   getGetTemplateQueryKey,
+  getListReportsQueryKey,
   getListTemplatesQueryKey,
 } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -117,6 +126,7 @@ function Shell({ children }: { children: ReactNode }) {
     { href: '/', label: 'Обзор', icon: LayoutDashboard },
     { href: '/templates', label: 'Все шаблоны', icon: Library },
     { href: '/upload', label: 'Добавить шаблон', icon: CloudUpload },
+    { href: '/cabinet', label: 'Личный кабинет', icon: ClipboardCheck },
   ];
 
   return (
@@ -756,6 +766,137 @@ function Upload() {
   );
 }
 
+const reportStatusLabels: Record<Report['status'], string> = {
+  submitted: 'Ожидает проверки',
+  in_review: 'На проверке',
+  returned: 'На доработке',
+  approved: 'Проверен',
+  sent_to_management: 'Отправлен начальству',
+};
+
+function ReportStatusPill({ status }: { status: Report['status'] }) {
+  const tone = status === 'returned'
+    ? 'border-amber-200 bg-amber-50 text-amber-800'
+    : status === 'sent_to_management'
+      ? 'border-blue-200 bg-blue-50 text-blue-800'
+      : status === 'approved'
+        ? 'border-teal-200 bg-teal-50 text-teal-800'
+        : 'border-border bg-muted text-muted-foreground';
+  return <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold', tone)}>{reportStatusLabels[status]}</span>;
+}
+
+function Cabinet() {
+  const [mode, setMode] = useState<'agronomist' | 'chief' | 'management'>('agronomist');
+  const [file, setFile] = useState<File | null>(null);
+  const [unit, setUnit] = useState('АПК Арыстан Grain');
+  const [notice, setNotice] = useState('');
+  const reportsQuery = useListReports(undefined, { query: { queryKey: getListReportsQueryKey() } });
+  const createReport = useCreateReport();
+  const updateReportStatus = useUpdateReportStatus();
+  const reports = (reportsQuery.data as Report[] | undefined) ?? [];
+
+  const refreshReports = () => queryClient.invalidateQueries({ queryKey: getListReportsQueryKey() });
+  const submitReport = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!file) {
+      setNotice('Сначала выберите заполненный Excel-файл.');
+      return;
+    }
+    createReport.mutate({
+      data: {
+        title: `Отчёт по уборке · ${unit}`,
+        unit,
+        fileName: file.name,
+        fileSize: `${(file.size / 1024 / 1024).toFixed(1)} МБ`,
+        fileUrl: '/files/svodka-uborka-arysan-green.xlsx',
+        submittedBy: 'Агроном',
+      },
+    }, {
+      onSuccess: () => {
+        setFile(null);
+        setNotice('Отчёт отправлен главному агроному на проверку.');
+        refreshReports();
+      },
+      onError: () => setNotice('Не удалось отправить отчёт. Повторите попытку.'),
+    });
+  };
+  const moveReport = (report: Report, status: Exclude<Report['status'], 'submitted'>, reviewerComment: string) => {
+    updateReportStatus.mutate({
+      id: report.id,
+      data: { status, reviewerComment, reviewedBy: 'Главный агроном' },
+    }, {
+      onSuccess: () => {
+        setNotice(status === 'returned' ? 'Отчёт возвращён агроному на доработку.' : status === 'sent_to_management' ? 'Отчёт отправлен начальству.' : 'Статус отчёта обновлён.');
+        refreshReports();
+      },
+    });
+  };
+
+  const visibleReports = mode === 'agronomist'
+    ? reports.filter((report) => report.submittedBy === 'Агроном' || report.status === 'returned')
+    : mode === 'chief'
+      ? reports.filter((report) => report.status !== 'sent_to_management')
+      : reports.filter((report) => report.status === 'sent_to_management');
+
+  return (
+    <div className="animate-page">
+      <PageTitle
+        eyebrow="Согласование отчётов"
+        title="Личный кабинет"
+        description="Агроном передаёт заполненный отчёт главному агроному, который проверяет и отправляет его начальству."
+      />
+      <div className="mb-6 flex flex-wrap gap-2 rounded-xl border border-border bg-card p-2">
+        {[
+          { id: 'agronomist' as const, label: 'Агроном' },
+          { id: 'chief' as const, label: 'Главный агроном' },
+          { id: 'management' as const, label: 'Начальство' },
+        ].map((role) => (
+          <button key={role.id} type="button" data-testid={`button-role-${role.id}`} onClick={() => setMode(role.id)} className={cn('rounded-lg px-4 py-2 text-xs font-bold transition-colors', mode === role.id ? 'bg-sidebar text-sidebar-foreground' : 'text-muted-foreground hover:bg-muted')}>
+            {role.label}
+          </button>
+        ))}
+      </div>
+      {notice && <div className="notice-banner mb-6" data-testid="status-report-notice"><Check size={16} /> {notice}<button type="button" onClick={() => setNotice('')} aria-label="Закрыть"><X size={14} /></button></div>}
+
+      {mode === 'agronomist' && (
+        <section className="surface-card mb-7 p-5 sm:p-7">
+          <div className="section-heading"><div className="setting-icon"><UploadIcon size={17} /></div><div><h2>Передать заполненный отчёт</h2><p>Выберите заполненный Excel-файл — он появится у главного агронома в очереди на проверку.</p></div></div>
+          <form onSubmit={submitReport} className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+            <label className="form-label">Подразделение<select value={unit} onChange={(event) => setUnit(event.target.value)} className="text-input mt-2"><option>АПК Арыстан Grain</option><option>АФ Веденовка</option></select></label>
+            <label className="form-label">Заполненный Excel-файл<input type="file" accept=".xlsx,.xls" data-testid="input-completed-report" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="text-input mt-2 pt-2" /></label>
+            <button type="submit" data-testid="button-submit-report" disabled={createReport.isPending} className="button button-primary justify-center">{createReport.isPending ? 'Отправляем...' : 'Отправить на проверку'} <Send size={15} /></button>
+          </form>
+          {file && <p className="mt-4 flex items-center gap-2 text-xs font-medium text-teal-800"><FileCheck2 size={15} /> Выбран файл: {file.name}</p>}
+        </section>
+      )}
+
+      <section>
+        <div className="mb-4 flex items-end justify-between"><div><p className="eyebrow">{mode === 'chief' ? 'Проверка' : mode === 'management' ? 'Архив отправки' : 'Мои документы'}</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">{mode === 'chief' ? 'Очередь главного агронома' : mode === 'management' ? 'Отчёты для начальства' : 'Отправленные отчёты'}</h2></div><ClipboardCheck size={19} className="text-muted-foreground" /></div>
+        {reportsQuery.isLoading ? <LoadingRows count={3} /> : reportsQuery.isError ? <ErrorState onRetry={() => reportsQuery.refetch()} /> : visibleReports.length === 0 ? <EmptyState title="Здесь пока нет отчётов" description="Когда отчёт перейдёт на этот этап, он появится в списке." /> : (
+          <div className="space-y-3">
+            {visibleReports.map((report) => (
+              <article key={report.id} className="surface-card p-4 sm:p-5" data-testid={`report-card-${report.id}`}>
+                <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <FileBadge type="xlsx" />
+                    <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-bold">{report.title}</h3><ReportStatusPill status={report.status} /></div><p className="mt-1 text-xs text-muted-foreground">{report.unit} · {report.fileName} · отправил {report.submittedBy} · {formatDate(report.submittedAt)}</p>{report.reviewerComment && <p className="mt-2 text-xs text-teal-800">Комментарий: {report.reviewerComment}</p>}</div>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    {report.fileUrl && <a href={report.fileUrl} download={report.fileName} className="button button-secondary text-xs"><Download size={14} /> Открыть файл</a>}
+                    {mode === 'chief' && report.status === 'submitted' && <button type="button" onClick={() => moveReport(report, 'in_review', 'Отчёт принят в работу.')} className="button button-primary text-xs"><ClipboardCheck size={14} /> Взять на проверку</button>}
+                    {mode === 'chief' && report.status === 'in_review' && <><button type="button" onClick={() => moveReport(report, 'returned', 'Пожалуйста, проверьте данные и загрузите исправленную версию.')} className="button button-secondary text-xs"><RotateCcw size={14} /> На доработку</button><button type="button" onClick={() => moveReport(report, 'approved', 'Отчёт проверен и готов к отправке.')} className="button button-primary text-xs"><Check size={14} /> Принять</button></>}
+                    {mode === 'chief' && report.status === 'approved' && <button type="button" onClick={() => moveReport(report, 'sent_to_management', 'Отчёт направлен начальству.')} className="button button-primary text-xs"><Send size={14} /> Отправить начальству</button>}
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function Settings() {
   const [saved, setSaved] = useState(false);
   const [workspace, setWorkspace] = useState('Команда операционного развития');
@@ -817,6 +958,7 @@ function Router() {
           <Route path="/templates/:id" component={TemplateDetails} />
           <Route path="/templates" component={Templates} />
           <Route path="/upload" component={Upload} />
+          <Route path="/cabinet" component={Cabinet} />
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>

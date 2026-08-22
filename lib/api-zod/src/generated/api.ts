@@ -143,3 +143,87 @@ export const ListActivityResponseItem = zod.object({
 export const ListActivityResponse = zod.array(ListActivityResponseItem)
 
 
+/**
+ * @summary List completed reports
+ */
+export const ListReportsQueryParams = zod.object({
+  "status": zod.enum(['submitted', 'in_review', 'returned', 'approved', 'sent_to_management']).optional(),
+  "unit": zod.coerce.string().optional()
+})
+
+export const ListReportsResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "fileName": zod.string(),
+  "fileSize": zod.string(),
+  "fileUrl": zod.string(),
+  "submittedBy": zod.string(),
+  "submittedAt": zod.string(),
+  "status": zod.enum(['submitted', 'in_review', 'returned', 'approved', 'sent_to_management']),
+  "reviewerComment": zod.string(),
+  "reviewedBy": zod.string()
+})
+export const ListReportsResponse = zod.array(ListReportsResponseItem)
+
+
+/**
+ * @summary Submit a completed report
+ */
+
+
+
+
+
+export const CreateReportBody = zod.object({
+  "title": zod.string().min(1),
+  "unit": zod.string().min(1),
+  "fileName": zod.string().min(1),
+  "fileSize": zod.string(),
+  "fileUrl": zod.string(),
+  "submittedBy": zod.string()
+})
+
+export const CreateReportResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "fileName": zod.string(),
+  "fileSize": zod.string(),
+  "fileUrl": zod.string(),
+  "submittedBy": zod.string(),
+  "submittedAt": zod.string(),
+  "status": zod.enum(['submitted', 'in_review', 'returned', 'approved', 'sent_to_management']),
+  "reviewerComment": zod.string(),
+  "reviewedBy": zod.string()
+})
+
+
+/**
+ * @summary Update report review status
+ */
+export const UpdateReportStatusParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateReportStatusBody = zod.object({
+  "status": zod.enum(['in_review', 'returned', 'approved', 'sent_to_management']),
+  "reviewerComment": zod.string(),
+  "reviewedBy": zod.string()
+})
+
+export const UpdateReportStatusResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "fileName": zod.string(),
+  "fileSize": zod.string(),
+  "fileUrl": zod.string(),
+  "submittedBy": zod.string(),
+  "submittedAt": zod.string(),
+  "status": zod.enum(['submitted', 'in_review', 'returned', 'approved', 'sent_to_management']),
+  "reviewerComment": zod.string(),
+  "reviewedBy": zod.string()
+})
+
+

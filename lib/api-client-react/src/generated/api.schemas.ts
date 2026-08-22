@@ -89,9 +89,78 @@ export interface Activity {
   timestamp: string;
 }
 
+export type ReportStatus = typeof ReportStatus[keyof typeof ReportStatus];
+
+
+export const ReportStatus = {
+  submitted: 'submitted',
+  in_review: 'in_review',
+  returned: 'returned',
+  approved: 'approved',
+  sent_to_management: 'sent_to_management',
+} as const;
+
+export interface Report {
+  id: number;
+  title: string;
+  unit: string;
+  fileName: string;
+  fileSize: string;
+  fileUrl: string;
+  submittedBy: string;
+  submittedAt: string;
+  status: ReportStatus;
+  reviewerComment: string;
+  reviewedBy: string;
+}
+
+export interface ReportInput {
+  /** @minLength 1 */
+  title: string;
+  /** @minLength 1 */
+  unit: string;
+  /** @minLength 1 */
+  fileName: string;
+  fileSize: string;
+  fileUrl: string;
+  submittedBy: string;
+}
+
+export type ReportStatusUpdateStatus = typeof ReportStatusUpdateStatus[keyof typeof ReportStatusUpdateStatus];
+
+
+export const ReportStatusUpdateStatus = {
+  in_review: 'in_review',
+  returned: 'returned',
+  approved: 'approved',
+  sent_to_management: 'sent_to_management',
+} as const;
+
+export interface ReportStatusUpdate {
+  status: ReportStatusUpdateStatus;
+  reviewerComment: string;
+  reviewedBy: string;
+}
+
 export type ListTemplatesParams = {
 search?: string;
 category?: string;
 department?: string;
 };
+
+export type ListReportsParams = {
+status?: ListReportsStatus;
+unit?: string;
+};
+
+export type ListReportsStatus = typeof ListReportsStatus[keyof typeof ListReportsStatus];
+
+
+export const ListReportsStatus = {
+  submitted: 'submitted',
+  in_review: 'in_review',
+  returned: 'returned',
+  approved: 'approved',
+  sent_to_management: 'sent_to_management',
+} as const;
 

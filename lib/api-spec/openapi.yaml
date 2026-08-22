@@ -14,6 +14,8 @@ tags:
     description: Excel template catalog
   - name: dashboard
     description: Workspace overview
+  - name: reports
+    description: Completed report workflow
 paths:
   /healthz:
     get:
@@ -134,6 +136,73 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Activity"
+  /reports:
+    get:
+      operationId: listReports
+      tags: [reports]
+      summary: List completed reports
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [submitted, in_review, returned, approved, sent_to_management]
+        - name: unit
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Report list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Report"
+    post:
+      operationId: createReport
+      tags: [reports]
+      summary: Submit a completed report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportInput"
+      responses:
+        "201":
+          description: Submitted report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+  /reports/{id}/status:
+    patch:
+      operationId: updateReportStatus
+      tags: [reports]
+      summary: Update report review status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportStatusUpdate"
+      responses:
+        "200":
+          description: Updated report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
 components:
   schemas:
     HealthStatus:
@@ -263,4 +332,81 @@ components:
         - templateName
         - userName
         - timestamp
+    Report:
+      type: object
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+        unit:
+          type: string
+        fileName:
+          type: string
+        fileSize:
+          type: string
+        fileUrl:
+          type: string
+        submittedBy:
+          type: string
+        submittedAt:
+          type: string
+        status:
+          type: string
+          enum: [submitted, in_review, returned, approved, sent_to_management]
+        reviewerComment:
+          type: string
+        reviewedBy:
+          type: string
+      required:
+        - id
+        - title
+        - unit
+        - fileName
+        - fileSize
+        - fileUrl
+        - submittedBy
+        - submittedAt
+        - status
+        - reviewerComment
+        - reviewedBy
+    ReportInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        unit:
+          type: string
+          minLength: 1
+        fileName:
+          type: string
+          minLength: 1
+        fileSize:
+          type: string
+        fileUrl:
+          type: string
+        submittedBy:
+          type: string
+      required:
+        - title
+        - unit
+        - fileName
+        - fileSize
+        - fileUrl
+        - submittedBy
+    ReportStatusUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [in_review, returned, approved, sent_to_management]
+        reviewerComment:
+          type: string
+        reviewedBy:
+          type: string
+      required:
+        - status
+        - reviewerComment
+        - reviewedBy
 

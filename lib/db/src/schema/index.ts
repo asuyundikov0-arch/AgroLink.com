@@ -47,7 +47,22 @@ export const activityTable = pgTable("activity", {
   timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const reportsTable = pgTable("reports", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  unit: text("unit").notNull(),
+  fileName: text("file_name").notNull(),
+  fileSize: text("file_size").notNull(),
+  fileUrl: text("file_url").notNull(),
+  submittedBy: text("submitted_by").notNull(),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
+  status: text("status").notNull().default("submitted"),
+  reviewerComment: text("reviewer_comment").notNull().default(""),
+  reviewedBy: text("reviewed_by").notNull().default(""),
+});
+
 export const insertTemplateSchema = createInsertSchema(templatesTable).omit({ id: true });
 export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
 export type Template = typeof templatesTable.$inferSelect;
 export type Activity = typeof activityTable.$inferSelect;
+export type Report = typeof reportsTable.$inferSelect;
