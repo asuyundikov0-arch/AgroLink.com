@@ -1,6 +1,8 @@
 import { type FormEvent, type ReactNode, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
+  Archive,
+  BarChart3,
   Check,
   ChevronDown,
   CircleHelp,
@@ -16,20 +18,35 @@ import {
   Users,
   X,
   RotateCcw,
+  Search,
+  Settings as SettingsIcon,
   Download,
   Upload as UploadIcon,
 } from "lucide-react";
 import {
   type Report,
   type RoleRequest,
+  type Activity,
+  type DashboardSummary,
+  type Template,
+  type TemplateInput,
   getGetMyRoleRequestQueryKey,
+  getGetDashboardSummaryQueryKey,
+  getGetTemplateQueryKey,
   getListReportsQueryKey,
   getListRoleRequestsQueryKey,
+  getListTemplatesQueryKey,
   useCreateReport,
   useCreateRoleRequest,
+  useCreateTemplate,
+  useDeleteTemplate,
+  useGetDashboardSummary,
+  useGetTemplate,
   useGetMyRoleRequest,
+  useListActivity,
   useListReports,
   useListRoleRequests,
+  useListTemplates,
   useReviewRoleRequest,
   useUpdateReportStatus,
 } from "@workspace/api-client-react";
@@ -314,7 +331,7 @@ function Cabinet({ role }: { role: AppRole }) {
       unit,
       fileName: file.name,
       fileSize: `${(file.size / 1024 / 1024).toFixed(1)} МБ`,
-      fileUrl: isEconomist ? "/files/reestr-finansirovaniya-vedenovka.pdf" : "/files/svodka-uborka-arysan-green.xlsx",
+      fileUrl: "",
     } }, { onSuccess: () => { setFile(null); setNotice(isEconomist ? "Реестр отправлен директору хозяйства." : "Отчёт отправлен главному агроному."); refreshReports(); }, onError: () => setNotice("Не удалось отправить документ.") });
   };
   const moveReport = (report: Report, status: "in_review" | "returned" | "approved" | "sent_to_management", reviewerComment: string) => {
@@ -332,13 +349,94 @@ function Cabinet({ role }: { role: AppRole }) {
   );
 }
 
+type WorkspaceSection = "cabinet" | "templates" | "agro" | "settings";
+
+const templateCategories = ["Финансы", "Продажи", "Кадры", "Маркетинг", "Операции", "Отчётность", "Персонал"];
+
+function TemplateRow({ template, compact = false, onOpen }: { template: Template; compact?: boolean; onOpen: (id: number) => void }) {
+  return (
+    <article className={cn("flex flex-col gap-4 border-b border-border/70 p-4 last:border-0 sm:flex-row sm:items-center sm:justify-between", compact && "p-3")}>
+      <div className="flex min-w-0 items-start gap-3"><FileBadge /><div className="min-w-0"><h3 className="truncate text-sm font-bold">{template.name}</h3><p className="mt-1 text-xs text-muted-foreground">{template.category} · {template.department} · {template.fileName} · {template.fileSize}</p><div className="mt-2 flex flex-wrap gap-2"><span className="meta-chip">{template.version}</span><span className="meta-chip">{formatDate(template.updatedAt)}</span></div></div></div>
+      <button type="button" className="button button-secondary shrink-0 self-start text-xs sm:self-center" onClick={() => onOpen(template.id)} data-testid={`button-open-template-${template.id}`}>Открыть <ChevronDown size={14} className="-rotate-90" /></button>
+    </article>
+  );
+}
+
+function TemplateCatalog({ role, onOpen, onUpload }: { role: AppRole; onOpen: (id: number) => void; onUpload: () => void }) {
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const templatesQuery = useListTemplates({ search: search || undefined, category: category || undefined }, { query: { queryKey: getListTemplatesQueryKey({ search: search || undefined, category: category || undefined }) } });
+  const templates = (templatesQuery.data as Template[] | undefined) ?? [];
+  return (
+    <div className="animate-page">
+      <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="eyebrow">Библиотека</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em]">Шаблоны документов</h1><p className="mt-2 text-sm text-muted-foreground">Скачивайте рабочие файлы в исходном формате и используйте их по назначению.</p></div>{role === "general_director" && <button type="button" className="button button-primary self-start text-xs sm:self-auto" onClick={onUpload} data-testid="button-open-template-upload"><UploadIcon size={15} /> Добавить шаблон</button>}</div>
+      <section className="surface-card mb-5 p-4"><div className="grid gap-3 md:grid-cols-[1fr_220px]"><label className="relative block"><Search size={16} className="pointer-events-none absolute left-3 top-3 text-muted-foreground" /><input className="text-input pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Поиск по названию..." data-testid="input-template-search" /></label><label className="select-wrap"><select className="text-input appearance-none" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">Все категории</option>{templateCategories.map((item) => <option key={item}>{item}</option>)}</select><ChevronDown size={15} /></label></div></section>
+      <section className="surface-card overflow-hidden"><div className="flex items-center justify-between border-b border-border bg-muted/25 px-5 py-4"><h2 className="font-display text-base font-bold">Доступные шаблоны</h2><span className="meta-chip">{templatesQuery.isLoading ? "Загрузка" : `${templates.length} файлов`}</span></div>{templatesQuery.isLoading ? <div className="p-5"><LoadingRows count={4} /></div> : templatesQuery.isError ? <ErrorState onRetry={() => templatesQuery.refetch()} /> : templates.length === 0 ? <EmptyState title="Шаблоны не найдены" description="Измените запрос или категорию поиска." /> : <div>{templates.map((template) => <TemplateRow key={template.id} template={template} onOpen={onOpen} />)}</div>}</section>
+    </div>
+  );
+}
+
+function TemplateDetails({ id, role, onBack }: { id: number; role: AppRole; onBack: () => void }) {
+  const templateQuery = useGetTemplate(id, { query: { enabled: Number.isFinite(id), queryKey: getGetTemplateQueryKey(id) } });
+  const deleteTemplate = useDeleteTemplate();
+  const template = templateQuery.data as Template | undefined;
+  if (templateQuery.isLoading) return <LoadingRows count={3} />;
+  if (templateQuery.isError || !template) return <ErrorState onRetry={() => templateQuery.refetch()} />;
+  const remove = () => {
+    if (window.confirm("Удалить этот шаблон из библиотеки?")) deleteTemplate.mutate({ id }, { onSuccess: onBack });
+  };
+  return <div className="animate-page"><button type="button" onClick={onBack} className="button button-ghost -ml-3 mb-6 text-xs" data-testid="button-back-templates">← Назад к шаблонам</button><section className="surface-card p-6 sm:p-8"><div className="flex flex-col gap-5 sm:flex-row sm:items-start"><div className="file-badge file-badge-large"><FileSpreadsheet size={24} /><span>{template.fileType}</span></div><div className="min-w-0"><p className="eyebrow">{template.category}</p><h1 className="mt-2 font-display text-3xl font-bold tracking-[-0.05em]">{template.name}</h1><p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">{template.description || "Рабочий шаблон общей библиотеки документов."}</p></div></div><div className="mt-8 grid gap-3 border-y border-border py-5 text-xs sm:grid-cols-3"><div><span className="text-muted-foreground">Подразделение</span><strong className="mt-1 block">{template.department}</strong></div><div><span className="text-muted-foreground">Версия</span><strong className="mt-1 block">{template.version}</strong></div><div><span className="text-muted-foreground">Обновлён</span><strong className="mt-1 block">{formatDate(template.updatedAt)}</strong></div></div><div className="mt-6 flex flex-wrap gap-3"><a href={template.fileUrl} download={template.fileName} className="button button-primary" data-testid="button-download-template"><Download size={15} /> Скачать {template.fileType}</a>{role === "general_director" && <button type="button" className="button button-danger" onClick={remove} disabled={deleteTemplate.isPending} data-testid="button-delete-template"><X size={15} /> {deleteTemplate.isPending ? "Удаляем..." : "Удалить"}</button>}</div></section></div>;
+}
+
+function TemplateUpload({ onSaved, onCancel }: { onSaved: (id: number) => void; onCancel: () => void }) {
+  const createTemplate = useCreateTemplate();
+  const [form, setForm] = useState<TemplateInput>({ name: "", description: "", category: "Отчётность", department: "Агрономия", fileName: "", fileSize: "", fileType: "xlsx", accessGroup: "all", fileUrl: "" });
+  const [error, setError] = useState("");
+  const update = (field: keyof TemplateInput, value: string) => setForm((current) => ({ ...current, [field]: value }));
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!form.name || !form.fileName) { setError("Укажите название и выберите файл."); return; }
+    createTemplate.mutate({ data: { ...form, fileUrl: form.fileUrl || form.fileName, fileSize: form.fileSize || "Не указан" } }, { onSuccess: (template) => onSaved(template.id), onError: () => setError("Не удалось сохранить шаблон.") });
+  };
+  return <div className="animate-page"><button type="button" onClick={onCancel} className="button button-ghost -ml-3 mb-6 text-xs">← Назад к шаблонам</button><section className="surface-card max-w-2xl p-6 sm:p-8"><p className="eyebrow">Библиотека</p><h1 className="mt-2 font-display text-3xl font-bold tracking-[-0.05em]">Добавить шаблон</h1><p className="mt-2 text-sm text-muted-foreground">Исходный файл будет доступен сотрудникам с подтверждённой ролью.</p><form onSubmit={submit} className="mt-7 grid gap-5"><label className="form-label">Название<input className="text-input mt-2" value={form.name} onChange={(event) => update("name", event.target.value)} placeholder="Например, Сводка по уборке" /></label><label className="form-label">Описание<textarea className="text-input mt-2 min-h-24 resize-y" value={form.description} onChange={(event) => update("description", event.target.value)} /></label><div className="grid gap-5 sm:grid-cols-2"><label className="form-label">Категория<select className="text-input mt-2" value={form.category} onChange={(event) => update("category", event.target.value)}>{templateCategories.map((item) => <option key={item}>{item}</option>)}</select></label><label className="form-label">Подразделение<select className="text-input mt-2" value={form.department} onChange={(event) => update("department", event.target.value)}><option>Агрономия</option><option>Финансовый отдел</option><option>АФ Веденовка</option><option>АПК Арыстан Grain</option></select></label></div><label className="form-label">Файл<input className="text-input mt-2 pt-2" type="file" accept=".xlsx,.xls,.pdf" onChange={(event) => { const selected = event.target.files?.[0]; if (selected) setForm((current) => ({ ...current, fileName: selected.name, fileSize: `${(selected.size / 1024).toFixed(0)} КБ`, fileType: selected.name.toLowerCase().endsWith(".pdf") ? "pdf" : "xlsx" })); }} data-testid="input-template-file" /></label>{error && <p className="text-xs font-medium text-destructive">{error}</p>}<div className="flex flex-wrap justify-end gap-3 pt-2"><button type="button" className="button button-secondary" onClick={onCancel}>Отмена</button><button type="submit" className="button button-primary" disabled={createTemplate.isPending} data-testid="button-save-template">{createTemplate.isPending ? "Сохраняем..." : "Сохранить шаблон"} <Check size={15} /></button></div></form></section></div>;
+}
+
+function AgroBlock({ onOpen }: { onOpen: (id: number) => void }) {
+  const templatesQuery = useListTemplates(undefined, { query: { queryKey: getListTemplatesQueryKey() } });
+  const templates = (templatesQuery.data as Template[] | undefined) ?? [];
+  const units = [{ name: "АПК Арыстан Grain", color: "bg-accent", hint: "Отчёты по уборке и производственным показателям" }, { name: "АФ Веденовка", color: "bg-teal-400", hint: "Финансовые реестры и отчётность подразделения" }];
+  return <div className="animate-page"><div className="mb-7"><p className="eyebrow">Специализированный раздел</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em]">АгроБлок</h1><p className="mt-2 text-sm text-muted-foreground">Шаблоны АПК Арыстан Grain и АФ Веденовка.</p></div><div className="grid gap-5 lg:grid-cols-2">{units.map((unit) => { const template = templates.find((item) => item.name.includes(unit.name.includes("Арыстан") ? "Арыстан" : "Веденовка")); return <section className="surface-card overflow-hidden" key={unit.name}><div className={cn("h-2", unit.color)} /><div className="p-6"><p className="eyebrow">Подразделение</p><h2 className="mt-2 font-display text-2xl font-bold tracking-[-0.04em]">{unit.name}</h2><p className="mt-3 text-sm leading-6 text-muted-foreground">{unit.hint}</p>{template ? <div className="mt-6"><TemplateRow template={template} compact onOpen={onOpen} /></div> : <p className="mt-6 text-xs text-muted-foreground">Шаблоны пока не добавлены.</p>}</div></section>; })}</div></div>;
+}
+
+function SettingsPage({ role, request }: { role: AppRole; request: RoleRequest }) {
+  const summaryQuery = useGetDashboardSummary({ query: { queryKey: getGetDashboardSummaryQueryKey() } });
+  const activityQuery = useListActivity();
+  const summary = summaryQuery.data as DashboardSummary | undefined;
+  const activities = (activityQuery.data as Activity[] | undefined) ?? [];
+  return <div className="animate-page"><div className="mb-7"><p className="eyebrow">Рабочее пространство</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em]">Настройки и доступ</h1><p className="mt-2 text-sm text-muted-foreground">Параметры профиля и состояние общей библиотеки.</p></div><div className="grid gap-5 lg:grid-cols-2"><section className="surface-card p-6"><div className="section-heading"><div className="setting-icon"><UserRound size={17} /></div><div><h2>Профиль</h2><p>Подтверждённые данные текущей заявки.</p></div></div><dl className="mt-6 space-y-4 text-sm"><div className="flex justify-between gap-4 border-b border-border pb-3"><dt className="text-muted-foreground">Сотрудник</dt><dd className="text-right font-semibold">{request.displayName}</dd></div><div className="flex justify-between gap-4 border-b border-border pb-3"><dt className="text-muted-foreground">E-mail</dt><dd className="text-right font-semibold">{request.email}</dd></div><div className="flex justify-between gap-4 border-b border-border pb-3"><dt className="text-muted-foreground">Роль</dt><dd className="text-right font-semibold text-teal-800">{roleLabels[role]}</dd></div><div className="flex justify-between gap-4"><dt className="text-muted-foreground">Подразделение</dt><dd className="text-right font-semibold">{request.department}</dd></div></dl></section><section className="surface-card p-6"><div className="section-heading"><div className="setting-icon"><BarChart3 size={17} /></div><div><h2>Состояние библиотеки</h2><p>Сводка доступных рабочих материалов.</p></div></div><div className="mt-6 grid grid-cols-2 gap-3"><div className="rounded-xl bg-muted/50 p-4"><p className="text-xs text-muted-foreground">Всего шаблонов</p><strong className="mt-2 block font-display text-2xl">{summary?.totalTemplates ?? "—"}</strong></div><div className="rounded-xl bg-muted/50 p-4"><p className="text-xs text-muted-foreground">Активность</p><strong className="mt-2 block font-display text-2xl">{activities.length || "—"}</strong></div></div></section></div></div>;
+}
+
+function Workspace({ role, request }: { role: AppRole; request: RoleRequest }) {
+  const [section, setSection] = useState<WorkspaceSection>("cabinet");
+  const [templateId, setTemplateId] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const openTemplate = (id: number) => { setTemplateId(id); setUploading(false); setSection("templates"); };
+  const navigation = [
+    { id: "cabinet" as const, label: "Личный кабинет", icon: ClipboardCheck },
+    { id: "templates" as const, label: "Шаблоны", icon: FileSpreadsheet },
+    { id: "agro" as const, label: "АгроБлок", icon: Archive },
+    { id: "settings" as const, label: "Настройки", icon: SettingsIcon },
+  ];
+  return <><div className="mb-7 flex flex-wrap gap-2" role="tablist" aria-label="Разделы кабинета">{navigation.map(({ id, label, icon: Icon }) => <button type="button" key={id} role="tab" aria-selected={section === id} className={cn("workspace-tab", section === id && "workspace-tab-active")} onClick={() => { setSection(id); setTemplateId(null); setUploading(false); }} data-testid={`tab-workspace-${id}`}><Icon size={15} />{label}</button>)}</div>{section === "cabinet" && <Cabinet role={role} />}{section === "templates" && (templateId ? <TemplateDetails id={templateId} role={role} onBack={() => setTemplateId(null)} /> : uploading ? <TemplateUpload onCancel={() => setUploading(false)} onSaved={(id) => { setUploading(false); setTemplateId(id); queryClient.invalidateQueries({ queryKey: getListTemplatesQueryKey() }); }} /> : <TemplateCatalog role={role} onOpen={openTemplate} onUpload={() => setUploading(true)} />)}{section === "agro" && <AgroBlock onOpen={openTemplate} />}{section === "settings" && <SettingsPage role={role} request={request} />}</>;
+}
+
 function AccessGate() {
   const requestQuery = useGetMyRoleRequest({ query: { queryKey: getGetMyRoleRequestQueryKey(), refetchInterval: 12000 } });
   const request = (requestQuery.data as RoleRequest | null | undefined) ?? null;
   if (requestQuery.isLoading) return <main className="access-page"><LoadingRows count={2} /></main>;
   if (requestQuery.isError) return <main className="access-page"><ErrorState onRetry={() => requestQuery.refetch()} /></main>;
   if (request?.status !== "approved") return <RoleRequestScreen request={request} />;
-  return <Shell role={request.requestedRole as AppRole} request={request}><Cabinet role={request.requestedRole as AppRole} /></Shell>;
+  return <Shell role={request.requestedRole as AppRole} request={request}><Workspace role={request.requestedRole as AppRole} request={request} /></Shell>;
 }
 
 function Home() {

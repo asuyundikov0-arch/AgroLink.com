@@ -13,6 +13,7 @@ import {
 } from "@workspace/api-zod";
 import { activityTable, db, templatesTable } from "@workspace/db";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
+import { resolveProtectedFile } from "../lib/protected-files";
 
 const router: IRouter = Router();
 
@@ -142,6 +143,7 @@ async function ensureSeeded() {
 function serializeTemplate(template: typeof templatesTable.$inferSelect) {
   return {
     ...template,
+    fileUrl: `/api/templates/${template.id}/download`,
     updatedAt: template.updatedAt.toISOString(),
     status: template.status === "archived" ? "archived" as const : "active" as const,
   };
@@ -204,6 +206,26 @@ router.get("/templates/:id", requireApprovedRole, async (req, res, next) => {
       return;
     }
     res.json(GetTemplateResponse.parse(serializeTemplate(template)));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/templates/:id/download", requireApprovedRole, async (req, res, next) => {
+  try {
+    const { id } = GetTemplateParams.parse({ id: Number(req.params.id) });
+    const [template] = await db.select().from(templatesTable).where(eq(templatesTable.id, id));
+    if (!template) {
+      res.status(404).json({ error: "Шаблон не найден" });
+      return;
+    }
+    if (!canUseTemplate(res.locals.access as RoleAccess, template)) {
+      res.status(403).json({ error: "У вас нет доступа к этому шаблону" });
+      return;
+    }
+    res.download(resolveProtectedFile(template.fileUrl), template.fileName, (error) => {
+      if (error && !res.headersSent) next(error);
+    });
   } catch (error) {
     next(error);
   }

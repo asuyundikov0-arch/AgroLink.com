@@ -11,6 +11,7 @@ import {
 } from "@workspace/api-zod";
 import { db, reportsTable } from "@workspace/db";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
+import { resolveProtectedFile } from "../lib/protected-files";
 
 const router: IRouter = Router();
 
@@ -22,6 +23,7 @@ type ReportType = typeof allowedReportTypes[number];
 function serializeReport(report: typeof reportsTable.$inferSelect) {
   return {
     ...report,
+    fileUrl: `/api/reports/${report.id}/download`,
     submittedAt: report.submittedAt.toISOString(),
     status: allowedStatuses.includes(report.status as ReportStatus)
       ? report.status as ReportStatus
@@ -30,6 +32,14 @@ function serializeReport(report: typeof reportsTable.$inferSelect) {
       ? report.reportType as ReportType
       : "agronomy",
   };
+}
+
+function canViewReport(report: typeof reportsTable.$inferSelect, access: RoleAccess) {
+  if (access.role === "agronomist") return report.reportType === "agronomy" && report.submittedByUserId === access.userId;
+  if (access.role === "economist") return report.reportType === "financing_register" && report.submittedByUserId === access.userId;
+  if (access.role === "chief_agronomist") return report.reportType === "agronomy";
+  if (access.role === "farm_director") return report.reportType === "financing_register";
+  return access.role === "general_director" && report.status === "sent_to_management";
 }
 
 async function ensureReportSeeded() {
@@ -111,6 +121,27 @@ router.post("/reports", requireApprovedRole, async (req, res, next) => {
       submittedByUserId: access.userId,
     }).returning();
     res.status(201).json(CreateReportResponse.parse(serializeReport(report)));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/reports/:id/download", requireApprovedRole, async (req, res, next) => {
+  try {
+    const { id } = UpdateReportStatusParams.parse({ id: Number(req.params.id) });
+    const [report] = await db.select().from(reportsTable).where(eq(reportsTable.id, id));
+    const access = res.locals.access as RoleAccess;
+    if (!report) {
+      res.status(404).json({ error: "Отчёт не найден" });
+      return;
+    }
+    if (!canViewReport(report, access)) {
+      res.status(403).json({ error: "У вас нет доступа к этому документу" });
+      return;
+    }
+    res.download(resolveProtectedFile(report.fileUrl), report.fileName, (error) => {
+      if (error && !res.headersSent) next(error);
+    });
   } catch (error) {
     next(error);
   }

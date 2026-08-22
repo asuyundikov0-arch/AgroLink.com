@@ -110,6 +110,25 @@ paths:
       responses:
         "204":
           description: Deleted
+  /templates/{id}/download:
+    get:
+      operationId: downloadTemplate
+      tags: [templates]
+      summary: Download an authorized template file
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Original template file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
   /dashboard/summary:
     get:
       operationId: getDashboardSummary
@@ -203,6 +222,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Report"
+  /reports/{id}/download:
+    get:
+      operationId: downloadReport
+      tags: [reports]
+      summary: Download an authorized completed report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Original report file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
   /role-requests/me:
     get:
       operationId: getMyRoleRequest
