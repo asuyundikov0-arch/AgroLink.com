@@ -57,6 +57,7 @@ import { Route, Router as WouterRouter, Switch, useLocation } from "wouter";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import companyEmblem from "@assets/IMG_0731_1787404427367.jpeg";
 import "./index.css";
 
 const queryClient = new QueryClient();
@@ -79,7 +80,7 @@ const clerkAppearance = {
   options: {
     logoPlacement: "inside" as const,
     logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+    logoImageUrl: companyEmblem,
   },
   variables: {
     colorPrimary: "#243649",
@@ -102,11 +103,11 @@ const clerkAppearance = {
     headerSubtitle: "text-slate-500",
     socialButtonsBlockButtonText: "text-slate-700",
     formFieldLabel: "text-slate-700",
-    footerActionLink: "text-teal-700",
+    footerActionLink: "text-[#0b679e]",
     footerActionText: "text-slate-500",
     dividerText: "text-slate-400",
-    identityPreviewEditButton: "text-teal-700",
-    formFieldSuccessText: "text-teal-700",
+    identityPreviewEditButton: "text-[#0b679e]",
+    formFieldSuccessText: "text-[#0b679e]",
     alertText: "text-slate-700",
     logoBox: "pb-2",
     logoImage: "h-10 w-10",
@@ -135,6 +136,10 @@ function formatDate(value: string) {
   return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(date);
 }
 
+function BrandEmblem({ size = "md" }: { size?: "md" | "lg" }) {
+  return <img src={companyEmblem} alt="Agrolink" className={cn("brand-emblem", size === "lg" ? "brand-emblem-lg" : "brand-emblem-md")} />;
+}
+
 function FileBadge() {
   return <div className="file-badge"><FileSpreadsheet size={19} strokeWidth={1.8} /><span>XLSX</span></div>;
 }
@@ -156,9 +161,9 @@ function PublicLanding() {
     <main className="auth-landing">
       <div className="auth-landing-grid" aria-hidden="true" />
       <section className="auth-landing-card">
-        <div className="brand-mark"><FileSpreadsheet size={22} /></div>
+        <div className="landing-brand"><BrandEmblem size="lg" /><div><p className="landing-brand-name">AGROLINK</p><p className="landing-brand-caption">Корпоративная база документов</p></div></div>
         <p className="eyebrow mt-7">Единая база шаблонов</p>
-        <h1 className="mt-3 font-display text-4xl font-bold tracking-[-0.05em] text-foreground">Рабочие документы.<br /><span className="text-teal-700">Понятные роли.</span></h1>
+        <h1 className="mt-3 font-display text-4xl font-bold tracking-[-0.05em] text-foreground">Рабочие документы.<br /><span className="text-[#0b679e]">Понятные роли.</span></h1>
         <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground">Каждый сотрудник выбирает роль при регистрации. Доступ к отчётам открывается только после согласования руководителем.</p>
         <div className="mt-8 flex flex-wrap gap-3">
           <a href={`${basePath}/sign-in`} className="button button-primary">Войти <UserRound size={16} /></a>
@@ -166,7 +171,7 @@ function PublicLanding() {
         </div>
       </section>
       <aside className="auth-landing-aside">
-        <ShieldCheck size={28} className="text-teal-700" />
+        <ShieldCheck size={28} className="text-[#0b679e]" />
         <h2 className="mt-5 font-display text-2xl font-bold tracking-[-0.04em]">Доступ под контролем</h2>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">После регистрации заявка попадает в очередь руководителя. До согласования действия по рабочим ролям недоступны.</p>
       </aside>
@@ -278,7 +283,7 @@ function Shell({ children, role, request }: { children: ReactNode; role: AppRole
   return (
     <div className="min-h-[100dvh] bg-background text-foreground">
       <aside className={cn("fixed inset-y-0 left-0 z-30 flex w-[256px] flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground transition-transform duration-300 md:translate-x-0", mobileOpen ? "translate-x-0" : "-translate-x-full")}>
-        <div className="mb-9 flex items-center gap-3 px-2"><div className="brand-mark"><FileSpreadsheet size={20} /></div><div><div className="font-display text-[15px] font-bold tracking-[-0.02em]">Единая база</div><div className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-sidebar-foreground/45">Шаблонов</div></div></div>
+        <div className="mb-9 flex items-center gap-3 px-2"><BrandEmblem /><div><div className="font-display text-[15px] font-bold tracking-[-0.02em]">AGROLINK</div><div className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-sidebar-foreground/55">Единая база шаблонов</div></div></div>
         <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/35">Рабочее пространство</div>
         <div className="nav-item nav-item-active"><ClipboardCheck size={17} /><span>Личный кабинет</span></div>
         <div className="mt-auto border-t border-sidebar-border px-2 pt-4"><div className="flex items-center gap-3"><div className="avatar avatar-sm avatar-accent">{initials(request.displayName)}</div><div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold">{request.displayName}</p><p className="truncate text-[11px] text-sidebar-foreground/45">{roleLabels[role]}</p></div><button type="button" className="icon-button-dark" title="Выйти" aria-label="Выйти" onClick={() => signOut({ redirectUrl: basePath || "/" })}><LogOut size={16} /></button></div></div>
