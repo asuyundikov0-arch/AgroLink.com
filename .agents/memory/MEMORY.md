@@ -1,2 +1,3 @@
 - [OpenAPI integer compatibility](api-integer-zod-compat.md) — generated Zod schemas may emit unsupported `z.int()` with the workspace's Zod version.
 - [Secure role bootstrap](secure-role-bootstrap.md) — the first general director is configured server-side; no browser user may self-assign it.
+- [Protected document downloads](protected-document-downloads.md) — original files must stream through role-checked API routes, never public URLs.

@@ -444,6 +444,83 @@ export const useDeleteTemplate = <TError = ErrorType<unknown>,
       return useMutation(getDeleteTemplateMutationOptions(options));
     }
 
+export const getDownloadTemplateUrl = (id: number,) => {
+
+
+
+
+  return `/api/templates/${id}/download`
+}
+
+/**
+ * @summary Download an authorized template file
+ */
+export const downloadTemplate = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getDownloadTemplateUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadTemplateQueryKey = (id: number,) => {
+    return [
+    `/api/templates/${id}/download`
+    ] as const;
+    }
+
+
+export const getDownloadTemplateQueryOptions = <TData = Awaited<ReturnType<typeof downloadTemplate>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadTemplate>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadTemplateQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadTemplate>>> = ({ signal }) => downloadTemplate(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadTemplate>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DownloadTemplateQueryResult = NonNullable<Awaited<ReturnType<typeof downloadTemplate>>>
+export type DownloadTemplateQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Download an authorized template file
+ */
+
+export function useDownloadTemplate<TData = Awaited<ReturnType<typeof downloadTemplate>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadTemplate>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDownloadTemplateQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getGetDashboardSummaryUrl = () => {
 
 
@@ -824,6 +901,83 @@ export const useUpdateReportStatus = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getUpdateReportStatusMutationOptions(options));
     }
+
+export const getDownloadReportUrl = (id: number,) => {
+
+
+
+
+  return `/api/reports/${id}/download`
+}
+
+/**
+ * @summary Download an authorized completed report
+ */
+export const downloadReport = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getDownloadReportUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadReportQueryKey = (id: number,) => {
+    return [
+    `/api/reports/${id}/download`
+    ] as const;
+    }
+
+
+export const getDownloadReportQueryOptions = <TData = Awaited<ReturnType<typeof downloadReport>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadReportQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadReport>>> = ({ signal }) => downloadReport(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DownloadReportQueryResult = NonNullable<Awaited<ReturnType<typeof downloadReport>>>
+export type DownloadReportQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Download an authorized completed report
+ */
+
+export function useDownloadReport<TData = Awaited<ReturnType<typeof downloadReport>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDownloadReportQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetMyRoleRequestUrl = () => {
 

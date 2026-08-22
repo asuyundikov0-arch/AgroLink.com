@@ -120,6 +120,16 @@ export const DeleteTemplateResponse = zod.void()
 
 
 /**
+ * @summary Download an authorized template file
+ */
+export const DownloadTemplateParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DownloadTemplateResponse = zod.unknown()
+
+
+/**
  * @summary Get workspace summary
  */
 export const GetDashboardSummaryResponse = zod.object({
@@ -229,6 +239,16 @@ export const UpdateReportStatusResponse = zod.object({
   "reviewerComment": zod.string(),
   "reviewedBy": zod.string()
 })
+
+
+/**
+ * @summary Download an authorized completed report
+ */
+export const DownloadReportParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DownloadReportResponse = zod.unknown()
 
 
 /**
