@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Единая база шаблонов"
+description = "Внутреннее веб-приложение для сотрудников: каталог Excel-шаблонов, безопасная загрузка и скачивание файлов, поиск, категории, версии и история изменений."
+version = "1.0.0"
+id = "artifacts/template-hub"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18244
+
+[services.development]
+run = "pnpm --filter @workspace/template-hub run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/template-hub", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/template-hub/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18244"
+BASE_PATH = "/"

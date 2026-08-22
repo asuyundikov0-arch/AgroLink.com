@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: templates
+    description: Excel template catalog
+  - name: dashboard
+    description: Workspace overview
 paths:
   /healthz:
     get:
@@ -24,6 +28,112 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /templates:
+    get:
+      operationId: listTemplates
+      tags: [templates]
+      summary: List templates
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: department
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Template list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Template"
+    post:
+      operationId: createTemplate
+      tags: [templates]
+      summary: Add a template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TemplateInput"
+      responses:
+        "201":
+          description: Created template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Template"
+  /templates/{id}:
+    get:
+      operationId: getTemplate
+      tags: [templates]
+      summary: Get template details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+             type: number
+      responses:
+        "200":
+          description: Template details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Template"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteTemplate
+      tags: [templates]
+      summary: Delete a template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+             type: number
+      responses:
+        "204":
+          description: Deleted
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get workspace summary
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /activity:
+    get:
+      operationId: listActivity
+      tags: [dashboard]
+      summary: List recent activity
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +143,124 @@ components:
           type: string
       required:
         - status
+    Template:
+      type: object
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        department:
+          type: string
+        fileName:
+          type: string
+        fileSize:
+          type: string
+        fileType:
+          type: string
+        version:
+          type: string
+        updatedAt:
+          type: string
+        updatedBy:
+          type: string
+        downloads:
+          type: number
+        accessGroup:
+          type: string
+          enum: [all, agronomists]
+        fileUrl:
+          type: string
+        status:
+          type: string
+          enum: [active, archived]
+      required:
+        - id
+        - name
+        - description
+        - category
+        - department
+        - fileName
+        - fileSize
+        - fileType
+        - version
+        - updatedAt
+        - updatedBy
+        - downloads
+        - accessGroup
+        - fileUrl
+        - status
+    TemplateInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        category:
+          type: string
+        department:
+          type: string
+        fileName:
+          type: string
+        fileSize:
+          type: string
+        fileType:
+          type: string
+        accessGroup:
+          type: string
+          enum: [all, agronomists]
+        fileUrl:
+          type: string
+      required:
+        - name
+        - description
+        - category
+        - department
+        - fileName
+        - fileSize
+        - fileType
+        - accessGroup
+        - fileUrl
+    DashboardSummary:
+      type: object
+      properties:
+        totalTemplates:
+          type: number
+        departments:
+          type: number
+        downloadsThisMonth:
+          type: number
+        newThisMonth:
+          type: number
+      required:
+        - totalTemplates
+        - departments
+        - downloadsThisMonth
+        - newThisMonth
+    Activity:
+      type: object
+      properties:
+        id:
+          type: number
+        action:
+          type: string
+          enum: [uploaded, updated, downloaded, archived]
+        templateName:
+          type: string
+        userName:
+          type: string
+        timestamp:
+          type: string
+      required:
+        - id
+        - action
+        - templateName
+        - userName
+        - timestamp
 

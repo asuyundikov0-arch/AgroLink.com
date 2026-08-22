@@ -17,4 +17,37 @@
 //   export type InsertPost = z.infer<typeof insertPostSchema>;
 //   export type Post = typeof postsTable.$inferSelect;
 
-export {}
+import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod/v4";
+
+export const templatesTable = pgTable("templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(),
+  department: text("department").notNull(),
+  fileName: text("file_name").notNull(),
+  fileSize: text("file_size").notNull(),
+  fileType: text("file_type").notNull(),
+  version: text("version").notNull().default("v1.0"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedBy: text("updated_by").notNull().default("Администратор"),
+  downloads: integer("downloads").notNull().default(0),
+  accessGroup: text("access_group").notNull().default("all"),
+  fileUrl: text("file_url").notNull().default(""),
+  status: text("status").notNull().default("active"),
+});
+
+export const activityTable = pgTable("activity", {
+  id: serial("id").primaryKey(),
+  action: text("action").notNull(),
+  templateName: text("template_name").notNull(),
+  userName: text("user_name").notNull(),
+  timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertTemplateSchema = createInsertSchema(templatesTable).omit({ id: true });
+export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
+export type Template = typeof templatesTable.$inferSelect;
+export type Activity = typeof activityTable.$inferSelect;

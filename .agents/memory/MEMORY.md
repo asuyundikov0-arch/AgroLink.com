@@ -1,0 +1,1 @@
+- [OpenAPI integer compatibility](api-integer-zod-compat.md) — generated Zod schemas may emit unsupported `z.int()` with the workspace's Zod version.
