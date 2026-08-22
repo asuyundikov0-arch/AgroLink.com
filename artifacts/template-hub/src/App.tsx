@@ -113,7 +113,6 @@ function Shell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [topNotice, setTopNotice] = useState('');
-  const [agroOpen, setAgroOpen] = useState(true);
   const navItems = [
     { href: '/', label: 'Обзор', icon: LayoutDashboard },
     { href: '/templates', label: 'Все шаблоны', icon: Library },
@@ -162,51 +161,16 @@ function Shell({ children }: { children: ReactNode }) {
             );
           })}
           <div className="mt-3 border-t border-sidebar-border/70 pt-3">
-            <button
-              type="button"
-              data-testid="button-toggle-agroblock"
-              className="nav-item w-full"
-              onClick={() => setAgroOpen((open) => !open)}
-              aria-expanded={agroOpen}
+            <Link
+              href="/agroblock"
+              data-testid="link-nav-agroblock"
+              onClick={() => setMobileOpen(false)}
+              className={cn('nav-item', location.startsWith('/agroblock') && 'nav-item-active')}
             >
               <FolderOpen size={17} strokeWidth={1.8} />
-              <span>Агроблок</span>
-              <ChevronDown size={14} className={cn('ml-auto transition-transform', !agroOpen && '-rotate-90')} />
-            </button>
-            {agroOpen && (
-              <div className="mt-1 space-y-1">
-                <div>
-                  <div className="nav-item pl-10 text-[11px]">
-                    <span className="size-1.5 rounded-full bg-accent" />
-                    <span className="truncate">АПК Арыстан Grain</span>
-                  </div>
-                  <Link
-                    href="/templates?search=Шаблон Отчет по Уборке ( АПК Арыстан Грейн)"
-                    data-testid="link-nav-arysan-grain"
-                    onClick={() => setMobileOpen(false)}
-                    className="nav-item pl-[60px] text-[10px] text-sidebar-foreground/55"
-                  >
-                    <FileSpreadsheet size={13} />
-                    <span className="truncate">Шаблон Отчет по Уборке</span>
-                  </Link>
-                </div>
-                <div>
-                  <div className="nav-item pl-10 text-[11px]">
-                    <span className="size-1.5 rounded-full bg-teal-400" />
-                    <span className="truncate">АФ Веденовка</span>
-                  </div>
-                  <Link
-                    href="/templates?search=Шаблон Отчет по Уборке АФ Веденовка"
-                    data-testid="link-nav-vedenovka"
-                    onClick={() => setMobileOpen(false)}
-                    className="nav-item pl-[60px] text-[10px] text-sidebar-foreground/55"
-                  >
-                    <FileSpreadsheet size={13} />
-                    <span className="truncate">Шаблон Отчет по Уборке</span>
-                  </Link>
-                </div>
-              </div>
-            )}
+              <span>АгроБлок</span>
+              <ArrowUpRight size={14} className="ml-auto opacity-50" />
+            </Link>
           </div>
         </nav>
 
@@ -608,6 +572,55 @@ function Templates() {
   );
 }
 
+function AgroBlock() {
+  const templatesQuery = useListTemplates(undefined, { query: { queryKey: getListTemplatesQueryKey() } });
+  const templates = (templatesQuery.data as Template[] | undefined) ?? [];
+  const arysanTemplate = templates.find((template) => template.name.includes('Арыстан'));
+  const vedenovkaTemplate = templates.find((template) => template.name.includes('Веденовка'));
+  const units = [
+    { name: 'АПК Арыстан Grain', accent: 'bg-accent', template: arysanTemplate, fallback: 'Шаблон Отчет По Уборке в ТОО АПК Арыстан грейн' },
+    { name: 'АФ Веденовка', accent: 'bg-teal-400', template: vedenovkaTemplate, fallback: 'Шаблон Отчет По Уборке АФ Веденовка' },
+  ];
+
+  return (
+    <div className="animate-page">
+      <PageTitle
+        eyebrow="Раздел · АгроБлок"
+        title="АгроБлок"
+        description="Шаблоны отчётов агрономического направления, сгруппированные по подразделениям."
+      />
+      {templatesQuery.isLoading ? (
+        <div className="surface-card p-5"><LoadingRows count={2} /></div>
+      ) : templatesQuery.isError ? (
+        <ErrorState onRetry={() => templatesQuery.refetch()} />
+      ) : (
+        <div className="grid gap-5 lg:grid-cols-2">
+          {units.map((unit) => (
+            <section key={unit.name} className="surface-card overflow-hidden">
+              <div className="flex items-center gap-3 border-b border-border bg-muted/25 px-5 py-4">
+                <div className={cn('flex size-9 items-center justify-center rounded-lg', unit.accent)}>
+                  <FolderOpen size={17} className="text-sidebar" />
+                </div>
+                <div>
+                  <p className="eyebrow">Подразделение</p>
+                  <h2 className="mt-0.5 font-display text-lg font-bold tracking-[-0.035em]">{unit.name}</h2>
+                </div>
+              </div>
+              <div className="p-3">
+                {unit.template ? (
+                  <TemplateRow template={unit.template} compact />
+                ) : (
+                  <EmptyState title="Шаблон не найден" description={unit.fallback} />
+                )}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TemplateDetails() {
   const params = useParams<{ id?: string }>();
   const id = Number(params.id);
@@ -800,6 +813,7 @@ function Router() {
       <Shell>
         <Switch>
           <Route path="/" component={Overview} />
+          <Route path="/agroblock" component={AgroBlock} />
           <Route path="/templates/:id" component={TemplateDetails} />
           <Route path="/templates" component={Templates} />
           <Route path="/upload" component={Upload} />
