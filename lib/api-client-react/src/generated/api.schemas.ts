@@ -106,6 +106,7 @@ export const ReportStatus = {
   returned: 'returned',
   approved: 'approved',
   sent_to_management: 'sent_to_management',
+  archived: 'archived',
 } as const;
 
 export interface Report {
@@ -122,6 +123,42 @@ export interface Report {
   status: ReportStatus;
   reviewerComment: string;
   reviewedBy: string;
+  archiveSection: string;
+  archiveSubarchive: string;
+  /** @nullable */
+  archivedAt: string | null;
+  archivedBy: string;
+}
+
+export type ArchiveCellSection = typeof ArchiveCellSection[keyof typeof ArchiveCellSection];
+
+
+export const ArchiveCellSection = {
+  agronomical: 'agronomical',
+  engineering: 'engineering',
+  economic: 'economic',
+  accounting: 'accounting',
+  legal: 'legal',
+} as const;
+
+export type ArchiveCellSubarchive = typeof ArchiveCellSubarchive[keyof typeof ArchiveCellSubarchive];
+
+
+export const ArchiveCellSubarchive = {
+  seeding_reports: 'seeding_reports',
+  chemistry_reports: 'chemistry_reports',
+  harvesting_reports: 'harvesting_reports',
+  crop_rotations: 'crop_rotations',
+  tech_maps: 'tech_maps',
+  general: 'general',
+} as const;
+
+export interface ArchiveCell {
+  section: ArchiveCellSection;
+  subarchive: ArchiveCellSubarchive;
+  sectionLabel: string;
+  subarchiveLabel: string;
+  documentCount: number;
 }
 
 export interface ReportInput {
@@ -143,11 +180,37 @@ export const ReportStatusUpdateStatus = {
   returned: 'returned',
   approved: 'approved',
   sent_to_management: 'sent_to_management',
+  archived: 'archived',
+} as const;
+
+export type ReportStatusUpdateArchiveSection = typeof ReportStatusUpdateArchiveSection[keyof typeof ReportStatusUpdateArchiveSection];
+
+
+export const ReportStatusUpdateArchiveSection = {
+  agronomical: 'agronomical',
+  engineering: 'engineering',
+  economic: 'economic',
+  accounting: 'accounting',
+  legal: 'legal',
+} as const;
+
+export type ReportStatusUpdateArchiveSubarchive = typeof ReportStatusUpdateArchiveSubarchive[keyof typeof ReportStatusUpdateArchiveSubarchive];
+
+
+export const ReportStatusUpdateArchiveSubarchive = {
+  seeding_reports: 'seeding_reports',
+  chemistry_reports: 'chemistry_reports',
+  harvesting_reports: 'harvesting_reports',
+  crop_rotations: 'crop_rotations',
+  tech_maps: 'tech_maps',
+  general: 'general',
 } as const;
 
 export interface ReportStatusUpdate {
   status: ReportStatusUpdateStatus;
   reviewerComment: string;
+  archiveSection?: ReportStatusUpdateArchiveSection;
+  archiveSubarchive?: ReportStatusUpdateArchiveSubarchive;
 }
 
 export type RoleRequestRequestedRole = typeof RoleRequestRequestedRole[keyof typeof RoleRequestRequestedRole];
@@ -224,6 +287,8 @@ department?: string;
 export type ListReportsParams = {
 status?: ListReportsStatus;
 unit?: string;
+archiveSection?: ListReportsArchiveSection;
+archiveSubarchive?: ListReportsArchiveSubarchive;
 };
 
 export type ListReportsStatus = typeof ListReportsStatus[keyof typeof ListReportsStatus];
@@ -235,6 +300,30 @@ export const ListReportsStatus = {
   returned: 'returned',
   approved: 'approved',
   sent_to_management: 'sent_to_management',
+  archived: 'archived',
+} as const;
+
+export type ListReportsArchiveSection = typeof ListReportsArchiveSection[keyof typeof ListReportsArchiveSection];
+
+
+export const ListReportsArchiveSection = {
+  agronomical: 'agronomical',
+  engineering: 'engineering',
+  economic: 'economic',
+  accounting: 'accounting',
+  legal: 'legal',
+} as const;
+
+export type ListReportsArchiveSubarchive = typeof ListReportsArchiveSubarchive[keyof typeof ListReportsArchiveSubarchive];
+
+
+export const ListReportsArchiveSubarchive = {
+  seeding_reports: 'seeding_reports',
+  chemistry_reports: 'chemistry_reports',
+  harvesting_reports: 'harvesting_reports',
+  crop_rotations: 'crop_rotations',
+  tech_maps: 'tech_maps',
+  general: 'general',
 } as const;
 
 export type GetMyRoleRequest200RequestedRole = typeof GetMyRoleRequest200RequestedRole[keyof typeof GetMyRoleRequest200RequestedRole];

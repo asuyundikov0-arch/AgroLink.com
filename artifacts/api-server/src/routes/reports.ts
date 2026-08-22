@@ -12,10 +12,11 @@ import {
 import { db, reportsTable } from "@workspace/db";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { resolveProtectedFile } from "../lib/protected-files";
+import { isArchiveTarget } from "./archives";
 
 const router: IRouter = Router();
 
-const allowedStatuses = ["submitted", "in_review", "returned", "approved", "sent_to_management"] as const;
+const allowedStatuses = ["submitted", "in_review", "returned", "approved", "sent_to_management", "archived"] as const;
 type ReportStatus = typeof allowedStatuses[number];
 const allowedReportTypes = ["agronomy", "financing_register"] as const;
 type ReportType = typeof allowedReportTypes[number];
@@ -25,6 +26,7 @@ function serializeReport(report: typeof reportsTable.$inferSelect) {
     ...report,
     fileUrl: `/api/reports/${report.id}/download`,
     submittedAt: report.submittedAt.toISOString(),
+    archivedAt: report.archivedAt?.toISOString() ?? null,
     status: allowedStatuses.includes(report.status as ReportStatus)
       ? report.status as ReportStatus
       : "submitted",
@@ -35,6 +37,7 @@ function serializeReport(report: typeof reportsTable.$inferSelect) {
 }
 
 function canViewReport(report: typeof reportsTable.$inferSelect, access: RoleAccess) {
+  if (report.status === "archived") return Boolean(access.role);
   if (access.role === "agronomist") return report.reportType === "agronomy" && report.submittedByUserId === access.userId;
   if (access.role === "economist") return report.reportType === "financing_register" && report.submittedByUserId === access.userId;
   if (access.role === "chief_agronomist") return report.reportType === "agronomy";
@@ -85,7 +88,12 @@ router.get("/reports", requireApprovedRole, async (req, res, next) => {
     const conditions = [];
     if (filters.status) conditions.push(eq(reportsTable.status, filters.status));
     if (filters.unit) conditions.push(eq(reportsTable.unit, filters.unit));
-    if (role === "agronomist") {
+    if (filters.archiveSection) conditions.push(eq(reportsTable.archiveSection, filters.archiveSection));
+    if (filters.archiveSubarchive) conditions.push(eq(reportsTable.archiveSubarchive, filters.archiveSubarchive));
+    const listingArchive = filters.status === "archived";
+    if (listingArchive) {
+      conditions.push(eq(reportsTable.status, "archived"));
+    } else if (role === "agronomist") {
       conditions.push(eq(reportsTable.reportType, "agronomy"), eq(reportsTable.submittedByUserId, userId));
     } else if (role === "economist") {
       conditions.push(eq(reportsTable.reportType, "financing_register"), eq(reportsTable.submittedByUserId, userId));
@@ -154,7 +162,8 @@ router.patch("/reports/:id/status", requireApprovedRole, async (req, res, next) 
     const access = res.locals.access as RoleAccess;
     const role = access.role;
     const allowedReviewer = role === "chief_agronomist" || role === "farm_director";
-    if (!allowedReviewer) {
+    const finalApprover = role === "general_director";
+    if (!allowedReviewer && !finalApprover) {
       res.status(403).json({ error: "У вас нет права согласовывать документы" });
       return;
     }
@@ -163,13 +172,27 @@ router.patch("/reports/:id/status", requireApprovedRole, async (req, res, next) 
       res.status(404).json({ error: "Отчёт не найден" });
       return;
     }
+    if (body.status === "archived" && !finalApprover) {
+      res.status(403).json({ error: "Только генеральный директор может отправить документ в архив" });
+      return;
+    }
+    if (finalApprover && body.status !== "archived") {
+      res.status(403).json({ error: "Генеральный директор может выполнять только финальное архивирование" });
+      return;
+    }
     if ((role === "chief_agronomist" && existing.reportType !== "agronomy") || (role === "farm_director" && existing.reportType !== "financing_register")) {
       res.status(403).json({ error: "Этот документ не относится к вашей очереди согласования" });
       return;
     }
+    const isFinalArchive = finalApprover && existing.status === "sent_to_management" && body.status === "archived";
+    if (isFinalArchive && !isArchiveTarget(body.archiveSection, body.archiveSubarchive)) {
+      res.status(400).json({ error: "Выберите корректный архив и подархив" });
+      return;
+    }
     const transitionAllowed = (existing.status === "submitted" && body.status === "in_review")
       || (existing.status === "in_review" && ["returned", "approved"].includes(body.status))
-      || (existing.status === "approved" && body.status === "sent_to_management");
+      || (existing.status === "approved" && body.status === "sent_to_management")
+      || isFinalArchive;
     if (!transitionAllowed) {
       res.status(409).json({ error: "Недопустимое изменение статуса документа" });
       return;
@@ -178,6 +201,12 @@ router.patch("/reports/:id/status", requireApprovedRole, async (req, res, next) 
       status: body.status,
       reviewerComment: body.reviewerComment,
       reviewedBy: access.displayName,
+      ...(isFinalArchive ? {
+        archiveSection: body.archiveSection,
+        archiveSubarchive: body.archiveSubarchive,
+        archivedAt: new Date(),
+        archivedBy: access.displayName,
+      } : {}),
     }).where(eq(reportsTable.id, id)).returning();
     res.json(UpdateReportStatusResponse.parse(serializeReport(report)));
   } catch (error) {

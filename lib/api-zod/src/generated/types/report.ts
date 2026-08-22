@@ -22,4 +22,9 @@ export interface Report {
   status: ReportStatus;
   reviewerComment: string;
   reviewedBy: string;
+  archiveSection: string;
+  archiveSubarchive: string;
+  /** @nullable */
+  archivedAt: string | null;
+  archivedBy: string;
 }

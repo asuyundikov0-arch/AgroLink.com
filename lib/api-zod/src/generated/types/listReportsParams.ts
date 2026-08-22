@@ -5,9 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ListReportsArchiveSection } from './listReportsArchiveSection';
+import type { ListReportsArchiveSubarchive } from './listReportsArchiveSubarchive';
 import type { ListReportsStatus } from './listReportsStatus';
 
 export type ListReportsParams = {
 status?: ListReportsStatus;
 unit?: string;
+archiveSection?: ListReportsArchiveSection;
+archiveSubarchive?: ListReportsArchiveSubarchive;
 };

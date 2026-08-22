@@ -15,4 +15,5 @@ export const ListReportsStatus = {
   returned: 'returned',
   approved: 'approved',
   sent_to_management: 'sent_to_management',
+  archived: 'archived',
 } as const;

@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import {
   type Report,
+  type ArchiveCell,
   type RoleRequest,
   type Activity,
   type DashboardSummary,
@@ -33,6 +34,7 @@ import {
   getGetMyRoleRequestQueryKey,
   getGetDashboardSummaryQueryKey,
   getGetTemplateQueryKey,
+  getListArchivesQueryKey,
   getListReportsQueryKey,
   getListRoleRequestsQueryKey,
   getListTemplatesQueryKey,
@@ -44,6 +46,7 @@ import {
   useGetTemplate,
   useGetMyRoleRequest,
   useListActivity,
+  useListArchives,
   useListReports,
   useListRoleRequests,
   useListTemplates,
@@ -65,6 +68,24 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const departments = ["АПК Арыстан Grain", "АФ Веденовка", "Агрономия", "Финансовый отдел", "Управление"];
+const archiveOptions = {
+  agronomical: {
+    label: "Агрономический",
+    subarchives: [
+      { key: "seeding_reports", label: "Отчёты о посеве" },
+      { key: "chemistry_reports", label: "Отчёт по химии" },
+      { key: "harvesting_reports", label: "Отчёт по уборке" },
+      { key: "crop_rotations", label: "Севобороты" },
+      { key: "tech_maps", label: "Техкарты" },
+    ],
+  },
+  engineering: { label: "Инженерский", subarchives: [{ key: "general", label: "Общие документы" }] },
+  economic: { label: "Экономический", subarchives: [{ key: "general", label: "Общие документы" }] },
+  accounting: { label: "Бухгалтерский", subarchives: [{ key: "general", label: "Общие документы" }] },
+  legal: { label: "Юридический", subarchives: [{ key: "general", label: "Общие документы" }] },
+} as const;
+type ArchiveSectionKey = keyof typeof archiveOptions;
+type ArchiveSubarchiveKey = (typeof archiveOptions)[ArchiveSectionKey]["subarchives"][number]["key"];
 const roleLabels = {
   agronomist: "Агроном",
   chief_agronomist: "Главный агроном",
@@ -304,17 +325,52 @@ const reportStatusLabels: Record<Report["status"], string> = {
   returned: "На доработке",
   approved: "Проверен",
   sent_to_management: "Отправлен начальству",
+  archived: "В архиве",
 };
 
 function ReportStatusPill({ status }: { status: Report["status"] }) {
-  const tone = status === "returned" ? "border-amber-200 bg-amber-50 text-amber-800" : status === "sent_to_management" ? "border-blue-200 bg-blue-50 text-blue-800" : status === "approved" ? "border-teal-200 bg-teal-50 text-teal-800" : "border-border bg-muted text-muted-foreground";
+  const tone = status === "returned" ? "border-amber-200 bg-amber-50 text-amber-800" : status === "archived" ? "border-orange-200 bg-orange-50 text-orange-800" : status === "sent_to_management" ? "border-blue-200 bg-blue-50 text-blue-800" : status === "approved" ? "border-teal-200 bg-teal-50 text-teal-800" : "border-border bg-muted text-muted-foreground";
   return <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold", tone)}>{reportStatusLabels[status]}</span>;
+}
+
+function ArchiveSelectionDialog({ report, onClose, onConfirm, isPending }: {
+  report: Report;
+  onClose: () => void;
+  onConfirm: (section: ArchiveSectionKey, subarchive: ArchiveSubarchiveKey) => void;
+  isPending: boolean;
+}) {
+  const [section, setSection] = useState<ArchiveSectionKey>("agronomical");
+  const [subarchive, setSubarchive] = useState<ArchiveSubarchiveKey>("seeding_reports");
+  const options = archiveOptions[section].subarchives;
+  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 p-4 sm:items-center" role="dialog" aria-modal="true" aria-labelledby="archive-dialog-title">
+    <section className="surface-card w-full max-w-lg p-6 shadow-2xl">
+      <div className="flex items-start justify-between gap-4"><div><p className="eyebrow">Финальное согласование</p><h2 id="archive-dialog-title" className="mt-2 font-display text-2xl font-bold tracking-[-0.04em]">Отправить в архив</h2><p className="mt-3 text-sm leading-6 text-muted-foreground">Выберите ячейку для документа «{report.title}». После подтверждения файл будет доступен в утверждённом архиве.</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="Закрыть окно" disabled={isPending}><X size={18} /></button></div>
+      <div className="mt-6 grid gap-5">
+        <label className="form-label">Основной архив
+          <select className="text-input mt-2" value={section} onChange={(event) => {
+            const nextSection = event.target.value as ArchiveSectionKey;
+            setSection(nextSection);
+            setSubarchive(archiveOptions[nextSection].subarchives[0].key as ArchiveSubarchiveKey);
+          }} data-testid="select-archive-section">
+            {(Object.keys(archiveOptions) as ArchiveSectionKey[]).map((key) => <option value={key} key={key}>{archiveOptions[key].label}</option>)}
+          </select>
+        </label>
+        <label className="form-label">Подархив
+          <select className="text-input mt-2" value={subarchive} onChange={(event) => setSubarchive(event.target.value as ArchiveSubarchiveKey)} data-testid="select-archive-subarchive">
+            {options.map((item) => <option value={item.key} key={item.key}>{item.label}</option>)}
+          </select>
+        </label>
+      </div>
+      <div className="mt-7 flex flex-wrap justify-end gap-3"><button type="button" className="button button-secondary" onClick={onClose} disabled={isPending}>Отмена</button><button type="button" className="button button-primary" onClick={() => onConfirm(section, subarchive)} disabled={isPending} data-testid="button-confirm-archive">{isPending ? "Архивируем..." : "Одобрить и отправить"} <Archive size={15} /></button></div>
+    </section>
+  </div>;
 }
 
 function Cabinet({ role }: { role: AppRole }) {
   const [file, setFile] = useState<File | null>(null);
   const [unit, setUnit] = useState("АПК Арыстан Grain");
   const [notice, setNotice] = useState("");
+  const [archiveTarget, setArchiveTarget] = useState<Report | null>(null);
   const reportsQuery = useListReports(undefined, { query: { queryKey: getListReportsQueryKey() } });
   const createReport = useCreateReport();
   const updateReportStatus = useUpdateReportStatus();
@@ -322,7 +378,8 @@ function Cabinet({ role }: { role: AppRole }) {
   const canSubmit = role === "agronomist" || role === "economist";
   const isEconomist = role === "economist";
   const reviewer = role === "chief_agronomist" || role === "farm_director";
-  const queueTitle = role === "chief_agronomist" ? "Очередь главного агронома" : role === "farm_director" ? "Очередь директора хозяйства" : role === "general_director" ? "Отчёты для начальства" : isEconomist ? "Ежедневные реестры" : "Отправленные отчёты";
+  const finalApprover = role === "general_director";
+  const queueTitle = role === "chief_agronomist" ? "Очередь главного агронома" : role === "farm_director" ? "Очередь директора хозяйства" : finalApprover ? "Финальное согласование" : isEconomist ? "Ежедневные реестры" : "Отправленные отчёты";
 
   const refreshReports = () => queryClient.invalidateQueries({ queryKey: getListReportsQueryKey() });
   const submitReport = (event: FormEvent<HTMLFormElement>) => {
@@ -339,8 +396,13 @@ function Cabinet({ role }: { role: AppRole }) {
       fileUrl: "",
     } }, { onSuccess: () => { setFile(null); setNotice(isEconomist ? "Реестр отправлен директору хозяйства." : "Отчёт отправлен главному агроному."); refreshReports(); }, onError: () => setNotice("Не удалось отправить документ.") });
   };
-  const moveReport = (report: Report, status: "in_review" | "returned" | "approved" | "sent_to_management", reviewerComment: string) => {
-    updateReportStatus.mutate({ id: report.id, data: { status, reviewerComment } }, { onSuccess: () => { setNotice(status === "returned" ? "Документ возвращён на доработку." : status === "sent_to_management" ? "Документ отправлен начальству." : "Статус документа обновлён."); refreshReports(); }, onError: () => setNotice("Не удалось изменить статус документа.") });
+  const moveReport = (report: Report, status: "in_review" | "returned" | "approved" | "sent_to_management" | "archived", reviewerComment: string, archiveTarget?: { section: ArchiveSectionKey; subarchive: ArchiveSubarchiveKey }) => {
+    updateReportStatus.mutate({ id: report.id, data: { status, reviewerComment, ...(archiveTarget ? { archiveSection: archiveTarget.section, archiveSubarchive: archiveTarget.subarchive } : {}) } }, { onSuccess: () => {
+      setArchiveTarget(null);
+      setNotice(status === "returned" ? "Документ возвращён на доработку." : status === "sent_to_management" ? "Документ отправлен начальству." : status === "archived" ? "Документ одобрен и отправлен в архив." : "Статус документа обновлён.");
+      refreshReports();
+      if (status === "archived") queryClient.invalidateQueries({ queryKey: getListArchivesQueryKey() });
+    }, onError: () => setNotice("Не удалось изменить статус документа.") });
   };
 
   return (
@@ -349,14 +411,49 @@ function Cabinet({ role }: { role: AppRole }) {
       <ApprovalQueue role={role} />
       {notice && <div className="notice-banner mb-6" data-testid="status-report-notice"><Check size={16} />{notice}<button type="button" aria-label="Закрыть" onClick={() => setNotice("")}><X size={14} /></button></div>}
       {canSubmit && <section className="surface-card mb-7 p-5 sm:p-7"><div className="section-heading"><div className="setting-icon"><UploadIcon size={17} /></div><div><h2>{isEconomist ? "Подать ежедневный реестр до 09:30" : "Передать заполненный отчёт"}</h2><p>{isEconomist ? "Реестр сначала поступит директору хозяйства, затем генеральному директору." : "Отчёт поступит главному агроному на проверку."}</p></div></div><form onSubmit={submitReport} className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr_auto] lg:items-end"><label className="form-label">Подразделение<select value={unit} onChange={(event) => setUnit(event.target.value)} className="text-input mt-2"><option>АПК Арыстан Grain</option><option>АФ Веденовка</option></select></label><label className="form-label">{isEconomist ? "Ежедневный реестр" : "Заполненный Excel-файл"}<input type="file" accept={isEconomist ? ".pdf,.xlsx,.xls" : ".xlsx,.xls"} onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="text-input mt-2 pt-2" data-testid="input-completed-report" /></label><button type="submit" disabled={createReport.isPending} className="button button-primary justify-center" data-testid="button-submit-report">{createReport.isPending ? "Отправляем..." : isEconomist ? "Отправить директору" : "Отправить на проверку"} <Send size={15} /></button></form>{file && <p className="mt-4 flex items-center gap-2 text-xs font-medium text-teal-800"><FileCheck2 size={15} />Выбран файл: {file.name}</p>}</section>}
-      <section><div className="mb-4 flex items-end justify-between"><div><p className="eyebrow">{reviewer ? "Согласование" : "Мои документы"}</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">{queueTitle}</h2></div><ClipboardCheck size={19} className="text-muted-foreground" /></div>{reportsQuery.isLoading ? <LoadingRows count={3} /> : reportsQuery.isError ? <ErrorState onRetry={() => reportsQuery.refetch()} /> : reports.length === 0 ? <EmptyState title="Здесь пока нет документов" description="Когда документ перейдёт на доступный вам этап, он появится в списке." /> : <div className="space-y-3">{reports.map((report) => <article key={report.id} className="surface-card p-4 sm:p-5"><div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center"><div className="flex min-w-0 items-start gap-3"><FileBadge /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-bold">{report.title}</h3><ReportStatusPill status={report.status} /></div><p className="mt-1 text-xs text-muted-foreground">{report.unit} · {report.fileName} · {report.submittedBy} · {formatDate(report.submittedAt)}</p>{report.reviewerComment && <p className="mt-2 text-xs text-teal-800">Комментарий: {report.reviewerComment}</p>}</div></div><div className="flex shrink-0 flex-wrap gap-2">{report.fileUrl && <a href={report.fileUrl} download={report.fileName} className="button button-secondary text-xs"><Download size={14} />Открыть файл</a>}{reviewer && report.status === "submitted" && <button type="button" onClick={() => moveReport(report, "in_review", "Документ принят в работу.")} className="button button-primary text-xs">Взять на проверку</button>}{reviewer && report.status === "in_review" && <><button type="button" onClick={() => moveReport(report, "returned", "Проверьте данные и загрузите исправленную версию.")} className="button button-secondary text-xs"><RotateCcw size={14} />На доработку</button><button type="button" onClick={() => moveReport(report, "approved", "Документ проверен.")} className="button button-primary text-xs"><Check size={14} />Принять</button></>}{reviewer && report.status === "approved" && <button type="button" onClick={() => moveReport(report, "sent_to_management", "Документ направлен начальству.")} className="button button-primary text-xs"><Send size={14} />{role === "farm_director" ? "Генеральному директору" : "Отправить начальству"}</button>}</div></div></article>)}</div>}</section>
+      <section><div className="mb-4 flex items-end justify-between"><div><p className="eyebrow">{reviewer || finalApprover ? "Согласование" : "Мои документы"}</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">{queueTitle}</h2></div><ClipboardCheck size={19} className="text-muted-foreground" /></div>{reportsQuery.isLoading ? <LoadingRows count={3} /> : reportsQuery.isError ? <ErrorState onRetry={() => reportsQuery.refetch()} /> : reports.length === 0 ? <EmptyState title="Здесь пока нет документов" description="Когда документ перейдёт на доступный вам этап, он появится в списке." /> : <div className="space-y-3">{reports.map((report) => <article key={report.id} className="surface-card p-4 sm:p-5"><div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center"><div className="flex min-w-0 items-start gap-3"><FileBadge /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-bold">{report.title}</h3><ReportStatusPill status={report.status} /></div><p className="mt-1 text-xs text-muted-foreground">{report.unit} · {report.fileName} · {report.submittedBy} · {formatDate(report.submittedAt)}</p>{report.reviewerComment && <p className="mt-2 text-xs text-teal-800">Комментарий: {report.reviewerComment}</p>}</div></div><div className="flex shrink-0 flex-wrap gap-2">{report.fileUrl && <a href={report.fileUrl} download={report.fileName} className="button button-secondary text-xs"><Download size={14} />Открыть файл</a>}{reviewer && report.status === "submitted" && <button type="button" onClick={() => moveReport(report, "in_review", "Документ принят в работу.")} className="button button-primary text-xs">Взять на проверку</button>}{reviewer && report.status === "in_review" && <><button type="button" onClick={() => moveReport(report, "returned", "Проверьте данные и загрузите исправленную версию.")} className="button button-secondary text-xs"><RotateCcw size={14} />На доработку</button><button type="button" onClick={() => moveReport(report, "approved", "Документ проверен.")} className="button button-primary text-xs"><Check size={14} />Принять</button></>}{reviewer && report.status === "approved" && <button type="button" onClick={() => moveReport(report, "sent_to_management", "Документ направлен начальству.")} className="button button-primary text-xs"><Send size={14} />{role === "farm_director" ? "Генеральному директору" : "Отправить начальству"}</button>}{finalApprover && report.status === "sent_to_management" && <button type="button" onClick={() => setArchiveTarget(report)} className="button button-primary text-xs" data-testid={`button-archive-report-${report.id}`}><Archive size={14} />Одобрить и в архив</button>}</div></div></article>)}</div>}</section>
+      {archiveTarget && <ArchiveSelectionDialog report={archiveTarget} onClose={() => setArchiveTarget(null)} isPending={updateReportStatus.isPending} onConfirm={(section, subarchive) => moveReport(archiveTarget, "archived", "Документ одобрен генеральным директором и помещён в архив.", { section, subarchive })} />}
     </div>
   );
 }
 
-type WorkspaceSection = "cabinet" | "templates" | "agro" | "settings";
+type WorkspaceSection = "cabinet" | "templates" | "archive" | "agro" | "settings";
 
 const templateCategories = ["Финансы", "Продажи", "Кадры", "Маркетинг", "Операции", "Отчётность", "Персонал"];
+
+function ArchivePage() {
+  const [selectedCell, setSelectedCell] = useState<ArchiveCell | null>(null);
+  const archivesQuery = useListArchives({ query: { queryKey: getListArchivesQueryKey() } });
+  const reportParams = selectedCell ? { status: "archived" as const, archiveSection: selectedCell.section, archiveSubarchive: selectedCell.subarchive } : undefined;
+  const archivedReportsQuery = useListReports(reportParams, { query: { enabled: Boolean(selectedCell), queryKey: getListReportsQueryKey(reportParams) } });
+  const cells = (archivesQuery.data as ArchiveCell[] | undefined) ?? [];
+  const reports = (archivedReportsQuery.data as Report[] | undefined) ?? [];
+
+  if (selectedCell) {
+    return <div className="animate-page">
+      <button type="button" onClick={() => setSelectedCell(null)} className="button button-ghost -ml-3 mb-6 text-xs" data-testid="button-back-archive">← Ко всем архивам</button>
+      <section className="surface-card overflow-hidden">
+        <div className="border-b border-border bg-muted/25 px-5 py-5 sm:px-7"><p className="eyebrow">{selectedCell.sectionLabel}</p><h1 className="mt-2 font-display text-2xl font-bold tracking-[-0.04em]">{selectedCell.subarchiveLabel}</h1><p className="mt-2 text-sm text-muted-foreground">Одобренные генеральным директором документы в этой ячейке.</p></div>
+        {archivedReportsQuery.isLoading ? <div className="p-5"><LoadingRows count={3} /></div> : archivedReportsQuery.isError ? <ErrorState onRetry={() => archivedReportsQuery.refetch()} /> : reports.length === 0 ? <EmptyState title="Архив пока пуст" description="Следующий финально согласованный документ появится в этой ячейке." /> : <div className="divide-y divide-border/70">{reports.map((report) => <article key={report.id} className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center"><div className="flex min-w-0 items-start gap-3"><FileBadge /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="truncate text-sm font-bold">{report.title}</h2><ReportStatusPill status={report.status} /></div><p className="mt-1 text-xs text-muted-foreground">{report.unit} · {report.fileName} · отправил {report.submittedBy}</p><p className="mt-2 text-xs text-muted-foreground">В архиве с {report.archivedAt ? formatDate(report.archivedAt) : "—"} · согласовал {report.archivedBy || "генеральный директор"}</p></div></div><a href={report.fileUrl} download={report.fileName} className="button button-secondary shrink-0 text-xs"><Download size={14} />Скачать</a></article>)}</div>}
+      </section>
+    </div>;
+  }
+
+  return <div className="animate-page">
+    <div className="mb-7"><p className="eyebrow">Утверждённые документы</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em]">Архив</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Документы попадают сюда только после финального согласования генеральным директором. Выберите ячейку, чтобы открыть её содержимое.</p></div>
+    {archivesQuery.isLoading ? <LoadingRows count={5} /> : archivesQuery.isError ? <ErrorState onRetry={() => archivesQuery.refetch()} /> : <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">{(Object.keys(archiveOptions) as ArchiveSectionKey[]).map((section) => {
+      const config = archiveOptions[section];
+      const sectionCells = cells.filter((cell) => cell.section === section);
+      return <section className="surface-card overflow-hidden" key={section} data-testid={`archive-section-${section}`}>
+        <div className="flex items-center gap-3 border-b border-border bg-muted/25 px-5 py-4"><div className="empty-icon h-9 w-9 rounded-lg"><Archive size={18} /></div><div><p className="eyebrow">Архив</p><h2 className="mt-1 font-display text-lg font-bold tracking-[-0.03em]">{config.label}</h2></div></div>
+        <div className="divide-y divide-border/70">{config.subarchives.map((subarchive) => {
+          const cell = sectionCells.find((item) => item.subarchive === subarchive.key);
+          return <button type="button" key={subarchive.key} onClick={() => cell && setSelectedCell(cell)} className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-sky-50" disabled={!cell} data-testid={`archive-cell-${section}-${subarchive.key}`}><span className="text-sm font-semibold">{subarchive.label}</span><span className="meta-chip">{cell?.documentCount ?? 0} файлов</span></button>;
+        })}</div>
+      </section>;
+    })}</div>}
+  </div>;
+}
 
 function TemplateRow({ template, compact = false, onOpen }: { template: Template; compact?: boolean; onOpen: (id: number) => void }) {
   return (
@@ -429,10 +526,11 @@ function Workspace({ role, request }: { role: AppRole; request: RoleRequest }) {
   const navigation = [
     { id: "cabinet" as const, label: "Личный кабинет", icon: ClipboardCheck },
     { id: "templates" as const, label: "Шаблоны", icon: FileSpreadsheet },
+    { id: "archive" as const, label: "Архив", icon: Archive },
     { id: "agro" as const, label: "АгроБлок", icon: Archive },
     { id: "settings" as const, label: "Настройки", icon: SettingsIcon },
   ];
-  return <><div className="mb-7 flex flex-wrap gap-2" role="tablist" aria-label="Разделы кабинета">{navigation.map(({ id, label, icon: Icon }) => <button type="button" key={id} role="tab" aria-selected={section === id} className={cn("workspace-tab", section === id && "workspace-tab-active")} onClick={() => { setSection(id); setTemplateId(null); setUploading(false); }} data-testid={`tab-workspace-${id}`}><Icon size={15} />{label}</button>)}</div>{section === "cabinet" && <Cabinet role={role} />}{section === "templates" && (templateId ? <TemplateDetails id={templateId} role={role} onBack={() => setTemplateId(null)} /> : uploading ? <TemplateUpload onCancel={() => setUploading(false)} onSaved={(id) => { setUploading(false); setTemplateId(id); queryClient.invalidateQueries({ queryKey: getListTemplatesQueryKey() }); }} /> : <TemplateCatalog role={role} onOpen={openTemplate} onUpload={() => setUploading(true)} />)}{section === "agro" && <AgroBlock onOpen={openTemplate} />}{section === "settings" && <SettingsPage role={role} request={request} />}</>;
+  return <><div className="mb-7 flex flex-wrap gap-2" role="tablist" aria-label="Разделы кабинета">{navigation.map(({ id, label, icon: Icon }) => <button type="button" key={id} role="tab" aria-selected={section === id} className={cn("workspace-tab", section === id && "workspace-tab-active")} onClick={() => { setSection(id); setTemplateId(null); setUploading(false); }} data-testid={`tab-workspace-${id}`}><Icon size={15} />{label}</button>)}</div>{section === "cabinet" && <Cabinet role={role} />}{section === "templates" && (templateId ? <TemplateDetails id={templateId} role={role} onBack={() => setTemplateId(null)} /> : uploading ? <TemplateUpload onCancel={() => setUploading(false)} onSaved={(id) => { setUploading(false); setTemplateId(id); queryClient.invalidateQueries({ queryKey: getListTemplatesQueryKey() }); }} /> : <TemplateCatalog role={role} onOpen={openTemplate} onUpload={() => setUploading(true)} />)}{section === "archive" && <ArchivePage />}{section === "agro" && <AgroBlock onOpen={openTemplate} />}{section === "settings" && <SettingsPage role={role} request={request} />}</>;
 }
 
 function AccessGate() {

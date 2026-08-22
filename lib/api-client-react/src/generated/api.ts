@@ -21,6 +21,7 @@ import type {
 
 import type {
   Activity,
+  ArchiveCell,
   DashboardSummary,
   GetMyRoleRequest200,
   HealthStatus,
@@ -901,6 +902,83 @@ export const useUpdateReportStatus = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getUpdateReportStatusMutationOptions(options));
     }
+
+export const getListArchivesUrl = () => {
+
+
+
+
+  return `/api/archives`
+}
+
+/**
+ * @summary List archive cells and document counts
+ */
+export const listArchives = async ( options?: Parameters<typeof customFetch>[1]): Promise<ArchiveCell[]> => {
+
+  return customFetch<ArchiveCell[]>(getListArchivesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListArchivesQueryKey = () => {
+    return [
+    `/api/archives`
+    ] as const;
+    }
+
+
+export const getListArchivesQueryOptions = <TData = Awaited<ReturnType<typeof listArchives>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listArchives>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListArchivesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listArchives>>> = ({ signal }) => listArchives({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listArchives>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListArchivesQueryResult = NonNullable<Awaited<ReturnType<typeof listArchives>>>
+export type ListArchivesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List archive cells and document counts
+ */
+
+export function useListArchives<TData = Awaited<ReturnType<typeof listArchives>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listArchives>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListArchivesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getDownloadReportUrl = (id: number,) => {
 

@@ -5,9 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ReportStatusUpdateArchiveSection } from './reportStatusUpdateArchiveSection';
+import type { ReportStatusUpdateArchiveSubarchive } from './reportStatusUpdateArchiveSubarchive';
 import type { ReportStatusUpdateStatus } from './reportStatusUpdateStatus';
 
 export interface ReportStatusUpdate {
   status: ReportStatusUpdateStatus;
   reviewerComment: string;
+  archiveSection?: ReportStatusUpdateArchiveSection;
+  archiveSubarchive?: ReportStatusUpdateArchiveSubarchive;
 }

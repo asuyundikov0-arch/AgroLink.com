@@ -166,12 +166,24 @@ paths:
           required: false
           schema:
             type: string
-            enum: [submitted, in_review, returned, approved, sent_to_management]
+            enum: [submitted, in_review, returned, approved, sent_to_management, archived]
         - name: unit
           in: query
           required: false
           schema:
             type: string
+        - name: archiveSection
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [agronomical, engineering, economic, accounting, legal]
+        - name: archiveSubarchive
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [seeding_reports, chemistry_reports, harvesting_reports, crop_rotations, tech_maps, general]
       responses:
         "200":
           description: Report list
@@ -222,6 +234,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Report"
+  /archives:
+    get:
+      operationId: listArchives
+      tags: [archives]
+      summary: List archive cells and document counts
+      responses:
+        "200":
+          description: Archive cells
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ArchiveCell"
   /reports/{id}/download:
     get:
       operationId: downloadReport
@@ -489,10 +515,18 @@ components:
           type: string
         status:
           type: string
-          enum: [submitted, in_review, returned, approved, sent_to_management]
+          enum: [submitted, in_review, returned, approved, sent_to_management, archived]
         reviewerComment:
           type: string
         reviewedBy:
+          type: string
+        archiveSection:
+          type: string
+        archiveSubarchive:
+          type: string
+        archivedAt:
+          type: ["string", "null"]
+        archivedBy:
           type: string
       required:
         - id
@@ -508,6 +542,31 @@ components:
         - status
         - reviewerComment
         - reviewedBy
+        - archiveSection
+        - archiveSubarchive
+        - archivedAt
+        - archivedBy
+    ArchiveCell:
+      type: object
+      properties:
+        section:
+          type: string
+          enum: [agronomical, engineering, economic, accounting, legal]
+        subarchive:
+          type: string
+          enum: [seeding_reports, chemistry_reports, harvesting_reports, crop_rotations, tech_maps, general]
+        sectionLabel:
+          type: string
+        subarchiveLabel:
+          type: string
+        documentCount:
+          type: number
+      required:
+        - section
+        - subarchive
+        - sectionLabel
+        - subarchiveLabel
+        - documentCount
     ReportInput:
       type: object
       properties:
@@ -535,9 +594,15 @@ components:
       properties:
         status:
           type: string
-          enum: [in_review, returned, approved, sent_to_management]
+          enum: [in_review, returned, approved, sent_to_management, archived]
         reviewerComment:
           type: string
+        archiveSection:
+          type: string
+          enum: [agronomical, engineering, economic, accounting, legal]
+        archiveSubarchive:
+          type: string
+          enum: [seeding_reports, chemistry_reports, harvesting_reports, crop_rotations, tech_maps, general]
       required:
         - status
         - reviewerComment

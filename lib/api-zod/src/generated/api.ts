@@ -157,8 +157,10 @@ export const ListActivityResponse = zod.array(ListActivityResponseItem)
  * @summary List completed reports
  */
 export const ListReportsQueryParams = zod.object({
-  "status": zod.enum(['submitted', 'in_review', 'returned', 'approved', 'sent_to_management']).optional(),
-  "unit": zod.coerce.string().optional()
+  "status": zod.enum(['submitted', 'in_review', 'returned', 'approved', 'sent_to_management', 'archived']).optional(),
+  "unit": zod.coerce.string().optional(),
+  "archiveSection": zod.enum(['agronomical', 'engineering', 'economic', 'accounting', 'legal']).optional(),
+  "archiveSubarchive": zod.enum(['seeding_reports', 'chemistry_reports', 'harvesting_reports', 'crop_rotations', 'tech_maps', 'general']).optional()
 })
 
 export const ListReportsResponseItem = zod.object({
@@ -172,9 +174,13 @@ export const ListReportsResponseItem = zod.object({
   "submittedBy": zod.string(),
   "submittedByUserId": zod.string(),
   "submittedAt": zod.string(),
-  "status": zod.enum(['submitted', 'in_review', 'returned', 'approved', 'sent_to_management']),
+  "status": zod.enum(['submitted', 'in_review', 'returned', 'approved', 'sent_to_management', 'archived']),
   "reviewerComment": zod.string(),
-  "reviewedBy": zod.string()
+  "reviewedBy": zod.string(),
+  "archiveSection": zod.string(),
+  "archiveSubarchive": zod.string(),
+  "archivedAt": zod.string().nullable(),
+  "archivedBy": zod.string()
 })
 export const ListReportsResponse = zod.array(ListReportsResponseItem)
 
@@ -206,9 +212,13 @@ export const CreateReportResponse = zod.object({
   "submittedBy": zod.string(),
   "submittedByUserId": zod.string(),
   "submittedAt": zod.string(),
-  "status": zod.enum(['submitted', 'in_review', 'returned', 'approved', 'sent_to_management']),
+  "status": zod.enum(['submitted', 'in_review', 'returned', 'approved', 'sent_to_management', 'archived']),
   "reviewerComment": zod.string(),
-  "reviewedBy": zod.string()
+  "reviewedBy": zod.string(),
+  "archiveSection": zod.string(),
+  "archiveSubarchive": zod.string(),
+  "archivedAt": zod.string().nullable(),
+  "archivedBy": zod.string()
 })
 
 
@@ -220,8 +230,10 @@ export const UpdateReportStatusParams = zod.object({
 })
 
 export const UpdateReportStatusBody = zod.object({
-  "status": zod.enum(['in_review', 'returned', 'approved', 'sent_to_management']),
-  "reviewerComment": zod.string()
+  "status": zod.enum(['in_review', 'returned', 'approved', 'sent_to_management', 'archived']),
+  "reviewerComment": zod.string(),
+  "archiveSection": zod.enum(['agronomical', 'engineering', 'economic', 'accounting', 'legal']).optional(),
+  "archiveSubarchive": zod.enum(['seeding_reports', 'chemistry_reports', 'harvesting_reports', 'crop_rotations', 'tech_maps', 'general']).optional()
 })
 
 export const UpdateReportStatusResponse = zod.object({
@@ -235,10 +247,27 @@ export const UpdateReportStatusResponse = zod.object({
   "submittedBy": zod.string(),
   "submittedByUserId": zod.string(),
   "submittedAt": zod.string(),
-  "status": zod.enum(['submitted', 'in_review', 'returned', 'approved', 'sent_to_management']),
+  "status": zod.enum(['submitted', 'in_review', 'returned', 'approved', 'sent_to_management', 'archived']),
   "reviewerComment": zod.string(),
-  "reviewedBy": zod.string()
+  "reviewedBy": zod.string(),
+  "archiveSection": zod.string(),
+  "archiveSubarchive": zod.string(),
+  "archivedAt": zod.string().nullable(),
+  "archivedBy": zod.string()
 })
+
+
+/**
+ * @summary List archive cells and document counts
+ */
+export const ListArchivesResponseItem = zod.object({
+  "section": zod.enum(['agronomical', 'engineering', 'economic', 'accounting', 'legal']),
+  "subarchive": zod.enum(['seeding_reports', 'chemistry_reports', 'harvesting_reports', 'crop_rotations', 'tech_maps', 'general']),
+  "sectionLabel": zod.string(),
+  "subarchiveLabel": zod.string(),
+  "documentCount": zod.number()
+})
+export const ListArchivesResponse = zod.array(ListArchivesResponseItem)
 
 
 /**

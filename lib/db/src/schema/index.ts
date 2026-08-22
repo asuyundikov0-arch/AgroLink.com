@@ -63,6 +63,10 @@ export const reportsTable = pgTable("reports", {
   status: text("status").notNull().default("submitted"),
   reviewerComment: text("reviewer_comment").notNull().default(""),
   reviewedBy: text("reviewed_by").notNull().default(""),
+  archiveSection: text("archive_section").notNull().default(""),
+  archiveSubarchive: text("archive_subarchive").notNull().default(""),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  archivedBy: text("archived_by").notNull().default(""),
 });
 
 export const insertTemplateSchema = createInsertSchema(templatesTable).omit({ id: true });

@@ -8,11 +8,16 @@
 
 export * from './activity';
 export * from './activityAction';
+export * from './archiveCell';
+export * from './archiveCellSection';
+export * from './archiveCellSubarchive';
 export * from './dashboardSummary';
 export * from './getMyRoleRequest200';
 export * from './getMyRoleRequest200RequestedRole';
 export * from './getMyRoleRequest200Status';
 export * from './healthStatus';
+export * from './listReportsArchiveSection';
+export * from './listReportsArchiveSubarchive';
 export * from './listReportsParams';
 export * from './listReportsStatus';
 export * from './listTemplatesParams';
@@ -21,6 +26,8 @@ export * from './reportInput';
 export * from './reportReportType';
 export * from './reportStatus';
 export * from './reportStatusUpdate';
+export * from './reportStatusUpdateArchiveSection';
+export * from './reportStatusUpdateArchiveSubarchive';
 export * from './reportStatusUpdateStatus';
 export * from './roleRequest';
 export * from './roleRequestDecision';
