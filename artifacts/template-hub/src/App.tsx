@@ -122,13 +122,6 @@ function Shell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [topNotice, setTopNotice] = useState('');
-  const navItems = [
-    { href: '/', label: 'Обзор', icon: LayoutDashboard },
-    { href: '/templates', label: 'Все шаблоны', icon: Library },
-    { href: '/upload', label: 'Добавить шаблон', icon: CloudUpload },
-    { href: '/cabinet', label: 'Личный кабинет', icon: ClipboardCheck },
-  ];
-
   return (
     <div className="min-h-[100dvh] bg-background text-foreground">
       <aside
@@ -153,50 +146,18 @@ function Shell({ children }: { children: ReactNode }) {
           Рабочее пространство
         </div>
         <nav className="space-y-1" aria-label="Основная навигация">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = item.href === '/' ? location === '/' : location.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                data-testid={`link-nav-${item.label}`}
-                onClick={() => setMobileOpen(false)}
-                className={cn('nav-item', active && 'nav-item-active')}
-              >
-                <Icon size={17} strokeWidth={active ? 2.4 : 1.8} />
-                <span>{item.label}</span>
-                {item.href === '/templates' && <span className="ml-auto nav-count">24</span>}
-              </Link>
-            );
-          })}
           <div className="mt-3 border-t border-sidebar-border/70 pt-3">
             <Link
-              href="/agroblock"
-              data-testid="link-nav-agroblock"
+              href="/cabinet"
+              data-testid="link-nav-cabinet"
               onClick={() => setMobileOpen(false)}
-              className={cn('nav-item', location.startsWith('/agroblock') && 'nav-item-active')}
+              className={cn('nav-item', location.startsWith('/cabinet') || location === '/' ? 'nav-item-active' : '')}
             >
-              <FolderOpen size={17} strokeWidth={1.8} />
-              <span>АгроБлок</span>
+              <ClipboardCheck size={17} strokeWidth={1.8} />
+              <span>Личный кабинет</span>
               <ArrowUpRight size={14} className="ml-auto opacity-50" />
             </Link>
           </div>
-        </nav>
-
-        <div className="mt-9 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/35">
-          Настройки
-        </div>
-        <nav className="mt-3 space-y-1">
-          <Link
-            href="/settings"
-            data-testid="link-nav-settings"
-            onClick={() => setMobileOpen(false)}
-            className={cn('nav-item', location === '/settings' && 'nav-item-active')}
-          >
-            <SettingsIcon size={17} strokeWidth={1.8} />
-            <span>Настройки команды</span>
-          </Link>
         </nav>
 
         <div className="mt-auto">
@@ -953,7 +914,7 @@ function Router() {
     <RoutedErrorBoundary>
       <Shell>
         <Switch>
-          <Route path="/" component={Overview} />
+          <Route path="/" component={Cabinet} />
           <Route path="/agroblock" component={AgroBlock} />
           <Route path="/templates/:id" component={TemplateDetails} />
           <Route path="/templates" component={Templates} />
