@@ -1,2 +1,1 @@
 - [OpenAPI integer compatibility](api-integer-zod-compat.md) — generated Zod schemas may emit unsupported `z.int()` with the workspace's Zod version.
-- [Role claims](clerk-role-claims.md) — access is derived from Clerk public metadata and enforced again by the API.
