@@ -161,6 +161,8 @@ function BrandEmblem({ size = "md" }: { size?: "md" | "lg" }) {
   return <img src={companyEmblem} alt="Agrolink" className={cn("brand-emblem", size === "lg" ? "brand-emblem-lg" : "brand-emblem-md")} />;
 }
 
+type WorkspaceSection = "cabinet" | "templates" | "archive" | "agro" | "settings";
+
 function FileBadge() {
   return <div className="file-badge"><FileSpreadsheet size={19} strokeWidth={1.8} /><span>XLSX</span></div>;
 }
@@ -297,16 +299,23 @@ function ApprovalQueue({ role }: { role: AppRole }) {
   );
 }
 
-function Shell({ children, role, request }: { children: ReactNode; role: AppRole; request: RoleRequest }) {
+function Shell({ children, role, request, section, onSectionChange }: { children: ReactNode; role: AppRole; request: RoleRequest; section: WorkspaceSection; onSectionChange: (section: WorkspaceSection) => void }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [topNotice, setTopNotice] = useState("");
   const { signOut } = useClerk();
+  const navigation = [
+    { id: "cabinet" as const, label: "Личный кабинет", icon: ClipboardCheck },
+    { id: "templates" as const, label: "Шаблоны", icon: FileSpreadsheet },
+    { id: "archive" as const, label: "Архив", icon: Archive },
+    { id: "agro" as const, label: "АгроБлок", icon: Archive },
+    { id: "settings" as const, label: "Настройки", icon: SettingsIcon },
+  ];
   return (
     <div className="min-h-[100dvh] bg-background text-foreground">
       <aside className={cn("fixed inset-y-0 left-0 z-30 flex w-[256px] flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground transition-transform duration-300 md:translate-x-0", mobileOpen ? "translate-x-0" : "-translate-x-full")}>
         <div className="mb-9 flex items-center gap-3 px-2"><BrandEmblem /><div><div className="font-display text-[15px] font-bold tracking-[-0.02em]">AGROLINK</div><div className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-sidebar-foreground/55">Единая база шаблонов</div></div></div>
         <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/35">Рабочее пространство</div>
-        <div className="nav-item nav-item-active"><ClipboardCheck size={17} /><span>Личный кабинет</span></div>
+         <nav className="space-y-1" aria-label="Основная навигация">{navigation.map(({ id, label, icon: Icon }) => <button type="button" key={id} className={cn("nav-item w-full", section === id && "nav-item-active")} onClick={() => { onSectionChange(id); setMobileOpen(false); }} aria-current={section === id ? "page" : undefined} data-testid={`nav-workspace-${id}`}><Icon size={17} /><span>{label}</span></button>)}</nav>
         <div className="mt-auto border-t border-sidebar-border px-2 pt-4"><div className="flex items-center gap-3"><div className="avatar avatar-sm avatar-accent">{initials(request.displayName)}</div><div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold">{request.displayName}</p><p className="truncate text-[11px] text-sidebar-foreground/45">{roleLabels[role]}</p></div><button type="button" className="icon-button-dark" title="Выйти" aria-label="Выйти" onClick={() => signOut({ redirectUrl: basePath || "/" })}><LogOut size={16} /></button></div></div>
       </aside>
       {mobileOpen && <button type="button" aria-label="Закрыть меню" className="fixed inset-0 z-20 bg-sidebar/40 md:hidden" onClick={() => setMobileOpen(false)} />}
@@ -417,8 +426,6 @@ function Cabinet({ role }: { role: AppRole }) {
   );
 }
 
-type WorkspaceSection = "cabinet" | "templates" | "archive" | "agro" | "settings";
-
 const templateCategories = ["Финансы", "Продажи", "Кадры", "Маркетинг", "Операции", "Отчётность", "Персонал"];
 
 function ArchivePage() {
@@ -523,14 +530,13 @@ function Workspace({ role, request }: { role: AppRole; request: RoleRequest }) {
   const [templateId, setTemplateId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const openTemplate = (id: number) => { setTemplateId(id); setUploading(false); setSection("templates"); };
-  const navigation = [
-    { id: "cabinet" as const, label: "Личный кабинет", icon: ClipboardCheck },
-    { id: "templates" as const, label: "Шаблоны", icon: FileSpreadsheet },
-    { id: "archive" as const, label: "Архив", icon: Archive },
-    { id: "agro" as const, label: "АгроБлок", icon: Archive },
-    { id: "settings" as const, label: "Настройки", icon: SettingsIcon },
-  ];
-  return <><div className="mb-7 flex flex-wrap gap-2" role="tablist" aria-label="Разделы кабинета">{navigation.map(({ id, label, icon: Icon }) => <button type="button" key={id} role="tab" aria-selected={section === id} className={cn("workspace-tab", section === id && "workspace-tab-active")} onClick={() => { setSection(id); setTemplateId(null); setUploading(false); }} data-testid={`tab-workspace-${id}`}><Icon size={15} />{label}</button>)}</div>{section === "cabinet" && <Cabinet role={role} />}{section === "templates" && (templateId ? <TemplateDetails id={templateId} role={role} onBack={() => setTemplateId(null)} /> : uploading ? <TemplateUpload onCancel={() => setUploading(false)} onSaved={(id) => { setUploading(false); setTemplateId(id); queryClient.invalidateQueries({ queryKey: getListTemplatesQueryKey() }); }} /> : <TemplateCatalog role={role} onOpen={openTemplate} onUpload={() => setUploading(true)} />)}{section === "archive" && <ArchivePage />}{section === "agro" && <AgroBlock onOpen={openTemplate} />}{section === "settings" && <SettingsPage role={role} request={request} />}</>;
+  return <Shell role={role} request={request} section={section} onSectionChange={(nextSection) => { setSection(nextSection); setTemplateId(null); setUploading(false); }}>
+    {section === "cabinet" && <Cabinet role={role} />}
+    {section === "templates" && (templateId ? <TemplateDetails id={templateId} role={role} onBack={() => setTemplateId(null)} /> : uploading ? <TemplateUpload onCancel={() => setUploading(false)} onSaved={(id) => { setUploading(false); setTemplateId(id); queryClient.invalidateQueries({ queryKey: getListTemplatesQueryKey() }); }} /> : <TemplateCatalog role={role} onOpen={openTemplate} onUpload={() => setUploading(true)} />)}
+    {section === "archive" && <ArchivePage />}
+    {section === "agro" && <AgroBlock onOpen={openTemplate} />}
+    {section === "settings" && <SettingsPage role={role} request={request} />}
+  </Shell>;
 }
 
 function AccessGate() {
@@ -539,7 +545,7 @@ function AccessGate() {
   if (requestQuery.isLoading) return <main className="access-page"><LoadingRows count={2} /></main>;
   if (requestQuery.isError) return <main className="access-page"><ErrorState onRetry={() => requestQuery.refetch()} /></main>;
   if (request?.status !== "approved") return <RoleRequestScreen request={request} />;
-  return <Shell role={request.requestedRole as AppRole} request={request}><Workspace role={request.requestedRole as AppRole} request={request} /></Shell>;
+  return <Workspace role={request.requestedRole as AppRole} request={request} />;
 }
 
 function Home() {
