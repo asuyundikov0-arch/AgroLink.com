@@ -437,6 +437,8 @@
 
 @layer components {
   .auth-screen { display:flex; min-height:100dvh; align-items:center; justify-content:center; padding:32px 16px; background:radial-gradient(circle at 15% 15%, hsl(39 100% 52% / .22), transparent 27%), radial-gradient(circle at 80% 75%, hsl(203 87% 33% / .16), transparent 32%), hsl(var(--background)); }
+  .auth-back-button { position:fixed; top:clamp(16px, 4vw, 32px); left:clamp(16px, 4vw, 40px); z-index:10; display:inline-flex; align-items:center; gap:.45rem; border:1px solid hsl(var(--border)); border-radius:.7rem; padding:.58rem .8rem; color:hsl(var(--muted-foreground)); background:hsl(var(--card) / .9); box-shadow:0 8px 24px rgba(24,39,50,.06); font-size:.78rem; font-weight:700; transition:color .15s, background-color .15s, border-color .15s, transform .15s; }
+  .auth-back-button:hover { border-color:hsl(203 87% 33% / .45); color:hsl(203 87% 28%); background:hsl(var(--card)); transform:translateX(-2px); }
   .auth-landing { position:relative; display:grid; min-height:100dvh; grid-template-columns:minmax(0, 1.35fr) minmax(300px, .65fr); gap:24px; overflow:hidden; padding:clamp(24px, 6vw, 86px); background:linear-gradient(135deg, hsl(var(--background)) 0%, hsl(203 55% 94%) 100%); }
   .auth-landing-grid { position:absolute; inset:0; opacity:.34; background-image:linear-gradient(hsl(214 30% 15% / .06) 1px, transparent 1px),linear-gradient(90deg,hsl(214 30% 15% / .06) 1px,transparent 1px); background-size:42px 42px; mask-image:linear-gradient(110deg,black,transparent 75%); }
   .auth-landing-card { position:relative; align-self:center; max-width:720px; }

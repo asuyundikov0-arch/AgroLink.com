@@ -2,6 +2,7 @@ import { type FormEvent, type ReactNode, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Archive,
+  ArrowLeft,
   BarChart3,
   Check,
   ChevronDown,
@@ -205,12 +206,16 @@ function PublicLanding() {
   );
 }
 
+function AuthBackButton() {
+  return <a href={basePath || "/"} className="auth-back-button" data-testid="button-auth-back"><ArrowLeft size={16} />Назад</a>;
+}
+
 function SignInPage() {
-  return <main className="auth-screen"><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></main>;
+  return <main className="auth-screen"><AuthBackButton /><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></main>;
 }
 
 function SignUpPage() {
-  return <main className="auth-screen"><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></main>;
+  return <main className="auth-screen"><AuthBackButton /><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></main>;
 }
 
 function RoleRequestScreen({ request }: { request: RoleRequest | null }) {
