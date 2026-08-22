@@ -68,6 +68,32 @@ const seedTemplates = [
     version: "v1.0",
     updatedBy: "Администратор",
   },
+  {
+    name: "Шаблон Отчет по Уборке ( АПК Арыстан Грейн)",
+    description: "Отчётная форма для подразделения АПК Арыстан Grain. Оригинальный Excel-файл с сохранёнными формулами.",
+    category: "Отчётность",
+    department: "Агроблок",
+    fileName: "Сводка_уборка_ТОО_Арыстан_Грейн.xlsx",
+    fileSize: "76 КБ",
+    fileType: "Excel",
+    accessGroup: "agronomists",
+    fileUrl: "/files/svodka-uborka-arysan-green.xlsx",
+    version: "v1.0",
+    updatedBy: "Администратор",
+  },
+  {
+    name: "Шаблон Отчет по Уборке АФ Веденовка",
+    description: "Отчётная форма для подразделения АФ Веденовка. Оригинальный Excel-файл с сохранёнными формулами.",
+    category: "Отчётность",
+    department: "Агроблок",
+    fileName: "Сводка_уборка_ТОО_Арыстан_Грейн.xlsx",
+    fileSize: "76 КБ",
+    fileType: "Excel",
+    accessGroup: "agronomists",
+    fileUrl: "/files/svodka-uborka-arysan-green.xlsx",
+    version: "v1.0",
+    updatedBy: "Администратор",
+  },
 ];
 
 let seedPromise: Promise<void> | null = null;
@@ -83,13 +109,18 @@ async function seedIfNeeded() {
         userName: template.updatedBy,
       })),
     );
-  } else if (!existing.some((template) => template.fileName === "Сводка_уборка_ТОО_Арыстан_Грейн.xlsx")) {
-    const [inserted] = await db.insert(templatesTable).values(seedTemplates[3]).returning();
-    await db.insert(activityTable).values({
-      action: "uploaded",
-      templateName: inserted.name,
-      userName: inserted.updatedBy,
-    });
+  } else {
+    const missingAgroTemplates = seedTemplates.slice(3).filter(
+      (seed) => !existing.some((template) => template.name === seed.name),
+    );
+    for (const seed of missingAgroTemplates) {
+      const [inserted] = await db.insert(templatesTable).values(seed).returning();
+      await db.insert(activityTable).values({
+        action: "uploaded",
+        templateName: inserted.name,
+        userName: inserted.updatedBy,
+      });
+    }
   }
 }
 

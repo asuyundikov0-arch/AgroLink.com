@@ -113,6 +113,7 @@ function Shell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [topNotice, setTopNotice] = useState('');
+  const [agroOpen, setAgroOpen] = useState(true);
   const navItems = [
     { href: '/', label: 'Обзор', icon: LayoutDashboard },
     { href: '/templates', label: 'Все шаблоны', icon: Library },
@@ -160,6 +161,53 @@ function Shell({ children }: { children: ReactNode }) {
               </Link>
             );
           })}
+          <div className="mt-3 border-t border-sidebar-border/70 pt-3">
+            <button
+              type="button"
+              data-testid="button-toggle-agroblock"
+              className="nav-item w-full"
+              onClick={() => setAgroOpen((open) => !open)}
+              aria-expanded={agroOpen}
+            >
+              <FolderOpen size={17} strokeWidth={1.8} />
+              <span>Агроблок</span>
+              <ChevronDown size={14} className={cn('ml-auto transition-transform', !agroOpen && '-rotate-90')} />
+            </button>
+            {agroOpen && (
+              <div className="mt-1 space-y-1">
+                <div>
+                  <div className="nav-item pl-10 text-[11px]">
+                    <span className="size-1.5 rounded-full bg-accent" />
+                    <span className="truncate">АПК Арыстан Grain</span>
+                  </div>
+                  <Link
+                    href="/templates?search=Шаблон Отчет по Уборке ( АПК Арыстан Грейн)"
+                    data-testid="link-nav-arysan-grain"
+                    onClick={() => setMobileOpen(false)}
+                    className="nav-item pl-[60px] text-[10px] text-sidebar-foreground/55"
+                  >
+                    <FileSpreadsheet size={13} />
+                    <span className="truncate">Шаблон Отчет по Уборке</span>
+                  </Link>
+                </div>
+                <div>
+                  <div className="nav-item pl-10 text-[11px]">
+                    <span className="size-1.5 rounded-full bg-teal-400" />
+                    <span className="truncate">АФ Веденовка</span>
+                  </div>
+                  <Link
+                    href="/templates?search=Шаблон Отчет по Уборке АФ Веденовка"
+                    data-testid="link-nav-vedenovka"
+                    onClick={() => setMobileOpen(false)}
+                    className="nav-item pl-[60px] text-[10px] text-sidebar-foreground/55"
+                  >
+                    <FileSpreadsheet size={13} />
+                    <span className="truncate">Шаблон Отчет по Уборке</span>
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
         </nav>
 
         <div className="mt-9 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/35">
@@ -502,7 +550,9 @@ function Overview() {
 }
 
 function Templates() {
-  const [search, setSearch] = useState('');
+  const [location] = useLocation();
+  const initialSearch = new URLSearchParams(location.split('?')[1] || '').get('search') ?? '';
+  const [search, setSearch] = useState(initialSearch);
   const [category, setCategory] = useState('');
   const [department, setDepartment] = useState('');
   const params = useMemo(() => ({ search: search || undefined, category: category || undefined, department: department || undefined }), [search, category, department]);
