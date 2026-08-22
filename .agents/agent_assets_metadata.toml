@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "JOO_WF7MmNOHjPk6oxvWk"
+uri = "file://artifacts/template-hub/exports/agrolink_shablon_vydachi_khimii.xlsx"
+type = "table"
+title = "Шаблон выдачи химии — Agrolink"
+description = "Excel-шаблон для выдачи препаратов: наименование препарата, культура, номер поля, количество и единица измерения. Внутри есть выпадающий список «литры/килограммы», фильтры и инструкция по заполнению."
+logical_id = "3f2fd38e-97db-4c4f-88a1-735bb04d3910"
+content_hash = "sha256:dbffdbb874827d9c3c8854c97ab8f2d80be4a66b0bf4174d2b98ab4a7d679f92"
+size = 9945
+mtime_ms = 1787420113971
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:4b35f6c4-e782-4fc6-8c43-a66b98415681/3f2fd38e-97db-4c4f-88a1-735bb04d3910/1850a9cd-4835-4eef-a8fc-44c77d93f4cf"
+storage_version_token = "1787420128267244"
+content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
