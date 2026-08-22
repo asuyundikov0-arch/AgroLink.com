@@ -103,28 +103,28 @@ router.post("/role-requests", requireAuth, async (req, res, next): Promise<void>
       ))
       .limit(1);
     const configuredInitialDirectorEmail = process.env.INITIAL_GENERAL_DIRECTOR_EMAIL?.trim().toLowerCase();
-    const initialDirector = body.requestedRole === "general_director"
-      && approvedDirectors.length === 0
+    const configuredDirector = body.requestedRole === "general_director"
       && configuredInitialDirectorEmail === profile.email.toLowerCase();
-    if (body.requestedRole === "general_director" && approvedDirectors.length === 0 && !initialDirector) {
+    if (body.requestedRole === "general_director" && approvedDirectors.length === 0 && !configuredDirector) {
       res.status(403).json({
         error: "Первого генерального директора должен назначить администратор в защищённой настройке запуска.",
       });
       return;
     }
+    const autoApproveDirector = configuredDirector;
     const values = {
       userId: access.userId,
       email: profile.email,
       displayName: profile.displayName,
       department: body.department,
       requestedRole: body.requestedRole,
-      status: initialDirector ? "approved" : "pending",
-      reviewComment: initialDirector
+      status: autoApproveDirector ? "approved" : "pending",
+      reviewComment: autoApproveDirector
         ? "Первый генеральный директор назначен для запуска процесса согласования."
         : "",
-      reviewedByUserId: initialDirector ? "system-bootstrap" : "",
-      reviewedByName: initialDirector ? "Система" : "",
-      reviewedAt: initialDirector ? new Date() : null,
+      reviewedByUserId: autoApproveDirector ? "system-bootstrap" : "",
+      reviewedByName: autoApproveDirector ? "Система" : "",
+      reviewedAt: autoApproveDirector ? new Date() : null,
     };
 
     const [application] = existing

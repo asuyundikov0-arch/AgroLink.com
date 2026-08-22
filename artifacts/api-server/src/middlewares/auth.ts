@@ -13,6 +13,28 @@ export type RoleAccess = {
   department: string;
 };
 
+function isConfiguredGeneralDirector(application: typeof roleApplicationsTable.$inferSelect) {
+  const configuredEmail = process.env.INITIAL_GENERAL_DIRECTOR_EMAIL?.trim().toLowerCase();
+  return application.requestedRole === "general_director"
+    && Boolean(configuredEmail)
+    && application.email.trim().toLowerCase() === configuredEmail;
+}
+
+async function ensureConfiguredDirectorApproved(application: typeof roleApplicationsTable.$inferSelect) {
+  if (application.status !== "pending" || !isConfiguredGeneralDirector(application)) return application;
+  const [updated] = await db.update(roleApplicationsTable)
+    .set({
+      status: "approved",
+      reviewComment: "Доступ генерального директора подтверждён защищённой настройкой запуска.",
+      reviewedByUserId: "system-bootstrap",
+      reviewedByName: "Система",
+      reviewedAt: new Date(),
+    })
+    .where(eq(roleApplicationsTable.id, application.id))
+    .returning();
+  return updated ?? application;
+}
+
 export async function getAccess(req: Request): Promise<RoleAccess> {
   const auth = getAuth(req);
   const userId = auth.userId ?? "";
@@ -26,17 +48,18 @@ export async function getAccess(req: Request): Promise<RoleAccess> {
     .where(eq(roleApplicationsTable.userId, userId))
     .orderBy(desc(roleApplicationsTable.requestedAt))
     .limit(1);
+  const effectiveApplication = application ? await ensureConfiguredDirectorApproved(application) : undefined;
 
-  if (!application || application.status !== "approved" || !appRoles.includes(application.requestedRole as AppRole)) {
-    return { userId, role: null, displayName: application?.displayName ?? "", email: application?.email ?? "", department: application?.department ?? "" };
+  if (!effectiveApplication || effectiveApplication.status !== "approved" || !appRoles.includes(effectiveApplication.requestedRole as AppRole)) {
+    return { userId, role: null, displayName: effectiveApplication?.displayName ?? "", email: effectiveApplication?.email ?? "", department: effectiveApplication?.department ?? "" };
   }
 
   return {
     userId,
-    role: application.requestedRole as AppRole,
-    displayName: application.displayName,
-    email: application.email,
-    department: application.department,
+    role: effectiveApplication.requestedRole as AppRole,
+    displayName: effectiveApplication.displayName,
+    email: effectiveApplication.email,
+    department: effectiveApplication.department,
   };
 }
 
