@@ -10,6 +10,7 @@ import {
   UpdateReportStatusResponse,
 } from "@workspace/api-zod";
 import { db, reportsTable } from "@workspace/db";
+import { getAccess, type AppRole } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -42,6 +43,7 @@ async function ensureReportSeeded() {
       fileSize: "76 КБ",
       fileUrl: "/files/svodka-uborka-arysan-green.xlsx",
       submittedBy: "Агроном АПК Арыстан",
+      submittedByUserId: "seed-agronomist",
       status: "submitted",
     });
   } else {
@@ -56,6 +58,7 @@ async function ensureReportSeeded() {
         fileSize: "374 КБ",
         fileUrl: "/files/reestr-finansirovaniya-vedenovka.pdf",
         submittedBy: "Экономист",
+        submittedByUserId: "seed-economist",
         status: "submitted",
       });
     }
@@ -66,9 +69,21 @@ router.get("/reports", async (req, res, next) => {
   try {
     await ensureReportSeeded();
     const filters = ListReportsQueryParams.parse(req.query);
+    const { userId, role } = getAccess(req);
     const conditions = [];
     if (filters.status) conditions.push(eq(reportsTable.status, filters.status));
     if (filters.unit) conditions.push(eq(reportsTable.unit, filters.unit));
+    if (role === "agronomist") {
+      conditions.push(eq(reportsTable.reportType, "agronomy"), eq(reportsTable.submittedByUserId, userId));
+    } else if (role === "economist") {
+      conditions.push(eq(reportsTable.reportType, "financing_register"), eq(reportsTable.submittedByUserId, userId));
+    } else if (role === "chief_agronomist") {
+      conditions.push(eq(reportsTable.reportType, "agronomy"));
+    } else if (role === "farm_director") {
+      conditions.push(eq(reportsTable.reportType, "financing_register"));
+    } else if (role === "general_director") {
+      conditions.push(eq(reportsTable.status, "sent_to_management"));
+    }
     const rows = await db.select().from(reportsTable)
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(reportsTable.submittedAt));
@@ -81,7 +96,13 @@ router.get("/reports", async (req, res, next) => {
 router.post("/reports", async (req, res, next) => {
   try {
     const body = CreateReportBody.parse(req.body);
-    const [report] = await db.insert(reportsTable).values(body).returning();
+    const { userId, role } = getAccess(req);
+    if (role !== "agronomist" && role !== "economist") {
+      res.status(403).json({ error: "У вас нет права подавать документы" });
+      return;
+    }
+    const reportType = role === "economist" ? "financing_register" : "agronomy";
+    const [report] = await db.insert(reportsTable).values({ ...body, reportType, submittedByUserId: userId }).returning();
     res.status(201).json(CreateReportResponse.parse(serializeReport(report)));
   } catch (error) {
     next(error);
@@ -92,15 +113,26 @@ router.patch("/reports/:id/status", async (req, res, next) => {
   try {
     const { id } = UpdateReportStatusParams.parse({ id: Number(req.params.id) });
     const body = UpdateReportStatusBody.parse(req.body);
-    const [report] = await db.update(reportsTable).set({
-      status: body.status,
-      reviewerComment: body.reviewerComment,
-      reviewedBy: body.reviewedBy,
-    }).where(eq(reportsTable.id, id)).returning();
-    if (!report) {
+    const { role } = getAccess(req);
+    const allowedReviewer = role === "chief_agronomist" || role === "farm_director";
+    if (!allowedReviewer) {
+      res.status(403).json({ error: "У вас нет права согласовывать документы" });
+      return;
+    }
+    const [existing] = await db.select().from(reportsTable).where(eq(reportsTable.id, id));
+    if (!existing) {
       res.status(404).json({ error: "Отчёт не найден" });
       return;
     }
+    if ((role === "chief_agronomist" && existing.reportType !== "agronomy") || (role === "farm_director" && existing.reportType !== "financing_register")) {
+      res.status(403).json({ error: "Этот документ не относится к вашей очереди согласования" });
+      return;
+    }
+    const [report] = await db.update(reportsTable).set({
+      status: body.status,
+      reviewerComment: body.reviewerComment,
+      reviewedBy: role === "farm_director" ? "Директор хозяйства" : "Главный агроном",
+    }).where(eq(reportsTable.id, id)).returning();
     res.json(UpdateReportStatusResponse.parse(serializeReport(report)));
   } catch (error) {
     next(error);

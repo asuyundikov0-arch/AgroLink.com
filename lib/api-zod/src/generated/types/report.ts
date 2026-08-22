@@ -17,6 +17,7 @@ export interface Report {
   fileSize: string;
   fileUrl: string;
   submittedBy: string;
+  submittedByUserId: string;
   submittedAt: string;
   status: ReportStatus;
   reviewerComment: string;

@@ -1,5 +1,8 @@
-import { type FormEvent, type ReactNode, useMemo, useState } from 'react';
+import { type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ClerkProvider, Show, SignIn, SignUp, useClerk, useUser } from '@clerk/react';
+import { publishableKeyFromHost } from '@clerk/react/internal';
+import { shadcn } from '@clerk/themes';
 import {
   Archive,
   ArrowLeft,
@@ -70,6 +73,31 @@ import {
 import './index.css';
 
 const queryClient = new QueryClient();
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+
+type PortalRole = 'agronomist' | 'chief' | 'economist' | 'director' | 'management';
+
+function getPortalRole(metadata: Record<string, unknown> | undefined): PortalRole {
+  switch (metadata?.role) {
+    case 'chief_agronomist': return 'chief';
+    case 'economist': return 'economist';
+    case 'farm_director': return 'director';
+    case 'general_director': return 'management';
+    default: return 'agronomist';
+  }
+}
+
+function roleLabel(role: PortalRole) {
+  return {
+    agronomist: 'Агроном',
+    chief: 'Главный агроном',
+    economist: 'Экономист',
+    director: 'Директор хозяйства',
+    management: 'Генеральный директор',
+  }[role];
+}
 
 const categories = ['Финансы', 'Продажи', 'Кадры', 'Маркетинг', 'Операции', 'Отчётность', 'Персонал'];
 const departments = ['Финансовый отдел', 'Отдел продаж', 'HR', 'Маркетинг', 'Операционный блок', 'Снабжение', 'Агрономия'];
@@ -122,6 +150,9 @@ function Shell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [topNotice, setTopNotice] = useState('');
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const role = getPortalRole(user?.publicMetadata as Record<string, unknown> | undefined);
   return (
     <div className="min-h-[100dvh] bg-background text-foreground">
       <aside
@@ -176,13 +207,13 @@ function Shell({ children }: { children: ReactNode }) {
             </p>
           </div>
           <div className="flex items-center gap-3 border-t border-sidebar-border px-2 pt-4">
-            <div className="avatar avatar-sm avatar-accent">АК</div>
+            <div className="avatar avatar-sm avatar-accent">{initials(user?.fullName || user?.primaryEmailAddress?.emailAddress || 'Пользователь')}</div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold">Алексей Крылов</p>
-              <p className="truncate text-[11px] text-sidebar-foreground/45">Администратор</p>
+              <p className="truncate text-xs font-semibold">{user?.fullName || user?.primaryEmailAddress?.emailAddress || 'Пользователь'}</p>
+              <p className="truncate text-[11px] text-sidebar-foreground/45">{roleLabel(role)}</p>
             </div>
-            <button type="button" data-testid="button-user-menu" className="icon-button-dark" aria-label="Открыть меню профиля" onClick={() => setTopNotice('Профиль пользователя доступен в настройках команды.')}>
-              <MoreHorizontal size={17} />
+            <button type="button" data-testid="button-user-menu" className="icon-button-dark" aria-label="Выйти из аккаунта" onClick={() => signOut({ redirectUrl: basePath || '/' })}>
+              <ArrowLeft size={17} />
             </button>
           </div>
         </div>
@@ -747,7 +778,8 @@ function ReportStatusPill({ status }: { status: Report['status'] }) {
 }
 
 function Cabinet() {
-  const [mode, setMode] = useState<'agronomist' | 'chief' | 'economist' | 'director' | 'management'>('agronomist');
+  const { user } = useUser();
+  const mode = getPortalRole(user?.publicMetadata as Record<string, unknown> | undefined);
   const [file, setFile] = useState<File | null>(null);
   const [unit, setUnit] = useState('АПК Арыстан Grain');
   const [notice, setNotice] = useState('');
@@ -772,7 +804,7 @@ function Cabinet() {
         fileName: file.name,
         fileSize: `${(file.size / 1024 / 1024).toFixed(1)} МБ`,
         fileUrl: isEconomist ? '/files/reestr-finansirovaniya-vedenovka.pdf' : '/files/svodka-uborka-arysan-green.xlsx',
-        submittedBy: isEconomist ? 'Экономист' : 'Агроном',
+        submittedBy: user?.fullName || (isEconomist ? 'Экономист' : 'Агроном'),
       },
     }, {
       onSuccess: () => {
@@ -812,19 +844,7 @@ function Cabinet() {
         title="Личный кабинет"
         description="Агроном передаёт отчёт главному агроному, а экономист — ежедневный реестр директору хозяйства до 09:30, затем генеральному директору."
       />
-      <div className="mb-6 flex flex-wrap gap-2 rounded-xl border border-border bg-card p-2">
-        {[
-          { id: 'agronomist' as const, label: 'Агроном' },
-          { id: 'chief' as const, label: 'Главный агроном' },
-          { id: 'economist' as const, label: 'Экономист' },
-          { id: 'director' as const, label: 'Директор хозяйства' },
-          { id: 'management' as const, label: 'Начальство' },
-        ].map((role) => (
-          <button key={role.id} type="button" data-testid={`button-role-${role.id}`} onClick={() => setMode(role.id)} className={cn('rounded-lg px-4 py-2 text-xs font-bold transition-colors', mode === role.id ? 'bg-sidebar text-sidebar-foreground' : 'text-muted-foreground hover:bg-muted')}>
-            {role.label}
-          </button>
-        ))}
-      </div>
+      <div className="mb-6 rounded-xl border border-border bg-card px-4 py-3 text-xs text-muted-foreground"><strong className="text-foreground">Ваша роль: {roleLabel(mode)}.</strong> Интерфейс и документы доступны только в рамках назначенных прав.</div>
       {notice && <div className="notice-banner mb-6" data-testid="status-report-notice"><Check size={16} /> {notice}<button type="button" onClick={() => setNotice('')} aria-label="Закрыть"><X size={14} /></button></div>}
 
       {(mode === 'agronomist' || mode === 'economist') && (
@@ -917,35 +937,105 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
 }
 
+function SignInPage() {
+  return <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4"><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></div>;
+}
+
+function SignUpPage() {
+  return <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4"><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></div>;
+}
+
+function Landing() {
+  return (
+    <main className="flex min-h-[100dvh] items-center justify-center bg-background px-6">
+      <section className="surface-card w-full max-w-xl p-8 text-center sm:p-12">
+        <div className="brand-mark mx-auto"><BookOpen size={22} strokeWidth={2.4} /></div>
+        <p className="eyebrow mt-6">Единая база шаблонов</p>
+        <h1 className="mt-2 font-display text-4xl font-bold tracking-[-0.06em]">Рабочий кабинет</h1>
+        <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-muted-foreground">Войдите в аккаунт, чтобы увидеть документы и действия, доступные именно вашей роли.</p>
+        <Link href="/sign-in" className="button button-primary mx-auto mt-7">Войти в систему <ArrowUpRight size={15} /></Link>
+      </section>
+    </main>
+  );
+}
+
+function ClerkQueryClientCacheInvalidator() {
+  const { addListener } = useClerk();
+  const previousUserId = useRef<string | null | undefined>(undefined);
+  useEffect(() => addListener(({ user }) => {
+    const userId = user?.id ?? null;
+    if (previousUserId.current !== undefined && previousUserId.current !== userId) queryClient.clear();
+    previousUserId.current = userId;
+  }), [addListener]);
+  return null;
+}
+
 function Router() {
   return (
     <RoutedErrorBoundary>
-      <Shell>
-        <Switch>
-          <Route path="/" component={Cabinet} />
-          <Route path="/agroblock" component={AgroBlock} />
-          <Route path="/templates/:id" component={TemplateDetails} />
-          <Route path="/templates" component={Templates} />
-          <Route path="/upload" component={Upload} />
-          <Route path="/cabinet" component={Cabinet} />
-          <Route path="/settings" component={Settings} />
-          <Route component={NotFound} />
-        </Switch>
-      </Shell>
+      <Show when="signed-in">
+        <Shell>
+          <Switch>
+            <Route path="/" component={Cabinet} />
+            <Route path="/agroblock" component={AgroBlock} />
+            <Route path="/templates/:id" component={TemplateDetails} />
+            <Route path="/templates" component={Templates} />
+            <Route path="/upload" component={Upload} />
+            <Route path="/cabinet" component={Cabinet} />
+            <Route path="/settings" component={Settings} />
+            <Route component={NotFound} />
+          </Switch>
+        </Shell>
+      </Show>
+      <Show when="signed-out"><Landing /></Show>
     </RoutedErrorBoundary>
   );
 }
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ClerkProvider
+      publishableKey={clerkPubKey}
+      proxyUrl={clerkProxyUrl}
+      appearance={{
+        theme: shadcn,
+        cssLayerName: 'clerk',
+        options: { logoPlacement: 'inside', logoLinkUrl: basePath || '/', logoImageUrl: `${window.location.origin}${basePath}/logo.svg` },
+        variables: { colorPrimary: '#172333', colorForeground: '#172333', colorMutedForeground: '#68727f', colorBackground: '#faf9f5', colorInput: '#ffffff', colorInputForeground: '#172333', colorDanger: '#b42318', colorNeutral: '#d8d8d2', fontFamily: 'DM Sans', borderRadius: '0.75rem' },
+        elements: {
+          rootBox: 'w-full flex justify-center',
+          cardBox: 'bg-white rounded-2xl w-[440px] max-w-full overflow-hidden',
+          card: '!shadow-none !border-0 !bg-transparent !rounded-none',
+          footer: '!shadow-none !border-0 !bg-transparent !rounded-none',
+          headerTitle: 'text-slate-900',
+          headerSubtitle: 'text-slate-600',
+          socialButtonsBlockButtonText: 'text-slate-900',
+          formFieldLabel: 'text-slate-900',
+          footerActionLink: 'text-slate-900',
+          footerActionText: 'text-slate-600',
+          dividerText: 'text-slate-500',
+          formButtonPrimary: 'bg-slate-900 text-white',
+          formFieldInput: 'bg-white text-slate-900 border-slate-300',
+        },
+      }}
+      signInUrl={`${basePath}/sign-in`}
+      signUpUrl={`${basePath}/sign-up`}
+      localization={{ signIn: { start: { title: 'Вход в рабочий кабинет', subtitle: 'Используйте аккаунт вашей команды' } }, signUp: { start: { title: 'Создать аккаунт', subtitle: 'Получите доступ к рабочему кабинету' } } }}
+    >
+      <QueryClientProvider client={queryClient}>
+        <ClerkQueryClientCacheInvalidator />
+        <TooltipProvider>
+          <WouterRouter base={basePath}>
+            <Switch>
+              <Route path="/sign-in/*?" component={SignInPage} />
+              <Route path="/sign-up/*?" component={SignUpPage} />
+              <Route component={Router} />
+            </Switch>
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ClerkProvider>
   );
 }
 

@@ -352,6 +352,8 @@ components:
           type: string
         submittedBy:
           type: string
+        submittedByUserId:
+          type: string
         submittedAt:
           type: string
         status:
@@ -370,6 +372,7 @@ components:
         - fileSize
         - fileUrl
         - submittedBy
+        - submittedByUserId
         - submittedAt
         - status
         - reviewerComment
