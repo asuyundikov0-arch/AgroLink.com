@@ -5,12 +5,14 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ReportReportType } from './reportReportType';
 import type { ReportStatus } from './reportStatus';
 
 export interface Report {
   id: number;
   title: string;
   unit: string;
+  reportType: ReportReportType;
   fileName: string;
   fileSize: string;
   fileUrl: string;

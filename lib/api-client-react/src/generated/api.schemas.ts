@@ -89,6 +89,14 @@ export interface Activity {
   timestamp: string;
 }
 
+export type ReportReportType = typeof ReportReportType[keyof typeof ReportReportType];
+
+
+export const ReportReportType = {
+  agronomy: 'agronomy',
+  financing_register: 'financing_register',
+} as const;
+
 export type ReportStatus = typeof ReportStatus[keyof typeof ReportStatus];
 
 
@@ -104,6 +112,7 @@ export interface Report {
   id: number;
   title: string;
   unit: string;
+  reportType: ReportReportType;
   fileName: string;
   fileSize: string;
   fileUrl: string;
@@ -114,11 +123,20 @@ export interface Report {
   reviewedBy: string;
 }
 
+export type ReportInputReportType = typeof ReportInputReportType[keyof typeof ReportInputReportType];
+
+
+export const ReportInputReportType = {
+  agronomy: 'agronomy',
+  financing_register: 'financing_register',
+} as const;
+
 export interface ReportInput {
   /** @minLength 1 */
   title: string;
   /** @minLength 1 */
   unit: string;
+  reportType: ReportInputReportType;
   /** @minLength 1 */
   fileName: string;
   fileSize: string;

@@ -51,6 +51,7 @@ export const reportsTable = pgTable("reports", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   unit: text("unit").notNull(),
+  reportType: text("report_type").notNull().default("agronomy"),
   fileName: text("file_name").notNull(),
   fileSize: text("file_size").notNull(),
   fileUrl: text("file_url").notNull(),

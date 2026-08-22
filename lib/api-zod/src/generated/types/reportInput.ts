@@ -5,12 +5,14 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ReportInputReportType } from './reportInputReportType';
 
 export interface ReportInput {
   /** @minLength 1 */
   title: string;
   /** @minLength 1 */
   unit: string;
+  reportType: ReportInputReportType;
   /** @minLength 1 */
   fileName: string;
   fileSize: string;

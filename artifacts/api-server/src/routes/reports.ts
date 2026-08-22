@@ -15,6 +15,8 @@ const router: IRouter = Router();
 
 const allowedStatuses = ["submitted", "in_review", "returned", "approved", "sent_to_management"] as const;
 type ReportStatus = typeof allowedStatuses[number];
+const allowedReportTypes = ["agronomy", "financing_register"] as const;
+type ReportType = typeof allowedReportTypes[number];
 
 function serializeReport(report: typeof reportsTable.$inferSelect) {
   return {
@@ -23,6 +25,9 @@ function serializeReport(report: typeof reportsTable.$inferSelect) {
     status: allowedStatuses.includes(report.status as ReportStatus)
       ? report.status as ReportStatus
       : "submitted",
+    reportType: allowedReportTypes.includes(report.reportType as ReportType)
+      ? report.reportType as ReportType
+      : "agronomy",
   };
 }
 
@@ -32,12 +37,28 @@ async function ensureReportSeeded() {
     await db.insert(reportsTable).values({
       title: "Отчёт по уборке · АПК Арыстан Grain",
       unit: "АПК Арыстан Grain",
+      reportType: "agronomy",
       fileName: "Сводка_уборка_ТОО_Арыстан_Грейн.xlsx",
       fileSize: "76 КБ",
       fileUrl: "/files/svodka-uborka-arysan-green.xlsx",
       submittedBy: "Агроном АПК Арыстан",
       status: "submitted",
     });
+  } else {
+    const financing = await db.select({ id: reportsTable.id }).from(reportsTable)
+      .where(eq(reportsTable.reportType, "financing_register")).limit(1);
+    if (financing.length === 0) {
+      await db.insert(reportsTable).values({
+        title: "Реестр финансирования · АФ Веденовка",
+        unit: "АФ Веденовка",
+        reportType: "financing_register",
+        fileName: "Реестр_финансирования_Веденовка.pdf",
+        fileSize: "374 КБ",
+        fileUrl: "/files/reestr-finansirovaniya-vedenovka.pdf",
+        submittedBy: "Экономист",
+        status: "submitted",
+      });
+    }
   }
 }
 

@@ -747,7 +747,7 @@ function ReportStatusPill({ status }: { status: Report['status'] }) {
 }
 
 function Cabinet() {
-  const [mode, setMode] = useState<'agronomist' | 'chief' | 'management'>('agronomist');
+  const [mode, setMode] = useState<'agronomist' | 'chief' | 'economist' | 'director' | 'management'>('agronomist');
   const [file, setFile] = useState<File | null>(null);
   const [unit, setUnit] = useState('АПК Арыстан Grain');
   const [notice, setNotice] = useState('');
@@ -763,19 +763,21 @@ function Cabinet() {
       setNotice('Сначала выберите заполненный Excel-файл.');
       return;
     }
+    const isEconomist = mode === 'economist';
     createReport.mutate({
       data: {
-        title: `Отчёт по уборке · ${unit}`,
+        title: isEconomist ? `Реестр финансирования · ${unit}` : `Отчёт по уборке · ${unit}`,
         unit,
+        reportType: isEconomist ? 'financing_register' : 'agronomy',
         fileName: file.name,
         fileSize: `${(file.size / 1024 / 1024).toFixed(1)} МБ`,
-        fileUrl: '/files/svodka-uborka-arysan-green.xlsx',
-        submittedBy: 'Агроном',
+        fileUrl: isEconomist ? '/files/reestr-finansirovaniya-vedenovka.pdf' : '/files/svodka-uborka-arysan-green.xlsx',
+        submittedBy: isEconomist ? 'Экономист' : 'Агроном',
       },
     }, {
       onSuccess: () => {
         setFile(null);
-        setNotice('Отчёт отправлен главному агроному на проверку.');
+        setNotice(isEconomist ? 'Реестр отправлен директору хозяйства на согласование.' : 'Отчёт отправлен главному агроному на проверку.');
         refreshReports();
       },
       onError: () => setNotice('Не удалось отправить отчёт. Повторите попытку.'),
@@ -784,32 +786,38 @@ function Cabinet() {
   const moveReport = (report: Report, status: Exclude<Report['status'], 'submitted'>, reviewerComment: string) => {
     updateReportStatus.mutate({
       id: report.id,
-      data: { status, reviewerComment, reviewedBy: 'Главный агроном' },
+      data: { status, reviewerComment, reviewedBy: report.reportType === 'financing_register' ? 'Директор хозяйства' : 'Главный агроном' },
     }, {
       onSuccess: () => {
-        setNotice(status === 'returned' ? 'Отчёт возвращён агроному на доработку.' : status === 'sent_to_management' ? 'Отчёт отправлен начальству.' : 'Статус отчёта обновлён.');
+        setNotice(status === 'returned' ? 'Документ возвращён на доработку.' : status === 'sent_to_management' ? (report.reportType === 'financing_register' ? 'Реестр отправлен генеральному директору.' : 'Отчёт отправлен начальству.') : 'Статус отчёта обновлён.');
         refreshReports();
       },
     });
   };
 
   const visibleReports = mode === 'agronomist'
-    ? reports.filter((report) => report.submittedBy === 'Агроном' || report.status === 'returned')
+    ? reports.filter((report) => report.reportType === 'agronomy' && (report.submittedBy === 'Агроном' || report.status === 'returned'))
     : mode === 'chief'
-      ? reports.filter((report) => report.status !== 'sent_to_management')
-      : reports.filter((report) => report.status === 'sent_to_management');
+      ? reports.filter((report) => report.reportType === 'agronomy' && report.status !== 'sent_to_management')
+      : mode === 'economist'
+        ? reports.filter((report) => report.reportType === 'financing_register' && (report.submittedBy === 'Экономист' || report.status === 'returned'))
+        : mode === 'director'
+          ? reports.filter((report) => report.reportType === 'financing_register' && report.status !== 'sent_to_management')
+          : reports.filter((report) => report.status === 'sent_to_management');
 
   return (
     <div className="animate-page">
       <PageTitle
         eyebrow="Согласование отчётов"
         title="Личный кабинет"
-        description="Агроном передаёт заполненный отчёт главному агроному, который проверяет и отправляет его начальству."
+        description="Агроном передаёт отчёт главному агроному, а экономист — ежедневный реестр директору хозяйства до 09:30, затем генеральному директору."
       />
       <div className="mb-6 flex flex-wrap gap-2 rounded-xl border border-border bg-card p-2">
         {[
           { id: 'agronomist' as const, label: 'Агроном' },
           { id: 'chief' as const, label: 'Главный агроном' },
+          { id: 'economist' as const, label: 'Экономист' },
+          { id: 'director' as const, label: 'Директор хозяйства' },
           { id: 'management' as const, label: 'Начальство' },
         ].map((role) => (
           <button key={role.id} type="button" data-testid={`button-role-${role.id}`} onClick={() => setMode(role.id)} className={cn('rounded-lg px-4 py-2 text-xs font-bold transition-colors', mode === role.id ? 'bg-sidebar text-sidebar-foreground' : 'text-muted-foreground hover:bg-muted')}>
@@ -819,20 +827,20 @@ function Cabinet() {
       </div>
       {notice && <div className="notice-banner mb-6" data-testid="status-report-notice"><Check size={16} /> {notice}<button type="button" onClick={() => setNotice('')} aria-label="Закрыть"><X size={14} /></button></div>}
 
-      {mode === 'agronomist' && (
+      {(mode === 'agronomist' || mode === 'economist') && (
         <section className="surface-card mb-7 p-5 sm:p-7">
-          <div className="section-heading"><div className="setting-icon"><UploadIcon size={17} /></div><div><h2>Передать заполненный отчёт</h2><p>Выберите заполненный Excel-файл — он появится у главного агронома в очереди на проверку.</p></div></div>
+          <div className="section-heading"><div className="setting-icon"><UploadIcon size={17} /></div><div><h2>{mode === 'economist' ? 'Подать ежедневный реестр до 09:30' : 'Передать заполненный отчёт'}</h2><p>{mode === 'economist' ? 'Реестр по каждому подразделению сначала попадёт директору хозяйства, затем генеральному директору.' : 'Выберите заполненный Excel-файл — он появится у главного агронома в очереди на проверку.'}</p></div></div>
           <form onSubmit={submitReport} className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
             <label className="form-label">Подразделение<select value={unit} onChange={(event) => setUnit(event.target.value)} className="text-input mt-2"><option>АПК Арыстан Grain</option><option>АФ Веденовка</option></select></label>
-            <label className="form-label">Заполненный Excel-файл<input type="file" accept=".xlsx,.xls" data-testid="input-completed-report" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="text-input mt-2 pt-2" /></label>
-            <button type="submit" data-testid="button-submit-report" disabled={createReport.isPending} className="button button-primary justify-center">{createReport.isPending ? 'Отправляем...' : 'Отправить на проверку'} <Send size={15} /></button>
+            <label className="form-label">{mode === 'economist' ? 'Ежедневный реестр' : 'Заполненный Excel-файл'}<input type="file" accept={mode === 'economist' ? '.pdf,.xlsx,.xls' : '.xlsx,.xls'} data-testid="input-completed-report" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="text-input mt-2 pt-2" /></label>
+            <button type="submit" data-testid="button-submit-report" disabled={createReport.isPending} className="button button-primary justify-center">{createReport.isPending ? 'Отправляем...' : mode === 'economist' ? 'Отправить директору' : 'Отправить на проверку'} <Send size={15} /></button>
           </form>
           {file && <p className="mt-4 flex items-center gap-2 text-xs font-medium text-teal-800"><FileCheck2 size={15} /> Выбран файл: {file.name}</p>}
         </section>
       )}
 
       <section>
-        <div className="mb-4 flex items-end justify-between"><div><p className="eyebrow">{mode === 'chief' ? 'Проверка' : mode === 'management' ? 'Архив отправки' : 'Мои документы'}</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">{mode === 'chief' ? 'Очередь главного агронома' : mode === 'management' ? 'Отчёты для начальства' : 'Отправленные отчёты'}</h2></div><ClipboardCheck size={19} className="text-muted-foreground" /></div>
+        <div className="mb-4 flex items-end justify-between"><div><p className="eyebrow">{mode === 'chief' || mode === 'director' ? 'Согласование' : mode === 'management' ? 'Архив отправки' : 'Мои документы'}</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">{mode === 'chief' ? 'Очередь главного агронома' : mode === 'director' ? 'Очередь директора хозяйства' : mode === 'management' ? 'Отчёты для начальства' : mode === 'economist' ? 'Ежедневные реестры' : 'Отправленные отчёты'}</h2></div><ClipboardCheck size={19} className="text-muted-foreground" /></div>
         {reportsQuery.isLoading ? <LoadingRows count={3} /> : reportsQuery.isError ? <ErrorState onRetry={() => reportsQuery.refetch()} /> : visibleReports.length === 0 ? <EmptyState title="Здесь пока нет отчётов" description="Когда отчёт перейдёт на этот этап, он появится в списке." /> : (
           <div className="space-y-3">
             {visibleReports.map((report) => (
@@ -844,9 +852,9 @@ function Cabinet() {
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2">
                     {report.fileUrl && <a href={report.fileUrl} download={report.fileName} className="button button-secondary text-xs"><Download size={14} /> Открыть файл</a>}
-                    {mode === 'chief' && report.status === 'submitted' && <button type="button" onClick={() => moveReport(report, 'in_review', 'Отчёт принят в работу.')} className="button button-primary text-xs"><ClipboardCheck size={14} /> Взять на проверку</button>}
-                    {mode === 'chief' && report.status === 'in_review' && <><button type="button" onClick={() => moveReport(report, 'returned', 'Пожалуйста, проверьте данные и загрузите исправленную версию.')} className="button button-secondary text-xs"><RotateCcw size={14} /> На доработку</button><button type="button" onClick={() => moveReport(report, 'approved', 'Отчёт проверен и готов к отправке.')} className="button button-primary text-xs"><Check size={14} /> Принять</button></>}
-                    {mode === 'chief' && report.status === 'approved' && <button type="button" onClick={() => moveReport(report, 'sent_to_management', 'Отчёт направлен начальству.')} className="button button-primary text-xs"><Send size={14} /> Отправить начальству</button>}
+                    {(mode === 'chief' || mode === 'director') && report.status === 'submitted' && <button type="button" onClick={() => moveReport(report, 'in_review', 'Документ принят в работу.')} className="button button-primary text-xs"><ClipboardCheck size={14} /> Взять на проверку</button>}
+                    {(mode === 'chief' || mode === 'director') && report.status === 'in_review' && <><button type="button" onClick={() => moveReport(report, 'returned', 'Пожалуйста, проверьте данные и загрузите исправленную версию.')} className="button button-secondary text-xs"><RotateCcw size={14} /> На доработку</button><button type="button" onClick={() => moveReport(report, 'approved', 'Документ проверен и готов к отправке.')} className="button button-primary text-xs"><Check size={14} /> Принять</button></>}
+                    {(mode === 'chief' || mode === 'director') && report.status === 'approved' && <button type="button" onClick={() => moveReport(report, 'sent_to_management', 'Документ направлен начальству.')} className="button button-primary text-xs"><Send size={14} /> {mode === 'director' ? 'Генеральному директору' : 'Отправить начальству'}</button>}
                   </div>
                 </div>
               </article>
