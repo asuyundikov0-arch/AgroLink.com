@@ -22,12 +22,16 @@ import type {
 import type {
   Activity,
   DashboardSummary,
+  GetMyRoleRequest200,
   HealthStatus,
   ListReportsParams,
   ListTemplatesParams,
   Report,
   ReportInput,
   ReportStatusUpdate,
+  RoleRequest,
+  RoleRequestDecision,
+  RoleRequestInput,
   Template,
   TemplateInput
 } from './api.schemas';
@@ -819,5 +823,302 @@ export const useUpdateReportStatus = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateReportStatusMutationOptions(options));
+    }
+
+export const getGetMyRoleRequestUrl = () => {
+
+
+
+
+  return `/api/role-requests/me`
+}
+
+/**
+ * @summary Get current user's role request
+ */
+export const getMyRoleRequest = async ( options?: Parameters<typeof customFetch>[1]): Promise<GetMyRoleRequest200> => {
+
+  return customFetch<GetMyRoleRequest200>(getGetMyRoleRequestUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyRoleRequestQueryKey = () => {
+    return [
+    `/api/role-requests/me`
+    ] as const;
+    }
+
+
+export const getGetMyRoleRequestQueryOptions = <TData = Awaited<ReturnType<typeof getMyRoleRequest>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyRoleRequest>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyRoleRequestQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyRoleRequest>>> = ({ signal }) => getMyRoleRequest({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyRoleRequest>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyRoleRequestQueryResult = NonNullable<Awaited<ReturnType<typeof getMyRoleRequest>>>
+export type GetMyRoleRequestQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get current user's role request
+ */
+
+export function useGetMyRoleRequest<TData = Awaited<ReturnType<typeof getMyRoleRequest>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyRoleRequest>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyRoleRequestQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListRoleRequestsUrl = () => {
+
+
+
+
+  return `/api/role-requests`
+}
+
+/**
+ * @summary List pending role requests for the current reviewer
+ */
+export const listRoleRequests = async ( options?: Parameters<typeof customFetch>[1]): Promise<RoleRequest[]> => {
+
+  return customFetch<RoleRequest[]>(getListRoleRequestsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListRoleRequestsQueryKey = () => {
+    return [
+    `/api/role-requests`
+    ] as const;
+    }
+
+
+export const getListRoleRequestsQueryOptions = <TData = Awaited<ReturnType<typeof listRoleRequests>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRoleRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListRoleRequestsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRoleRequests>>> = ({ signal }) => listRoleRequests({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listRoleRequests>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListRoleRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof listRoleRequests>>>
+export type ListRoleRequestsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List pending role requests for the current reviewer
+ */
+
+export function useListRoleRequests<TData = Awaited<ReturnType<typeof listRoleRequests>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRoleRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListRoleRequestsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateRoleRequestUrl = () => {
+
+
+
+
+  return `/api/role-requests`
+}
+
+/**
+ * @summary Submit or resubmit a role request
+ */
+export const createRoleRequest = async (roleRequestInput: RoleRequestInput, options?: Parameters<typeof customFetch>[1]): Promise<RoleRequest> => {
+
+  return customFetch<RoleRequest>(getCreateRoleRequestUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(roleRequestInput)
+  }
+);}
+
+
+
+
+
+export const getCreateRoleRequestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRoleRequest>>, TError,{data: BodyType<RoleRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createRoleRequest>>, TError,{data: BodyType<RoleRequestInput>}, TContext> => {
+
+const mutationKey = ['createRoleRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createRoleRequest>>, {data: BodyType<RoleRequestInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createRoleRequest(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateRoleRequestMutationResult = NonNullable<Awaited<ReturnType<typeof createRoleRequest>>>
+    export type CreateRoleRequestMutationBody = BodyType<RoleRequestInput>
+    export type CreateRoleRequestMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Submit or resubmit a role request
+ */
+export const useCreateRoleRequest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRoleRequest>>, TError,{data: BodyType<RoleRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createRoleRequest>>,
+        TError,
+        {data: BodyType<RoleRequestInput>},
+        TContext
+      > => {
+      return useMutation(getCreateRoleRequestMutationOptions(options));
+    }
+
+export const getReviewRoleRequestUrl = (id: number,) => {
+
+
+
+
+  return `/api/role-requests/${id}`
+}
+
+/**
+ * @summary Approve or reject a role request
+ */
+export const reviewRoleRequest = async (id: number,
+    roleRequestDecision: RoleRequestDecision, options?: Parameters<typeof customFetch>[1]): Promise<RoleRequest> => {
+
+  return customFetch<RoleRequest>(getReviewRoleRequestUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(roleRequestDecision)
+  }
+);}
+
+
+
+
+
+export const getReviewRoleRequestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewRoleRequest>>, TError,{id: number;data: BodyType<RoleRequestDecision>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewRoleRequest>>, TError,{id: number;data: BodyType<RoleRequestDecision>}, TContext> => {
+
+const mutationKey = ['reviewRoleRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewRoleRequest>>, {id: number;data: BodyType<RoleRequestDecision>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reviewRoleRequest(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewRoleRequestMutationResult = NonNullable<Awaited<ReturnType<typeof reviewRoleRequest>>>
+    export type ReviewRoleRequestMutationBody = BodyType<RoleRequestDecision>
+    export type ReviewRoleRequestMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Approve or reject a role request
+ */
+export const useReviewRoleRequest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewRoleRequest>>, TError,{id: number;data: BodyType<RoleRequestDecision>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reviewRoleRequest>>,
+        TError,
+        {id: number;data: BodyType<RoleRequestDecision>},
+        TContext
+      > => {
+      return useMutation(getReviewRoleRequestMutationOptions(options));
     }
 

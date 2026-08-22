@@ -10,5 +10,4 @@ import type { ReportStatusUpdateStatus } from './reportStatusUpdateStatus';
 export interface ReportStatusUpdate {
   status: ReportStatusUpdateStatus;
   reviewerComment: string;
-  reviewedBy: string;
 }

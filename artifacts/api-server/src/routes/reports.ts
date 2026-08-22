@@ -10,6 +10,7 @@ import {
   UpdateReportStatusResponse,
 } from "@workspace/api-zod";
 import { db, reportsTable } from "@workspace/db";
+import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -64,24 +65,25 @@ async function ensureReportSeeded() {
   }
 }
 
-router.get("/reports", async (req, res, next) => {
+router.get("/reports", requireApprovedRole, async (req, res, next) => {
   try {
     await ensureReportSeeded();
     const filters = ListReportsQueryParams.parse(req.query);
-    const userId = "";
-    const role: string = "agronomist";
+    const access = res.locals.access as RoleAccess;
+    const userId = access.userId;
+    const role = access.role;
     const conditions = [];
     if (filters.status) conditions.push(eq(reportsTable.status, filters.status));
     if (filters.unit) conditions.push(eq(reportsTable.unit, filters.unit));
-    if (userId && role === "agronomist") {
+    if (role === "agronomist") {
       conditions.push(eq(reportsTable.reportType, "agronomy"), eq(reportsTable.submittedByUserId, userId));
-    } else if (userId && role === "economist") {
+    } else if (role === "economist") {
       conditions.push(eq(reportsTable.reportType, "financing_register"), eq(reportsTable.submittedByUserId, userId));
-    } else if (userId && role === "chief_agronomist") {
+    } else if (role === "chief_agronomist") {
       conditions.push(eq(reportsTable.reportType, "agronomy"));
-    } else if (userId && role === "farm_director") {
+    } else if (role === "farm_director") {
       conditions.push(eq(reportsTable.reportType, "financing_register"));
-    } else if (userId && role === "general_director") {
+    } else if (role === "general_director") {
       conditions.push(eq(reportsTable.status, "sent_to_management"));
     }
     const rows = await db.select().from(reportsTable)
@@ -93,30 +95,34 @@ router.get("/reports", async (req, res, next) => {
   }
 });
 
-router.post("/reports", async (req, res, next) => {
+router.post("/reports", requireApprovedRole, async (req, res, next) => {
   try {
     const body = CreateReportBody.parse(req.body);
-    const userId = "";
-    const role: string = "agronomist";
-    if (userId && role !== "agronomist" && role !== "economist") {
+    const access = res.locals.access as RoleAccess;
+    if (access.role !== "agronomist" && access.role !== "economist") {
       res.status(403).json({ error: "У вас нет права подавать документы" });
       return;
     }
-    const reportType = userId ? (role === "economist" ? "financing_register" : "agronomy") : body.reportType;
-    const [report] = await db.insert(reportsTable).values({ ...body, reportType, submittedByUserId: userId }).returning();
+    const reportType = access.role === "economist" ? "financing_register" : "agronomy";
+    const [report] = await db.insert(reportsTable).values({
+      ...body,
+      reportType,
+      submittedBy: access.displayName,
+      submittedByUserId: access.userId,
+    }).returning();
     res.status(201).json(CreateReportResponse.parse(serializeReport(report)));
   } catch (error) {
     next(error);
   }
 });
 
-router.patch("/reports/:id/status", async (req, res, next) => {
+router.patch("/reports/:id/status", requireApprovedRole, async (req, res, next) => {
   try {
     const { id } = UpdateReportStatusParams.parse({ id: Number(req.params.id) });
     const body = UpdateReportStatusBody.parse(req.body);
-    const userId = "";
-    const role: string = "agronomist";
-    const allowedReviewer = !userId || role === "chief_agronomist" || role === "farm_director";
+    const access = res.locals.access as RoleAccess;
+    const role = access.role;
+    const allowedReviewer = role === "chief_agronomist" || role === "farm_director";
     if (!allowedReviewer) {
       res.status(403).json({ error: "У вас нет права согласовывать документы" });
       return;
@@ -126,14 +132,21 @@ router.patch("/reports/:id/status", async (req, res, next) => {
       res.status(404).json({ error: "Отчёт не найден" });
       return;
     }
-    if (userId && ((role === "chief_agronomist" && existing.reportType !== "agronomy") || (role === "farm_director" && existing.reportType !== "financing_register"))) {
+    if ((role === "chief_agronomist" && existing.reportType !== "agronomy") || (role === "farm_director" && existing.reportType !== "financing_register")) {
       res.status(403).json({ error: "Этот документ не относится к вашей очереди согласования" });
+      return;
+    }
+    const transitionAllowed = (existing.status === "submitted" && body.status === "in_review")
+      || (existing.status === "in_review" && ["returned", "approved"].includes(body.status))
+      || (existing.status === "approved" && body.status === "sent_to_management");
+    if (!transitionAllowed) {
+      res.status(409).json({ error: "Недопустимое изменение статуса документа" });
       return;
     }
     const [report] = await db.update(reportsTable).set({
       status: body.status,
       reviewerComment: body.reviewerComment,
-      reviewedBy: userId ? (role === "farm_director" ? "Директор хозяйства" : "Главный агроном") : body.reviewedBy,
+      reviewedBy: access.displayName,
     }).where(eq(reportsTable.id, id)).returning();
     res.json(UpdateReportStatusResponse.parse(serializeReport(report)));
   } catch (error) {

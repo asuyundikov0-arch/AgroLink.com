@@ -180,11 +180,9 @@ export const ListReportsResponse = zod.array(ListReportsResponseItem)
 export const CreateReportBody = zod.object({
   "title": zod.string().min(1),
   "unit": zod.string().min(1),
-  "reportType": zod.enum(['agronomy', 'financing_register']),
   "fileName": zod.string().min(1),
   "fileSize": zod.string(),
-  "fileUrl": zod.string(),
-  "submittedBy": zod.string()
+  "fileUrl": zod.string()
 })
 
 export const CreateReportResponse = zod.object({
@@ -213,8 +211,7 @@ export const UpdateReportStatusParams = zod.object({
 
 export const UpdateReportStatusBody = zod.object({
   "status": zod.enum(['in_review', 'returned', 'approved', 'sent_to_management']),
-  "reviewerComment": zod.string(),
-  "reviewedBy": zod.string()
+  "reviewerComment": zod.string()
 })
 
 export const UpdateReportStatusResponse = zod.object({
@@ -231,6 +228,96 @@ export const UpdateReportStatusResponse = zod.object({
   "status": zod.enum(['submitted', 'in_review', 'returned', 'approved', 'sent_to_management']),
   "reviewerComment": zod.string(),
   "reviewedBy": zod.string()
+})
+
+
+/**
+ * @summary Get current user's role request
+ */
+export const GetMyRoleRequestResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.string(),
+  "email": zod.string(),
+  "displayName": zod.string(),
+  "department": zod.string(),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'economist', 'farm_director', 'general_director']),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewComment": zod.string(),
+  "reviewedByName": zod.string(),
+  "requestedAt": zod.string(),
+  "reviewedAt": zod.string().nullable()
+}).nullable()
+
+
+/**
+ * @summary List pending role requests for the current reviewer
+ */
+export const ListRoleRequestsResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.string(),
+  "email": zod.string(),
+  "displayName": zod.string(),
+  "department": zod.string(),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'economist', 'farm_director', 'general_director']),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewComment": zod.string(),
+  "reviewedByName": zod.string(),
+  "requestedAt": zod.string(),
+  "reviewedAt": zod.string().nullable()
+})
+export const ListRoleRequestsResponse = zod.array(ListRoleRequestsResponseItem)
+
+
+/**
+ * @summary Submit or resubmit a role request
+ */
+
+
+
+export const CreateRoleRequestBody = zod.object({
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'economist', 'farm_director', 'general_director']),
+  "department": zod.string().min(1)
+})
+
+export const CreateRoleRequestResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.string(),
+  "email": zod.string(),
+  "displayName": zod.string(),
+  "department": zod.string(),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'economist', 'farm_director', 'general_director']),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewComment": zod.string(),
+  "reviewedByName": zod.string(),
+  "requestedAt": zod.string(),
+  "reviewedAt": zod.string().nullable()
+})
+
+
+/**
+ * @summary Approve or reject a role request
+ */
+export const ReviewRoleRequestParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ReviewRoleRequestBody = zod.object({
+  "decision": zod.enum(['approved', 'rejected']),
+  "reviewComment": zod.string()
+})
+
+export const ReviewRoleRequestResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.string(),
+  "email": zod.string(),
+  "displayName": zod.string(),
+  "department": zod.string(),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'economist', 'farm_director', 'general_director']),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewComment": zod.string(),
+  "reviewedByName": zod.string(),
+  "requestedAt": zod.string(),
+  "reviewedAt": zod.string().nullable()
 })
 
 

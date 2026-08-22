@@ -124,25 +124,15 @@ export interface Report {
   reviewedBy: string;
 }
 
-export type ReportInputReportType = typeof ReportInputReportType[keyof typeof ReportInputReportType];
-
-
-export const ReportInputReportType = {
-  agronomy: 'agronomy',
-  financing_register: 'financing_register',
-} as const;
-
 export interface ReportInput {
   /** @minLength 1 */
   title: string;
   /** @minLength 1 */
   unit: string;
-  reportType: ReportInputReportType;
   /** @minLength 1 */
   fileName: string;
   fileSize: string;
   fileUrl: string;
-  submittedBy: string;
 }
 
 export type ReportStatusUpdateStatus = typeof ReportStatusUpdateStatus[keyof typeof ReportStatusUpdateStatus];
@@ -158,7 +148,71 @@ export const ReportStatusUpdateStatus = {
 export interface ReportStatusUpdate {
   status: ReportStatusUpdateStatus;
   reviewerComment: string;
-  reviewedBy: string;
+}
+
+export type RoleRequestRequestedRole = typeof RoleRequestRequestedRole[keyof typeof RoleRequestRequestedRole];
+
+
+export const RoleRequestRequestedRole = {
+  agronomist: 'agronomist',
+  chief_agronomist: 'chief_agronomist',
+  economist: 'economist',
+  farm_director: 'farm_director',
+  general_director: 'general_director',
+} as const;
+
+export type RoleRequestStatus = typeof RoleRequestStatus[keyof typeof RoleRequestStatus];
+
+
+export const RoleRequestStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface RoleRequest {
+  id: number;
+  userId: string;
+  email: string;
+  displayName: string;
+  department: string;
+  requestedRole: RoleRequestRequestedRole;
+  status: RoleRequestStatus;
+  reviewComment: string;
+  reviewedByName: string;
+  requestedAt: string;
+  /** @nullable */
+  reviewedAt: string | null;
+}
+
+export type RoleRequestInputRequestedRole = typeof RoleRequestInputRequestedRole[keyof typeof RoleRequestInputRequestedRole];
+
+
+export const RoleRequestInputRequestedRole = {
+  agronomist: 'agronomist',
+  chief_agronomist: 'chief_agronomist',
+  economist: 'economist',
+  farm_director: 'farm_director',
+  general_director: 'general_director',
+} as const;
+
+export interface RoleRequestInput {
+  requestedRole: RoleRequestInputRequestedRole;
+  /** @minLength 1 */
+  department: string;
+}
+
+export type RoleRequestDecisionDecision = typeof RoleRequestDecisionDecision[keyof typeof RoleRequestDecisionDecision];
+
+
+export const RoleRequestDecisionDecision = {
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface RoleRequestDecision {
+  decision: RoleRequestDecisionDecision;
+  reviewComment: string;
 }
 
 export type ListTemplatesParams = {
@@ -182,4 +236,42 @@ export const ListReportsStatus = {
   approved: 'approved',
   sent_to_management: 'sent_to_management',
 } as const;
+
+export type GetMyRoleRequest200RequestedRole = typeof GetMyRoleRequest200RequestedRole[keyof typeof GetMyRoleRequest200RequestedRole];
+
+
+export const GetMyRoleRequest200RequestedRole = {
+  agronomist: 'agronomist',
+  chief_agronomist: 'chief_agronomist',
+  economist: 'economist',
+  farm_director: 'farm_director',
+  general_director: 'general_director',
+} as const;
+
+export type GetMyRoleRequest200Status = typeof GetMyRoleRequest200Status[keyof typeof GetMyRoleRequest200Status];
+
+
+export const GetMyRoleRequest200Status = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+/**
+ * @nullable
+ */
+export type GetMyRoleRequest200 = {
+  id: number;
+  userId: string;
+  email: string;
+  displayName: string;
+  department: string;
+  requestedRole: GetMyRoleRequest200RequestedRole;
+  status: GetMyRoleRequest200Status;
+  reviewComment: string;
+  reviewedByName: string;
+  requestedAt: string;
+  /** @nullable */
+  reviewedAt: string | null;
+} | null;
 

@@ -203,6 +203,99 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Report"
+  /role-requests/me:
+    get:
+      operationId: getMyRoleRequest
+      tags: [access]
+      summary: Get current user's role request
+      responses:
+        "200":
+          description: Current role request or null
+          content:
+            application/json:
+              schema:
+                type: [object, "null"]
+                properties:
+                  id:
+                    type: number
+                  userId:
+                    type: string
+                  email:
+                    type: string
+                  displayName:
+                    type: string
+                  department:
+                    type: string
+                  requestedRole:
+                    type: string
+                    enum: [agronomist, chief_agronomist, economist, farm_director, general_director]
+                  status:
+                    type: string
+                    enum: [pending, approved, rejected]
+                  reviewComment:
+                    type: string
+                  reviewedByName:
+                    type: string
+                  requestedAt:
+                    type: string
+                  reviewedAt:
+                    type: [string, "null"]
+                required: [id, userId, email, displayName, department, requestedRole, status, reviewComment, reviewedByName, requestedAt, reviewedAt]
+  /role-requests:
+    get:
+      operationId: listRoleRequests
+      tags: [access]
+      summary: List pending role requests for the current reviewer
+      responses:
+        "200":
+          description: Pending role requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RoleRequest"
+    post:
+      operationId: createRoleRequest
+      tags: [access]
+      summary: Submit or resubmit a role request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleRequestInput"
+      responses:
+        "201":
+          description: Role request created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleRequest"
+  /role-requests/{id}:
+    patch:
+      operationId: reviewRoleRequest
+      tags: [access]
+      summary: Approve or reject a role request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleRequestDecision"
+      responses:
+        "200":
+          description: Reviewed role request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleRequest"
 components:
   schemas:
     HealthStatus:
@@ -386,9 +479,6 @@ components:
         unit:
           type: string
           minLength: 1
-        reportType:
-          type: string
-          enum: [agronomy, financing_register]
         fileName:
           type: string
           minLength: 1
@@ -396,16 +486,12 @@ components:
           type: string
         fileUrl:
           type: string
-        submittedBy:
-          type: string
       required:
         - title
         - unit
-        - reportType
         - fileName
         - fileSize
         - fileUrl
-        - submittedBy
     ReportStatusUpdate:
       type: object
       properties:
@@ -414,10 +500,69 @@ components:
           enum: [in_review, returned, approved, sent_to_management]
         reviewerComment:
           type: string
-        reviewedBy:
-          type: string
       required:
         - status
         - reviewerComment
-        - reviewedBy
+    RoleRequest:
+      type: object
+      properties:
+        id:
+          type: number
+        userId:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+        department:
+          type: string
+        requestedRole:
+          type: string
+          enum: [agronomist, chief_agronomist, economist, farm_director, general_director]
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        reviewComment:
+          type: string
+        reviewedByName:
+          type: string
+        requestedAt:
+          type: string
+        reviewedAt:
+          type: [string, "null"]
+      required:
+        - id
+        - userId
+        - email
+        - displayName
+        - department
+        - requestedRole
+        - status
+        - reviewComment
+        - reviewedByName
+        - requestedAt
+        - reviewedAt
+    RoleRequestInput:
+      type: object
+      properties:
+        requestedRole:
+          type: string
+          enum: [agronomist, chief_agronomist, economist, farm_director, general_director]
+        department:
+          type: string
+          minLength: 1
+      required:
+        - requestedRole
+        - department
+    RoleRequestDecision:
+      type: object
+      properties:
+        decision:
+          type: string
+          enum: [approved, rejected]
+        reviewComment:
+          type: string
+      required:
+        - decision
+        - reviewComment
 

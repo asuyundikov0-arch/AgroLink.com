@@ -1,949 +1,364 @@
-import { type FormEvent, type ReactNode, useMemo, useState } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { type FormEvent, type ReactNode, useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
-  Archive,
-  ArrowLeft,
-  ArrowUpRight,
-  BarChart3,
-  BookOpen,
   Check,
   ChevronDown,
   CircleHelp,
   ClipboardCheck,
   Clock3,
-  CloudUpload,
-  Copy,
-  Download,
   FileCheck2,
   FileSpreadsheet,
-  Filter,
-  FolderOpen,
-  LayoutDashboard,
-  Library,
+  LogOut,
   Menu,
-  MoreHorizontal,
-  Search,
   Send,
-  Settings as SettingsIcon,
   ShieldCheck,
-  SlidersHorizontal,
-  Trash2,
-  Upload as UploadIcon,
   UserRound,
   Users,
   X,
-  Zap,
   RotateCcw,
-} from 'lucide-react';
+  Download,
+  Upload as UploadIcon,
+} from "lucide-react";
 import {
-  type Activity,
-  type DashboardSummary,
   type Report,
-  type Template,
-  type TemplateInput,
-  useCreateReport,
-  useCreateTemplate,
-  useDeleteTemplate,
-  useGetDashboardSummary,
-  useGetTemplate,
-  useListActivity,
-  useListReports,
-  useListTemplates,
-  useUpdateReportStatus,
-  getGetDashboardSummaryQueryKey,
-  getGetTemplateQueryKey,
+  type RoleRequest,
+  getGetMyRoleRequestQueryKey,
   getListReportsQueryKey,
-  getListTemplatesQueryKey,
-} from '@workspace/api-client-react';
-import { ErrorBoundary } from '@/components/error-boundary';
-import { Toaster } from '@/components/ui/toaster';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import NotFound from '@/pages/not-found';
-import {
-  Link,
-  Route,
-  Router as WouterRouter,
-  Switch,
-  useLocation,
-  useParams,
-} from 'wouter';
-import './index.css';
+  getListRoleRequestsQueryKey,
+  useCreateReport,
+  useCreateRoleRequest,
+  useGetMyRoleRequest,
+  useListReports,
+  useListRoleRequests,
+  useReviewRoleRequest,
+  useUpdateReportStatus,
+} from "@workspace/api-client-react";
+import { ClerkProvider, Show, SignIn, SignUp, useClerk, useUser } from "@clerk/react";
+import { publishableKeyFromHost } from "@clerk/react/internal";
+import { shadcn } from "@clerk/themes";
+import { Route, Router as WouterRouter, Switch, useLocation } from "wouter";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import "./index.css";
 
 const queryClient = new QueryClient();
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+const departments = ["АПК Арыстан Grain", "АФ Веденовка", "Агрономия", "Финансовый отдел", "Управление"];
+const roleLabels = {
+  agronomist: "Агроном",
+  chief_agronomist: "Главный агроном",
+  economist: "Экономист",
+  farm_director: "Директор хозяйства",
+  general_director: "Генеральный директор",
+} as const;
+type AppRole = keyof typeof roleLabels;
 
-const categories = ['Финансы', 'Продажи', 'Кадры', 'Маркетинг', 'Операции', 'Отчётность', 'Персонал'];
-const departments = ['Финансовый отдел', 'Отдел продаж', 'HR', 'Маркетинг', 'Операционный блок', 'Снабжение', 'Агрономия'];
+const clerkAppearance = {
+  theme: shadcn,
+  cssLayerName: "clerk",
+  options: {
+    logoPlacement: "inside" as const,
+    logoLinkUrl: basePath || "/",
+    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+  },
+  variables: {
+    colorPrimary: "#243649",
+    colorForeground: "#293744",
+    colorMutedForeground: "#71808a",
+    colorBackground: "#fffdf8",
+    colorInput: "#ffffff",
+    colorInputForeground: "#293744",
+    colorDanger: "#d54a43",
+    colorNeutral: "#ded8cc",
+    fontFamily: "DM Sans, sans-serif",
+    borderRadius: "0.75rem",
+  },
+  elements: {
+    rootBox: "w-full flex justify-center",
+    cardBox: "w-[440px] max-w-full overflow-hidden rounded-2xl bg-[#fffdf8] shadow-xl",
+    card: "!border-0 !bg-transparent !shadow-none",
+    footer: "!border-0 !bg-transparent !shadow-none",
+    headerTitle: "text-slate-800",
+    headerSubtitle: "text-slate-500",
+    socialButtonsBlockButtonText: "text-slate-700",
+    formFieldLabel: "text-slate-700",
+    footerActionLink: "text-teal-700",
+    footerActionText: "text-slate-500",
+    dividerText: "text-slate-400",
+    identityPreviewEditButton: "text-teal-700",
+    formFieldSuccessText: "text-teal-700",
+    alertText: "text-slate-700",
+    logoBox: "pb-2",
+    logoImage: "h-10 w-10",
+    socialButtonsBlockButton: "border-stone-200 bg-white",
+    formButtonPrimary: "bg-slate-800 hover:bg-slate-700",
+    formFieldInput: "border-stone-200 bg-white",
+    footerAction: "border-stone-200",
+    dividerLine: "bg-stone-200",
+    alert: "border-stone-200 bg-stone-50",
+    otpCodeFieldInput: "border-stone-200",
+    formFieldRow: "gap-2",
+    main: "gap-4",
+  },
+};
 
-function formatNumber(value: number | undefined) {
-  return new Intl.NumberFormat('ru-RU').format(value ?? 0);
-}
-
-function formatDate(value: string) {
-  if (!value) return 'Недавно';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short' }).format(date);
-}
-
-function formatDateLong(value: string) {
-  if (!value) return 'Дата не указана';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(date);
-}
-
-function actionLabel(action: Activity['action']) {
-  return {
-    uploaded: 'добавил шаблон',
-    updated: 'обновил шаблон',
-    downloaded: 'скачал шаблон',
-    archived: 'переместил в архив',
-  }[action];
+function cn(...classes: Array<string | false | undefined>) {
+  return classes.filter(Boolean).join(" ");
 }
 
 function initials(name: string) {
-  return name
-    .split(' ')
-    .slice(0, 2)
-    .map((part) => part.charAt(0))
-    .join('')
-    .toUpperCase();
+  return name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "С";
 }
 
-function cn(...classes: Array<string | false | undefined>) {
-  return classes.filter(Boolean).join(' ');
+function formatDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(date);
 }
 
-function Shell({ children }: { children: ReactNode }) {
-  const [location] = useLocation();
+function FileBadge() {
+  return <div className="file-badge"><FileSpreadsheet size={19} strokeWidth={1.8} /><span>XLSX</span></div>;
+}
+
+function LoadingRows({ count = 3 }: { count?: number }) {
+  return <div className="space-y-3" data-testid="status-loading">{Array.from({ length: count }).map((_, index) => <div className="skeleton-row" key={index}><div className="skeleton h-10 w-10 rounded-lg" /><div className="min-w-0 flex-1 space-y-2"><div className="skeleton h-3.5 w-2/5" /><div className="skeleton h-3 w-1/4" /></div></div>)}</div>;
+}
+
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return <div className="empty-state" data-testid="status-error"><div className="empty-icon empty-icon-error"><X size={20} /></div><h3 className="mt-4 text-sm font-bold">Не удалось загрузить данные</h3><p className="mt-1 max-w-xs text-center text-xs leading-5 text-muted-foreground">Проверьте соединение и попробуйте ещё раз.</p><button type="button" className="button button-secondary mt-4" onClick={onRetry}>Повторить</button></div>;
+}
+
+function EmptyState({ title, description }: { title: string; description: string }) {
+  return <div className="empty-state"><div className="empty-icon"><ClipboardCheck size={20} /></div><h3 className="mt-4 text-sm font-bold">{title}</h3><p className="mt-1 max-w-sm text-center text-xs leading-5 text-muted-foreground">{description}</p></div>;
+}
+
+function PublicLanding() {
+  return (
+    <main className="auth-landing">
+      <div className="auth-landing-grid" aria-hidden="true" />
+      <section className="auth-landing-card">
+        <div className="brand-mark"><FileSpreadsheet size={22} /></div>
+        <p className="eyebrow mt-7">Единая база шаблонов</p>
+        <h1 className="mt-3 font-display text-4xl font-bold tracking-[-0.05em] text-foreground">Рабочие документы.<br /><span className="text-teal-700">Понятные роли.</span></h1>
+        <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground">Каждый сотрудник выбирает роль при регистрации. Доступ к отчётам открывается только после согласования руководителем.</p>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <a href={`${basePath}/sign-in`} className="button button-primary">Войти <UserRound size={16} /></a>
+          <a href={`${basePath}/sign-up`} className="button button-secondary">Зарегистрироваться</a>
+        </div>
+      </section>
+      <aside className="auth-landing-aside">
+        <ShieldCheck size={28} className="text-teal-700" />
+        <h2 className="mt-5 font-display text-2xl font-bold tracking-[-0.04em]">Доступ под контролем</h2>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">После регистрации заявка попадает в очередь руководителя. До согласования действия по рабочим ролям недоступны.</p>
+      </aside>
+    </main>
+  );
+}
+
+function SignInPage() {
+  return <main className="auth-screen"><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></main>;
+}
+
+function SignUpPage() {
+  return <main className="auth-screen"><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></main>;
+}
+
+function RoleRequestScreen({ request }: { request: RoleRequest | null }) {
+  const { user } = useUser();
+  const createRequest = useCreateRoleRequest();
+  const [requestedRole, setRequestedRole] = useState<AppRole>(request?.requestedRole ?? "agronomist");
+  const [department, setDepartment] = useState(request?.department ?? "АПК Арыстан Grain");
+  const [message, setMessage] = useState("");
+  const isPending = request?.status === "pending";
+  const isRejected = request?.status === "rejected";
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setMessage("");
+    createRequest.mutate({ data: { requestedRole, department } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetMyRoleRequestQueryKey() });
+        setMessage("Заявка отправлена руководителю. Обновите страницу позже — доступ появится после согласования.");
+      },
+      onError: () => setMessage("Не удалось отправить заявку. Проверьте выбранные данные и повторите попытку."),
+    });
+  };
+
+  return (
+    <main className="access-page">
+      <section className="access-card">
+        <div className={cn("access-icon", isPending ? "access-icon-waiting" : isRejected ? "access-icon-rejected" : "")}>
+          {isPending ? <Clock3 size={24} /> : isRejected ? <RotateCcw size={24} /> : <ShieldCheck size={24} />}
+        </div>
+        <p className="eyebrow mt-6">Доступ к рабочему пространству</p>
+        <h1 className="mt-2 font-display text-3xl font-bold tracking-[-0.05em]">
+          {isPending ? "Заявка на согласовании" : isRejected ? "Роль не согласована" : "Выберите роль"}
+        </h1>
+        <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
+          {isPending
+            ? `Ваша заявка на роль «${roleLabels[request.requestedRole as AppRole]}» передана руководителю. До решения рабочие функции недоступны.`
+            : isRejected
+              ? (request.reviewComment || "Руководитель отклонил заявку. Исправьте роль или подразделение и отправьте её повторно.")
+              : `Здравствуйте, ${user?.firstName || "сотрудник"}. Укажите рабочую роль — руководитель подтвердит её перед открытием доступа.`}
+        </p>
+        {isPending && <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-left text-xs leading-5 text-amber-900"><strong>Уведомление отправлено.</strong> Экран автоматически проверяет результат согласования.</div>}
+        {!isPending && (
+          <form className="mt-7 grid gap-5 text-left" onSubmit={submit}>
+            <label className="form-label">Запрашиваемая роль<span className="select-wrap mt-2"><select className="text-input appearance-none" value={requestedRole} onChange={(event) => setRequestedRole(event.target.value as AppRole)} data-testid="select-requested-role">{(Object.keys(roleLabels) as AppRole[]).map((role) => <option value={role} key={role}>{roleLabels[role]}</option>)}</select><ChevronDown size={15} /></span></label>
+            <label className="form-label">Подразделение<span className="select-wrap mt-2"><select className="text-input appearance-none" value={department} onChange={(event) => setDepartment(event.target.value)} data-testid="select-request-department">{departments.map((item) => <option value={item} key={item}>{item}</option>)}</select><ChevronDown size={15} /></span></label>
+            {requestedRole === "general_director" && <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs leading-5 text-muted-foreground">Первый генеральный директор назначается администратором в защищённой настройке запуска. Последующие заявки согласуются действующим руководством.</p>}
+            <button type="submit" className="button button-primary justify-center" disabled={createRequest.isPending} data-testid="button-submit-role-request">{createRequest.isPending ? "Отправляем..." : isRejected ? "Отправить повторно" : "Отправить на согласование"} <Send size={15} /></button>
+          </form>
+        )}
+        {message && <p className="notice-banner mt-5"><Check size={16} />{message}</p>}
+      </section>
+    </main>
+  );
+}
+
+function ApprovalQueue({ role }: { role: AppRole }) {
+  const enabled = ["chief_agronomist", "farm_director", "general_director"].includes(role);
+  const requestsQuery = useListRoleRequests({ query: { enabled, queryKey: getListRoleRequestsQueryKey(), refetchInterval: 15000 } });
+  const reviewRequest = useReviewRoleRequest();
+  const rows = (requestsQuery.data as RoleRequest[] | undefined) ?? [];
+  if (!enabled) return null;
+
+  const decide = (request: RoleRequest, decision: "approved" | "rejected") => {
+    const reviewComment = decision === "approved"
+      ? "Роль согласована. Доступ к рабочему кабинету открыт."
+      : (window.prompt("Укажите причину отказа для сотрудника:", "Проверьте выбранную роль и подразделение.") ?? "Заявка отклонена руководителем.");
+    reviewRequest.mutate({ id: request.id, data: { decision, reviewComment } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListRoleRequestsQueryKey() });
+      },
+    });
+  };
+
+  return (
+    <section className="surface-card mb-7 overflow-hidden" data-testid="role-approval-queue">
+      <div className="flex flex-col justify-between gap-3 border-b border-border bg-muted/25 px-5 py-4 sm:flex-row sm:items-center">
+        <div><p className="eyebrow">Уведомления</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">Заявки на роли</h2></div>
+        <span className="meta-chip">{requestsQuery.isLoading ? "Загрузка" : `${rows.length} ожидают решения`}</span>
+      </div>
+      {requestsQuery.isLoading ? <div className="p-5"><LoadingRows count={2} /></div> : requestsQuery.isError ? <ErrorState onRetry={() => requestsQuery.refetch()} /> : rows.length === 0 ? <div className="px-5 py-8 text-sm text-muted-foreground">Новых заявок нет.</div> : (
+        <div className="divide-y divide-border/70">{rows.map((request) => (
+          <article key={request.id} className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-bold">{request.displayName}</h3><span className="meta-chip">{roleLabels[request.requestedRole as AppRole]}</span></div><p className="mt-1 text-xs text-muted-foreground">{request.email} · {request.department} · {formatDate(request.requestedAt)}</p></div>
+            <div className="flex flex-wrap gap-2"><button type="button" className="button button-secondary text-xs" disabled={reviewRequest.isPending} onClick={() => decide(request, "rejected")} data-testid={`button-reject-role-${request.id}`}>Отклонить</button><button type="button" className="button button-primary text-xs" disabled={reviewRequest.isPending} onClick={() => decide(request, "approved")} data-testid={`button-approve-role-${request.id}`}><Check size={14} /> Согласовать</button></div>
+          </article>
+        ))}</div>
+      )}
+    </section>
+  );
+}
+
+function Shell({ children, role, request }: { children: ReactNode; role: AppRole; request: RoleRequest }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [topNotice, setTopNotice] = useState('');
+  const [topNotice, setTopNotice] = useState("");
+  const { signOut } = useClerk();
   return (
     <div className="min-h-[100dvh] bg-background text-foreground">
-      <aside
-        className={cn(
-          'fixed inset-y-0 left-0 z-30 flex w-[256px] flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground transition-transform duration-300 md:translate-x-0',
-          mobileOpen ? 'translate-x-0' : '-translate-x-full',
-        )}
-      >
-        <div className="mb-9 flex items-center gap-3 px-2">
-          <div className="brand-mark"><BookOpen size={20} strokeWidth={2.4} /></div>
-          <div>
-            <div className="font-display text-[15px] font-bold tracking-[-0.02em] text-sidebar-foreground">
-              Единая база
-            </div>
-            <div className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-sidebar-foreground/45">
-              Шаблонов
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/35">
-          Рабочее пространство
-        </div>
-        <nav className="space-y-1" aria-label="Основная навигация">
-          <div className="mt-3 border-t border-sidebar-border/70 pt-3">
-            <Link
-              href="/cabinet"
-              data-testid="link-nav-cabinet"
-              onClick={() => setMobileOpen(false)}
-              className={cn('nav-item', location.startsWith('/cabinet') || location === '/' ? 'nav-item-active' : '')}
-            >
-              <ClipboardCheck size={17} strokeWidth={1.8} />
-              <span>Личный кабинет</span>
-              <ArrowUpRight size={14} className="ml-auto opacity-50" />
-            </Link>
-          </div>
-        </nav>
-
-        <div className="mt-auto">
-          <div className="mb-5 rounded-xl border border-sidebar-border bg-sidebar-accent/55 p-3.5">
-            <div className="flex items-start justify-between">
-              <div className="flex size-7 items-center justify-center rounded-lg bg-accent text-[11px] font-bold text-accent-foreground">
-                <Zap size={14} fill="currentColor" />
-              </div>
-              <span className="rounded-full bg-sidebar-foreground/10 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-sidebar-foreground/50">
-                PRO
-              </span>
-            </div>
-            <p className="mt-3 text-xs font-semibold text-sidebar-foreground">Порядок в каждом файле</p>
-            <p className="mt-1 text-[11px] leading-4 text-sidebar-foreground/50">
-              Все рабочие шаблоны команды — в одном месте.
-            </p>
-          </div>
-          <div className="flex items-center gap-3 border-t border-sidebar-border px-2 pt-4">
-            <div className="avatar avatar-sm avatar-accent">АК</div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold">Гостевой доступ</p>
-              <p className="truncate text-[11px] text-sidebar-foreground/45">Роль будет назначена позже</p>
-            </div>
-            <button type="button" data-testid="button-user-menu" className="icon-button-dark" aria-label="Профиль пользователя" onClick={() => setTopNotice('Сейчас приложение работает без обязательного входа. Подключение личных почт добавим после запуска.')}>
-              <MoreHorizontal size={17} />
-            </button>
-          </div>
-        </div>
+      <aside className={cn("fixed inset-y-0 left-0 z-30 flex w-[256px] flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground transition-transform duration-300 md:translate-x-0", mobileOpen ? "translate-x-0" : "-translate-x-full")}>
+        <div className="mb-9 flex items-center gap-3 px-2"><div className="brand-mark"><FileSpreadsheet size={20} /></div><div><div className="font-display text-[15px] font-bold tracking-[-0.02em]">Единая база</div><div className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-sidebar-foreground/45">Шаблонов</div></div></div>
+        <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/35">Рабочее пространство</div>
+        <div className="nav-item nav-item-active"><ClipboardCheck size={17} /><span>Личный кабинет</span></div>
+        <div className="mt-auto border-t border-sidebar-border px-2 pt-4"><div className="flex items-center gap-3"><div className="avatar avatar-sm avatar-accent">{initials(request.displayName)}</div><div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold">{request.displayName}</p><p className="truncate text-[11px] text-sidebar-foreground/45">{roleLabels[role]}</p></div><button type="button" className="icon-button-dark" title="Выйти" aria-label="Выйти" onClick={() => signOut({ redirectUrl: basePath || "/" })}><LogOut size={16} /></button></div></div>
       </aside>
-
-      {mobileOpen && (
-        <button
-          type="button"
-          data-testid="button-close-mobile-nav"
-          aria-label="Закрыть меню"
-          className="fixed inset-0 z-20 bg-sidebar/40 md:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
+      {mobileOpen && <button type="button" aria-label="Закрыть меню" className="fixed inset-0 z-20 bg-sidebar/40 md:hidden" onClick={() => setMobileOpen(false)} />}
       <main className="min-h-[100dvh] md:pl-[256px]">
-        <header className="sticky top-0 z-10 flex h-[68px] items-center justify-between border-b border-border/80 bg-background/90 px-5 backdrop-blur-md md:px-10">
-          <button
-            type="button"
-            data-testid="button-open-mobile-nav"
-            aria-label="Открыть меню"
-            className="icon-button md:hidden"
-            onClick={() => setMobileOpen(true)}
-          >
-            <Menu size={20} />
-          </button>
-          <div className="hidden items-center gap-2 text-xs text-muted-foreground md:flex">
-            <span className="size-1.5 rounded-full bg-emerald-500" />
-            Все системы работают
-          </div>
-          <div className="ml-auto flex items-center gap-3">
-            <button type="button" data-testid="button-help" className="icon-button" aria-label="Помощь" onClick={() => setTopNotice('Если нужна помощь, обратитесь к администратору рабочего пространства.')}>
-              <CircleHelp size={18} />
-            </button>
-            <div className="hidden h-5 w-px bg-border sm:block" />
-            <div className="avatar avatar-sm avatar-blue">АК</div>
-          </div>
-        </header>
-        {topNotice && <div className="mx-5 mt-4 md:mx-10"><div className="notice-banner max-w-xl" data-testid="status-shell-notice"><CircleHelp size={16} /><span>{topNotice}</span><button type="button" data-testid="button-dismiss-shell-notice" aria-label="Закрыть уведомление" onClick={() => setTopNotice('')}><X size={14} /></button></div></div>}
+        <header className="sticky top-0 z-10 flex h-[68px] items-center justify-between border-b border-border/80 bg-background/90 px-5 backdrop-blur-md md:px-10"><button type="button" aria-label="Открыть меню" className="icon-button md:hidden" onClick={() => setMobileOpen(true)}><Menu size={20} /></button><div className="hidden items-center gap-2 text-xs text-muted-foreground md:flex"><span className="size-1.5 rounded-full bg-emerald-500" />Доступ подтверждён</div><div className="ml-auto flex items-center gap-3"><button type="button" className="icon-button" aria-label="Помощь" onClick={() => setTopNotice("По вопросам доступа обратитесь к руководителю, который согласовал вашу роль.")}><CircleHelp size={18} /></button><div className="avatar avatar-sm avatar-blue">{initials(request.displayName)}</div></div></header>
+        {topNotice && <div className="mx-5 mt-4 md:mx-10"><div className="notice-banner max-w-xl"><CircleHelp size={16} /><span>{topNotice}</span><button type="button" aria-label="Закрыть" onClick={() => setTopNotice("")}><X size={14} /></button></div></div>}
         <div className="page-wrap">{children}</div>
       </main>
     </div>
   );
 }
 
-function PageTitle({
-  eyebrow,
-  title,
-  description,
-  action,
-}: {
-  eyebrow?: string;
-  title: string;
-  description?: string;
-  action?: ReactNode;
-}) {
-  return (
-    <div className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-      <div>
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em] text-foreground sm:text-[34px]">{title}</h1>
-        {description && <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">{description}</p>}
-      </div>
-      {action}
-    </div>
-  );
-}
-
-function LoadingRows({ count = 4 }: { count?: number }) {
-  return (
-    <div className="space-y-3" data-testid="status-loading">
-      {Array.from({ length: count }).map((_, index) => (
-        <div key={index} className="skeleton-row">
-          <div className="skeleton h-10 w-10 rounded-lg" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="skeleton h-3.5 w-2/5" />
-            <div className="skeleton h-3 w-1/4" />
-          </div>
-          <div className="skeleton hidden h-3 w-20 sm:block" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ErrorState({ onRetry, compact = false }: { onRetry: () => void; compact?: boolean }) {
-  return (
-    <div className={cn('empty-state', compact && 'py-12')} data-testid="status-error">
-      <div className="empty-icon empty-icon-error"><X size={20} /></div>
-      <h3 className="mt-4 text-sm font-bold">Не удалось загрузить данные</h3>
-      <p className="mt-1 max-w-xs text-center text-xs leading-5 text-muted-foreground">
-        Проверьте соединение и попробуйте ещё раз.
-      </p>
-      <button type="button" data-testid="button-retry" onClick={onRetry} className="button button-secondary mt-4">
-        Повторить
-      </button>
-    </div>
-  );
-}
-
-function EmptyState({
-  title = 'Пока ничего нет',
-  description = 'Когда появятся новые данные, они будут отображаться здесь.',
-  action,
-}: {
-  title?: string;
-  description?: string;
-  action?: ReactNode;
-}) {
-  return (
-    <div className="empty-state" data-testid="status-empty">
-      <div className="empty-icon"><FolderOpen size={20} /></div>
-      <h3 className="mt-4 text-sm font-bold">{title}</h3>
-      <p className="mt-1 max-w-xs text-center text-xs leading-5 text-muted-foreground">{description}</p>
-      {action}
-    </div>
-  );
-}
-
-function FileBadge({ type = 'XLSX', large = false }: { type?: string; large?: boolean }) {
-  return (
-    <div className={cn('file-badge', large && 'file-badge-lg')}>
-      <FileSpreadsheet size={large ? 25 : 19} strokeWidth={1.8} />
-      <span>{type.toUpperCase().replace('.', '')}</span>
-    </div>
-  );
-}
-
-function StatusPill({ status }: { status: Template['status'] }) {
-  return (
-    <span className={cn('status-pill', status === 'archived' && 'status-pill-muted')} data-testid={`status-template-${status}`}>
-      <span className="size-1.5 rounded-full bg-current" />
-      {status === 'active' ? 'Активен' : 'В архиве'}
-    </span>
-  );
-}
-
-function TemplateRow({ template, compact = false }: { template: Template; compact?: boolean }) {
-  return (
-    <Link
-      href={`/templates/${template.id}`}
-      data-testid={`link-template-${template.id}`}
-      className={cn('template-row group', compact && 'template-row-compact')}
-    >
-      <FileBadge type={template.fileType} />
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-sm font-bold text-foreground transition-colors group-hover:text-teal-700">{template.name}</span>
-          {template.status === 'archived' && <StatusPill status={template.status} />}
-          {template.accessGroup === 'agronomists' && <span className="meta-chip shrink-0 text-[10px]">Агрономы</span>}
-        </div>
-        <p className="mt-1 truncate text-xs text-muted-foreground">{template.description || `${template.category} · ${template.department}`}</p>
-      </div>
-      <div className="hidden shrink-0 items-center gap-8 lg:flex">
-        <div className="w-[116px]">
-          <p className="text-[11px] font-semibold text-foreground">{template.category}</p>
-          <p className="mt-1 truncate text-[11px] text-muted-foreground">{template.department}</p>
-        </div>
-        <div className="w-[72px]">
-          <p className="font-mono text-xs font-bold text-foreground">{template.version || 'v1.0'}</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">{formatDate(template.updatedAt)}</p>
-        </div>
-        <div className="w-14 text-right">
-          <p className="font-mono text-xs font-bold text-foreground">{formatNumber(template.downloads)}</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">скачиваний</p>
-        </div>
-      </div>
-      <ArrowUpRight size={16} className="shrink-0 text-muted-foreground/50 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-teal-700" />
-    </Link>
-  );
-}
-
-function ActivityItem({ activity }: { activity: Activity }) {
-  const icon = activity.action === 'uploaded' ? <UploadIcon size={15} /> : activity.action === 'downloaded' ? <Download size={15} /> : activity.action === 'archived' ? <Archive size={15} /> : <Copy size={15} />;
-  return (
-    <div className="activity-item" data-testid={`activity-item-${activity.id}`}>
-      <div className={cn('activity-icon', activity.action === 'archived' && 'activity-icon-muted')}>{icon}</div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-xs leading-5 text-foreground">
-          <strong>{activity.userName}</strong> {actionLabel(activity.action)}
-        </p>
-        <p className="truncate text-xs font-semibold text-teal-700">{activity.templateName}</p>
-      </div>
-      <time className="shrink-0 text-[10px] text-muted-foreground">{formatDate(activity.timestamp)}</time>
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  note,
-  icon,
-  accent = 'yellow',
-}: {
-  label: string;
-  value: number | undefined;
-  note: string;
-  icon: ReactNode;
-  accent?: 'yellow' | 'teal' | 'blue' | 'coral';
-}) {
-  return (
-    <div className="stat-card" data-testid={`stat-${label}`}>
-      <div className={cn('stat-icon', `stat-icon-${accent}`)}>{icon}</div>
-      <div className="mt-5 flex items-end justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
-          <p className="mt-1 font-display text-[26px] font-bold tracking-[-0.05em] text-foreground">{formatNumber(value)}</p>
-        </div>
-        <p className="mb-1 text-right text-[10px] font-medium text-muted-foreground">{note}</p>
-      </div>
-    </div>
-  );
-}
-
-function Overview() {
-  const summaryQuery = useGetDashboardSummary({ query: { queryKey: getGetDashboardSummaryQueryKey() } });
-  const templatesQuery = useListTemplates(undefined, { query: { queryKey: getListTemplatesQueryKey() } });
-  const activityQuery = useListActivity();
-  const summary = summaryQuery.data as DashboardSummary | undefined;
-  const templates = (templatesQuery.data as Template[] | undefined) ?? [];
-  const activities = (activityQuery.data as Activity[] | undefined) ?? [];
-  const recentTemplates = [...templates].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 5);
-
-  return (
-    <div className="animate-page">
-      <div className="hero-strip">
-        <div className="relative z-[1]">
-          <p className="eyebrow eyebrow-dark">Среда команды · 14 марта 2024</p>
-          <h1 className="mt-3 max-w-xl font-display text-[31px] font-bold leading-[1.03] tracking-[-0.055em] text-sidebar-foreground sm:text-[39px]">
-            Всё нужное для работы.<br /><span className="text-accent">В одном месте.</span>
-          </h1>
-          <p className="mt-4 max-w-md text-sm leading-6 text-sidebar-foreground/60">
-            Общая библиотека шаблонов без дублей, потерянных версий и пересылок в чатах.
-          </p>
-          <Link href="/templates" data-testid="link-hero-browse" className="button button-yellow mt-6">
-            Открыть библиотеку <ArrowUpRight size={16} />
-          </Link>
-        </div>
-        <div className="hero-decoration" aria-hidden="true">
-          <div className="hero-grid" />
-          <div className="hero-document hero-document-back"><span /><span /><span /></div>
-          <div className="hero-document hero-document-front"><FileSpreadsheet size={28} /><span /><span /></div>
-          <div className="hero-dot hero-dot-one" /><div className="hero-dot hero-dot-two" />
-        </div>
-      </div>
-
-      <div className="mb-9 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {summaryQuery.isLoading ? (
-          Array.from({ length: 4 }).map((_, index) => <div className="stat-card" key={index}><div className="skeleton h-8 w-8 rounded-lg" /><div className="mt-6 space-y-2"><div className="skeleton h-3 w-20" /><div className="skeleton h-7 w-16" /></div></div>)
-        ) : summaryQuery.isError ? (
-          <div className="col-span-full"><ErrorState onRetry={() => summaryQuery.refetch()} compact /></div>
-        ) : (
-          <>
-            <StatCard label="Всего шаблонов" value={summary?.totalTemplates} note="в библиотеке" icon={<Library size={17} />} accent="yellow" />
-            <StatCard label="Отделов" value={summary?.departments} note="в команде" icon={<Users size={17} />} accent="teal" />
-            <StatCard label="Скачиваний" value={summary?.downloadsThisMonth} note="в этом месяце" icon={<Download size={17} />} accent="blue" />
-            <StatCard label="Новых файлов" value={summary?.newThisMonth} note="за этот месяц" icon={<BarChart3 size={17} />} accent="coral" />
-          </>
-        )}
-      </div>
-
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_350px]">
-        <section>
-          <div className="mb-4 flex items-end justify-between">
-            <div>
-              <p className="eyebrow">Библиотека</p>
-              <h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">Недавно обновлённые</h2>
-            </div>
-            <Link href="/templates" data-testid="link-view-all-templates" className="button button-ghost text-xs">
-              Все шаблоны <ArrowUpRight size={14} />
-            </Link>
-          </div>
-          <div className="surface-card overflow-hidden">
-            <div className="hidden border-b border-border px-5 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground lg:flex">
-              <span className="flex-1">Название</span><span className="w-[116px]">Категория</span><span className="w-[72px]">Версия</span><span className="w-14 text-right">Исп.</span><span className="w-5" />
-            </div>
-            {templatesQuery.isLoading ? <div className="p-4"><LoadingRows count={4} /></div> : templatesQuery.isError ? <ErrorState onRetry={() => templatesQuery.refetch()} /> : recentTemplates.length === 0 ? <EmptyState title="Библиотека пока пуста" description="Добавьте первый шаблон, чтобы команда могла начать работу." action={<Link href="/upload" data-testid="link-empty-upload" className="button button-primary mt-4">Добавить шаблон</Link>} /> : <div>{recentTemplates.map((template) => <TemplateRow key={template.id} template={template} />)}</div>}
-          </div>
-        </section>
-
-        <section>
-          <div className="mb-4 flex items-end justify-between">
-            <div>
-              <p className="eyebrow">Лента событий</p>
-              <h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">Последняя активность</h2>
-            </div>
-            <Clock3 size={17} className="mb-1 text-muted-foreground" />
-          </div>
-          <div className="surface-card">
-            {activityQuery.isLoading ? <div className="p-4"><LoadingRows count={3} /></div> : activityQuery.isError ? <ErrorState onRetry={() => activityQuery.refetch()} compact /> : activities.length === 0 ? <EmptyState title="Событий пока нет" description="Здесь появятся действия команды с шаблонами." /> : <div className="divide-y divide-border/70">{activities.slice(0, 6).map((activity) => <ActivityItem key={activity.id} activity={activity} />)}</div>}
-          </div>
-          <div className="mt-4 flex items-center gap-3 rounded-xl border border-teal-900/10 bg-teal-50/70 p-4">
-            <ShieldCheck size={20} className="shrink-0 text-teal-700" />
-            <p className="text-xs leading-5 text-teal-900/75">Версии файлов сохраняются — вы всегда можете вернуться к актуальному варианту.</p>
-          </div>
-        </section>
-      </div>
-    </div>
-  );
-}
-
-function Templates() {
-  const [location] = useLocation();
-  const initialSearch = new URLSearchParams(location.split('?')[1] || '').get('search') ?? '';
-  const [search, setSearch] = useState(initialSearch);
-  const [category, setCategory] = useState('');
-  const [department, setDepartment] = useState('');
-  const params = useMemo(() => ({ search: search || undefined, category: category || undefined, department: department || undefined }), [search, category, department]);
-  const templatesQuery = useListTemplates(params, { query: { queryKey: getListTemplatesQueryKey(params) } });
-  const templates = (templatesQuery.data as Template[] | undefined) ?? [];
-
-  return (
-    <div className="animate-page">
-      <PageTitle
-        eyebrow="Каталог"
-        title="Все шаблоны"
-        description="Ищите, открывайте и используйте проверенные рабочие файлы команды."
-        action={<Link href="/upload" data-testid="link-catalog-upload" className="button button-primary"><CloudUpload size={16} /> Добавить шаблон</Link>}
-      />
-      <div className="surface-card mb-6 p-3 sm:p-4">
-        <div className="flex flex-col gap-3 lg:flex-row">
-          <label className="search-field flex-1">
-            <Search size={17} />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} data-testid="input-template-search" type="search" placeholder="Поиск по названию или описанию..." />
-            {search && <button type="button" data-testid="button-clear-search" onClick={() => setSearch('')} aria-label="Очистить поиск"><X size={15} /></button>}
-          </label>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <label className="select-field">
-              <Filter size={15} />
-              <select value={category} onChange={(event) => setCategory(event.target.value)} data-testid="select-category">
-                <option value="">Все категории</option>
-                {categories.map((item) => <option key={item} value={item}>{item}</option>)}
-              </select>
-              <ChevronDown size={14} />
-            </label>
-            <label className="select-field">
-              <Users size={15} />
-              <select value={department} onChange={(event) => setDepartment(event.target.value)} data-testid="select-department">
-                <option value="">Все отделы</option>
-                {departments.map((item) => <option key={item} value={item}>{item}</option>)}
-              </select>
-              <ChevronDown size={14} />
-            </label>
-          </div>
-        </div>
-        <div className="mt-3 flex items-center justify-between border-t border-border/70 pt-3 text-xs text-muted-foreground">
-          <span>{templatesQuery.isLoading ? 'Загрузка...' : `${formatNumber(templates.length)} ${templates.length === 1 ? 'шаблон' : 'шаблонов'}`}</span>
-          {(category || department || search) && <button type="button" data-testid="button-reset-filters" onClick={() => { setSearch(''); setCategory(''); setDepartment(''); }} className="font-semibold text-teal-700 hover:text-teal-900">Сбросить фильтры</button>}
-        </div>
-      </div>
-      <div className="surface-card overflow-hidden">
-        <div className="hidden border-b border-border px-5 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground lg:flex">
-          <span className="flex-1">Название</span><span className="w-[116px]">Категория</span><span className="w-[72px]">Версия</span><span className="w-14 text-right">Исп.</span><span className="w-5" />
-        </div>
-        {templatesQuery.isLoading ? <div className="p-4"><LoadingRows count={6} /></div> : templatesQuery.isError ? <ErrorState onRetry={() => templatesQuery.refetch()} /> : templates.length === 0 ? <EmptyState title="Ничего не нашли" description="Попробуйте изменить поисковый запрос или убрать фильтры." action={<button type="button" data-testid="button-empty-reset" className="button button-secondary mt-4" onClick={() => { setSearch(''); setCategory(''); setDepartment(''); }}>Очистить фильтры</button>} /> : templates.map((template) => <TemplateRow key={template.id} template={template} />)}
-      </div>
-    </div>
-  );
-}
-
-function AgroBlock() {
-  const templatesQuery = useListTemplates(undefined, { query: { queryKey: getListTemplatesQueryKey() } });
-  const templates = (templatesQuery.data as Template[] | undefined) ?? [];
-  const arysanTemplate = templates.find((template) => template.name.includes('Арыстан'));
-  const vedenovkaTemplate = templates.find((template) => template.name.includes('Веденовка'));
-  const units = [
-    { name: 'АПК Арыстан Grain', accent: 'bg-accent', template: arysanTemplate, fallback: 'Шаблон Отчет По Уборке в ТОО АПК Арыстан грейн' },
-    { name: 'АФ Веденовка', accent: 'bg-teal-400', template: vedenovkaTemplate, fallback: 'Шаблон Отчет По Уборке АФ Веденовка' },
-  ];
-
-  return (
-    <div className="animate-page">
-      <PageTitle
-        eyebrow="Раздел · АгроБлок"
-        title="АгроБлок"
-        description="Шаблоны отчётов агрономического направления, сгруппированные по подразделениям."
-      />
-      {templatesQuery.isLoading ? (
-        <div className="surface-card p-5"><LoadingRows count={2} /></div>
-      ) : templatesQuery.isError ? (
-        <ErrorState onRetry={() => templatesQuery.refetch()} />
-      ) : (
-        <div className="grid gap-5 lg:grid-cols-2">
-          {units.map((unit) => (
-            <section key={unit.name} className="surface-card overflow-hidden">
-              <div className="flex items-center gap-3 border-b border-border bg-muted/25 px-5 py-4">
-                <div className={cn('flex size-9 items-center justify-center rounded-lg', unit.accent)}>
-                  <FolderOpen size={17} className="text-sidebar" />
-                </div>
-                <div>
-                  <p className="eyebrow">Подразделение</p>
-                  <h2 className="mt-0.5 font-display text-lg font-bold tracking-[-0.035em]">{unit.name}</h2>
-                </div>
-              </div>
-              <div className="p-3">
-                {unit.template ? (
-                  <TemplateRow template={unit.template} compact />
-                ) : (
-                  <EmptyState title="Шаблон не найден" description={unit.fallback} />
-                )}
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TemplateDetails() {
-  const params = useParams<{ id?: string }>();
-  const id = Number(params.id);
-  const templateQuery = useGetTemplate(id, { query: { enabled: Number.isFinite(id), queryKey: getGetTemplateQueryKey(id) } });
-  const deleteTemplate = useDeleteTemplate();
-  const [notice, setNotice] = useState('');
-  const [, setLocation] = useLocation();
-  const template = templateQuery.data as Template | undefined;
-
-  if (!Number.isFinite(id)) return <NotFound />;
-  if (templateQuery.isLoading) return <div className="animate-page"><div className="skeleton h-5 w-28" /><div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_330px]"><div className="surface-card h-96 p-7"><div className="skeleton h-12 w-12 rounded-xl" /><div className="mt-6 skeleton h-8 w-2/3" /><div className="mt-3 skeleton h-4 w-full" /></div><div className="surface-card h-72 p-6"><div className="skeleton h-4 w-1/3" /></div></div></div>;
-  if (templateQuery.isError || !template) return <ErrorState onRetry={() => templateQuery.refetch()} />;
-
-  const handleDelete = () => {
-    if (!window.confirm('Удалить этот шаблон? Действие нельзя отменить.')) return;
-    deleteTemplate.mutate({ id: template.id }, { onSuccess: () => setLocation('/templates') });
-  };
-
-  return (
-    <div className="animate-page">
-      <Link href="/templates" data-testid="link-back-templates" className="button button-ghost -ml-3 mb-7"><ArrowLeft size={16} /> Назад к шаблонам</Link>
-      {notice && <div className="notice-banner mb-5" data-testid="status-download-success"><Check size={16} /> {notice}<button type="button" data-testid="button-dismiss-notice" onClick={() => setNotice('')}><X size={14} /></button></div>}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <section className="surface-card overflow-hidden">
-          <div className="detail-hero">
-            <div className="flex items-start justify-between gap-4">
-              <FileBadge type={template.fileType} large />
-              <StatusPill status={template.status} />
-            </div>
-            <h1 className="mt-7 max-w-2xl font-display text-[30px] font-bold leading-tight tracking-[-0.05em] sm:text-[38px]">{template.name}</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{template.description || 'Проверенный рабочий шаблон вашей команды.'}</p>
-            <div className="mt-7 flex flex-wrap gap-2">
-              <span className="meta-chip">{template.category}</span><span className="meta-chip">{template.department}</span><span className="meta-chip font-mono">{template.version || 'v1.0'}</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 divide-x divide-border border-t border-border sm:grid-cols-4">
-            <div className="detail-stat"><span>Размер файла</span><strong>{template.fileSize || '—'}</strong></div>
-            <div className="detail-stat"><span>Скачиваний</span><strong>{formatNumber(template.downloads)}</strong></div>
-            <div className="detail-stat"><span>Обновлён</span><strong>{formatDate(template.updatedAt)}</strong></div>
-            <div className="detail-stat"><span>Автор</span><strong className="truncate">{template.updatedBy || 'Команда'}</strong></div>
-          </div>
-        </section>
-        <aside className="space-y-4">
-          <div className="surface-card p-5">
-            <p className="eyebrow">Действия</p>
-            <a href={template.fileUrl || undefined} download={template.fileName} data-testid="button-download-template" className={cn('button button-primary mt-4 w-full justify-center', !template.fileUrl && 'pointer-events-none opacity-60')} onClick={() => setNotice(`Файл «${template.fileName || template.name}» скачивается`)}>
-              <Download size={16} /> Скачать файл
-            </a>
-            <button type="button" data-testid="button-copy-template-link" className="button button-secondary mt-2 w-full justify-center" onClick={() => { navigator.clipboard?.writeText(window.location.href); setNotice('Ссылка скопирована в буфер обмена'); }}>
-              <Copy size={16} /> Скопировать ссылку
-            </button>
-          </div>
-          <div className="surface-card p-5">
-            <p className="eyebrow">Информация о файле</p>
-            <dl className="mt-4 space-y-4">
-              <div className="flex justify-between gap-4 text-xs"><dt className="text-muted-foreground">Имя файла</dt><dd className="max-w-[180px] truncate text-right font-medium">{template.fileName || 'Не указано'}</dd></div>
-              <div className="flex justify-between gap-4 text-xs"><dt className="text-muted-foreground">Последнее изменение</dt><dd className="text-right font-medium">{formatDateLong(template.updatedAt)}</dd></div>
-              <div className="flex justify-between gap-4 text-xs"><dt className="text-muted-foreground">Формат</dt><dd className="font-mono font-medium uppercase">{template.fileType || 'xlsx'}</dd></div>
-            </dl>
-          </div>
-          <button type="button" data-testid="button-delete-template" className="flex w-full items-center justify-center gap-2 rounded-lg border border-transparent py-2.5 text-xs font-semibold text-destructive transition-colors hover:border-destructive/20 hover:bg-destructive/5" onClick={handleDelete} disabled={deleteTemplate.isPending}>
-            <Trash2 size={14} /> {deleteTemplate.isPending ? 'Удаляем...' : 'Удалить шаблон'}
-          </button>
-        </aside>
-      </div>
-    </div>
-  );
-}
-
-function Upload() {
-  const createTemplate = useCreateTemplate();
-  const [, setLocation] = useLocation();
-  const [file, setFile] = useState<File | null>(null);
-  const [form, setForm] = useState<TemplateInput>({ name: '', description: '', category: '', department: '', fileName: '', fileSize: '', fileType: 'xlsx', accessGroup: 'all', fileUrl: '' });
-  const [error, setError] = useState('');
-  const updateField = (field: keyof TemplateInput, value: string) => setForm((current) => ({ ...current, [field]: value }));
-
-  const onFileChange = (selected: File | undefined) => {
-    if (!selected) return;
-    const extension = selected.name.split('.').pop()?.toLowerCase() || 'xlsx';
-    setFile(selected);
-    setForm((current) => ({ ...current, fileName: selected.name, fileSize: `${(selected.size / 1024 / 1024).toFixed(1)} МБ`, fileType: extension }));
-  };
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!form.name.trim() || !form.category || !form.department || !file) {
-      setError('Заполните название, выберите файл, категорию и отдел.');
-      return;
-    }
-    setError('');
-    createTemplate.mutate({ data: { ...form, fileUrl: form.fileUrl || form.fileName } }, { onSuccess: (template) => setLocation(`/templates/${template.id}`), onError: () => setError('Не удалось сохранить шаблон. Попробуйте ещё раз.') });
-  };
-
-  return (
-    <div className="animate-page">
-      <PageTitle eyebrow="Новая запись" title="Добавить шаблон" description="Загрузите рабочий файл, чтобы команда всегда использовала актуальную версию." />
-      <form onSubmit={onSubmit} className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <section className="surface-card p-5 sm:p-7">
-          <div className="mb-7 flex items-center gap-3 border-b border-border pb-5">
-            <div className="step-number">01</div>
-            <div><h2 className="text-sm font-bold">Данные шаблона</h2><p className="mt-0.5 text-xs text-muted-foreground">Как команда найдёт этот файл</p></div>
-          </div>
-          <div className="space-y-5">
-            <label className="form-label">Название шаблона <span>*</span><input value={form.name} onChange={(event) => updateField('name', event.target.value)} data-testid="input-template-name" className="text-input mt-2" placeholder="Например, План продаж на месяц" /></label>
-            <label className="form-label">Короткое описание <textarea value={form.description} onChange={(event) => updateField('description', event.target.value)} data-testid="input-template-description" className="text-input mt-2 min-h-[100px] resize-y" placeholder="Для чего используется этот шаблон и что в нём важно..." /></label>
-            <div className="grid gap-5 sm:grid-cols-2">
-              <label className="form-label">Категория <span>*</span><span className="select-wrap mt-2"><select value={form.category} onChange={(event) => updateField('category', event.target.value)} data-testid="select-upload-category" className="text-input appearance-none"><option value="">Выберите категорию</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select><ChevronDown size={15} /></span></label>
-              <label className="form-label">Ответственный отдел <span>*</span><span className="select-wrap mt-2"><select value={form.department} onChange={(event) => updateField('department', event.target.value)} data-testid="select-upload-department" className="text-input appearance-none"><option value="">Выберите отдел</option>{departments.map((item) => <option key={item} value={item}>{item}</option>)}</select><ChevronDown size={15} /></span></label>
-            </div>
-            <label className="form-label">Доступ к шаблону<span className="select-wrap mt-2"><select value={form.accessGroup} onChange={(event) => updateField('accessGroup', event.target.value)} data-testid="select-upload-access" className="text-input appearance-none"><option value="all">Вся команда</option><option value="agronomists">Только агрономы</option></select><ChevronDown size={15} /></span></label>
-          </div>
-          {error && <div className="mt-6 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-xs font-medium text-destructive" data-testid="status-upload-error">{error}</div>}
-          <div className="mt-8 flex flex-col-reverse justify-end gap-3 border-t border-border pt-5 sm:flex-row">
-            <Link href="/" data-testid="link-cancel-upload" className="button button-ghost justify-center">Отмена</Link>
-            <button type="submit" data-testid="button-submit-upload" disabled={createTemplate.isPending} className="button button-primary justify-center">{createTemplate.isPending ? 'Сохраняем...' : 'Сохранить шаблон'} <ArrowUpRight size={15} /></button>
-          </div>
-        </section>
-        <aside>
-          <div className="surface-card p-5 sm:p-6">
-            <div className="mb-7 flex items-center gap-3 border-b border-border pb-5">
-              <div className="step-number">02</div>
-              <div><h2 className="text-sm font-bold">Файл</h2><p className="mt-0.5 text-xs text-muted-foreground">Только Excel-файлы</p></div>
-            </div>
-            <label className={cn('upload-dropzone', !!file && 'upload-dropzone-filled')} data-testid="dropzone-file-upload">
-              <input type="file" accept=".xlsx,.xls,.csv" data-testid="input-template-file" onChange={(event) => onFileChange(event.target.files?.[0])} />
-              {file ? <><div className="file-badge file-badge-lg mx-auto"><FileSpreadsheet size={25} /><span>{form.fileType.toUpperCase()}</span></div><p className="mt-4 truncate px-3 text-center text-sm font-bold">{file.name}</p><p className="mt-1 text-xs text-muted-foreground">{form.fileSize} · Готов к загрузке</p><span role="button" tabIndex={0} data-testid="button-remove-upload-file" className="mt-4 text-xs font-semibold text-destructive hover:underline" onClick={(event) => { event.preventDefault(); setFile(null); setForm((current) => ({ ...current, fileName: '', fileSize: '' })); }}>Удалить файл</span></> : <><div className="mx-auto flex size-11 items-center justify-center rounded-xl bg-accent text-accent-foreground"><CloudUpload size={21} /></div><p className="mt-4 text-sm font-bold">Перетащите файл сюда</p><p className="mt-1 text-xs text-muted-foreground">или выберите на компьютере</p><span className="button button-secondary mt-4">Выбрать файл</span><p className="mt-4 text-[10px] text-muted-foreground">XLSX, XLS или CSV · до 25 МБ</p></>}
-            </label>
-          </div>
-          <div className="mt-4 flex gap-3 rounded-xl border border-border bg-card p-4"><ShieldCheck size={18} className="shrink-0 text-teal-700" /><p className="text-xs leading-5 text-muted-foreground">Файлы доступны только участникам вашего рабочего пространства.</p></div>
-        </aside>
-      </form>
-    </div>
-  );
-}
-
-const reportStatusLabels: Record<Report['status'], string> = {
-  submitted: 'Ожидает проверки',
-  in_review: 'На проверке',
-  returned: 'На доработке',
-  approved: 'Проверен',
-  sent_to_management: 'Отправлен начальству',
+const reportStatusLabels: Record<Report["status"], string> = {
+  submitted: "Ожидает проверки",
+  in_review: "На проверке",
+  returned: "На доработке",
+  approved: "Проверен",
+  sent_to_management: "Отправлен начальству",
 };
 
-function ReportStatusPill({ status }: { status: Report['status'] }) {
-  const tone = status === 'returned'
-    ? 'border-amber-200 bg-amber-50 text-amber-800'
-    : status === 'sent_to_management'
-      ? 'border-blue-200 bg-blue-50 text-blue-800'
-      : status === 'approved'
-        ? 'border-teal-200 bg-teal-50 text-teal-800'
-        : 'border-border bg-muted text-muted-foreground';
-  return <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold', tone)}>{reportStatusLabels[status]}</span>;
+function ReportStatusPill({ status }: { status: Report["status"] }) {
+  const tone = status === "returned" ? "border-amber-200 bg-amber-50 text-amber-800" : status === "sent_to_management" ? "border-blue-200 bg-blue-50 text-blue-800" : status === "approved" ? "border-teal-200 bg-teal-50 text-teal-800" : "border-border bg-muted text-muted-foreground";
+  return <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold", tone)}>{reportStatusLabels[status]}</span>;
 }
 
-function Cabinet() {
-  const [mode, setMode] = useState<'agronomist' | 'chief' | 'economist' | 'director' | 'management'>('agronomist');
+function Cabinet({ role }: { role: AppRole }) {
   const [file, setFile] = useState<File | null>(null);
-  const [unit, setUnit] = useState('АПК Арыстан Grain');
-  const [notice, setNotice] = useState('');
+  const [unit, setUnit] = useState("АПК Арыстан Grain");
+  const [notice, setNotice] = useState("");
   const reportsQuery = useListReports(undefined, { query: { queryKey: getListReportsQueryKey() } });
   const createReport = useCreateReport();
   const updateReportStatus = useUpdateReportStatus();
   const reports = (reportsQuery.data as Report[] | undefined) ?? [];
+  const canSubmit = role === "agronomist" || role === "economist";
+  const isEconomist = role === "economist";
+  const reviewer = role === "chief_agronomist" || role === "farm_director";
+  const queueTitle = role === "chief_agronomist" ? "Очередь главного агронома" : role === "farm_director" ? "Очередь директора хозяйства" : role === "general_director" ? "Отчёты для начальства" : isEconomist ? "Ежедневные реестры" : "Отправленные отчёты";
 
   const refreshReports = () => queryClient.invalidateQueries({ queryKey: getListReportsQueryKey() });
   const submitReport = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!file) {
-      setNotice('Сначала выберите заполненный Excel-файл.');
+      setNotice("Сначала выберите заполненный файл.");
       return;
     }
-    const isEconomist = mode === 'economist';
-    createReport.mutate({
-      data: {
-        title: isEconomist ? `Реестр финансирования · ${unit}` : `Отчёт по уборке · ${unit}`,
-        unit,
-        reportType: isEconomist ? 'financing_register' : 'agronomy',
-        fileName: file.name,
-        fileSize: `${(file.size / 1024 / 1024).toFixed(1)} МБ`,
-        fileUrl: isEconomist ? '/files/reestr-finansirovaniya-vedenovka.pdf' : '/files/svodka-uborka-arysan-green.xlsx',
-        submittedBy: isEconomist ? 'Экономист' : 'Агроном',
-      },
-    }, {
-      onSuccess: () => {
-        setFile(null);
-        setNotice(isEconomist ? 'Реестр отправлен директору хозяйства на согласование.' : 'Отчёт отправлен главному агроному на проверку.');
-        refreshReports();
-      },
-      onError: () => setNotice('Не удалось отправить отчёт. Повторите попытку.'),
-    });
+    createReport.mutate({ data: {
+      title: isEconomist ? `Реестр финансирования · ${unit}` : `Отчёт по уборке · ${unit}`,
+      unit,
+      fileName: file.name,
+      fileSize: `${(file.size / 1024 / 1024).toFixed(1)} МБ`,
+      fileUrl: isEconomist ? "/files/reestr-finansirovaniya-vedenovka.pdf" : "/files/svodka-uborka-arysan-green.xlsx",
+    } }, { onSuccess: () => { setFile(null); setNotice(isEconomist ? "Реестр отправлен директору хозяйства." : "Отчёт отправлен главному агроному."); refreshReports(); }, onError: () => setNotice("Не удалось отправить документ.") });
   };
-  const moveReport = (report: Report, status: Exclude<Report['status'], 'submitted'>, reviewerComment: string) => {
-    updateReportStatus.mutate({
-      id: report.id,
-      data: { status, reviewerComment, reviewedBy: report.reportType === 'financing_register' ? 'Директор хозяйства' : 'Главный агроном' },
-    }, {
-      onSuccess: () => {
-        setNotice(status === 'returned' ? 'Документ возвращён на доработку.' : status === 'sent_to_management' ? (report.reportType === 'financing_register' ? 'Реестр отправлен генеральному директору.' : 'Отчёт отправлен начальству.') : 'Статус отчёта обновлён.');
-        refreshReports();
-      },
-    });
+  const moveReport = (report: Report, status: "in_review" | "returned" | "approved" | "sent_to_management", reviewerComment: string) => {
+    updateReportStatus.mutate({ id: report.id, data: { status, reviewerComment } }, { onSuccess: () => { setNotice(status === "returned" ? "Документ возвращён на доработку." : status === "sent_to_management" ? "Документ отправлен начальству." : "Статус документа обновлён."); refreshReports(); }, onError: () => setNotice("Не удалось изменить статус документа.") });
   };
-
-  const visibleReports = mode === 'agronomist'
-    ? reports.filter((report) => report.reportType === 'agronomy' && (report.submittedBy === 'Агроном' || report.status === 'returned'))
-    : mode === 'chief'
-      ? reports.filter((report) => report.reportType === 'agronomy' && report.status !== 'sent_to_management')
-      : mode === 'economist'
-        ? reports.filter((report) => report.reportType === 'financing_register' && (report.submittedBy === 'Экономист' || report.status === 'returned'))
-        : mode === 'director'
-          ? reports.filter((report) => report.reportType === 'financing_register' && report.status !== 'sent_to_management')
-          : reports.filter((report) => report.status === 'sent_to_management');
 
   return (
     <div className="animate-page">
-      <PageTitle
-        eyebrow="Согласование отчётов"
-        title="Личный кабинет"
-        description="Агроном передаёт отчёт главному агроному, а экономист — ежедневный реестр директору хозяйства до 09:30, затем генеральному директору."
-      />
-      <div className="mb-6 flex flex-wrap gap-2 rounded-xl border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
-        <span className="flex items-center px-2 font-semibold">Временный режим без входа:</span>
-        {[
-          { id: 'agronomist' as const, label: 'Агроном' },
-          { id: 'chief' as const, label: 'Главный агроном' },
-          { id: 'economist' as const, label: 'Экономист' },
-          { id: 'director' as const, label: 'Директор хозяйства' },
-          { id: 'management' as const, label: 'Генеральный директор' },
-        ].map((role) => <button key={role.id} type="button" data-testid={`button-role-${role.id}`} onClick={() => setMode(role.id)} className={cn('rounded-lg px-3 py-2 font-bold transition-colors', mode === role.id ? 'bg-sidebar text-sidebar-foreground' : 'hover:bg-amber-100')}>{role.label}</button>)}
-      </div>
-      {notice && <div className="notice-banner mb-6" data-testid="status-report-notice"><Check size={16} /> {notice}<button type="button" onClick={() => setNotice('')} aria-label="Закрыть"><X size={14} /></button></div>}
-
-      {(mode === 'agronomist' || mode === 'economist') && (
-        <section className="surface-card mb-7 p-5 sm:p-7">
-          <div className="section-heading"><div className="setting-icon"><UploadIcon size={17} /></div><div><h2>{mode === 'economist' ? 'Подать ежедневный реестр до 09:30' : 'Передать заполненный отчёт'}</h2><p>{mode === 'economist' ? 'Реестр по каждому подразделению сначала попадёт директору хозяйства, затем генеральному директору.' : 'Выберите заполненный Excel-файл — он появится у главного агронома в очереди на проверку.'}</p></div></div>
-          <form onSubmit={submitReport} className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
-            <label className="form-label">Подразделение<select value={unit} onChange={(event) => setUnit(event.target.value)} className="text-input mt-2"><option>АПК Арыстан Grain</option><option>АФ Веденовка</option></select></label>
-            <label className="form-label">{mode === 'economist' ? 'Ежедневный реестр' : 'Заполненный Excel-файл'}<input type="file" accept={mode === 'economist' ? '.pdf,.xlsx,.xls' : '.xlsx,.xls'} data-testid="input-completed-report" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="text-input mt-2 pt-2" /></label>
-            <button type="submit" data-testid="button-submit-report" disabled={createReport.isPending} className="button button-primary justify-center">{createReport.isPending ? 'Отправляем...' : mode === 'economist' ? 'Отправить директору' : 'Отправить на проверку'} <Send size={15} /></button>
-          </form>
-          {file && <p className="mt-4 flex items-center gap-2 text-xs font-medium text-teal-800"><FileCheck2 size={15} /> Выбран файл: {file.name}</p>}
-        </section>
-      )}
-
-      <section>
-        <div className="mb-4 flex items-end justify-between"><div><p className="eyebrow">{mode === 'chief' || mode === 'director' ? 'Согласование' : mode === 'management' ? 'Архив отправки' : 'Мои документы'}</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">{mode === 'chief' ? 'Очередь главного агронома' : mode === 'director' ? 'Очередь директора хозяйства' : mode === 'management' ? 'Отчёты для начальства' : mode === 'economist' ? 'Ежедневные реестры' : 'Отправленные отчёты'}</h2></div><ClipboardCheck size={19} className="text-muted-foreground" /></div>
-        {reportsQuery.isLoading ? <LoadingRows count={3} /> : reportsQuery.isError ? <ErrorState onRetry={() => reportsQuery.refetch()} /> : visibleReports.length === 0 ? <EmptyState title="Здесь пока нет отчётов" description="Когда отчёт перейдёт на этот этап, он появится в списке." /> : (
-          <div className="space-y-3">
-            {visibleReports.map((report) => (
-              <article key={report.id} className="surface-card p-4 sm:p-5" data-testid={`report-card-${report.id}`}>
-                <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-                  <div className="flex min-w-0 items-start gap-3">
-                    <FileBadge type="xlsx" />
-                    <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-bold">{report.title}</h3><ReportStatusPill status={report.status} /></div><p className="mt-1 text-xs text-muted-foreground">{report.unit} · {report.fileName} · отправил {report.submittedBy} · {formatDate(report.submittedAt)}</p>{report.reviewerComment && <p className="mt-2 text-xs text-teal-800">Комментарий: {report.reviewerComment}</p>}</div>
-                  </div>
-                  <div className="flex shrink-0 flex-wrap gap-2">
-                    {report.fileUrl && <a href={report.fileUrl} download={report.fileName} className="button button-secondary text-xs"><Download size={14} /> Открыть файл</a>}
-                    {(mode === 'chief' || mode === 'director') && report.status === 'submitted' && <button type="button" onClick={() => moveReport(report, 'in_review', 'Документ принят в работу.')} className="button button-primary text-xs"><ClipboardCheck size={14} /> Взять на проверку</button>}
-                    {(mode === 'chief' || mode === 'director') && report.status === 'in_review' && <><button type="button" onClick={() => moveReport(report, 'returned', 'Пожалуйста, проверьте данные и загрузите исправленную версию.')} className="button button-secondary text-xs"><RotateCcw size={14} /> На доработку</button><button type="button" onClick={() => moveReport(report, 'approved', 'Документ проверен и готов к отправке.')} className="button button-primary text-xs"><Check size={14} /> Принять</button></>}
-                    {(mode === 'chief' || mode === 'director') && report.status === 'approved' && <button type="button" onClick={() => moveReport(report, 'sent_to_management', 'Документ направлен начальству.')} className="button button-primary text-xs"><Send size={14} /> {mode === 'director' ? 'Генеральному директору' : 'Отправить начальству'}</button>}
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+      <div className="mb-8"><p className="eyebrow">Согласование отчётов</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em] text-foreground sm:text-[34px]">Личный кабинет</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Ваша роль «{roleLabels[role]}» подтверждена. Доступные действия и документы определяются сервером.</p></div>
+      <ApprovalQueue role={role} />
+      {notice && <div className="notice-banner mb-6" data-testid="status-report-notice"><Check size={16} />{notice}<button type="button" aria-label="Закрыть" onClick={() => setNotice("")}><X size={14} /></button></div>}
+      {canSubmit && <section className="surface-card mb-7 p-5 sm:p-7"><div className="section-heading"><div className="setting-icon"><UploadIcon size={17} /></div><div><h2>{isEconomist ? "Подать ежедневный реестр до 09:30" : "Передать заполненный отчёт"}</h2><p>{isEconomist ? "Реестр сначала поступит директору хозяйства, затем генеральному директору." : "Отчёт поступит главному агроному на проверку."}</p></div></div><form onSubmit={submitReport} className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr_auto] lg:items-end"><label className="form-label">Подразделение<select value={unit} onChange={(event) => setUnit(event.target.value)} className="text-input mt-2"><option>АПК Арыстан Grain</option><option>АФ Веденовка</option></select></label><label className="form-label">{isEconomist ? "Ежедневный реестр" : "Заполненный Excel-файл"}<input type="file" accept={isEconomist ? ".pdf,.xlsx,.xls" : ".xlsx,.xls"} onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="text-input mt-2 pt-2" data-testid="input-completed-report" /></label><button type="submit" disabled={createReport.isPending} className="button button-primary justify-center" data-testid="button-submit-report">{createReport.isPending ? "Отправляем..." : isEconomist ? "Отправить директору" : "Отправить на проверку"} <Send size={15} /></button></form>{file && <p className="mt-4 flex items-center gap-2 text-xs font-medium text-teal-800"><FileCheck2 size={15} />Выбран файл: {file.name}</p>}</section>}
+      <section><div className="mb-4 flex items-end justify-between"><div><p className="eyebrow">{reviewer ? "Согласование" : "Мои документы"}</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">{queueTitle}</h2></div><ClipboardCheck size={19} className="text-muted-foreground" /></div>{reportsQuery.isLoading ? <LoadingRows count={3} /> : reportsQuery.isError ? <ErrorState onRetry={() => reportsQuery.refetch()} /> : reports.length === 0 ? <EmptyState title="Здесь пока нет документов" description="Когда документ перейдёт на доступный вам этап, он появится в списке." /> : <div className="space-y-3">{reports.map((report) => <article key={report.id} className="surface-card p-4 sm:p-5"><div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center"><div className="flex min-w-0 items-start gap-3"><FileBadge /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-bold">{report.title}</h3><ReportStatusPill status={report.status} /></div><p className="mt-1 text-xs text-muted-foreground">{report.unit} · {report.fileName} · {report.submittedBy} · {formatDate(report.submittedAt)}</p>{report.reviewerComment && <p className="mt-2 text-xs text-teal-800">Комментарий: {report.reviewerComment}</p>}</div></div><div className="flex shrink-0 flex-wrap gap-2">{report.fileUrl && <a href={report.fileUrl} download={report.fileName} className="button button-secondary text-xs"><Download size={14} />Открыть файл</a>}{reviewer && report.status === "submitted" && <button type="button" onClick={() => moveReport(report, "in_review", "Документ принят в работу.")} className="button button-primary text-xs">Взять на проверку</button>}{reviewer && report.status === "in_review" && <><button type="button" onClick={() => moveReport(report, "returned", "Проверьте данные и загрузите исправленную версию.")} className="button button-secondary text-xs"><RotateCcw size={14} />На доработку</button><button type="button" onClick={() => moveReport(report, "approved", "Документ проверен.")} className="button button-primary text-xs"><Check size={14} />Принять</button></>}{reviewer && report.status === "approved" && <button type="button" onClick={() => moveReport(report, "sent_to_management", "Документ направлен начальству.")} className="button button-primary text-xs"><Send size={14} />{role === "farm_director" ? "Генеральному директору" : "Отправить начальству"}</button>}</div></div></article>)}</div>}</section>
     </div>
   );
 }
 
-function Settings() {
-  const [saved, setSaved] = useState(false);
-  const [workspace, setWorkspace] = useState('Команда операционного развития');
-  const [role, setRole] = useState('Администратор');
-  const [notifications, setNotifications] = useState(true);
-  const [archive, setArchive] = useState(true);
-  const saveSettings = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 3200);
-  };
+function AccessGate() {
+  const requestQuery = useGetMyRoleRequest({ query: { queryKey: getGetMyRoleRequestQueryKey(), refetchInterval: 12000 } });
+  const request = (requestQuery.data as RoleRequest | null | undefined) ?? null;
+  if (requestQuery.isLoading) return <main className="access-page"><LoadingRows count={2} /></main>;
+  if (requestQuery.isError) return <main className="access-page"><ErrorState onRetry={() => requestQuery.refetch()} /></main>;
+  if (request?.status !== "approved") return <RoleRequestScreen request={request} />;
+  return <Shell role={request.requestedRole as AppRole} request={request}><Cabinet role={request.requestedRole as AppRole} /></Shell>;
+}
+
+function Home() {
+  return <><Show when="signed-in"><AccessGate /></Show><Show when="signed-out"><PublicLanding /></Show></>;
+}
+
+function stripBase(path: string) {
+  return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || "/" : path;
+}
+
+function ClerkProviderWithRoutes() {
+  const [, setLocation] = useLocation();
   return (
-    <div className="animate-page">
-      <PageTitle eyebrow="Рабочее пространство" title="Настройки" description="Управляйте командой, доступами и правилами общей библиотеки." />
-      {saved && <div className="notice-banner mb-6" data-testid="status-settings-saved"><Check size={16} /> Изменения сохранены</div>}
-      <form onSubmit={saveSettings} className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="space-y-6">
-          <section className="surface-card p-5 sm:p-7">
-            <div className="section-heading"><div className="setting-icon"><Users size={17} /></div><div><h2>Команда и доступ</h2><p>Кто может работать с базой шаблонов</p></div></div>
-            <div className="mt-7 space-y-5">
-              <label className="form-label">Название команды<input value={workspace} onChange={(event) => setWorkspace(event.target.value)} data-testid="input-workspace-name" className="text-input mt-2" /></label>
-              <label className="form-label">Ваша роль<span className="select-wrap mt-2"><select value={role} onChange={(event) => setRole(event.target.value)} data-testid="select-user-role" className="text-input appearance-none"><option>Администратор</option><option>Редактор</option><option>Наблюдатель</option></select><ChevronDown size={15} /></span></label>
-            </div>
-          </section>
-          <section className="surface-card p-5 sm:p-7">
-            <div className="section-heading"><div className="setting-icon setting-icon-yellow"><SlidersHorizontal size={17} /></div><div><h2>Правила библиотеки</h2><p>Настройте поведение пространства под команду</p></div></div>
-            <div className="mt-6 divide-y divide-border">
-              <label className="setting-row"><span><strong>Уведомлять об изменениях</strong><small>Получать письмо, когда файл обновлён</small></span><input type="checkbox" checked={notifications} onChange={(event) => setNotifications(event.target.checked)} data-testid="toggle-notifications" className="toggle-input" /></label>
-              <label className="setting-row"><span><strong>Сохранять архивные версии</strong><small>Не удалять старые файлы после обновления</small></span><input type="checkbox" checked={archive} onChange={(event) => setArchive(event.target.checked)} data-testid="toggle-archive" className="toggle-input" /></label>
-            </div>
-          </section>
-          <button type="submit" data-testid="button-save-settings" className="button button-primary">Сохранить изменения <Check size={15} /></button>
-        </div>
-        <aside className="space-y-4">
-          <div className="surface-card overflow-hidden">
-            <div className="border-b border-border bg-muted/30 p-5"><p className="eyebrow">Ваш тариф</p><div className="mt-3 flex items-center justify-between"><h2 className="font-display text-2xl font-bold tracking-[-0.04em]">Командный</h2><span className="rounded-full bg-accent px-2.5 py-1 text-[10px] font-bold text-accent-foreground">PRO</span></div><p className="mt-2 text-xs leading-5 text-muted-foreground">Для команд, где порядок в документах — часть процесса.</p></div>
-            <div className="space-y-3 p-5 text-xs"><div className="flex justify-between"><span className="text-muted-foreground">Шаблоны</span><strong>Без ограничений</strong></div><div className="flex justify-between"><span className="text-muted-foreground">Участники</span><strong>12 из 25</strong></div><div className="flex justify-between"><span className="text-muted-foreground">Хранилище</span><strong>2.4 ГБ из 10 ГБ</strong></div></div>
-          </div>
-          <div className="surface-card p-5"><div className="flex items-center gap-3"><div className="avatar avatar-md avatar-blue">АК</div><div><p className="text-sm font-bold">Алексей Крылов</p><p className="text-xs text-muted-foreground">alexey@severin.team</p></div></div><button type="button" data-testid="button-manage-profile" className="button button-secondary mt-5 w-full justify-center" onClick={() => window.alert('Управление профилем доступно через администратора рабочего пространства.')}>Управление профилем</button></div>
-          <div className="flex gap-3 rounded-xl border border-border bg-card p-4"><ShieldCheck size={18} className="shrink-0 text-teal-700" /><p className="text-xs leading-5 text-muted-foreground">Данные рабочего пространства защищены и доступны только вашей команде.</p></div>
-        </aside>
-      </form>
-    </div>
+    <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={clerkAppearance} signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} routerPush={(to) => setLocation(stripBase(to))} routerReplace={(to) => setLocation(stripBase(to), { replace: true })}>
+      <QueryClientProvider client={queryClient}><TooltipProvider><ErrorBoundary><Switch><Route path="/sign-in/*?" component={SignInPage} /><Route path="/sign-up/*?" component={SignUpPage} /><Route component={Home} /></Switch></ErrorBoundary><Toaster /></TooltipProvider></QueryClientProvider>
+    </ClerkProvider>
   );
 }
 
-function RoutedErrorBoundary({ children }: { children: ReactNode }) {
-  const [location] = useLocation();
-  return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
+export default function App() {
+  if (!clerkPubKey) throw new Error("Не настроен ключ авторизации");
+  return <WouterRouter base={basePath}><ClerkProviderWithRoutes /></WouterRouter>;
 }
-
-function Router() {
-  return (
-    <RoutedErrorBoundary>
-      <Shell>
-        <Switch>
-          <Route path="/" component={Cabinet} />
-          <Route path="/agroblock" component={AgroBlock} />
-          <Route path="/templates/:id" component={TemplateDetails} />
-          <Route path="/templates" component={Templates} />
-          <Route path="/upload" component={Upload} />
-          <Route path="/cabinet" component={Cabinet} />
-          <Route path="/settings" component={Settings} />
-          <Route component={NotFound} />
-        </Switch>
-      </Shell>
-    </RoutedErrorBoundary>
-  );
-}
-
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
-}
-
-export default App;

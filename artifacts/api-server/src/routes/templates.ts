@@ -12,8 +12,14 @@ import {
   ListTemplatesResponse,
 } from "@workspace/api-zod";
 import { activityTable, db, templatesTable } from "@workspace/db";
+import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 
 const router: IRouter = Router();
+
+function canUseTemplate(access: RoleAccess, template: typeof templatesTable.$inferSelect) {
+  return template.accessGroup !== "agronomists"
+    || ["agronomist", "chief_agronomist", "farm_director", "general_director"].includes(access.role!);
+}
 
 const seedTemplates = [
   {
@@ -141,7 +147,7 @@ function serializeTemplate(template: typeof templatesTable.$inferSelect) {
   };
 }
 
-router.get("/templates", async (req, res, next) => {
+router.get("/templates", requireApprovedRole, async (req, res, next) => {
   try {
     await ensureSeeded();
     const filters = ListTemplatesQueryParams.parse(req.query);
@@ -158,15 +164,21 @@ router.get("/templates", async (req, res, next) => {
     const rows = await db.select().from(templatesTable)
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(templatesTable.updatedAt));
-    res.json(ListTemplatesResponse.parse(rows.map(serializeTemplate)));
+    const access = res.locals.access as RoleAccess;
+    res.json(ListTemplatesResponse.parse(rows.filter((template) => canUseTemplate(access, template)).map(serializeTemplate)));
   } catch (error) {
     next(error);
   }
 });
 
-router.post("/templates", async (req, res, next) => {
+router.post("/templates", requireApprovedRole, async (req, res, next) => {
   try {
     const body = CreateTemplateBody.parse(req.body);
+    const access = res.locals.access as RoleAccess;
+    if (access.role !== "general_director") {
+      res.status(403).json({ error: "Добавлять шаблоны может только генеральный директор" });
+      return;
+    }
     const [template] = await db.insert(templatesTable).values(body).returning();
     await db.insert(activityTable).values({
       action: "uploaded",
@@ -179,12 +191,16 @@ router.post("/templates", async (req, res, next) => {
   }
 });
 
-router.get("/templates/:id", async (req, res, next) => {
+router.get("/templates/:id", requireApprovedRole, async (req, res, next) => {
   try {
     const { id } = GetTemplateParams.parse({ id: Number(req.params.id) });
     const [template] = await db.select().from(templatesTable).where(eq(templatesTable.id, id));
     if (!template) {
       res.status(404).json({ error: "Шаблон не найден" });
+      return;
+    }
+    if (!canUseTemplate(res.locals.access as RoleAccess, template)) {
+      res.status(403).json({ error: "У вас нет доступа к этому шаблону" });
       return;
     }
     res.json(GetTemplateResponse.parse(serializeTemplate(template)));
@@ -193,9 +209,14 @@ router.get("/templates/:id", async (req, res, next) => {
   }
 });
 
-router.delete("/templates/:id", async (req, res, next) => {
+router.delete("/templates/:id", requireApprovedRole, async (req, res, next) => {
   try {
     const { id } = DeleteTemplateParams.parse({ id: Number(req.params.id) });
+    const access = res.locals.access as RoleAccess;
+    if (access.role !== "general_director") {
+      res.status(403).json({ error: "Удалять шаблоны может только генеральный директор" });
+      return;
+    }
     await db.delete(templatesTable).where(eq(templatesTable.id, id));
     res.status(204).send();
   } catch (error) {
@@ -203,7 +224,7 @@ router.delete("/templates/:id", async (req, res, next) => {
   }
 });
 
-router.get("/dashboard/summary", async (_req, res, next) => {
+router.get("/dashboard/summary", requireApprovedRole, async (_req, res, next) => {
   try {
     await ensureSeeded();
     const rows = await db.select().from(templatesTable);
@@ -219,7 +240,7 @@ router.get("/dashboard/summary", async (_req, res, next) => {
   }
 });
 
-router.get("/activity", async (_req, res, next) => {
+router.get("/activity", requireApprovedRole, async (_req, res, next) => {
   try {
     await ensureSeeded();
     const rows = await db.select().from(activityTable).orderBy(desc(activityTable.timestamp), asc(activityTable.id)).limit(10);
