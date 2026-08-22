@@ -22,6 +22,7 @@ import {
   Settings as SettingsIcon,
   Download,
   Upload as UploadIcon,
+  Sprout,
 } from "lucide-react";
 import {
   type Report,
@@ -163,6 +164,8 @@ function BrandEmblem({ size = "md" }: { size?: "md" | "lg" }) {
 
 type WorkspaceSection = "cabinet" | "templates" | "archive" | "agro" | "settings";
 
+type SidebarSection = Exclude<WorkspaceSection, "templates">;
+
 function FileBadge() {
   return <div className="file-badge"><FileSpreadsheet size={19} strokeWidth={1.8} /><span>XLSX</span></div>;
 }
@@ -298,24 +301,54 @@ function ApprovalQueue({ role }: { role: AppRole }) {
     </section>
   );
 }
-
-function Shell({ children, role, request, section, onSectionChange }: { children: ReactNode; role: AppRole; request: RoleRequest; section: WorkspaceSection; onSectionChange: (section: WorkspaceSection) => void }) {
+function Shell({
+  children,
+  role,
+  request,
+  activeSection,
+  onNavigate,
+}: {
+  children: ReactNode;
+  role: AppRole;
+  request: RoleRequest;
+  activeSection: WorkspaceSection;
+  onNavigate: (section: SidebarSection) => void;
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [topNotice, setTopNotice] = useState("");
   const { signOut } = useClerk();
+  const activeSidebarSection: SidebarSection = activeSection === "templates" ? "cabinet" : activeSection;
   const navigation = [
     { id: "cabinet" as const, label: "Личный кабинет", icon: ClipboardCheck },
-    { id: "templates" as const, label: "Шаблоны", icon: FileSpreadsheet },
     { id: "archive" as const, label: "Архив", icon: Archive },
-    { id: "agro" as const, label: "АгроБлок", icon: Archive },
+    { id: "agro" as const, label: "АгроБлок", icon: Sprout },
     { id: "settings" as const, label: "Настройки", icon: SettingsIcon },
   ];
+  const navigateFromSidebar = (section: SidebarSection) => {
+    onNavigate(section);
+    setMobileOpen(false);
+  };
+
   return (
     <div className="min-h-[100dvh] bg-background text-foreground">
-      <aside className={cn("fixed inset-y-0 left-0 z-30 flex w-[256px] flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground transition-transform duration-300 md:translate-x-0", mobileOpen ? "translate-x-0" : "-translate-x-full")}>
+      <aside className={cn("fixed inset-y-0 left-0 z-30 flex w-[256px] flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground transition-transform duration-300 md:translate-x-0", mobileOpen ? "translate-x-0" : "-translate-x-full")} data-testid="sidebar-navigation">
         <div className="mb-9 flex items-center gap-3 px-2"><BrandEmblem /><div><div className="font-display text-[15px] font-bold tracking-[-0.02em]">AGROLINK</div><div className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-sidebar-foreground/55">Единая база шаблонов</div></div></div>
         <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/35">Рабочее пространство</div>
-         <nav className="space-y-1" aria-label="Основная навигация">{navigation.map(({ id, label, icon: Icon }) => <button type="button" key={id} className={cn("nav-item w-full", section === id && "nav-item-active")} onClick={() => { onSectionChange(id); setMobileOpen(false); }} aria-current={section === id ? "page" : undefined} data-testid={`nav-workspace-${id}`}><Icon size={17} /><span>{label}</span></button>)}</nav>
+        <nav className="grid gap-1" aria-label="Разделы рабочего пространства">
+          {navigation.map(({ id, label, icon: Icon }) => (
+            <button
+              type="button"
+              key={id}
+              className={cn("nav-item w-full text-left", activeSidebarSection === id && "nav-item-active")}
+              onClick={() => navigateFromSidebar(id)}
+              aria-current={activeSidebarSection === id ? "page" : undefined}
+              data-testid={`nav-workspace-${id}`}
+            >
+              <Icon size={17} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
         <div className="mt-auto border-t border-sidebar-border px-2 pt-4"><div className="flex items-center gap-3"><div className="avatar avatar-sm avatar-accent">{initials(request.displayName)}</div><div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold">{request.displayName}</p><p className="truncate text-[11px] text-sidebar-foreground/45">{roleLabels[role]}</p></div><button type="button" className="icon-button-dark" title="Выйти" aria-label="Выйти" onClick={() => signOut({ redirectUrl: basePath || "/" })}><LogOut size={16} /></button></div></div>
       </aside>
       {mobileOpen && <button type="button" aria-label="Закрыть меню" className="fixed inset-0 z-20 bg-sidebar/40 md:hidden" onClick={() => setMobileOpen(false)} />}
@@ -428,8 +461,7 @@ function Cabinet({ role }: { role: AppRole }) {
 
 const templateCategories = ["Финансы", "Продажи", "Кадры", "Маркетинг", "Операции", "Отчётность", "Персонал"];
 
-function ArchivePage() {
-  const [selectedCell, setSelectedCell] = useState<ArchiveCell | null>(null);
+function ArchivePage({ selectedCell, onSelectCell }: { selectedCell: ArchiveCell | null; onSelectCell: (cell: ArchiveCell | null) => void }) {
   const archivesQuery = useListArchives({ query: { queryKey: getListArchivesQueryKey() } });
   const reportParams = selectedCell ? { status: "archived" as const, archiveSection: selectedCell.section, archiveSubarchive: selectedCell.subarchive } : undefined;
   const archivedReportsQuery = useListReports(reportParams, { query: { enabled: Boolean(selectedCell), queryKey: getListReportsQueryKey(reportParams) } });
@@ -438,7 +470,7 @@ function ArchivePage() {
 
   if (selectedCell) {
     return <div className="animate-page">
-      <button type="button" onClick={() => setSelectedCell(null)} className="button button-ghost -ml-3 mb-6 text-xs" data-testid="button-back-archive">← Ко всем архивам</button>
+      <button type="button" onClick={() => onSelectCell(null)} className="button button-ghost -ml-3 mb-6 text-xs" data-testid="button-back-archive">← Ко всем архивам</button>
       <section className="surface-card overflow-hidden">
         <div className="border-b border-border bg-muted/25 px-5 py-5 sm:px-7"><p className="eyebrow">{selectedCell.sectionLabel}</p><h1 className="mt-2 font-display text-2xl font-bold tracking-[-0.04em]">{selectedCell.subarchiveLabel}</h1><p className="mt-2 text-sm text-muted-foreground">Одобренные генеральным директором документы в этой ячейке.</p></div>
         {archivedReportsQuery.isLoading ? <div className="p-5"><LoadingRows count={3} /></div> : archivedReportsQuery.isError ? <ErrorState onRetry={() => archivedReportsQuery.refetch()} /> : reports.length === 0 ? <EmptyState title="Архив пока пуст" description="Следующий финально согласованный документ появится в этой ячейке." /> : <div className="divide-y divide-border/70">{reports.map((report) => <article key={report.id} className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center"><div className="flex min-w-0 items-start gap-3"><FileBadge /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="truncate text-sm font-bold">{report.title}</h2><ReportStatusPill status={report.status} /></div><p className="mt-1 text-xs text-muted-foreground">{report.unit} · {report.fileName} · отправил {report.submittedBy}</p><p className="mt-2 text-xs text-muted-foreground">В архиве с {report.archivedAt ? formatDate(report.archivedAt) : "—"} · согласовал {report.archivedBy || "генеральный директор"}</p></div></div><a href={report.fileUrl} download={report.fileName} className="button button-secondary shrink-0 text-xs"><Download size={14} />Скачать</a></article>)}</div>}
@@ -455,7 +487,7 @@ function ArchivePage() {
         <div className="flex items-center gap-3 border-b border-border bg-muted/25 px-5 py-4"><div className="empty-icon h-9 w-9 rounded-lg"><Archive size={18} /></div><div><p className="eyebrow">Архив</p><h2 className="mt-1 font-display text-lg font-bold tracking-[-0.03em]">{config.label}</h2></div></div>
         <div className="divide-y divide-border/70">{config.subarchives.map((subarchive) => {
           const cell = sectionCells.find((item) => item.subarchive === subarchive.key);
-          return <button type="button" key={subarchive.key} onClick={() => cell && setSelectedCell(cell)} className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-sky-50" disabled={!cell} data-testid={`archive-cell-${section}-${subarchive.key}`}><span className="text-sm font-semibold">{subarchive.label}</span><span className="meta-chip">{cell?.documentCount ?? 0} файлов</span></button>;
+           return <button type="button" key={subarchive.key} onClick={() => cell && onSelectCell(cell)} className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-sky-50" disabled={!cell} data-testid={`archive-cell-${section}-${subarchive.key}`}><span className="text-sm font-semibold">{subarchive.label}</span><span className="meta-chip">{cell?.documentCount ?? 0} файлов</span></button>;
         })}</div>
       </section>;
     })}</div>}
@@ -525,27 +557,32 @@ function SettingsPage({ role, request }: { role: AppRole; request: RoleRequest }
   return <div className="animate-page"><div className="mb-7"><p className="eyebrow">Рабочее пространство</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em]">Настройки и доступ</h1><p className="mt-2 text-sm text-muted-foreground">Параметры профиля и состояние общей библиотеки.</p></div><div className="grid gap-5 lg:grid-cols-2"><section className="surface-card p-6"><div className="section-heading"><div className="setting-icon"><UserRound size={17} /></div><div><h2>Профиль</h2><p>Подтверждённые данные текущей заявки.</p></div></div><dl className="mt-6 space-y-4 text-sm"><div className="flex justify-between gap-4 border-b border-border pb-3"><dt className="text-muted-foreground">Сотрудник</dt><dd className="text-right font-semibold">{request.displayName}</dd></div><div className="flex justify-between gap-4 border-b border-border pb-3"><dt className="text-muted-foreground">E-mail</dt><dd className="text-right font-semibold">{request.email}</dd></div><div className="flex justify-between gap-4 border-b border-border pb-3"><dt className="text-muted-foreground">Роль</dt><dd className="text-right font-semibold text-teal-800">{roleLabels[role]}</dd></div><div className="flex justify-between gap-4"><dt className="text-muted-foreground">Подразделение</dt><dd className="text-right font-semibold">{request.department}</dd></div></dl></section><section className="surface-card p-6"><div className="section-heading"><div className="setting-icon"><BarChart3 size={17} /></div><div><h2>Состояние библиотеки</h2><p>Сводка доступных рабочих материалов.</p></div></div><div className="mt-6 grid grid-cols-2 gap-3"><div className="rounded-xl bg-muted/50 p-4"><p className="text-xs text-muted-foreground">Всего шаблонов</p><strong className="mt-2 block font-display text-2xl">{summary?.totalTemplates ?? "—"}</strong></div><div className="rounded-xl bg-muted/50 p-4"><p className="text-xs text-muted-foreground">Активность</p><strong className="mt-2 block font-display text-2xl">{activities.length || "—"}</strong></div></div></section></div></div>;
 }
 
-function Workspace({ role, request }: { role: AppRole; request: RoleRequest }) {
-  const [section, setSection] = useState<WorkspaceSection>("cabinet");
+function Workspace({ role, request, section, onSectionChange }: { role: AppRole; request: RoleRequest; section: WorkspaceSection; onSectionChange: (section: WorkspaceSection) => void }) {
   const [templateId, setTemplateId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
-  const openTemplate = (id: number) => { setTemplateId(id); setUploading(false); setSection("templates"); };
-  return <Shell role={role} request={request} section={section} onSectionChange={(nextSection) => { setSection(nextSection); setTemplateId(null); setUploading(false); }}>
+  const [selectedArchiveCell, setSelectedArchiveCell] = useState<ArchiveCell | null>(null);
+  const openTemplate = (id: number) => { setTemplateId(id); setUploading(false); onSectionChange("templates"); };
+  return <>
+    {(section === "cabinet" || section === "templates") && <div className="mb-7 flex flex-wrap gap-2" role="tablist" aria-label="Разделы кабинета">
+      <button type="button" role="tab" aria-selected={section === "cabinet"} className={cn("workspace-tab", section === "cabinet" && "workspace-tab-active")} onClick={() => onSectionChange("cabinet")} data-testid="tab-workspace-cabinet"><ClipboardCheck size={15} />Личный кабинет</button>
+      <button type="button" role="tab" aria-selected={section === "templates"} className={cn("workspace-tab", section === "templates" && "workspace-tab-active")} onClick={() => onSectionChange("templates")} data-testid="tab-workspace-templates"><FileSpreadsheet size={15} />Шаблоны</button>
+    </div>}
     {section === "cabinet" && <Cabinet role={role} />}
     {section === "templates" && (templateId ? <TemplateDetails id={templateId} role={role} onBack={() => setTemplateId(null)} /> : uploading ? <TemplateUpload onCancel={() => setUploading(false)} onSaved={(id) => { setUploading(false); setTemplateId(id); queryClient.invalidateQueries({ queryKey: getListTemplatesQueryKey() }); }} /> : <TemplateCatalog role={role} onOpen={openTemplate} onUpload={() => setUploading(true)} />)}
-    {section === "archive" && <ArchivePage />}
+    {section === "archive" && <ArchivePage selectedCell={selectedArchiveCell} onSelectCell={setSelectedArchiveCell} />}
     {section === "agro" && <AgroBlock onOpen={openTemplate} />}
     {section === "settings" && <SettingsPage role={role} request={request} />}
-  </Shell>;
+  </>;
 }
 
 function AccessGate() {
   const requestQuery = useGetMyRoleRequest({ query: { queryKey: getGetMyRoleRequestQueryKey(), refetchInterval: 12000 } });
+  const [section, setSection] = useState<WorkspaceSection>("cabinet");
   const request = (requestQuery.data as RoleRequest | null | undefined) ?? null;
   if (requestQuery.isLoading) return <main className="access-page"><LoadingRows count={2} /></main>;
   if (requestQuery.isError) return <main className="access-page"><ErrorState onRetry={() => requestQuery.refetch()} /></main>;
   if (request?.status !== "approved") return <RoleRequestScreen request={request} />;
-  return <Workspace role={request.requestedRole as AppRole} request={request} />;
+  return <Shell role={request.requestedRole as AppRole} request={request} activeSection={section} onNavigate={setSection}><Workspace role={request.requestedRole as AppRole} request={request} section={section} onSectionChange={setSection} /></Shell>;
 }
 
 function Home() {
