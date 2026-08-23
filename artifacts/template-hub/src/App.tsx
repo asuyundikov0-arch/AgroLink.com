@@ -213,6 +213,31 @@ function PublicLanding() {
   );
 }
 
+const demoRoleScenarios: Record<AppRole, { workspace: string; title: string; description: string; document: string; action: string; result: string }> = {
+  agronomist: { workspace: "АгроБлок", title: "Отчёт агронома", description: "Заполните форму и направьте отчёт главному агроному.", document: "Сводка по уборке · АПК Арыстан Grain", action: "Отправить на проверку", result: "Демо: отчёт направлен главному агроному." },
+  chief_agronomist: { workspace: "Личный кабинет", title: "Очередь главного агронома", description: "Проверьте поступивший отчёт и направьте его дальше.", document: "Сводка по уборке · АПК Арыстан Grain", action: "Принять документ", result: "Демо: отчёт принят и готов к следующему этапу." },
+  economist: { workspace: "Личный кабинет", title: "Ежедневный реестр", description: "Подайте финансовый реестр директору хозяйства.", document: "Реестр финансирования · АФ Веденовка", action: "Отправить директору", result: "Демо: реестр направлен директору хозяйства." },
+  farm_director: { workspace: "Личный кабинет", title: "Очередь директора хозяйства", description: "Согласуйте финансовый реестр и направьте его генеральному директору.", document: "Реестр финансирования · АФ Веденовка", action: "Направить генеральному директору", result: "Демо: реестр направлен на финальное согласование." },
+  general_director: { workspace: "Личный кабинет", title: "Финальное согласование", description: "Утвердите документ и разместите его в соответствующем архиве.", document: "Акт технического осмотра · Инженерная служба", action: "Одобрить и в архив", result: "Демо: документ утверждён и помещён в инженерский архив." },
+  engineer: { workspace: "Инженерный блок", title: "Отправка инженерного документа", description: "Откройте шаблон, подготовьте Excel или PDF и передайте его главному инженеру.", document: "Акт технического осмотра · Инженерная служба", action: "Отправить главному инженеру", result: "Демо: инженерный документ направлен главному инженеру." },
+  chief_engineer: { workspace: "Личный кабинет", title: "Очередь главного инженера", description: "Проверьте инженерный документ, верните его на доработку или направьте генеральному директору.", document: "Акт технического осмотра · Инженерная служба", action: "Принять и направить директору", result: "Демо: документ согласован главным инженером и направлен генеральному директору." },
+};
+
+function PublicDemo() {
+  const [role, setRole] = useState<AppRole>("engineer");
+  const [message, setMessage] = useState("");
+  const scenario = demoRoleScenarios[role];
+  return <main className="min-h-screen bg-background px-4 py-6 sm:px-7 sm:py-10">
+    <div className="mx-auto max-w-5xl">
+      <div className="mb-7 flex flex-col justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-center"><div className="flex items-center gap-3"><BrandEmblem /><div><p className="landing-brand-name">AGROLINK</p><p className="text-xs text-muted-foreground">Интерактивная демо-версия</p></div></div><a href={basePath || "/"} className="button button-secondary text-xs"><ArrowLeft size={14} />К стартовой странице</a></div>
+      <section className="surface-card mb-6 border-l-[4px] border-l-amber-400 p-5 sm:p-7"><p className="eyebrow">Без регистрации и доступа к данным</p><h1 className="mt-2 font-display text-3xl font-bold tracking-[-0.05em]">Посмотрите работу каждой роли</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">Это безопасная учебная копия интерфейса. Все действия работают только внутри этого экрана и не создают пользователей, документы или заявки.</p><label className="form-label mt-6 block max-w-sm">Роль для демонстрации<select className="text-input mt-2" value={role} onChange={(event) => { setRole(event.target.value as AppRole); setMessage(""); }} data-testid="select-public-demo-role">{(Object.keys(roleLabels) as AppRole[]).map((item) => <option key={item} value={item}>{roleLabels[item]}</option>)}</select></label></section>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_330px]"><section className="surface-card overflow-hidden"><div className="border-b border-border bg-muted/25 px-5 py-5 sm:px-7"><p className="eyebrow">{scenario.workspace}</p><h2 className="mt-2 font-display text-2xl font-bold tracking-[-0.045em]">{scenario.title}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{scenario.description}</p></div><div className="p-5 sm:p-7"><article className="rounded-xl border border-border bg-card p-4 sm:p-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div className="flex min-w-0 items-start gap-3"><FileBadge /><div><div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-bold">{scenario.document}</h3><span className="meta-chip">Демо-документ</span></div><p className="mt-1 text-xs text-muted-foreground">Excel/PDF · маршрут согласования показан на примере</p></div></div><button type="button" className="button button-primary shrink-0 text-xs" onClick={() => setMessage(scenario.result)} data-testid="button-run-demo-action"><Check size={14} />{scenario.action}</button></div></article>{message && <div className="notice-banner mt-5"><Check size={16} />{message}<button type="button" aria-label="Закрыть" onClick={() => setMessage("")}><X size={14} /></button></div>}</div></section>
+        <aside className="surface-card p-5 sm:p-6"><div className="section-heading"><div className="setting-icon"><Users size={17} /></div><div><h2>Маршрут роли</h2><p>Без настоящих прав доступа.</p></div></div><ol className="mt-6 space-y-4 text-sm"><li className="flex gap-3"><span className="meta-chip">1</span><span>Выберите роль в списке.</span></li><li className="flex gap-3"><span className="meta-chip">2</span><span>Посмотрите доступный ей рабочий раздел.</span></li><li className="flex gap-3"><span className="meta-chip">3</span><span>Нажмите действие и увидите результат в демо-режиме.</span></li></ol><a href={`${basePath}/sign-up`} className="button button-secondary mt-7 w-full justify-center text-xs">Перейти к настоящей регистрации</a></aside>
+      </div>
+    </div>
+  </main>;
+}
+
 function AuthBackButton() {
   return <a href={basePath || "/"} className="auth-back-button" data-testid="button-auth-back"><ArrowLeft size={16} />Назад</a>;
 }
