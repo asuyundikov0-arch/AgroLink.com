@@ -461,12 +461,14 @@ function Cabinet({ role }: { role: AppRole }) {
   const requestUpload = useRequestReportUploadUrl();
   const [isUploading, setIsUploading] = useState(false);
   const allReports = (reportsQuery.data as Report[] | undefined) ?? [];
-  const reports = allReports.filter(r => r.reportType !== "engineering_document");
+  const reports = allReports.filter((report) => role === "chief_engineer"
+    ? report.reportType === "engineering_document"
+    : report.reportType !== "engineering_document");
   const canSubmit = role === "agronomist" || role === "economist";
   const isEconomist = role === "economist";
-  const reviewer = role === "chief_agronomist" || role === "farm_director";
+  const reviewer = role === "chief_agronomist" || role === "chief_engineer" || role === "farm_director";
   const finalApprover = role === "general_director";
-  const queueTitle = role === "chief_agronomist" ? "Очередь главного агронома" : role === "farm_director" ? "Очередь директора хозяйства" : finalApprover ? "Финальное согласование" : isEconomist ? "Ежедневные реестры" : "Отправленные отчёты";
+  const queueTitle = role === "chief_agronomist" ? "Очередь главного агронома" : role === "chief_engineer" ? "Очередь главного инженера" : role === "farm_director" ? "Очередь директора хозяйства" : finalApprover ? "Финальное согласование" : isEconomist ? "Ежедневные реестры" : "Отправленные отчёты";
 
   const refreshReports = () => queryClient.invalidateQueries({ queryKey: getListReportsQueryKey() });
   const submitReport = async (event: FormEvent<HTMLFormElement>) => {
@@ -590,8 +592,6 @@ function EngineeringBlock({ role, onOpenTemplate }: { role: AppRole; onOpenTempl
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Библиотека инженерных шаблонов и очередь согласования документов.</p>
       </div>
 
-      <ApprovalQueue role={role} />
-
       {notice && <div className="notice-banner mb-6" data-testid="status-engineering-notice"><Check size={16} />{notice}<button type="button" aria-label="Закрыть" onClick={() => setNotice("")}><X size={14} /></button></div>}
 
       <section className="surface-card mb-7 p-5 sm:p-7">
@@ -648,7 +648,7 @@ function EngineeringBlock({ role, onOpenTemplate }: { role: AppRole; onOpenTempl
         </section>
       )}
 
-      <section>
+      {role !== "chief_engineer" && <section>
         <div className="mb-4 flex items-end justify-between">
           <div>
             <p className="eyebrow">{reviewer || finalApprover ? "Согласование" : "Мои документы"}</p>
@@ -689,7 +689,7 @@ function EngineeringBlock({ role, onOpenTemplate }: { role: AppRole; onOpenTempl
             ))}
           </div>
         )}
-      </section>
+      </section>}
       {archiveTarget && <ArchiveSelectionDialog report={archiveTarget} onClose={() => setArchiveTarget(null)} isPending={updateReportStatus.isPending} onConfirm={(section, subarchive) => moveReport(archiveTarget, "archived", "Документ одобрен генеральным директором и помещён в архив.", { section, subarchive })} />}
     </div>
   );
