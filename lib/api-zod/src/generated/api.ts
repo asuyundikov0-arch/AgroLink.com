@@ -39,7 +39,7 @@ export const ListTemplatesResponseItem = zod.object({
   "updatedAt": zod.string(),
   "updatedBy": zod.string(),
   "downloads": zod.number(),
-  "accessGroup": zod.enum(['all', 'agronomists']),
+  "accessGroup": zod.enum(['all', 'agronomists', 'engineers']),
   "fileUrl": zod.string(),
   "status": zod.enum(['active', 'archived'])
 })
@@ -77,7 +77,7 @@ export const CreateTemplateResponse = zod.object({
   "updatedAt": zod.string(),
   "updatedBy": zod.string(),
   "downloads": zod.number(),
-  "accessGroup": zod.enum(['all', 'agronomists']),
+  "accessGroup": zod.enum(['all', 'agronomists', 'engineers']),
   "fileUrl": zod.string(),
   "status": zod.enum(['active', 'archived'])
 })
@@ -103,7 +103,7 @@ export const GetTemplateResponse = zod.object({
   "updatedAt": zod.string(),
   "updatedBy": zod.string(),
   "downloads": zod.number(),
-  "accessGroup": zod.enum(['all', 'agronomists']),
+  "accessGroup": zod.enum(['all', 'agronomists', 'engineers']),
   "fileUrl": zod.string(),
   "status": zod.enum(['active', 'archived'])
 })
@@ -167,7 +167,7 @@ export const ListReportsResponseItem = zod.object({
   "id": zod.number(),
   "title": zod.string(),
   "unit": zod.string(),
-  "reportType": zod.enum(['agronomy', 'financing_register']),
+  "reportType": zod.enum(['agronomy', 'financing_register', 'engineering_document']),
   "fileName": zod.string(),
   "fileSize": zod.string(),
   "fileUrl": zod.string(),
@@ -205,7 +205,7 @@ export const CreateReportResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
   "unit": zod.string(),
-  "reportType": zod.enum(['agronomy', 'financing_register']),
+  "reportType": zod.enum(['agronomy', 'financing_register', 'engineering_document']),
   "fileName": zod.string(),
   "fileSize": zod.string(),
   "fileUrl": zod.string(),
@@ -219,6 +219,29 @@ export const CreateReportResponse = zod.object({
   "archiveSubarchive": zod.string(),
   "archivedAt": zod.string().nullable(),
   "archivedBy": zod.string()
+})
+
+
+/**
+ * @summary Request a protected upload URL for a document
+ */
+
+
+
+
+
+export const RequestReportUploadUrlBody = zod.object({
+  "name": zod.string().min(1),
+  "size": zod.number().min(1),
+  "contentType": zod.string().min(1)
+})
+
+
+
+
+export const RequestReportUploadUrlResponse = zod.object({
+  "uploadURL": zod.string(),
+  "objectPath": zod.string().min(1)
 })
 
 
@@ -240,7 +263,7 @@ export const UpdateReportStatusResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
   "unit": zod.string(),
-  "reportType": zod.enum(['agronomy', 'financing_register']),
+  "reportType": zod.enum(['agronomy', 'financing_register', 'engineering_document']),
   "fileName": zod.string(),
   "fileSize": zod.string(),
   "fileUrl": zod.string(),
@@ -307,7 +330,7 @@ export const ListRoleRequestsResponseItem = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'economist', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -324,7 +347,7 @@ export const ListRoleRequestsResponse = zod.array(ListRoleRequestsResponseItem)
 
 
 export const CreateRoleRequestBody = zod.object({
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'economist', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'farm_director', 'general_director']),
   "department": zod.string().min(1)
 })
 
@@ -334,7 +357,7 @@ export const CreateRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'economist', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -361,12 +384,41 @@ export const ReviewRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'economist', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
   "requestedAt": zod.string(),
   "reviewedAt": zod.string().nullable()
 })
+
+
+/**
+ * @summary List approved users for employee management
+ */
+export const ListUsersResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.string(),
+  "email": zod.string(),
+  "displayName": zod.string(),
+  "department": zod.string(),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'farm_director', 'general_director']),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "reviewComment": zod.string(),
+  "reviewedByName": zod.string(),
+  "requestedAt": zod.string(),
+  "reviewedAt": zod.string().nullable()
+})
+export const ListUsersResponse = zod.array(ListUsersResponseItem)
+
+
+/**
+ * @summary Revoke a user's approved access
+ */
+export const DeleteUserParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteUserResponse = zod.void()
 
 

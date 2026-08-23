@@ -12,6 +12,8 @@ export * from './archiveCell';
 export * from './archiveCellSection';
 export * from './archiveCellSubarchive';
 export * from './dashboardSummary';
+export * from './documentUploadInput';
+export * from './documentUploadTarget';
 export * from './getMyRoleRequest200';
 export * from './getMyRoleRequest200RequestedRole';
 export * from './getMyRoleRequest200Status';

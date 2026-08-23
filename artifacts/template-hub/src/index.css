@@ -484,6 +484,8 @@
   .button-danger:hover { background:hsl(var(--destructive) / .14); }
   .button-yellow { color:hsl(var(--accent-foreground)); background:hsl(var(--accent)); box-shadow:0 2px 0 rgba(0,0,0,.15); }
   .button-yellow:hover { background:hsl(39 100% 58%); }
+  .button-engineering { color:white; background:hsl(215 25% 27%); box-shadow:0 2px 0 rgba(19,35,48,.10); }
+  .button-engineering:hover { background:hsl(215 25% 20%); }
   .button-secondary { border:1px solid hsl(var(--border)); color:hsl(var(--foreground)); background:hsl(var(--card)); }
   .button-secondary:hover { border-color:hsl(203 87% 33% / .45); background:hsl(203 55% 96%); }
   .button-ghost { color:hsl(var(--muted-foreground)); padding-left:10px; padding-right:10px; }
@@ -555,7 +557,9 @@
   .upload-dropzone-filled { border-style:solid; background:hsl(174 46% 43% / .08); }
   .upload-dropzone input { display:none; }
   .section-heading { display:flex; align-items:center; gap:12px; }.section-heading h2 { font-size:14px; font-weight:700; }.section-heading p { margin-top:3px; color:hsl(var(--muted-foreground)); font-size:11px; }
-  .setting-icon { display:flex; align-items:center; justify-content:center; width:33px; height:33px; border-radius:9px; color:hsl(174 46% 36%); background:hsl(174 46% 43% / .12); }.setting-icon-yellow { color:hsl(35 64% 30%); background:hsl(48 92% 61% / .25); }
+  .setting-icon { display:flex; align-items:center; justify-content:center; width:33px; height:33px; border-radius:9px; color:hsl(174 46% 36%); background:hsl(174 46% 43% / .12); }
+  .setting-icon-yellow { color:hsl(35 64% 30%); background:hsl(48 92% 61% / .25); }
+  .setting-icon-engineering { color:hsl(215 25% 27%); background:hsl(215 25% 27% / .12); }
   .setting-row { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:17px 0; cursor:pointer; }.setting-row strong { display:block; font-size:12px; }.setting-row small { display:block; margin-top:4px; color:hsl(var(--muted-foreground)); font-size:11px; font-weight:400; }
   .toggle-input { position:relative; flex:none; width:38px; height:22px; appearance:none; border-radius:99px; background:hsl(var(--muted-foreground) / .25); cursor:pointer; transition:background-color .2s ease; }.toggle-input::after { content:""; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:hsl(var(--card)); box-shadow:0 1px 3px rgba(0,0,0,.16); transition:transform .2s ease; }.toggle-input:checked { background:hsl(174 46% 43%); }.toggle-input:checked::after { transform:translateX(16px); }
   .animate-page { animation:page-in .35s ease both; }

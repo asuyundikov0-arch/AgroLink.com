@@ -1,10 +1,13 @@
 import { Router, type IRouter } from "express";
+import { Readable } from "stream";
 import { and, desc, eq } from "drizzle-orm";
 import {
   CreateReportBody,
   CreateReportResponse,
   ListReportsQueryParams,
   ListReportsResponse,
+  RequestReportUploadUrlBody,
+  RequestReportUploadUrlResponse,
   UpdateReportStatusBody,
   UpdateReportStatusParams,
   UpdateReportStatusResponse,
@@ -12,14 +15,25 @@ import {
 import { db, reportsTable } from "@workspace/db";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { resolveProtectedFile } from "../lib/protected-files";
+import { ObjectNotFoundError, ObjectStorageService } from "../lib/object-storage";
 import { isArchiveTarget } from "./archives";
 
 const router: IRouter = Router();
+const objectStorage = new ObjectStorageService();
 
 const allowedStatuses = ["submitted", "in_review", "returned", "approved", "sent_to_management", "archived"] as const;
 type ReportStatus = typeof allowedStatuses[number];
-const allowedReportTypes = ["agronomy", "financing_register"] as const;
+const allowedReportTypes = ["agronomy", "financing_register", "engineering_document"] as const;
 type ReportType = typeof allowedReportTypes[number];
+const maxUploadSize = 25 * 1024 * 1024;
+
+function isEngineeringDocument(report: typeof reportsTable.$inferSelect) {
+  return report.reportType === "engineering_document";
+}
+
+function isAllowedDocumentFile(name: string) {
+  return /\.(pdf|xlsx|xls)$/i.test(name);
+}
 
 function serializeReport(report: typeof reportsTable.$inferSelect) {
   return {
@@ -39,8 +53,10 @@ function serializeReport(report: typeof reportsTable.$inferSelect) {
 function canViewReport(report: typeof reportsTable.$inferSelect, access: RoleAccess) {
   if (report.status === "archived") return Boolean(access.role);
   if (access.role === "agronomist") return report.reportType === "agronomy" && report.submittedByUserId === access.userId;
+  if (access.role === "engineer") return isEngineeringDocument(report) && report.submittedByUserId === access.userId;
   if (access.role === "economist") return report.reportType === "financing_register" && report.submittedByUserId === access.userId;
   if (access.role === "chief_agronomist") return report.reportType === "agronomy";
+  if (access.role === "chief_engineer") return isEngineeringDocument(report);
   if (access.role === "farm_director") return report.reportType === "financing_register";
   return access.role === "general_director" && report.status === "sent_to_management";
 }
@@ -95,10 +111,14 @@ router.get("/reports", requireApprovedRole, async (req, res, next) => {
       conditions.push(eq(reportsTable.status, "archived"));
     } else if (role === "agronomist") {
       conditions.push(eq(reportsTable.reportType, "agronomy"), eq(reportsTable.submittedByUserId, userId));
+    } else if (role === "engineer") {
+      conditions.push(eq(reportsTable.reportType, "engineering_document"), eq(reportsTable.submittedByUserId, userId));
     } else if (role === "economist") {
       conditions.push(eq(reportsTable.reportType, "financing_register"), eq(reportsTable.submittedByUserId, userId));
     } else if (role === "chief_agronomist") {
       conditions.push(eq(reportsTable.reportType, "agronomy"));
+    } else if (role === "chief_engineer") {
+      conditions.push(eq(reportsTable.reportType, "engineering_document"));
     } else if (role === "farm_director") {
       conditions.push(eq(reportsTable.reportType, "financing_register"));
     } else if (role === "general_director") {
@@ -117,11 +137,19 @@ router.post("/reports", requireApprovedRole, async (req, res, next) => {
   try {
     const body = CreateReportBody.parse(req.body);
     const access = res.locals.access as RoleAccess;
-    if (access.role !== "agronomist" && access.role !== "economist") {
+    if (!["agronomist", "economist", "engineer"].includes(access.role ?? "")) {
       res.status(403).json({ error: "У вас нет права подавать документы" });
       return;
     }
-    const reportType = access.role === "economist" ? "financing_register" : "agronomy";
+    const reportType = access.role === "economist"
+      ? "financing_register"
+      : access.role === "engineer"
+        ? "engineering_document"
+        : "agronomy";
+    if (access.role === "engineer" && !body.fileUrl.startsWith("/objects/uploads/")) {
+      res.status(400).json({ error: "Инженерный документ должен быть загружен через защищённое хранилище" });
+      return;
+    }
     const [report] = await db.insert(reportsTable).values({
       ...body,
       reportType,
@@ -129,6 +157,28 @@ router.post("/reports", requireApprovedRole, async (req, res, next) => {
       submittedByUserId: access.userId,
     }).returning();
     res.status(201).json(CreateReportResponse.parse(serializeReport(report)));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/reports/upload-url", requireApprovedRole, async (req, res, next): Promise<void> => {
+  try {
+    const body = RequestReportUploadUrlBody.parse(req.body);
+    const access = res.locals.access as RoleAccess;
+    if (!["agronomist", "economist", "engineer", "general_director"].includes(access.role ?? "")) {
+      res.status(403).json({ error: "У вас нет права загружать этот документ" });
+      return;
+    }
+    if (!isAllowedDocumentFile(body.name)) {
+      res.status(400).json({ error: "Допустимы только файлы Excel или PDF" });
+      return;
+    }
+    if (body.size > maxUploadSize) {
+      res.status(400).json({ error: "Размер файла не должен превышать 25 МБ" });
+      return;
+    }
+    res.json(RequestReportUploadUrlResponse.parse(await objectStorage.createUploadTarget()));
   } catch (error) {
     next(error);
   }
@@ -147,6 +197,26 @@ router.get("/reports/:id/download", requireApprovedRole, async (req, res, next) 
       res.status(403).json({ error: "У вас нет доступа к этому документу" });
       return;
     }
+    if (report.fileUrl.startsWith("/objects/")) {
+      try {
+        const response = await objectStorage.downloadObject(await objectStorage.getObjectEntityFile(report.fileUrl));
+        res.status(response.status);
+        response.headers.forEach((value, key) => res.setHeader(key, value));
+        res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(report.fileName)}`);
+        if (response.body) {
+          Readable.fromWeb(response.body as ReadableStream<Uint8Array>).pipe(res);
+        } else {
+          res.end();
+        }
+      } catch (error) {
+        if (error instanceof ObjectNotFoundError) {
+          res.status(404).json({ error: "Файл документа не найден" });
+          return;
+        }
+        throw error;
+      }
+      return;
+    }
     res.download(resolveProtectedFile(report.fileUrl), report.fileName, (error) => {
       if (error && !res.headersSent) next(error);
     });
@@ -161,7 +231,7 @@ router.patch("/reports/:id/status", requireApprovedRole, async (req, res, next) 
     const body = UpdateReportStatusBody.parse(req.body);
     const access = res.locals.access as RoleAccess;
     const role = access.role;
-    const allowedReviewer = role === "chief_agronomist" || role === "farm_director";
+    const allowedReviewer = role === "chief_agronomist" || role === "chief_engineer" || role === "farm_director";
     const finalApprover = role === "general_director";
     if (!allowedReviewer && !finalApprover) {
       res.status(403).json({ error: "У вас нет права согласовывать документы" });
@@ -180,13 +250,25 @@ router.patch("/reports/:id/status", requireApprovedRole, async (req, res, next) 
       res.status(403).json({ error: "Генеральный директор может выполнять только финальное архивирование" });
       return;
     }
-    if ((role === "chief_agronomist" && existing.reportType !== "agronomy") || (role === "farm_director" && existing.reportType !== "financing_register")) {
+    if (
+      (role === "chief_agronomist" && existing.reportType !== "agronomy")
+      || (role === "chief_engineer" && !isEngineeringDocument(existing))
+      || (role === "farm_director" && existing.reportType !== "financing_register")
+    ) {
       res.status(403).json({ error: "Этот документ не относится к вашей очереди согласования" });
       return;
     }
     const isFinalArchive = finalApprover && existing.status === "sent_to_management" && body.status === "archived";
     if (isFinalArchive && !isArchiveTarget(body.archiveSection, body.archiveSubarchive)) {
       res.status(400).json({ error: "Выберите корректный архив и подархив" });
+      return;
+    }
+    if (
+      isFinalArchive
+      && isEngineeringDocument(existing)
+      && (body.archiveSection !== "engineering" || body.archiveSubarchive !== "general")
+    ) {
+      res.status(400).json({ error: "Инженерский документ можно отправить только в инженерский архив" });
       return;
     }
     const transitionAllowed = (existing.status === "submitted" && body.status === "in_review")

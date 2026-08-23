@@ -16,6 +16,8 @@ tags:
     description: Workspace overview
   - name: reports
     description: Completed report workflow
+  - name: uploads
+    description: Protected document upload workflow
 paths:
   /healthz:
     get:
@@ -210,6 +212,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Report"
+  /reports/upload-url:
+    post:
+      operationId: requestReportUploadUrl
+      tags: [uploads]
+      summary: Request a protected upload URL for a document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentUploadInput"
+      responses:
+        "200":
+          description: Upload URL generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentUploadTarget"
   /reports/{id}/status:
     patch:
       operationId: updateReportStatus
@@ -366,6 +386,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RoleRequest"
+  /users:
+    get:
+      operationId: listUsers
+      tags: [access]
+      summary: List approved users for employee management
+      responses:
+        "200":
+          description: Approved user list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RoleRequest"
+  /users/{id}:
+    delete:
+      operationId: deleteUser
+      tags: [access]
+      summary: Revoke a user's approved access
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: User access revoked
 components:
   schemas:
     HealthStatus:
@@ -404,7 +452,7 @@ components:
           type: number
         accessGroup:
           type: string
-          enum: [all, agronomists]
+          enum: [all, agronomists, engineers]
         fileUrl:
           type: string
         status:
@@ -506,7 +554,7 @@ components:
           type: string
         reportType:
           type: string
-          enum: [agronomy, financing_register]
+          enum: [agronomy, financing_register, engineering_document]
         fileName:
           type: string
         fileSize:
@@ -612,6 +660,28 @@ components:
       required:
         - status
         - reviewerComment
+    DocumentUploadInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        size:
+          type: number
+          minimum: 1
+        contentType:
+          type: string
+          minLength: 1
+      required: [name, size, contentType]
+    DocumentUploadTarget:
+      type: object
+      properties:
+        uploadURL:
+          type: string
+        objectPath:
+          type: string
+          minLength: 1
+      required: [uploadURL, objectPath]
     RoleRequest:
       type: object
       properties:
@@ -627,7 +697,7 @@ components:
           type: string
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, economist, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, engineer, chief_engineer, economist, farm_director, general_director]
         status:
           type: string
           enum: [pending, approved, rejected]
@@ -656,7 +726,7 @@ components:
       properties:
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, economist, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, engineer, chief_engineer, economist, farm_director, general_director]
         department:
           type: string
           minLength: 1

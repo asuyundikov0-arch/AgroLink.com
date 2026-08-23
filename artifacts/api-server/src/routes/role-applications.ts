@@ -1,10 +1,12 @@
 import { clerkClient, getAuth } from "@clerk/express";
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import {
   CreateRoleRequestBody,
   CreateRoleRequestResponse,
+  DeleteUserParams,
   GetMyRoleRequestResponse,
+  ListUsersResponse,
   ListRoleRequestsResponse,
   ReviewRoleRequestBody,
   ReviewRoleRequestParams,
@@ -53,7 +55,8 @@ function canReview(requestedRole: AppRole, reviewerRole: AccessRole): boolean {
   if (reviewerRole === "farm_director") {
     return ["agronomist", "chief_agronomist", "economist"].includes(requestedRole);
   }
-  return reviewerRole === "chief_agronomist" && requestedRole === "agronomist";
+  if (reviewerRole === "chief_agronomist") return requestedRole === "agronomist";
+  return reviewerRole === "chief_engineer" && requestedRole === "engineer";
 }
 
 async function clerkProfile(userId: string) {
@@ -210,6 +213,61 @@ router.patch("/role-requests/:id", requireApprovedRole, async (req, res, next): 
     }).where(eq(roleApplicationsTable.id, id)).returning();
 
     res.json(ReviewRoleRequestResponse.parse(serializeApplication(updated)));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/users", requireApprovedRole, async (_req, res, next): Promise<void> => {
+  try {
+    const access = res.locals.access as RoleAccess;
+    if (access.role !== "general_director") {
+      res.status(403).json({ error: "Только генеральный директор может просматривать список сотрудников" });
+      return;
+    }
+    const rows = await db
+      .select()
+      .from(roleApplicationsTable)
+      .where(eq(roleApplicationsTable.status, "approved"))
+      .orderBy(desc(roleApplicationsTable.requestedAt));
+    res.json(ListUsersResponse.parse(rows.map(serializeApplication)));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete("/users/:id", requireApprovedRole, async (req, res, next): Promise<void> => {
+  try {
+    const { id } = DeleteUserParams.parse({ id: Number(req.params.id) });
+    const access = res.locals.access as RoleAccess;
+    if (access.role !== "general_director") {
+      res.status(403).json({ error: "Только генеральный директор может удалить сотрудника из списка" });
+      return;
+    }
+    const [application] = await db.select().from(roleApplicationsTable).where(eq(roleApplicationsTable.id, id));
+    if (!application || application.status !== "approved") {
+      res.status(404).json({ error: "Сотрудник не найден" });
+      return;
+    }
+    if (application.userId === access.userId) {
+      res.status(400).json({ error: "Нельзя удалить собственный доступ" });
+      return;
+    }
+    if (application.requestedRole === "general_director") {
+      const [directorCount] = await db
+        .select({ total: count() })
+        .from(roleApplicationsTable)
+        .where(and(
+          eq(roleApplicationsTable.requestedRole, "general_director"),
+          eq(roleApplicationsTable.status, "approved"),
+        ));
+      if ((directorCount?.total ?? 0) <= 1) {
+        res.status(409).json({ error: "Нельзя удалить последнего действующего генерального директора" });
+        return;
+      }
+    }
+    await db.delete(roleApplicationsTable).where(eq(roleApplicationsTable.id, application.id));
+    res.status(204).send();
   } catch (error) {
     next(error);
   }

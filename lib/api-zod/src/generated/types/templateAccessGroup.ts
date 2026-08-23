@@ -12,4 +12,5 @@ export type TemplateAccessGroup = typeof TemplateAccessGroup[keyof typeof Templa
 export const TemplateAccessGroup = {
   all: 'all',
   agronomists: 'agronomists',
+  engineers: 'engineers',
 } as const;

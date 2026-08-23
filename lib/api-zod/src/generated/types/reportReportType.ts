@@ -12,4 +12,5 @@ export type ReportReportType = typeof ReportReportType[keyof typeof ReportReport
 export const ReportReportType = {
   agronomy: 'agronomy',
   financing_register: 'financing_register',
+  engineering_document: 'engineering_document',
 } as const;

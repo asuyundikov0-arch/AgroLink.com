@@ -3,6 +3,8 @@ import { pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-co
 export const appRoles = [
   "agronomist",
   "chief_agronomist",
+  "engineer",
+  "chief_engineer",
   "economist",
   "farm_director",
   "general_director",

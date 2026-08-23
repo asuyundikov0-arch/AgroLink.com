@@ -15,6 +15,7 @@ export type TemplateAccessGroup = typeof TemplateAccessGroup[keyof typeof Templa
 export const TemplateAccessGroup = {
   all: 'all',
   agronomists: 'agronomists',
+  engineers: 'engineers',
 } as const;
 
 export type TemplateStatus = typeof TemplateStatus[keyof typeof TemplateStatus];
@@ -95,6 +96,7 @@ export type ReportReportType = typeof ReportReportType[keyof typeof ReportReport
 export const ReportReportType = {
   agronomy: 'agronomy',
   financing_register: 'financing_register',
+  engineering_document: 'engineering_document',
 } as const;
 
 export type ReportStatus = typeof ReportStatus[keyof typeof ReportStatus];
@@ -213,12 +215,29 @@ export interface ReportStatusUpdate {
   archiveSubarchive?: ReportStatusUpdateArchiveSubarchive;
 }
 
+export interface DocumentUploadInput {
+  /** @minLength 1 */
+  name: string;
+  /** @minimum 1 */
+  size: number;
+  /** @minLength 1 */
+  contentType: string;
+}
+
+export interface DocumentUploadTarget {
+  uploadURL: string;
+  /** @minLength 1 */
+  objectPath: string;
+}
+
 export type RoleRequestRequestedRole = typeof RoleRequestRequestedRole[keyof typeof RoleRequestRequestedRole];
 
 
 export const RoleRequestRequestedRole = {
   agronomist: 'agronomist',
   chief_agronomist: 'chief_agronomist',
+  engineer: 'engineer',
+  chief_engineer: 'chief_engineer',
   economist: 'economist',
   farm_director: 'farm_director',
   general_director: 'general_director',
@@ -254,6 +273,8 @@ export type RoleRequestInputRequestedRole = typeof RoleRequestInputRequestedRole
 export const RoleRequestInputRequestedRole = {
   agronomist: 'agronomist',
   chief_agronomist: 'chief_agronomist',
+  engineer: 'engineer',
+  chief_engineer: 'chief_engineer',
   economist: 'economist',
   farm_director: 'farm_director',
   general_director: 'general_director',

@@ -14,12 +14,20 @@ import {
 import { activityTable, db, templatesTable } from "@workspace/db";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { resolveProtectedFile } from "../lib/protected-files";
+import { ObjectNotFoundError, ObjectStorageService } from "../lib/object-storage";
+import { Readable } from "stream";
 
 const router: IRouter = Router();
+const objectStorage = new ObjectStorageService();
 
 function canUseTemplate(access: RoleAccess, template: typeof templatesTable.$inferSelect) {
-  return template.accessGroup !== "agronomists"
-    || ["agronomist", "chief_agronomist", "farm_director", "general_director"].includes(access.role!);
+  if (template.accessGroup === "agronomists") {
+    return ["agronomist", "chief_agronomist", "farm_director", "general_director"].includes(access.role!);
+  }
+  if (template.accessGroup === "engineers") {
+    return ["engineer", "chief_engineer", "general_director"].includes(access.role!);
+  }
+  return true;
 }
 
 const seedTemplates = [
@@ -221,6 +229,26 @@ router.get("/templates/:id/download", requireApprovedRole, async (req, res, next
     }
     if (!canUseTemplate(res.locals.access as RoleAccess, template)) {
       res.status(403).json({ error: "У вас нет доступа к этому шаблону" });
+      return;
+    }
+    if (template.fileUrl.startsWith("/objects/")) {
+      try {
+        const response = await objectStorage.downloadObject(await objectStorage.getObjectEntityFile(template.fileUrl));
+        res.status(response.status);
+        response.headers.forEach((value, key) => res.setHeader(key, value));
+        res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(template.fileName)}`);
+        if (response.body) {
+          Readable.fromWeb(response.body as ReadableStream<Uint8Array>).pipe(res);
+        } else {
+          res.end();
+        }
+      } catch (error) {
+        if (error instanceof ObjectNotFoundError) {
+          res.status(404).json({ error: "Файл шаблона не найден" });
+          return;
+        }
+        throw error;
+      }
       return;
     }
     res.download(resolveProtectedFile(template.fileUrl), template.fileName, (error) => {
