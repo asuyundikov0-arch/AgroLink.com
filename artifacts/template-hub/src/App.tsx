@@ -303,7 +303,7 @@ function RoleRequestScreen({ request }: { request: RoleRequest | null }) {
   );
 }
 
-function ApprovalQueue({ role }: { role: AppRole }) {
+function ApprovalQueue({ role, isDemoPreview = false }: { role: AppRole; isDemoPreview?: boolean }) {
   const enabled = ["chief_agronomist", "farm_director", "general_director", "chief_engineer"].includes(role);
   const requestsQuery = useListRoleRequests({ query: { enabled, queryKey: getListRoleRequestsQueryKey(), refetchInterval: 15000 } });
   const reviewRequest = useReviewRoleRequest();
@@ -311,6 +311,7 @@ function ApprovalQueue({ role }: { role: AppRole }) {
   if (!enabled) return null;
 
   const decide = (request: RoleRequest, decision: "approved" | "rejected") => {
+    if (isDemoPreview) return;
     const reviewComment = decision === "approved"
       ? "Роль согласована. Доступ к рабочему кабинету открыт."
       : (window.prompt("Укажите причину отказа для сотрудника:", "Проверьте выбранную роль и подразделение.") ?? "Заявка отклонена руководителем.");
@@ -549,8 +550,8 @@ function Cabinet({ role, actualRole, demoRole, onDemoRoleChange }: {
   return (
     <div className="animate-page">
       <div className="mb-8"><p className="eyebrow">Согласование отчётов</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em] text-foreground sm:text-[34px]">Личный кабинет</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Ваша роль «{roleLabels[role]}» подтверждена. Доступные действия и документы определяются сервером.</p></div>
-      {actualRole === "general_director" && import.meta.env.DEV && <section className="surface-card mb-7 border-l-[4px] border-l-amber-400 p-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="eyebrow">Демонстрационный режим</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">Просмотр интерфейса по ролям</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Переключатель меняет только экран. Доступ к данным и любые действия от имени другой роли заблокированы.</p></div><label className="form-label min-w-60">Роль для просмотра<select className="text-input mt-2" value={demoRole ?? ""} onChange={(event) => onDemoRoleChange(event.target.value ? event.target.value as AppRole : null)} data-testid="select-demo-role"><option value="">Моя роль — генеральный директор</option>{(Object.keys(roleLabels) as AppRole[]).filter((item) => item !== "general_director").map((item) => <option key={item} value={item}>{roleLabels[item]}</option>)}</select></label></div></section>}
-      <ApprovalQueue role={role} />
+      {actualRole === "general_director" && <section className="surface-card mb-7 border-l-[4px] border-l-amber-400 p-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="eyebrow">Демонстрационный режим</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">Просмотр интерфейса по ролям</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Переключатель меняет только экран. Доступ к данным и любые действия от имени другой роли заблокированы.</p></div><label className="form-label min-w-60">Роль для просмотра<select className="text-input mt-2" value={demoRole ?? ""} onChange={(event) => onDemoRoleChange(event.target.value ? event.target.value as AppRole : null)} data-testid="select-demo-role"><option value="">Моя роль — генеральный директор</option>{(Object.keys(roleLabels) as AppRole[]).filter((item) => item !== "general_director").map((item) => <option key={item} value={item}>{roleLabels[item]}</option>)}</select></label></div></section>}
+      <ApprovalQueue role={role} isDemoPreview={Boolean(demoRole)} />
       <UserManagement role={role} />
       {notice && <div className="notice-banner mb-6" data-testid="status-report-notice"><Check size={16} />{notice}<button type="button" aria-label="Закрыть" onClick={() => setNotice("")}><X size={14} /></button></div>}
       {canSubmit && <section className="surface-card mb-7 p-5 sm:p-7"><div className="section-heading"><div className="setting-icon"><UploadIcon size={17} /></div><div><h2>{isEconomist ? "Подать ежедневный реестр до 09:30" : "Передать заполненный отчёт"}</h2><p>{isEconomist ? "Реестр сначала поступит директору хозяйства, затем генеральному директору." : "Отчёт поступит главному агроному на проверку."}</p></div></div><form onSubmit={submitReport} className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr_auto] lg:items-end"><label className="form-label">Подразделение<select value={unit} onChange={(event) => setUnit(event.target.value)} className="text-input mt-2"><option>АПК Арыстан Grain</option><option>АФ Веденовка</option></select></label><label className="form-label">{isEconomist ? "Ежедневный реестр" : "Заполненный Excel-файл"}<input type="file" accept={isEconomist ? ".pdf,.xlsx,.xls" : ".xlsx,.xls"} onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="text-input mt-2 pt-2" data-testid="input-completed-report" /></label><button type="submit" disabled={createReport.isPending || isUploading} className="button button-primary justify-center" data-testid="button-submit-report">{createReport.isPending || isUploading ? "Отправляем..." : isEconomist ? "Отправить директору" : "Отправить на проверку"} <Send size={15} /></button></form>{file && <p className="mt-4 flex items-center gap-2 text-xs font-medium text-teal-800"><FileCheck2 size={15} />Выбран файл: {file.name}</p>}</section>}
@@ -962,7 +963,7 @@ function AccessGate() {
   if (requestQuery.isError) return <main className="access-page"><ErrorState onRetry={() => requestQuery.refetch()} /></main>;
   if (request?.status !== "approved") return <RoleRequestScreen request={request} />;
   const actualRole = request.requestedRole as AppRole;
-  const canUseDemo = import.meta.env.DEV && actualRole === "general_director";
+  const canUseDemo = actualRole === "general_director";
   const role = canUseDemo && demoRole ? demoRole : actualRole;
   return <Shell role={role} request={request} activeSection={section} onNavigate={setSection}><Workspace role={role} actualRole={actualRole} demoRole={canUseDemo ? demoRole : null} request={request} section={section} onSectionChange={setSection} onDemoRoleChange={setDemoRole} /></Shell>;
 }
