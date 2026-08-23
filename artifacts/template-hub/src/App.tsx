@@ -450,7 +450,12 @@ function UserManagement({ role }: { role: AppRole }) {
   </section>;
 }
 
-function Cabinet({ role }: { role: AppRole }) {
+function Cabinet({ role, actualRole, demoRole, onDemoRoleChange }: {
+  role: AppRole;
+  actualRole: AppRole;
+  demoRole: AppRole | null;
+  onDemoRoleChange: (role: AppRole | null) => void;
+}) {
   const [file, setFile] = useState<File | null>(null);
   const [unit, setUnit] = useState("АПК Арыстан Grain");
   const [notice, setNotice] = useState("");
@@ -473,6 +478,10 @@ function Cabinet({ role }: { role: AppRole }) {
   const refreshReports = () => queryClient.invalidateQueries({ queryKey: getListReportsQueryKey() });
   const submitReport = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (demoRole) {
+      setNotice("В режиме демо действия заблокированы. Роль изменяет только интерфейс.");
+      return;
+    }
     if (!file) {
       setNotice("Сначала выберите заполненный файл.");
       return;
@@ -500,6 +509,10 @@ function Cabinet({ role }: { role: AppRole }) {
     }
   };
   const moveReport = (report: Report, status: "in_review" | "returned" | "approved" | "sent_to_management" | "archived", reviewerComment: string, archiveTarget?: { section: ArchiveSectionKey; subarchive: ArchiveSubarchiveKey }) => {
+    if (demoRole) {
+      setNotice("В режиме демо действия согласования заблокированы.");
+      return;
+    }
     updateReportStatus.mutate({ id: report.id, data: { status, reviewerComment, ...(archiveTarget ? { archiveSection: archiveTarget.section, archiveSubarchive: archiveTarget.subarchive } : {}) } }, { onSuccess: () => {
       setArchiveTarget(null);
       setNotice(status === "returned" ? "Документ возвращён на доработку." : status === "sent_to_management" ? "Документ отправлен начальству." : status === "archived" ? "Документ одобрен и отправлен в архив." : "Статус документа обновлён.");
@@ -511,6 +524,7 @@ function Cabinet({ role }: { role: AppRole }) {
   return (
     <div className="animate-page">
       <div className="mb-8"><p className="eyebrow">Согласование отчётов</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em] text-foreground sm:text-[34px]">Личный кабинет</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Ваша роль «{roleLabels[role]}» подтверждена. Доступные действия и документы определяются сервером.</p></div>
+      {actualRole === "general_director" && import.meta.env.DEV && <section className="surface-card mb-7 border-l-[4px] border-l-amber-400 p-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="eyebrow">Демонстрационный режим</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">Просмотр интерфейса по ролям</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Переключатель меняет только экран. Доступ к данным и любые действия от имени другой роли заблокированы.</p></div><label className="form-label min-w-60">Роль для просмотра<select className="text-input mt-2" value={demoRole ?? ""} onChange={(event) => onDemoRoleChange(event.target.value ? event.target.value as AppRole : null)} data-testid="select-demo-role"><option value="">Моя роль — генеральный директор</option>{(Object.keys(roleLabels) as AppRole[]).filter((item) => item !== "general_director").map((item) => <option key={item} value={item}>{roleLabels[item]}</option>)}</select></label></div></section>}
       <ApprovalQueue role={role} />
       <UserManagement role={role} />
       {notice && <div className="notice-banner mb-6" data-testid="status-report-notice"><Check size={16} />{notice}<button type="button" aria-label="Закрыть" onClick={() => setNotice("")}><X size={14} /></button></div>}
@@ -523,7 +537,7 @@ function Cabinet({ role }: { role: AppRole }) {
 
 const templateCategories = ["Финансы", "Продажи", "Кадры", "Маркетинг", "Операции", "Отчётность", "Персонал"];
 
-function EngineeringBlock({ role, onOpenTemplate }: { role: AppRole; onOpenTemplate: (id: number) => void }) {
+function EngineeringBlock({ role, onOpenTemplate, isDemoPreview = false }: { role: AppRole; onOpenTemplate: (id: number) => void; isDemoPreview?: boolean }) {
   const [file, setFile] = useState<File | null>(null);
   const [unit, setUnit] = useState("АПК Арыстан Grain");
   const [notice, setNotice] = useState("");
@@ -551,6 +565,10 @@ function EngineeringBlock({ role, onOpenTemplate }: { role: AppRole; onOpenTempl
 
   const submitReport = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isDemoPreview) {
+      setNotice("В режиме демо отправка документов заблокирована.");
+      return;
+    }
     if (!file) { setNotice("Сначала выберите инженерный файл."); return; }
     setIsUploading(true);
     setNotice("");
@@ -576,6 +594,10 @@ function EngineeringBlock({ role, onOpenTemplate }: { role: AppRole; onOpenTempl
   };
 
   const moveReport = (report: Report, status: "in_review" | "returned" | "approved" | "sent_to_management" | "archived", reviewerComment: string, archiveTargetObj?: { section: ArchiveSectionKey; subarchive: ArchiveSubarchiveKey }) => {
+    if (isDemoPreview) {
+      setNotice("В режиме демо согласование документов заблокировано.");
+      return;
+    }
     updateReportStatus.mutate({ id: report.id, data: { status, reviewerComment, ...(archiveTargetObj ? { archiveSection: archiveTargetObj.section, archiveSubarchive: archiveTargetObj.subarchive } : {}) } }, { onSuccess: () => {
       setArchiveTarget(null);
       setNotice(status === "returned" ? "Документ возвращён на доработку." : status === "sent_to_management" ? "Документ отправлен начальству." : status === "archived" ? "Документ одобрен и отправлен в архив." : "Статус документа обновлён.");
@@ -879,7 +901,15 @@ function SettingsPage({ role, request }: { role: AppRole; request: RoleRequest }
   return <div className="animate-page"><div className="mb-7"><p className="eyebrow">Рабочее пространство</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em]">Настройки и доступ</h1><p className="mt-2 text-sm text-muted-foreground">Параметры профиля и состояние общей библиотеки.</p></div><div className="grid gap-5 lg:grid-cols-2"><section className="surface-card p-6"><div className="section-heading"><div className="setting-icon"><UserRound size={17} /></div><div><h2>Профиль</h2><p>Подтверждённые данные текущей заявки.</p></div></div><dl className="mt-6 space-y-4 text-sm"><div className="flex justify-between gap-4 border-b border-border pb-3"><dt className="text-muted-foreground">Сотрудник</dt><dd className="text-right font-semibold">{request.displayName}</dd></div><div className="flex justify-between gap-4 border-b border-border pb-3"><dt className="text-muted-foreground">E-mail</dt><dd className="text-right font-semibold">{request.email}</dd></div><div className="flex justify-between gap-4 border-b border-border pb-3"><dt className="text-muted-foreground">Роль</dt><dd className="text-right font-semibold text-teal-800">{roleLabels[role]}</dd></div><div className="flex justify-between gap-4"><dt className="text-muted-foreground">Подразделение</dt><dd className="text-right font-semibold">{request.department}</dd></div></dl></section><section className="surface-card p-6"><div className="section-heading"><div className="setting-icon"><BarChart3 size={17} /></div><div><h2>Состояние библиотеки</h2><p>Сводка доступных рабочих материалов.</p></div></div><div className="mt-6 grid grid-cols-2 gap-3"><div className="rounded-xl bg-muted/50 p-4"><p className="text-xs text-muted-foreground">Всего шаблонов</p><strong className="mt-2 block font-display text-2xl">{summary?.totalTemplates ?? "—"}</strong></div><div className="rounded-xl bg-muted/50 p-4"><p className="text-xs text-muted-foreground">Активность</p><strong className="mt-2 block font-display text-2xl">{activities.length || "—"}</strong></div></div></section></div></div>;
 }
 
-function Workspace({ role, request, section, onSectionChange }: { role: AppRole; request: RoleRequest; section: WorkspaceSection; onSectionChange: (section: WorkspaceSection) => void }) {
+function Workspace({ role, actualRole, demoRole, request, section, onSectionChange, onDemoRoleChange }: {
+  role: AppRole;
+  actualRole: AppRole;
+  demoRole: AppRole | null;
+  request: RoleRequest;
+  section: WorkspaceSection;
+  onSectionChange: (section: WorkspaceSection) => void;
+  onDemoRoleChange: (role: AppRole | null) => void;
+}) {
   const [templateId, setTemplateId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [selectedArchiveCell, setSelectedArchiveCell] = useState<ArchiveCell | null>(null);
@@ -889,11 +919,11 @@ function Workspace({ role, request, section, onSectionChange }: { role: AppRole;
       <button type="button" role="tab" aria-selected={section === "cabinet"} className={cn("workspace-tab", section === "cabinet" && "workspace-tab-active")} onClick={() => onSectionChange("cabinet")} data-testid="tab-workspace-cabinet"><ClipboardCheck size={15} />Личный кабинет</button>
       <button type="button" role="tab" aria-selected={section === "templates"} className={cn("workspace-tab", section === "templates" && "workspace-tab-active")} onClick={() => onSectionChange("templates")} data-testid="tab-workspace-templates"><FileSpreadsheet size={15} />Шаблоны</button>
     </div>}
-    {section === "cabinet" && <Cabinet role={role} />}
+    {section === "cabinet" && <Cabinet role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />}
     {section === "templates" && (templateId ? <TemplateDetails id={templateId} role={role} onBack={() => setTemplateId(null)} /> : uploading ? <TemplateUpload onCancel={() => setUploading(false)} onSaved={(id) => { setUploading(false); setTemplateId(id); queryClient.invalidateQueries({ queryKey: getListTemplatesQueryKey() }); }} /> : <TemplateCatalog role={role} onOpen={openTemplate} onUpload={() => setUploading(true)} />)}
     {section === "archive" && <ArchivePage selectedCell={selectedArchiveCell} onSelectCell={setSelectedArchiveCell} />}
     {section === "agro" && <AgroBlock onOpen={openTemplate} />}
-    {section === "engineering" && <EngineeringBlock role={role} onOpenTemplate={openTemplate} />}
+    {section === "engineering" && <EngineeringBlock role={role} onOpenTemplate={openTemplate} isDemoPreview={Boolean(demoRole)} />}
     {section === "settings" && <SettingsPage role={role} request={request} />}
   </>;
 }
@@ -901,11 +931,15 @@ function Workspace({ role, request, section, onSectionChange }: { role: AppRole;
 function AccessGate() {
   const requestQuery = useGetMyRoleRequest({ query: { queryKey: getGetMyRoleRequestQueryKey(), refetchInterval: 12000 } });
   const [section, setSection] = useState<WorkspaceSection>("cabinet");
+  const [demoRole, setDemoRole] = useState<AppRole | null>(null);
   const request = (requestQuery.data as RoleRequest | null | undefined) ?? null;
   if (requestQuery.isLoading) return <main className="access-page"><LoadingRows count={2} /></main>;
   if (requestQuery.isError) return <main className="access-page"><ErrorState onRetry={() => requestQuery.refetch()} /></main>;
   if (request?.status !== "approved") return <RoleRequestScreen request={request} />;
-  return <Shell role={request.requestedRole as AppRole} request={request} activeSection={section} onNavigate={setSection}><Workspace role={request.requestedRole as AppRole} request={request} section={section} onSectionChange={setSection} /></Shell>;
+  const actualRole = request.requestedRole as AppRole;
+  const canUseDemo = import.meta.env.DEV && actualRole === "general_director";
+  const role = canUseDemo && demoRole ? demoRole : actualRole;
+  return <Shell role={role} request={request} activeSection={section} onNavigate={setSection}><Workspace role={role} actualRole={actualRole} demoRole={canUseDemo ? demoRole : null} request={request} section={section} onSectionChange={setSection} onDemoRoleChange={setDemoRole} /></Shell>;
 }
 
 function Home() {
