@@ -167,6 +167,19 @@ const seedTemplates = [
     version: "v1.0",
     updatedBy: "Администратор",
   },
+  {
+    name: "Химия · Сводные отчёты Гл.Агронома",
+    description: "Excel-шаблон для сводных отчётов по химической обработке.",
+    category: "Шаблоны Сводных отчетов Гл.Агронома",
+    department: "Агрономия",
+    fileName: "Химия_1787596545001.xlsx",
+    fileSize: "17 КБ",
+    fileType: "Excel",
+    accessGroup: "agronomists",
+    fileUrl: "/files/Химия_1787596545001.xlsx",
+    version: "v1.0",
+    updatedBy: "Администратор",
+  },
 ];
 
 let seedPromise: Promise<void> | null = null;
