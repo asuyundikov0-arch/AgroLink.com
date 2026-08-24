@@ -60,7 +60,7 @@ export const CreateTemplateBody = zod.object({
   "fileName": zod.string(),
   "fileSize": zod.string(),
   "fileType": zod.string(),
-  "accessGroup": zod.enum(['all', 'agronomists']),
+  "accessGroup": zod.enum(['all', 'agronomists', 'engineers', 'economists', 'lawyers']),
   "fileUrl": zod.string()
 })
 

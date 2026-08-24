@@ -12,4 +12,7 @@ export type TemplateInputAccessGroup = typeof TemplateInputAccessGroup[keyof typ
 export const TemplateInputAccessGroup = {
   all: 'all',
   agronomists: 'agronomists',
+  engineers: 'engineers',
+  economists: 'economists',
+  lawyers: 'lawyers',
 } as const;

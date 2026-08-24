@@ -494,7 +494,7 @@ components:
           type: string
         accessGroup:
           type: string
-          enum: [all, agronomists]
+          enum: [all, agronomists, engineers, economists, lawyers]
         fileUrl:
           type: string
       required:
