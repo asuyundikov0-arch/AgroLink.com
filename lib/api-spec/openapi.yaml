@@ -312,7 +312,7 @@ paths:
                     type: string
                   requestedRole:
                     type: string
-                    enum: [agronomist, chief_agronomist, economist, farm_director, general_director]
+                    enum: [agronomist, chief_agronomist, engineer, chief_engineer, economist, lawyer, farm_director, general_director]
                   status:
                     type: string
                     enum: [pending, approved, rejected]
@@ -697,7 +697,7 @@ components:
           type: string
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, engineer, chief_engineer, economist, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, engineer, chief_engineer, economist, lawyer, farm_director, general_director]
         status:
           type: string
           enum: [pending, approved, rejected]
@@ -726,7 +726,7 @@ components:
       properties:
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, engineer, chief_engineer, economist, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, engineer, chief_engineer, economist, lawyer, farm_director, general_director]
         department:
           type: string
           minLength: 1

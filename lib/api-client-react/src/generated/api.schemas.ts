@@ -239,6 +239,7 @@ export const RoleRequestRequestedRole = {
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
   economist: 'economist',
+  lawyer: 'lawyer',
   farm_director: 'farm_director',
   general_director: 'general_director',
 } as const;
@@ -276,6 +277,7 @@ export const RoleRequestInputRequestedRole = {
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
   economist: 'economist',
+  lawyer: 'lawyer',
   farm_director: 'farm_director',
   general_director: 'general_director',
 } as const;
@@ -353,7 +355,10 @@ export type GetMyRoleRequest200RequestedRole = typeof GetMyRoleRequest200Request
 export const GetMyRoleRequest200RequestedRole = {
   agronomist: 'agronomist',
   chief_agronomist: 'chief_agronomist',
+  engineer: 'engineer',
+  chief_engineer: 'chief_engineer',
   economist: 'economist',
+  lawyer: 'lawyer',
   farm_director: 'farm_director',
   general_director: 'general_director',
 } as const;

@@ -312,7 +312,7 @@ export const GetMyRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'economist', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -330,7 +330,7 @@ export const ListRoleRequestsResponseItem = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -347,7 +347,7 @@ export const ListRoleRequestsResponse = zod.array(ListRoleRequestsResponseItem)
 
 
 export const CreateRoleRequestBody = zod.object({
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "department": zod.string().min(1)
 })
 
@@ -357,7 +357,7 @@ export const CreateRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -384,7 +384,7 @@ export const ReviewRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -402,7 +402,7 @@ export const ListUsersResponseItem = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),

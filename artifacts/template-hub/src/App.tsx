@@ -20,6 +20,7 @@ import {
   X,
   RotateCcw,
   Search,
+  Scale,
   Settings as SettingsIcon,
   Download,
   Upload as UploadIcon,
@@ -74,7 +75,7 @@ const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
-const departments = ["АПК Арыстан Grain", "АФ Веденовка", "Агрономия", "Инженерная служба", "Финансовый отдел", "Управление"];
+const departments = ["АПК Арыстан Grain", "АФ Веденовка", "Агрономия", "Инженерная служба", "Финансовый отдел", "Юридический отдел", "Управление"];
 const archiveOptions = {
   agronomical: {
     label: "Агрономический",
@@ -101,6 +102,7 @@ const roleLabels = {
   general_director: "Генеральный директор",
   engineer: "Инженер",
   chief_engineer: "Главный инженер",
+  lawyer: "Юрист",
 } as const;
 type AppRole = keyof typeof roleLabels;
 
@@ -170,7 +172,7 @@ function BrandEmblem({ size = "md" }: { size?: "md" | "lg" }) {
   return <img src={companyEmblem} alt="Agrolink" className={cn("brand-emblem", size === "lg" ? "brand-emblem-lg" : "brand-emblem-md")} />;
 }
 
-type WorkspaceSection = "cabinet" | "templates" | "archive" | "agro" | "engineering" | "settings";
+type WorkspaceSection = "cabinet" | "templates" | "archive" | "agro" | "engineering" | "economic" | "legal" | "settings";
 
 type SidebarSection = Exclude<WorkspaceSection, "templates">;
 
@@ -221,6 +223,7 @@ const demoRoleScenarios: Record<AppRole, { workspace: string; title: string; des
   general_director: { workspace: "Личный кабинет", title: "Финальное согласование", description: "Утвердите документ и разместите его в соответствующем архиве.", document: "Акт технического осмотра · Инженерная служба", action: "Одобрить и в архив", result: "Демо: документ утверждён и помещён в инженерский архив." },
   engineer: { workspace: "Инженерный блок", title: "Отправка инженерного документа", description: "Откройте шаблон, подготовьте Excel или PDF и передайте его главному инженеру.", document: "Акт технического осмотра · Инженерная служба", action: "Отправить главному инженеру", result: "Демо: инженерный документ направлен главному инженеру." },
   chief_engineer: { workspace: "Личный кабинет", title: "Очередь главного инженера", description: "Проверьте инженерный документ, верните его на доработку или направьте генеральному директору.", document: "Акт технического осмотра · Инженерная служба", action: "Принять и направить директору", result: "Демо: документ согласован главным инженером и направлен генеральному директору." },
+  lawyer: { workspace: "Юридический блок", title: "Отправка юридического документа", description: "Подготовьте документ и направьте его на финальное согласование генеральному директору.", document: "Юридическое заключение · Юридический отдел", action: "Отправить генеральному директору", result: "Демо: юридический документ направлен генеральному директору." },
 };
 
 function PublicDemo() {
@@ -357,11 +360,15 @@ function Shell({
   const { signOut } = useClerk();
   const activeSidebarSection: SidebarSection = activeSection === "templates" ? "cabinet" : activeSection;
   const isEngineeringVisible = ["engineer", "chief_engineer", "general_director"].includes(role);
+  const isEconomicVisible = ["economist", "farm_director", "general_director"].includes(role);
+  const isLegalVisible = ["lawyer", "general_director"].includes(role);
   const navigation = [
     { id: "cabinet" as const, label: "Личный кабинет", icon: ClipboardCheck },
     { id: "archive" as const, label: "Архив", icon: Archive },
     { id: "agro" as const, label: "АгроБлок", icon: Sprout },
     ...(isEngineeringVisible ? [{ id: "engineering" as const, label: "Инженерный блок", icon: Wrench }] : []),
+    ...(isEconomicVisible ? [{ id: "economic" as const, label: "Экономический блок", icon: BarChart3 }] : []),
+    ...(isLegalVisible ? [{ id: "legal" as const, label: "Юридический блок", icon: Scale }] : []),
     { id: "settings" as const, label: "Настройки", icon: SettingsIcon },
   ];
   const navigateFromSidebar = (section: SidebarSection) => {
@@ -843,6 +850,18 @@ function AgroBlock({ onOpen }: { onOpen: (id: number) => void }) {
   return <div className="animate-page"><div className="mb-7"><p className="eyebrow">Специализированный раздел</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em]">АгроБлок</h1><p className="mt-2 text-sm text-muted-foreground">Шаблоны АПК Арыстан Grain и АФ Веденовка.</p></div><div className="grid gap-5 lg:grid-cols-2">{units.map((unit) => { const template = templates.find((item) => item.name.includes(unit.name.includes("Арыстан") ? "Арыстан" : "Веденовка")); return <section className="surface-card overflow-hidden" key={unit.name}><div className={cn("h-2", unit.color)} /><div className="p-6"><p className="eyebrow">Подразделение</p><h2 className="mt-2 font-display text-2xl font-bold tracking-[-0.04em]">{unit.name}</h2><p className="mt-3 text-sm leading-6 text-muted-foreground">{unit.hint}</p>{template ? <div className="mt-6"><TemplateRow template={template} compact onOpen={onOpen} /></div> : <p className="mt-6 text-xs text-muted-foreground">Шаблоны пока не добавлены.</p>}</div></section>; })}</div></div>;
 }
 
+function EconomicBlock({ role, actualRole, demoRole, onDemoRoleChange }: {
+  role: AppRole;
+  actualRole: AppRole;
+  demoRole: AppRole | null;
+  onDemoRoleChange: (role: AppRole | null) => void;
+}) {
+  return <div className="animate-page">
+    <div className="mb-7"><p className="eyebrow">Специализированный раздел</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em]">Экономический блок</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">Ежедневные реестры, согласование через директора хозяйства и экономический архив.</p></div>
+    <Cabinet role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />
+  </div>;
+}
+
 function EngineeringBlockDraft({ role, onOpen }: { role: AppRole; onOpen: (id: number) => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
@@ -950,6 +969,7 @@ function Workspace({ role, actualRole, demoRole, request, section, onSectionChan
     {section === "archive" && <ArchivePage selectedCell={selectedArchiveCell} onSelectCell={setSelectedArchiveCell} />}
     {section === "agro" && <AgroBlock onOpen={openTemplate} />}
     {section === "engineering" && <EngineeringBlock role={role} onOpenTemplate={openTemplate} isDemoPreview={Boolean(demoRole)} />}
+    {section === "economic" && <EconomicBlock role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />}
     {section === "settings" && <SettingsPage role={role} request={request} />}
   </>;
 }
