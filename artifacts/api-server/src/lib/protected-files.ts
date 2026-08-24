@@ -2,11 +2,18 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const assetDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../assets");
+const attachedAssetsDirectory = path.resolve(assetDirectory, "../../../../attached_assets");
+const protectedAttachmentFiles: Record<string, string> = {
+  "svedeniya-po-remontu-traktorov-apk.xlsx": path.join(
+    attachedAssetsDirectory,
+    "Седения_по_ремонту_тракторов_АПК_(1)_1787546939216.xlsx",
+  ),
+};
 
 export function resolveProtectedFile(fileUrl: string): string {
   const fileName = path.basename(fileUrl);
   if (!fileName || fileName === "." || fileName === path.sep) {
     throw new Error("Некорректное имя файла");
   }
-  return path.join(assetDirectory, fileName);
+  return protectedAttachmentFiles[fileName] ?? path.join(assetDirectory, fileName);
 }

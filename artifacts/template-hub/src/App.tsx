@@ -562,10 +562,11 @@ function Cabinet({ role, actualRole, demoRole, onDemoRoleChange }: {
 }
 
 const templateCategories = ["Финансы", "Продажи", "Кадры", "Маркетинг", "Операции", "Отчётность", "Персонал"];
+const engineeringUnits = ["АПК Арыстан Grain", "АФ Веденовка"] as const;
 
 function EngineeringBlock({ role, onOpenTemplate, isDemoPreview = false }: { role: AppRole; onOpenTemplate: (id: number) => void; isDemoPreview?: boolean }) {
   const [file, setFile] = useState<File | null>(null);
-  const [unit, setUnit] = useState("АПК Арыстан Grain");
+  const [unit, setUnit] = useState<(typeof engineeringUnits)[number]>(engineeringUnits[0]);
   const [notice, setNotice] = useState("");
   const [archiveTarget, setArchiveTarget] = useState<Report | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -674,22 +675,21 @@ function EngineeringBlock({ role, onOpenTemplate, isDemoPreview = false }: { rol
               <UploadIcon size={17} />
             </div>
             <div>
-              <h2>Передать инженерный документ</h2>
-              <p>Документ поступит главному инженеру на проверку.</p>
+              <h2>Отправить файл на подтверждение</h2>
+              <p>Документ поступит главному инженеру на проверку и подтверждение.</p>
             </div>
           </div>
           <form onSubmit={submitReport} className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
             <label className="form-label">Подразделение
-              <select value={unit} onChange={(event) => setUnit(event.target.value)} className="text-input mt-2" data-testid="select-eng-unit">
-                <option>АПК Арыстан Grain</option>
-                <option>АФ Веденовка</option>
+              <select value={unit} onChange={(event) => setUnit(event.target.value as (typeof engineeringUnits)[number])} className="text-input mt-2" data-testid="select-eng-unit">
+                {engineeringUnits.map((engineeringUnit) => <option key={engineeringUnit}>{engineeringUnit}</option>)}
               </select>
             </label>
             <label className="form-label">Заполненный PDF/Excel-файл
               <input type="file" accept=".pdf,.xlsx,.xls" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="text-input mt-2 pt-2" data-testid="input-eng-file" />
             </label>
             <button type="submit" disabled={createReport.isPending || isUploading} className="button button-engineering justify-center" data-testid="button-submit-eng-report">
-              {createReport.isPending || isUploading ? "Отправляем..." : "Отправить на проверку"} <Send size={15} />
+              {createReport.isPending || isUploading ? "Отправляем..." : "Отправить на подтверждение"} <Send size={15} />
             </button>
           </form>
           {file && <p className="mt-4 flex items-center gap-2 text-xs font-medium text-teal-800"><FileCheck2 size={15} />Выбран файл: {file.name}</p>}

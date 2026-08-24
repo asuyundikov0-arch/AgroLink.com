@@ -109,6 +109,19 @@ const seedTemplates = [
     version: "v1.0",
     updatedBy: "Администратор",
   },
+  {
+    name: "Сведения по ремонту тракторов АПК",
+    description: "Инженерный Excel-шаблон для учёта сведений по ремонту тракторов.",
+    category: "Инженерные документы",
+    department: "Инженерная служба",
+    fileName: "Сведения_по_ремонту_тракторов_АПК.xlsx",
+    fileSize: "31 КБ",
+    fileType: "Excel",
+    accessGroup: "engineers",
+    fileUrl: "/files/svedeniya-po-remontu-traktorov-apk.xlsx",
+    version: "v1.0",
+    updatedBy: "Администратор",
+  },
 ];
 
 let seedPromise: Promise<void> | null = null;
