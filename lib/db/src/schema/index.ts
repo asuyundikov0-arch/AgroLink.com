@@ -59,6 +59,7 @@ export const reportsTable = pgTable("reports", {
   fileUrl: text("file_url").notNull(),
   submittedBy: text("submitted_by").notNull(),
   submittedByUserId: text("submitted_by_user_id").notNull().default(""),
+  recipientRole: text("recipient_role").notNull().default(""),
   submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
   status: text("status").notNull().default("submitted"),
   reviewerComment: text("reviewer_comment").notNull().default(""),

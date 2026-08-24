@@ -25,6 +25,8 @@ export * from './listReportsStatus';
 export * from './listTemplatesParams';
 export * from './report';
 export * from './reportInput';
+export * from './reportInputRecipientRole';
+export * from './reportRecipientRole';
 export * from './reportReportType';
 export * from './reportStatus';
 export * from './reportStatusUpdate';

@@ -1,4 +1,4 @@
-import { type FormEvent, type ReactNode, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Archive,
@@ -46,6 +46,7 @@ import {
   useCreateReport,
   useCreateRoleRequest,
   useCreateTemplate,
+  useDeleteReport,
   useDeleteTemplate,
   useGetDashboardSummary,
   useGetTemplate,
@@ -490,17 +491,22 @@ function Cabinet({ role, actualRole, demoRole, onDemoRoleChange }: {
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [unit, setUnit] = useState("АПК Арыстан Grain");
+  const [directorReportTitle, setDirectorReportTitle] = useState("");
+  const [directorRecipientRole, setDirectorRecipientRole] = useState<"agronomist" | "engineer" | "economist" | "lawyer">("agronomist");
+  const [directorFile, setDirectorFile] = useState<File | null>(null);
   const [notice, setNotice] = useState("");
   const [archiveTarget, setArchiveTarget] = useState<Report | null>(null);
   const reportsQuery = useListReports(undefined, { query: { queryKey: getListReportsQueryKey() } });
   const templatesQuery = useListTemplates(undefined, { query: { queryKey: getListTemplatesQueryKey() } });
   const createReport = useCreateReport();
+  const deleteReport = useDeleteReport();
   const updateReportStatus = useUpdateReportStatus();
   const requestUpload = useRequestReportUploadUrl();
   const [isUploading, setIsUploading] = useState(false);
   const allReports = (reportsQuery.data as Report[] | undefined) ?? [];
   const agronomistTemplates = ((templatesQuery.data as Template[] | undefined) ?? []).filter((template) => template.category === "Шаблоны Сводных отчетов Гл.Агронома");
-  const reports = allReports.filter((report) => role === "lawyer"
+  const finalApprover = role === "general_director";
+  const reports = finalApprover ? allReports : allReports.filter((report) => role === "lawyer"
     ? report.reportType === "legal_document"
     : role === "chief_engineer"
     ? report.reportType === "engineering_document"
@@ -509,7 +515,12 @@ function Cabinet({ role, actualRole, demoRole, onDemoRoleChange }: {
   const isEconomist = role === "economist";
   const isLawyer = role === "lawyer";
   const reviewer = role === "chief_agronomist" || role === "chief_engineer" || role === "farm_director";
-  const finalApprover = role === "general_director";
+  const directorRecipientOptions = [
+    { role: "agronomist" as const, label: "Агрономический блок", unit: "Агрономический отдел" },
+    { role: "engineer" as const, label: "Инженерный блок", unit: "Инженерная служба" },
+    { role: "economist" as const, label: "Экономический блок", unit: "Экономический отдел" },
+    { role: "lawyer" as const, label: "Юридический блок", unit: "Юридический отдел" },
+  ];
   const queueTitle = role === "chief_agronomist" ? "Очередь главного агронома" : role === "chief_engineer" ? "Очередь главного инженера" : role === "farm_director" ? "Очередь директора хозяйства" : role === "lawyer" ? "Мои юридические документы" : finalApprover ? "Финальное согласование" : isEconomist ? "Ежедневные реестры" : "Отправленные отчёты";
 
   const refreshReports = () => queryClient.invalidateQueries({ queryKey: getListReportsQueryKey() });
@@ -541,6 +552,52 @@ function Cabinet({ role, actualRole, demoRole, onDemoRoleChange }: {
       setIsUploading(false);
     }
   };
+  const submitDirectorReport = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!directorReportTitle.trim()) {
+      setNotice("Укажите название отчёта.");
+      return;
+    }
+    if (!directorFile) {
+      setNotice("Выберите Excel или PDF-файл.");
+      return;
+    }
+    const recipient = directorRecipientOptions.find((item) => item.role === directorRecipientRole)!;
+    setIsUploading(true);
+    setNotice("");
+    try {
+      const target = await requestUpload.mutateAsync({ data: { name: directorFile.name, size: directorFile.size, contentType: directorFile.type || "application/octet-stream" } });
+      const uploadResponse = await fetch(target.uploadURL, { method: "PUT", body: directorFile, headers: { "Content-Type": directorFile.type || "application/octet-stream" } });
+      if (!uploadResponse.ok) throw new Error("File upload failed");
+      await createReport.mutateAsync({ data: {
+        title: directorReportTitle.trim(),
+        unit: recipient.unit,
+        fileName: directorFile.name,
+        fileSize: `${(directorFile.size / 1024 / 1024).toFixed(1)} МБ`,
+        fileUrl: target.objectPath,
+        recipientRole: directorRecipientRole,
+      } });
+      setDirectorReportTitle("");
+      setDirectorFile(null);
+      setNotice(`Отчёт добавлен в личный кабинет: ${recipient.label}.`);
+      refreshReports();
+    } catch {
+      setNotice("Не удалось добавить отчёт. Проверьте файл и повторите попытку.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+  const removeReport = (report: Report) => {
+    if (!window.confirm(`Удалить отчёт «${report.title}»? Это действие нельзя отменить.`)) return;
+    deleteReport.mutate({ id: report.id }, {
+      onSuccess: () => {
+        setNotice("Отчёт удалён генеральным директором.");
+        refreshReports();
+        queryClient.invalidateQueries({ queryKey: getListArchivesQueryKey() });
+      },
+      onError: () => setNotice("Не удалось удалить отчёт."),
+    });
+  };
   const moveReport = (report: Report, status: "in_review" | "returned" | "approved" | "sent_to_management" | "archived", reviewerComment: string, archiveTarget?: { section: ArchiveSectionKey; subarchive: ArchiveSubarchiveKey }) => {
     updateReportStatus.mutate({ id: report.id, data: { status, reviewerComment, ...(archiveTarget ? { archiveSection: archiveTarget.section, archiveSubarchive: archiveTarget.subarchive } : {}) } }, { onSuccess: () => {
       setArchiveTarget(null);
@@ -557,9 +614,19 @@ function Cabinet({ role, actualRole, demoRole, onDemoRoleChange }: {
       <ApprovalQueue role={role} isDemoPreview={Boolean(demoRole)} />
       {role === "chief_agronomist" && <section className="surface-card mb-7 overflow-hidden" data-testid="cell-chief-agronomist-templates"><div className="flex items-center justify-between border-b border-border bg-muted/25 px-5 py-5"><div><p className="eyebrow">Рабочая ячейка</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">Шаблоны Сводных отчетов Гл.Агронома</h2><p className="mt-1 text-sm text-muted-foreground">Файлы для подготовки сводных отчётов главного агронома.</p></div><FileSpreadsheet size={20} className="text-muted-foreground" /></div>{templatesQuery.isLoading ? <div className="p-5"><LoadingRows count={1} /></div> : agronomistTemplates.length === 0 ? <div className="p-5"><EmptyState title="Шаблон пока не добавлен" description="Генеральный директор может добавить файл в агрономический блок." /></div> : <div>{agronomistTemplates.map((template) => <article key={template.id} className="flex items-center justify-between gap-4 p-5"><div><h3 className="text-sm font-bold">{template.name}</h3><p className="mt-1 text-xs text-muted-foreground">{template.fileName} · {template.fileSize}</p></div><a href={template.fileUrl} download={template.fileName} className="button button-primary text-xs"><Download size={14} />Скачать</a></article>)}</div>}</section>}
       <UserManagement role={role} />
-      {notice && <div className="notice-banner mb-6" data-testid="status-report-notice"><Check size={16} />{notice}<button type="button" aria-label="Закрыть" onClick={() => setNotice("")}><X size={14} /></button></div>}
+       {notice && <div className="notice-banner mb-6" data-testid="status-report-notice"><Check size={16} />{notice}<button type="button" aria-label="Закрыть" onClick={() => setNotice("")}><X size={14} /></button></div>}
+       {finalApprover && <section className="surface-card mb-7 border-l-[4px] border-l-teal-500 p-5 sm:p-7">
+         <div className="section-heading"><div className="setting-icon"><UploadIcon size={17} /></div><div><h2>Добавить отчёт в кабинет специалиста</h2><p>Документ появится в личном кабинете выбранного специалиста и не будет отправлен на повторное согласование.</p></div></div>
+         <form onSubmit={submitDirectorReport} className="mt-6 grid gap-5 lg:grid-cols-4 lg:items-end">
+           <label className="form-label">Рабочий блок<select value={directorRecipientRole} onChange={(event) => setDirectorRecipientRole(event.target.value as typeof directorRecipientRole)} className="text-input mt-2" data-testid="select-director-report-recipient">{directorRecipientOptions.map((item) => <option value={item.role} key={item.role}>{item.label}</option>)}</select></label>
+           <label className="form-label">Название отчёта<input value={directorReportTitle} onChange={(event) => setDirectorReportTitle(event.target.value)} className="text-input mt-2" placeholder="Например, План работ на неделю" data-testid="input-director-report-title" /></label>
+           <label className="form-label">Excel или PDF<input type="file" accept=".pdf,.xlsx,.xls" onChange={(event) => setDirectorFile(event.target.files?.[0] ?? null)} className="text-input mt-2 pt-2" data-testid="input-director-report-file" /></label>
+           <button type="submit" disabled={createReport.isPending || isUploading} className="button button-primary justify-center" data-testid="button-submit-director-report">{createReport.isPending || isUploading ? "Добавляем..." : "Добавить в кабинет"} <Send size={15} /></button>
+         </form>
+         {directorFile && <p className="mt-4 flex items-center gap-2 text-xs font-medium text-teal-800"><FileCheck2 size={15} />Выбран файл: {directorFile.name}</p>}
+       </section>}
        {canSubmit && <section className="surface-card mb-7 p-5 sm:p-7"><div className="section-heading"><div className="setting-icon"><UploadIcon size={17} /></div><div><h2>{isLawyer ? "Направить документ на согласование" : isEconomist ? "Подать ежедневный реестр до 09:30" : "Передать заполненный отчёт"}</h2><p>{isLawyer ? "Юридический документ поступит напрямую генеральному директору." : isEconomist ? "Реестр сначала поступит директору хозяйства, затем генеральному директору." : "Отчёт поступит главному агроному на проверку."}</p></div></div><form onSubmit={submitReport} className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr_auto] lg:items-end">{!isLawyer && <label className="form-label">Подразделение<select value={unit} onChange={(event) => setUnit(event.target.value)} className="text-input mt-2"><option>АПК Арыстан Grain</option><option>АФ Веденовка</option></select></label>}{isLawyer && <label className="form-label">Подразделение<input value="Юридический отдел" readOnly className="text-input mt-2" /></label>}<label className="form-label">{isLawyer ? "Юридический Excel или PDF" : isEconomist ? "Ежедневный реестр" : "Заполненный Excel-файл"}<input type="file" accept={isLawyer || isEconomist ? ".pdf,.xlsx,.xls" : ".xlsx,.xls"} onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="text-input mt-2 pt-2" data-testid={isLawyer ? "input-legal-document" : "input-completed-report"} /></label><button type="submit" disabled={createReport.isPending || isUploading} className="button button-primary justify-center" data-testid={isLawyer ? "button-submit-legal-document" : "button-submit-report"}>{createReport.isPending || isUploading ? "Отправляем..." : isLawyer ? "Отправить директору" : isEconomist ? "Отправить директору" : "Отправить на проверку"} <Send size={15} /></button></form>{file && <p className="mt-4 flex items-center gap-2 text-xs font-medium text-teal-800"><FileCheck2 size={15} />Выбран файл: {file.name}</p>}</section>}
-      <section><div className="mb-4 flex items-end justify-between"><div><p className="eyebrow">{reviewer || finalApprover ? "Согласование" : "Мои документы"}</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">{queueTitle}</h2></div><ClipboardCheck size={19} className="text-muted-foreground" /></div>{reportsQuery.isLoading ? <LoadingRows count={3} /> : reportsQuery.isError ? <ErrorState onRetry={() => reportsQuery.refetch()} /> : reports.length === 0 ? <EmptyState title="Здесь пока нет документов" description="Когда документ перейдёт на доступный вам этап, он появится в списке." /> : <div className="space-y-3">{reports.map((report) => <article key={report.id} className="surface-card p-4 sm:p-5"><div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center"><div className="flex min-w-0 items-start gap-3"><FileBadge /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-bold">{report.title}</h3><ReportStatusPill status={report.status} /></div><p className="mt-1 text-xs text-muted-foreground">{report.unit} · {report.fileName} · {report.submittedBy} · {formatDate(report.submittedAt)}</p>{report.reviewerComment && <p className="mt-2 text-xs text-teal-800">Комментарий: {report.reviewerComment}</p>}</div></div><div className="flex shrink-0 flex-wrap gap-2">{report.fileUrl && <a href={report.fileUrl} download={report.fileName} className="button button-secondary text-xs"><Download size={14} />Открыть файл</a>}{reviewer && report.status === "submitted" && <button type="button" onClick={() => moveReport(report, "in_review", "Документ принят в работу.")} className="button button-primary text-xs">Взять на проверку</button>}{reviewer && report.status === "in_review" && <><button type="button" onClick={() => moveReport(report, "returned", "Проверьте данные и загрузите исправленную версию.")} className="button button-secondary text-xs"><RotateCcw size={14} />На доработку</button><button type="button" onClick={() => moveReport(report, "approved", "Документ проверен.")} className="button button-primary text-xs"><Check size={14} />Принять</button></>}{reviewer && report.status === "approved" && <button type="button" onClick={() => moveReport(report, "sent_to_management", "Документ направлен начальству.")} className="button button-primary text-xs"><Send size={14} />{role === "farm_director" ? "Генеральному директору" : "Отправить начальству"}</button>}{finalApprover && report.status === "sent_to_management" && <button type="button" onClick={() => setArchiveTarget(report)} className="button button-primary text-xs" data-testid={`button-archive-report-${report.id}`}><Archive size={14} />Одобрить и в архив</button>}</div></div></article>)}</div>}</section>
+       <section><div className="mb-4 flex items-end justify-between"><div><p className="eyebrow">{reviewer || finalApprover ? "Согласование" : "Мои документы"}</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">{queueTitle}</h2></div><ClipboardCheck size={19} className="text-muted-foreground" /></div>{reportsQuery.isLoading ? <LoadingRows count={3} /> : reportsQuery.isError ? <ErrorState onRetry={() => reportsQuery.refetch()} /> : reports.length === 0 ? <EmptyState title="Здесь пока нет документов" description="Когда документ перейдёт на доступный вам этап, он появится в списке." /> : <div className="space-y-3">{reports.map((report) => <article key={report.id} className="surface-card p-4 sm:p-5"><div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center"><div className="flex min-w-0 items-start gap-3"><FileBadge /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-bold">{report.title}</h3><ReportStatusPill status={report.status} /></div><p className="mt-1 text-xs text-muted-foreground">{report.unit} · {report.fileName} · {report.submittedBy} · {formatDate(report.submittedAt)}</p>{report.recipientRole && <p className="mt-2 text-xs font-medium text-teal-800">Добавлен в кабинет: {roleLabels[report.recipientRole as AppRole]}</p>}{report.reviewerComment && <p className="mt-2 text-xs text-teal-800">Комментарий: {report.reviewerComment}</p>}</div></div><div className="flex shrink-0 flex-wrap gap-2">{report.fileUrl && <a href={report.fileUrl} download={report.fileName} className="button button-secondary text-xs"><Download size={14} />Открыть файл</a>}{reviewer && report.status === "submitted" && <button type="button" onClick={() => moveReport(report, "in_review", "Документ принят в работу.")} className="button button-primary text-xs">Взять на проверку</button>}{reviewer && report.status === "in_review" && <><button type="button" onClick={() => moveReport(report, "returned", "Проверьте данные и загрузите исправленную версию.")} className="button button-secondary text-xs"><RotateCcw size={14} />На доработку</button><button type="button" onClick={() => moveReport(report, "approved", "Документ проверен.")} className="button button-primary text-xs"><Check size={14} />Принять</button></>}{reviewer && report.status === "approved" && <button type="button" onClick={() => moveReport(report, "sent_to_management", "Документ направлен начальству.")} className="button button-primary text-xs"><Send size={14} />{role === "farm_director" ? "Генеральному директору" : "Отправить начальству"}</button>}{finalApprover && report.status === "sent_to_management" && <button type="button" onClick={() => setArchiveTarget(report)} className="button button-primary text-xs" data-testid={`button-archive-report-${report.id}`}><Archive size={14} />Одобрить и в архив</button>}{finalApprover && <button type="button" onClick={() => removeReport(report)} className="button button-danger text-xs" disabled={deleteReport.isPending} data-testid={`button-delete-report-${report.id}`}><X size={14} />Удалить</button>}</div></div></article>)}</div>}</section>
       {archiveTarget && <ArchiveSelectionDialog report={archiveTarget} onClose={() => setArchiveTarget(null)} isPending={updateReportStatus.isPending} onConfirm={(section, subarchive) => moveReport(archiveTarget, "archived", "Документ одобрен генеральным директором и помещён в архив.", { section, subarchive })} />}
     </div>
   );
@@ -745,6 +812,7 @@ function ArchivePage({ selectedCell, onSelectCell }: { selectedCell: ArchiveCell
   const archivedReportsQuery = useListReports(reportParams, { query: { enabled: Boolean(selectedCell), queryKey: getListReportsQueryKey(reportParams) } });
   const cells = (archivesQuery.data as ArchiveCell[] | undefined) ?? [];
   const reports = (archivedReportsQuery.data as Report[] | undefined) ?? [];
+  const visibleSections = (Object.keys(archiveOptions) as ArchiveSectionKey[]).filter((section) => cells.some((cell) => cell.section === section));
 
   if (selectedCell) {
     return <div className="animate-page">
@@ -758,7 +826,7 @@ function ArchivePage({ selectedCell, onSelectCell }: { selectedCell: ArchiveCell
 
   return <div className="animate-page">
     <div className="mb-7"><p className="eyebrow">Утверждённые документы</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em]">Архив</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Документы попадают сюда только после финального согласования генеральным директором. Выберите ячейку, чтобы открыть её содержимое.</p></div>
-    {archivesQuery.isLoading ? <LoadingRows count={5} /> : archivesQuery.isError ? <ErrorState onRetry={() => archivesQuery.refetch()} /> : <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">{(Object.keys(archiveOptions) as ArchiveSectionKey[]).map((section) => {
+    {archivesQuery.isLoading ? <LoadingRows count={5} /> : archivesQuery.isError ? <ErrorState onRetry={() => archivesQuery.refetch()} /> : <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">{visibleSections.map((section) => {
       const config = archiveOptions[section];
       const sectionCells = cells.filter((cell) => cell.section === section);
       return <section className="surface-card overflow-hidden" key={section} data-testid={`archive-section-${section}`}>
@@ -980,6 +1048,9 @@ function AccessGate() {
   const requestQuery = useGetMyRoleRequest({ query: { queryKey: getGetMyRoleRequestQueryKey(), refetchInterval: 12000 } });
   const [section, setSection] = useState<WorkspaceSection>("cabinet");
   const [demoRole, setDemoRole] = useState<AppRole | null>(null);
+  useEffect(() => {
+    window.localStorage.removeItem("agrolink-role-context");
+  }, []);
   const request = (requestQuery.data as RoleRequest | null | undefined) ?? null;
   if (requestQuery.isLoading) return <main className="access-page"><LoadingRows count={2} /></main>;
   if (requestQuery.isError) return <main className="access-page"><ErrorState onRetry={() => requestQuery.refetch()} /></main>;

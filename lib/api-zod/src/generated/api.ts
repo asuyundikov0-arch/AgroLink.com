@@ -173,6 +173,7 @@ export const ListReportsResponseItem = zod.object({
   "fileUrl": zod.string(),
   "submittedBy": zod.string(),
   "submittedByUserId": zod.string(),
+  "recipientRole": zod.enum(['', 'agronomist', 'engineer', 'economist', 'lawyer']),
   "submittedAt": zod.string(),
   "status": zod.enum(['submitted', 'in_review', 'returned', 'approved', 'sent_to_management', 'archived']),
   "reviewerComment": zod.string(),
@@ -198,7 +199,8 @@ export const CreateReportBody = zod.object({
   "unit": zod.string().min(1),
   "fileName": zod.string().min(1),
   "fileSize": zod.string(),
-  "fileUrl": zod.string()
+  "fileUrl": zod.string(),
+  "recipientRole": zod.enum(['agronomist', 'engineer', 'economist', 'lawyer']).optional()
 })
 
 export const CreateReportResponse = zod.object({
@@ -211,6 +213,7 @@ export const CreateReportResponse = zod.object({
   "fileUrl": zod.string(),
   "submittedBy": zod.string(),
   "submittedByUserId": zod.string(),
+  "recipientRole": zod.enum(['', 'agronomist', 'engineer', 'economist', 'lawyer']),
   "submittedAt": zod.string(),
   "status": zod.enum(['submitted', 'in_review', 'returned', 'approved', 'sent_to_management', 'archived']),
   "reviewerComment": zod.string(),
@@ -269,6 +272,7 @@ export const UpdateReportStatusResponse = zod.object({
   "fileUrl": zod.string(),
   "submittedBy": zod.string(),
   "submittedByUserId": zod.string(),
+  "recipientRole": zod.enum(['', 'agronomist', 'engineer', 'economist', 'lawyer']),
   "submittedAt": zod.string(),
   "status": zod.enum(['submitted', 'in_review', 'returned', 'approved', 'sent_to_management', 'archived']),
   "reviewerComment": zod.string(),
@@ -278,6 +282,16 @@ export const UpdateReportStatusResponse = zod.object({
   "archivedAt": zod.string().nullable(),
   "archivedBy": zod.string()
 })
+
+
+/**
+ * @summary Delete a report as general director
+ */
+export const DeleteReportParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteReportResponse = zod.void()
 
 
 /**

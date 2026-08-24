@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { Readable } from "stream";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
 import {
   CreateReportBody,
   CreateReportResponse,
@@ -25,10 +25,26 @@ const allowedStatuses = ["submitted", "in_review", "returned", "approved", "sent
 type ReportStatus = typeof allowedStatuses[number];
 const allowedReportTypes = ["agronomy", "financing_register", "engineering_document", "legal_document"] as const;
 type ReportType = typeof allowedReportTypes[number];
+const directorRecipientRoles = ["agronomist", "engineer", "economist", "lawyer"] as const;
+type DirectorRecipientRole = typeof directorRecipientRoles[number];
 const maxUploadSize = 25 * 1024 * 1024;
 
 function isEngineeringDocument(report: typeof reportsTable.$inferSelect) {
   return report.reportType === "engineering_document";
+}
+
+function isDirectorRecipientRole(value: string | undefined): value is DirectorRecipientRole {
+  return Boolean(value && directorRecipientRoles.includes(value as DirectorRecipientRole));
+}
+
+function reportTypeForRecipient(role: DirectorRecipientRole): ReportType {
+  return role === "engineer"
+    ? "engineering_document"
+    : role === "economist"
+      ? "financing_register"
+      : role === "lawyer"
+        ? "legal_document"
+        : "agronomy";
 }
 
 function isAllowedDocumentFile(name: string) {
@@ -51,15 +67,14 @@ function serializeReport(report: typeof reportsTable.$inferSelect) {
 }
 
 function canViewReport(report: typeof reportsTable.$inferSelect, access: RoleAccess) {
-  if (report.status === "archived") return Boolean(access.role);
-  if (access.role === "agronomist") return report.reportType === "agronomy" && report.submittedByUserId === access.userId;
-  if (access.role === "engineer") return isEngineeringDocument(report) && report.submittedByUserId === access.userId;
-  if (access.role === "economist") return report.reportType === "financing_register" && report.submittedByUserId === access.userId;
-  if (access.role === "lawyer") return report.reportType === "legal_document" && report.submittedByUserId === access.userId;
-  if (access.role === "chief_agronomist") return report.reportType === "agronomy";
-  if (access.role === "chief_engineer") return isEngineeringDocument(report);
-  if (access.role === "farm_director") return report.reportType === "financing_register";
-  return access.role === "general_director" && report.status === "sent_to_management";
+  if (access.role === "agronomist") return report.reportType === "agronomy" && (report.submittedByUserId === access.userId || report.recipientRole === "agronomist");
+  if (access.role === "engineer") return isEngineeringDocument(report) && (report.submittedByUserId === access.userId || report.recipientRole === "engineer");
+  if (access.role === "economist") return report.reportType === "financing_register" && (report.submittedByUserId === access.userId || report.recipientRole === "economist");
+  if (access.role === "lawyer") return report.reportType === "legal_document" && (report.submittedByUserId === access.userId || report.recipientRole === "lawyer");
+  if (access.role === "chief_agronomist") return report.reportType === "agronomy" && !report.recipientRole;
+  if (access.role === "chief_engineer") return isEngineeringDocument(report) && !report.recipientRole && report.status !== "sent_to_management";
+  if (access.role === "farm_director") return report.reportType === "financing_register" && !report.recipientRole;
+  return access.role === "general_director";
 }
 
 async function ensureReportSeeded() {
@@ -107,25 +122,20 @@ router.get("/reports", requireApprovedRole, async (req, res, next) => {
     if (filters.unit) conditions.push(eq(reportsTable.unit, filters.unit));
     if (filters.archiveSection) conditions.push(eq(reportsTable.archiveSection, filters.archiveSection));
     if (filters.archiveSubarchive) conditions.push(eq(reportsTable.archiveSubarchive, filters.archiveSubarchive));
-    const listingArchive = filters.status === "archived";
-    if (listingArchive) {
-      conditions.push(eq(reportsTable.status, "archived"));
-    } else if (role === "agronomist") {
-      conditions.push(eq(reportsTable.reportType, "agronomy"), eq(reportsTable.submittedByUserId, userId));
+    if (role === "agronomist") {
+      conditions.push(eq(reportsTable.reportType, "agronomy"), or(eq(reportsTable.submittedByUserId, userId), eq(reportsTable.recipientRole, "agronomist")));
     } else if (role === "engineer") {
-      conditions.push(eq(reportsTable.reportType, "engineering_document"), eq(reportsTable.submittedByUserId, userId));
+      conditions.push(eq(reportsTable.reportType, "engineering_document"), or(eq(reportsTable.submittedByUserId, userId), eq(reportsTable.recipientRole, "engineer")));
     } else if (role === "economist") {
-      conditions.push(eq(reportsTable.reportType, "financing_register"), eq(reportsTable.submittedByUserId, userId));
+      conditions.push(eq(reportsTable.reportType, "financing_register"), or(eq(reportsTable.submittedByUserId, userId), eq(reportsTable.recipientRole, "economist")));
     } else if (role === "chief_agronomist") {
-      conditions.push(eq(reportsTable.reportType, "agronomy"));
+      conditions.push(eq(reportsTable.reportType, "agronomy"), eq(reportsTable.recipientRole, ""));
     } else if (role === "chief_engineer") {
-      conditions.push(eq(reportsTable.reportType, "engineering_document"));
+      conditions.push(eq(reportsTable.reportType, "engineering_document"), eq(reportsTable.recipientRole, ""), inArray(reportsTable.status, ["submitted", "in_review", "approved"]));
     } else if (role === "farm_director") {
-      conditions.push(eq(reportsTable.reportType, "financing_register"));
+      conditions.push(eq(reportsTable.reportType, "financing_register"), eq(reportsTable.recipientRole, ""));
     } else if (role === "lawyer") {
-      conditions.push(eq(reportsTable.reportType, "legal_document"), eq(reportsTable.submittedByUserId, userId));
-    } else if (role === "general_director") {
-      conditions.push(eq(reportsTable.status, "sent_to_management"));
+      conditions.push(eq(reportsTable.reportType, "legal_document"), or(eq(reportsTable.submittedByUserId, userId), eq(reportsTable.recipientRole, "lawyer")));
     }
     const rows = await db.select().from(reportsTable)
       .where(conditions.length ? and(...conditions) : undefined)
@@ -140,24 +150,36 @@ router.post("/reports", requireApprovedRole, async (req, res, next) => {
   try {
     const body = CreateReportBody.parse(req.body);
     const access = res.locals.access as RoleAccess;
-    if (!["agronomist", "economist", "engineer", "lawyer"].includes(access.role ?? "")) {
+    if (!["agronomist", "economist", "engineer", "lawyer", "general_director"].includes(access.role ?? "")) {
       res.status(403).json({ error: "У вас нет права подавать документы" });
       return;
     }
-    const reportType = access.role === "economist"
+    const recipientRole = body.recipientRole;
+    if (access.role === "general_director" && !isDirectorRecipientRole(recipientRole)) {
+      res.status(400).json({ error: "Генеральный директор должен выбрать кабинет получателя" });
+      return;
+    }
+    if (access.role !== "general_director" && recipientRole) {
+      res.status(403).json({ error: "Назначать документы в кабинеты специалистов может только генеральный директор" });
+      return;
+    }
+    const reportType = access.role === "general_director"
+      ? reportTypeForRecipient(recipientRole as DirectorRecipientRole)
+      : access.role === "economist"
       ? "financing_register"
       : access.role === "engineer"
         ? "engineering_document"
         : access.role === "lawyer"
           ? "legal_document"
           : "agronomy";
-    if ((access.role === "engineer" || access.role === "lawyer") && !body.fileUrl.startsWith("/objects/uploads/")) {
-      res.status(400).json({ error: "Инженерный документ должен быть загружен через защищённое хранилище" });
+    if (!body.fileUrl.startsWith("/objects/uploads/")) {
+      res.status(400).json({ error: "Документ должен быть загружен через защищённое хранилище" });
       return;
     }
     const [report] = await db.insert(reportsTable).values({
       ...body,
       reportType,
+      recipientRole: recipientRole ?? "",
       submittedBy: access.displayName,
       submittedByUserId: access.userId,
       status: access.role === "lawyer" ? "sent_to_management" : "submitted",
@@ -172,7 +194,7 @@ router.post("/reports/upload-url", requireApprovedRole, async (req, res, next): 
   try {
     const body = RequestReportUploadUrlBody.parse(req.body);
     const access = res.locals.access as RoleAccess;
-    if (!["agronomist", "economist", "engineer", "general_director"].includes(access.role ?? "")) {
+    if (!["agronomist", "economist", "engineer", "lawyer", "general_director"].includes(access.role ?? "")) {
       res.status(403).json({ error: "У вас нет права загружать этот документ" });
       return;
     }
@@ -264,6 +286,10 @@ router.patch("/reports/:id/status", requireApprovedRole, async (req, res, next) 
       res.status(403).json({ error: "Этот документ не относится к вашей очереди согласования" });
       return;
     }
+    if (allowedReviewer && existing.recipientRole) {
+      res.status(403).json({ error: "Отчёт, добавленный в личный кабинет специалиста, не участвует в очереди согласования" });
+      return;
+    }
     const isFinalArchive = finalApprover && existing.status === "sent_to_management" && body.status === "archived";
     if (isFinalArchive && !isArchiveTarget(body.archiveSection, body.archiveSubarchive)) {
       res.status(400).json({ error: "Выберите корректный архив и подархив" });
@@ -301,6 +327,26 @@ router.patch("/reports/:id/status", requireApprovedRole, async (req, res, next) 
       } : {}),
     }).where(eq(reportsTable.id, id)).returning();
     res.json(UpdateReportStatusResponse.parse(serializeReport(report)));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete("/reports/:id", requireApprovedRole, async (req, res, next) => {
+  try {
+    const { id } = UpdateReportStatusParams.parse({ id: Number(req.params.id) });
+    const access = res.locals.access as RoleAccess;
+    if (access.role !== "general_director") {
+      res.status(403).json({ error: "Удалять отчёты может только генеральный директор" });
+      return;
+    }
+    const [existing] = await db.select({ id: reportsTable.id }).from(reportsTable).where(eq(reportsTable.id, id));
+    if (!existing) {
+      res.status(404).json({ error: "Отчёт не найден" });
+      return;
+    }
+    await db.delete(reportsTable).where(eq(reportsTable.id, id));
+    res.status(204).send();
   } catch (error) {
     next(error);
   }

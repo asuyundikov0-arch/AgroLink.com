@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ReportInputRecipientRole } from './reportInputRecipientRole';
 
 export interface ReportInput {
   /** @minLength 1 */
@@ -15,4 +16,5 @@ export interface ReportInput {
   fileName: string;
   fileSize: string;
   fileUrl: string;
+  recipientRole?: ReportInputRecipientRole;
 }

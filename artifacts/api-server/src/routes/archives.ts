@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { and, count, eq } from "drizzle-orm";
 import { ListArchivesResponse } from "@workspace/api-zod";
 import { db, reportsTable } from "@workspace/db";
-import { requireApprovedRole } from "../middlewares/auth";
+import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -43,14 +43,26 @@ router.get("/archives", requireApprovedRole, async (_req, res, next) => {
       .where(and(eq(reportsTable.status, "archived")))
       .groupBy(reportsTable.archiveSection, reportsTable.archiveSubarchive);
 
+    const access = res.locals.access as RoleAccess;
+    const allowedSections = access.role === "general_director"
+      ? null
+      : access.role === "engineer" || access.role === "chief_engineer"
+        ? ["engineering"]
+        : access.role === "economist" || access.role === "farm_director"
+          ? ["economic"]
+          : access.role === "lawyer"
+            ? ["legal"]
+            : ["agronomical"];
     const countByCell = new Map(totals.map((item) => [`${item.section}:${item.subarchive}`, Number(item.documentCount)]));
-    const cells = archiveStructure.flatMap((entry) => entry.subarchives.map((subarchive) => ({
+    const cells = archiveStructure
+      .filter((entry) => !allowedSections || allowedSections.includes(entry.section))
+      .flatMap((entry) => entry.subarchives.map((subarchive) => ({
       section: entry.section,
       subarchive: subarchive.key,
       sectionLabel: entry.sectionLabel,
       subarchiveLabel: subarchive.label,
       documentCount: countByCell.get(`${entry.section}:${subarchive.key}`) ?? 0,
-    })));
+      })));
     res.json(ListArchivesResponse.parse(cells));
   } catch (error) {
     next(error);

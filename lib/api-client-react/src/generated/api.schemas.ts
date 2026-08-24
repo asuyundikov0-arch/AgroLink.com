@@ -103,6 +103,17 @@ export const ReportReportType = {
   legal_document: 'legal_document',
 } as const;
 
+export type ReportRecipientRole = typeof ReportRecipientRole[keyof typeof ReportRecipientRole];
+
+
+export const ReportRecipientRole = {
+  '': '',
+  agronomist: 'agronomist',
+  engineer: 'engineer',
+  economist: 'economist',
+  lawyer: 'lawyer',
+} as const;
+
 export type ReportStatus = typeof ReportStatus[keyof typeof ReportStatus];
 
 
@@ -125,6 +136,7 @@ export interface Report {
   fileUrl: string;
   submittedBy: string;
   submittedByUserId: string;
+  recipientRole: ReportRecipientRole;
   submittedAt: string;
   status: ReportStatus;
   reviewerComment: string;
@@ -167,6 +179,16 @@ export interface ArchiveCell {
   documentCount: number;
 }
 
+export type ReportInputRecipientRole = typeof ReportInputRecipientRole[keyof typeof ReportInputRecipientRole];
+
+
+export const ReportInputRecipientRole = {
+  agronomist: 'agronomist',
+  engineer: 'engineer',
+  economist: 'economist',
+  lawyer: 'lawyer',
+} as const;
+
 export interface ReportInput {
   /** @minLength 1 */
   title: string;
@@ -176,6 +198,7 @@ export interface ReportInput {
   fileName: string;
   fileSize: string;
   fileUrl: string;
+  recipientRole?: ReportInputRecipientRole;
 }
 
 export type ReportStatusUpdateStatus = typeof ReportStatusUpdateStatus[keyof typeof ReportStatusUpdateStatus];

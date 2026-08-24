@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ReportRecipientRole } from './reportRecipientRole';
 import type { ReportReportType } from './reportReportType';
 import type { ReportStatus } from './reportStatus';
 
@@ -18,6 +19,7 @@ export interface Report {
   fileUrl: string;
   submittedBy: string;
   submittedByUserId: string;
+  recipientRole: ReportRecipientRole;
   submittedAt: string;
   status: ReportStatus;
   reviewerComment: string;

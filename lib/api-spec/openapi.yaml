@@ -254,6 +254,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Report"
+  /reports/{id}:
+    delete:
+      operationId: deleteReport
+      tags: [reports]
+      summary: Delete a report as general director
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Report deleted
   /archives:
     get:
       operationId: listArchives
@@ -565,6 +579,9 @@ components:
           type: string
         submittedByUserId:
           type: string
+        recipientRole:
+          type: string
+          enum: ["", agronomist, engineer, economist, lawyer]
         submittedAt:
           type: string
         status:
@@ -592,6 +609,7 @@ components:
         - fileUrl
         - submittedBy
         - submittedByUserId
+        - recipientRole
         - submittedAt
         - status
         - reviewerComment
@@ -637,6 +655,9 @@ components:
           type: string
         fileUrl:
           type: string
+        recipientRole:
+          type: string
+          enum: [agronomist, engineer, economist, lawyer]
       required:
         - title
         - unit
