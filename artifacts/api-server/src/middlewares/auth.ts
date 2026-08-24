@@ -90,9 +90,16 @@ export async function getAccess(req: Request): Promise<RoleAccess> {
     return { userId, role: null, displayName: application?.displayName ?? "", email: application?.email ?? "", department: application?.department ?? "" };
   }
 
+  const requestedContext = req.header("x-role-context");
+  const effectiveRole = application.requestedRole as AppRole;
+  const role = effectiveRole === "general_director"
+    && requestedContext
+    && appRoles.includes(requestedContext as AppRole)
+    ? requestedContext as AppRole
+    : effectiveRole;
   return {
     userId,
-    role: application.requestedRole as AppRole,
+    role,
     displayName: application.displayName,
     email: application.email,
     department: application.department,

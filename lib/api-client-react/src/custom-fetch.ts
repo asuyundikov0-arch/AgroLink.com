@@ -357,6 +357,10 @@ export async function customFetch<T = unknown>(
       headers.set("authorization", `Bearer ${token}`);
     }
   }
+  if (typeof window !== "undefined") {
+    const roleContext = window.localStorage.getItem("agrolink-role-context");
+    if (roleContext && !headers.has("x-role-context")) headers.set("x-role-context", roleContext);
+  }
 
   const requestInfo = { method, url: resolveUrl(input) };
 

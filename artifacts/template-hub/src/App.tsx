@@ -314,7 +314,6 @@ function ApprovalQueue({ role, isDemoPreview = false }: { role: AppRole; isDemoP
   if (!enabled) return null;
 
   const decide = (request: RoleRequest, decision: "approved" | "rejected") => {
-    if (isDemoPreview) return;
     const reviewComment = decision === "approved"
       ? "Роль согласована. Доступ к рабочему кабинету открыт."
       : (window.prompt("Укажите причину отказа для сотрудника:", "Проверьте выбранную роль и подразделение.") ?? "Заявка отклонена руководителем.");
@@ -516,10 +515,6 @@ function Cabinet({ role, actualRole, demoRole, onDemoRoleChange }: {
   const refreshReports = () => queryClient.invalidateQueries({ queryKey: getListReportsQueryKey() });
   const submitReport = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (demoRole) {
-      setNotice("В режиме демо действия заблокированы. Роль изменяет только интерфейс.");
-      return;
-    }
     if (!file) {
       setNotice("Сначала выберите заполненный файл.");
       return;
@@ -547,10 +542,6 @@ function Cabinet({ role, actualRole, demoRole, onDemoRoleChange }: {
     }
   };
   const moveReport = (report: Report, status: "in_review" | "returned" | "approved" | "sent_to_management" | "archived", reviewerComment: string, archiveTarget?: { section: ArchiveSectionKey; subarchive: ArchiveSubarchiveKey }) => {
-    if (demoRole) {
-      setNotice("В режиме демо действия согласования заблокированы.");
-      return;
-    }
     updateReportStatus.mutate({ id: report.id, data: { status, reviewerComment, ...(archiveTarget ? { archiveSection: archiveTarget.section, archiveSubarchive: archiveTarget.subarchive } : {}) } }, { onSuccess: () => {
       setArchiveTarget(null);
       setNotice(status === "returned" ? "Документ возвращён на доработку." : status === "sent_to_management" ? "Документ отправлен начальству." : status === "archived" ? "Документ одобрен и отправлен в архив." : "Статус документа обновлён.");
@@ -605,10 +596,6 @@ function EngineeringBlock({ role, onOpenTemplate, isDemoPreview = false }: { rol
 
   const submitReport = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (isDemoPreview) {
-      setNotice("В режиме демо отправка документов заблокирована.");
-      return;
-    }
     if (!file) { setNotice("Сначала выберите инженерный файл."); return; }
     setIsUploading(true);
     setNotice("");
@@ -634,10 +621,6 @@ function EngineeringBlock({ role, onOpenTemplate, isDemoPreview = false }: { rol
   };
 
   const moveReport = (report: Report, status: "in_review" | "returned" | "approved" | "sent_to_management" | "archived", reviewerComment: string, archiveTargetObj?: { section: ArchiveSectionKey; subarchive: ArchiveSubarchiveKey }) => {
-    if (isDemoPreview) {
-      setNotice("В режиме демо согласование документов заблокировано.");
-      return;
-    }
     updateReportStatus.mutate({ id: report.id, data: { status, reviewerComment, ...(archiveTargetObj ? { archiveSection: archiveTargetObj.section, archiveSubarchive: archiveTargetObj.subarchive } : {}) } }, { onSuccess: () => {
       setArchiveTarget(null);
       setNotice(status === "returned" ? "Документ возвращён на доработку." : status === "sent_to_management" ? "Документ отправлен начальству." : status === "archived" ? "Документ одобрен и отправлен в архив." : "Статус документа обновлён.");
@@ -853,7 +836,7 @@ function AgroBlock({ onOpen }: { onOpen: (id: number) => void }) {
   const templatesQuery = useListTemplates(undefined, { query: { queryKey: getListTemplatesQueryKey() } });
   const templates = (templatesQuery.data as Template[] | undefined) ?? [];
   const units = [{ name: "АПК Арыстан Grain", color: "bg-accent", hint: "Отчёты по уборке и производственным показателям" }, { name: "АФ Веденовка", color: "bg-teal-400", hint: "Финансовые реестры и отчётность подразделения" }];
-  return <div className="animate-page"><div className="mb-7"><p className="eyebrow">Специализированный раздел</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em]">АгроБлок</h1><p className="mt-2 text-sm text-muted-foreground">Шаблоны АПК Арыстан Grain и АФ Веденовка.</p></div><div className="grid gap-5 lg:grid-cols-2">{units.map((unit) => { const template = templates.find((item) => item.name.includes(unit.name.includes("Арыстан") ? "Арыстан" : "Веденовка")); return <section className="surface-card overflow-hidden" key={unit.name}><div className={cn("h-2", unit.color)} /><div className="p-6"><p className="eyebrow">Подразделение</p><h2 className="mt-2 font-display text-2xl font-bold tracking-[-0.04em]">{unit.name}</h2><p className="mt-3 text-sm leading-6 text-muted-foreground">{unit.hint}</p>{template ? <div className="mt-6"><TemplateRow template={template} compact onOpen={onOpen} /></div> : <p className="mt-6 text-xs text-muted-foreground">Шаблоны пока не добавлены.</p>}</div></section>; })}</div></div>;
+  return <div className="animate-page"><div className="mb-7"><p className="eyebrow">Специализированный раздел</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em]">АгроБлок</h1><p className="mt-2 text-sm text-muted-foreground">Шаблоны АПК Арыстан Grain и АФ Веденовка.</p></div><div className="grid gap-5 lg:grid-cols-2">{units.map((unit) => { const unitTemplates = templates.filter((item) => item.department === unit.name || item.name.includes(unit.name.includes("Арыстан") ? "Арыстан" : "Веденовка")); return <section className="surface-card overflow-hidden" key={unit.name}><div className={cn("h-2", unit.color)} /><div className="p-6"><p className="eyebrow">Подразделение</p><h2 className="mt-2 font-display text-2xl font-bold tracking-[-0.04em]">{unit.name}</h2><p className="mt-3 text-sm leading-6 text-muted-foreground">{unit.hint}</p>{unitTemplates.length ? <div className="mt-6">{unitTemplates.map((template) => <TemplateRow key={template.id} template={template} compact onOpen={onOpen} />)}</div> : <p className="mt-6 text-xs text-muted-foreground">Шаблоны пока не добавлены.</p>}</div></section>; })}</div></div>;
 }
 
 function EconomicBlock({ role, actualRole, demoRole, onDemoRoleChange }: {
@@ -1004,7 +987,13 @@ function AccessGate() {
   const actualRole = request.requestedRole as AppRole;
   const canUseDemo = actualRole === "general_director";
   const role = canUseDemo && demoRole ? demoRole : actualRole;
-  return <Shell role={role} request={request} activeSection={section} onNavigate={setSection}><Workspace role={role} actualRole={actualRole} demoRole={canUseDemo ? demoRole : null} request={request} section={section} onSectionChange={setSection} onDemoRoleChange={setDemoRole} /></Shell>;
+  const changeDemoRole = (nextRole: AppRole | null) => {
+    setDemoRole(nextRole);
+    if (nextRole) window.localStorage.setItem("agrolink-role-context", nextRole);
+    else window.localStorage.removeItem("agrolink-role-context");
+    queryClient.clear();
+  };
+  return <Shell role={role} request={request} activeSection={section} onNavigate={setSection}><Workspace role={role} actualRole={actualRole} demoRole={canUseDemo ? demoRole : null} request={request} section={section} onSectionChange={setSection} onDemoRoleChange={changeDemoRole} /></Shell>;
 }
 
 function Home() {
