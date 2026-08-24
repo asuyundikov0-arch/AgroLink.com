@@ -499,14 +499,17 @@ function Cabinet({ role, actualRole, demoRole, onDemoRoleChange }: {
   const requestUpload = useRequestReportUploadUrl();
   const [isUploading, setIsUploading] = useState(false);
   const allReports = (reportsQuery.data as Report[] | undefined) ?? [];
-  const reports = allReports.filter((report) => role === "chief_engineer"
+  const reports = allReports.filter((report) => role === "lawyer"
+    ? report.reportType === "legal_document"
+    : role === "chief_engineer"
     ? report.reportType === "engineering_document"
     : report.reportType !== "engineering_document");
-  const canSubmit = role === "agronomist" || role === "economist";
+  const canSubmit = role === "agronomist" || role === "economist" || role === "lawyer";
   const isEconomist = role === "economist";
+  const isLawyer = role === "lawyer";
   const reviewer = role === "chief_agronomist" || role === "chief_engineer" || role === "farm_director";
   const finalApprover = role === "general_director";
-  const queueTitle = role === "chief_agronomist" ? "Очередь главного агронома" : role === "chief_engineer" ? "Очередь главного инженера" : role === "farm_director" ? "Очередь директора хозяйства" : finalApprover ? "Финальное согласование" : isEconomist ? "Ежедневные реестры" : "Отправленные отчёты";
+  const queueTitle = role === "chief_agronomist" ? "Очередь главного агронома" : role === "chief_engineer" ? "Очередь главного инженера" : role === "farm_director" ? "Очередь директора хозяйства" : role === "lawyer" ? "Мои юридические документы" : finalApprover ? "Финальное согласование" : isEconomist ? "Ежедневные реестры" : "Отправленные отчёты";
 
   const refreshReports = () => queryClient.invalidateQueries({ queryKey: getListReportsQueryKey() });
   const submitReport = async (event: FormEvent<HTMLFormElement>) => {
@@ -526,14 +529,14 @@ function Cabinet({ role, actualRole, demoRole, onDemoRoleChange }: {
       const uploadResponse = await fetch(target.uploadURL, { method: "PUT", body: file, headers: { "Content-Type": file.type || "application/octet-stream" } });
       if (!uploadResponse.ok) throw new Error("File upload failed");
       await createReport.mutateAsync({ data: {
-        title: isEconomist ? `Реестр финансирования · ${unit}` : `Отчёт по уборке · ${unit}`,
-        unit,
+         title: isLawyer ? "Юридическое заключение" : isEconomist ? `Реестр финансирования · ${unit}` : `Отчёт по уборке · ${unit}`,
+         unit: isLawyer ? "Юридический отдел" : unit,
         fileName: file.name,
         fileSize: `${(file.size / 1024 / 1024).toFixed(1)} МБ`,
         fileUrl: target.objectPath,
       } });
       setFile(null);
-      setNotice(isEconomist ? "Реестр отправлен директору хозяйства." : "Отчёт отправлен главному агроному.");
+       setNotice(isLawyer ? "Документ отправлен генеральному директору." : isEconomist ? "Реестр отправлен директору хозяйства." : "Отчёт отправлен главному агроному.");
       refreshReports();
     } catch (e) {
       setNotice("Не удалось отправить документ.");
@@ -561,7 +564,7 @@ function Cabinet({ role, actualRole, demoRole, onDemoRoleChange }: {
       <ApprovalQueue role={role} isDemoPreview={Boolean(demoRole)} />
       <UserManagement role={role} />
       {notice && <div className="notice-banner mb-6" data-testid="status-report-notice"><Check size={16} />{notice}<button type="button" aria-label="Закрыть" onClick={() => setNotice("")}><X size={14} /></button></div>}
-      {canSubmit && <section className="surface-card mb-7 p-5 sm:p-7"><div className="section-heading"><div className="setting-icon"><UploadIcon size={17} /></div><div><h2>{isEconomist ? "Подать ежедневный реестр до 09:30" : "Передать заполненный отчёт"}</h2><p>{isEconomist ? "Реестр сначала поступит директору хозяйства, затем генеральному директору." : "Отчёт поступит главному агроному на проверку."}</p></div></div><form onSubmit={submitReport} className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr_auto] lg:items-end"><label className="form-label">Подразделение<select value={unit} onChange={(event) => setUnit(event.target.value)} className="text-input mt-2"><option>АПК Арыстан Grain</option><option>АФ Веденовка</option></select></label><label className="form-label">{isEconomist ? "Ежедневный реестр" : "Заполненный Excel-файл"}<input type="file" accept={isEconomist ? ".pdf,.xlsx,.xls" : ".xlsx,.xls"} onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="text-input mt-2 pt-2" data-testid="input-completed-report" /></label><button type="submit" disabled={createReport.isPending || isUploading} className="button button-primary justify-center" data-testid="button-submit-report">{createReport.isPending || isUploading ? "Отправляем..." : isEconomist ? "Отправить директору" : "Отправить на проверку"} <Send size={15} /></button></form>{file && <p className="mt-4 flex items-center gap-2 text-xs font-medium text-teal-800"><FileCheck2 size={15} />Выбран файл: {file.name}</p>}</section>}
+       {canSubmit && <section className="surface-card mb-7 p-5 sm:p-7"><div className="section-heading"><div className="setting-icon"><UploadIcon size={17} /></div><div><h2>{isLawyer ? "Направить документ на согласование" : isEconomist ? "Подать ежедневный реестр до 09:30" : "Передать заполненный отчёт"}</h2><p>{isLawyer ? "Юридический документ поступит напрямую генеральному директору." : isEconomist ? "Реестр сначала поступит директору хозяйства, затем генеральному директору." : "Отчёт поступит главному агроному на проверку."}</p></div></div><form onSubmit={submitReport} className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr_auto] lg:items-end">{!isLawyer && <label className="form-label">Подразделение<select value={unit} onChange={(event) => setUnit(event.target.value)} className="text-input mt-2"><option>АПК Арыстан Grain</option><option>АФ Веденовка</option></select></label>}{isLawyer && <label className="form-label">Подразделение<input value="Юридический отдел" readOnly className="text-input mt-2" /></label>}<label className="form-label">{isLawyer ? "Юридический Excel или PDF" : isEconomist ? "Ежедневный реестр" : "Заполненный Excel-файл"}<input type="file" accept={isLawyer || isEconomist ? ".pdf,.xlsx,.xls" : ".xlsx,.xls"} onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="text-input mt-2 pt-2" data-testid={isLawyer ? "input-legal-document" : "input-completed-report"} /></label><button type="submit" disabled={createReport.isPending || isUploading} className="button button-primary justify-center" data-testid={isLawyer ? "button-submit-legal-document" : "button-submit-report"}>{createReport.isPending || isUploading ? "Отправляем..." : isLawyer ? "Отправить директору" : isEconomist ? "Отправить директору" : "Отправить на проверку"} <Send size={15} /></button></form>{file && <p className="mt-4 flex items-center gap-2 text-xs font-medium text-teal-800"><FileCheck2 size={15} />Выбран файл: {file.name}</p>}</section>}
       <section><div className="mb-4 flex items-end justify-between"><div><p className="eyebrow">{reviewer || finalApprover ? "Согласование" : "Мои документы"}</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">{queueTitle}</h2></div><ClipboardCheck size={19} className="text-muted-foreground" /></div>{reportsQuery.isLoading ? <LoadingRows count={3} /> : reportsQuery.isError ? <ErrorState onRetry={() => reportsQuery.refetch()} /> : reports.length === 0 ? <EmptyState title="Здесь пока нет документов" description="Когда документ перейдёт на доступный вам этап, он появится в списке." /> : <div className="space-y-3">{reports.map((report) => <article key={report.id} className="surface-card p-4 sm:p-5"><div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center"><div className="flex min-w-0 items-start gap-3"><FileBadge /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-bold">{report.title}</h3><ReportStatusPill status={report.status} /></div><p className="mt-1 text-xs text-muted-foreground">{report.unit} · {report.fileName} · {report.submittedBy} · {formatDate(report.submittedAt)}</p>{report.reviewerComment && <p className="mt-2 text-xs text-teal-800">Комментарий: {report.reviewerComment}</p>}</div></div><div className="flex shrink-0 flex-wrap gap-2">{report.fileUrl && <a href={report.fileUrl} download={report.fileName} className="button button-secondary text-xs"><Download size={14} />Открыть файл</a>}{reviewer && report.status === "submitted" && <button type="button" onClick={() => moveReport(report, "in_review", "Документ принят в работу.")} className="button button-primary text-xs">Взять на проверку</button>}{reviewer && report.status === "in_review" && <><button type="button" onClick={() => moveReport(report, "returned", "Проверьте данные и загрузите исправленную версию.")} className="button button-secondary text-xs"><RotateCcw size={14} />На доработку</button><button type="button" onClick={() => moveReport(report, "approved", "Документ проверен.")} className="button button-primary text-xs"><Check size={14} />Принять</button></>}{reviewer && report.status === "approved" && <button type="button" onClick={() => moveReport(report, "sent_to_management", "Документ направлен начальству.")} className="button button-primary text-xs"><Send size={14} />{role === "farm_director" ? "Генеральному директору" : "Отправить начальству"}</button>}{finalApprover && report.status === "sent_to_management" && <button type="button" onClick={() => setArchiveTarget(report)} className="button button-primary text-xs" data-testid={`button-archive-report-${report.id}`}><Archive size={14} />Одобрить и в архив</button>}</div></div></article>)}</div>}</section>
       {archiveTarget && <ArchiveSelectionDialog report={archiveTarget} onClose={() => setArchiveTarget(null)} isPending={updateReportStatus.isPending} onConfirm={(section, subarchive) => moveReport(archiveTarget, "archived", "Документ одобрен генеральным директором и помещён в архив.", { section, subarchive })} />}
     </div>
@@ -862,6 +865,18 @@ function EconomicBlock({ role, actualRole, demoRole, onDemoRoleChange }: {
   </div>;
 }
 
+function LegalBlock({ role, actualRole, demoRole, onDemoRoleChange }: {
+  role: AppRole;
+  actualRole: AppRole;
+  demoRole: AppRole | null;
+  onDemoRoleChange: (role: AppRole | null) => void;
+}) {
+  return <div className="animate-page">
+    <div className="mb-7"><p className="eyebrow">Специализированный раздел</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em]">Юридический блок</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">Юридические заключения и документы, направляемые напрямую генеральному директору.</p></div>
+    <Cabinet role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />
+  </div>;
+}
+
 function EngineeringBlockDraft({ role, onOpen }: { role: AppRole; onOpen: (id: number) => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
@@ -970,6 +985,7 @@ function Workspace({ role, actualRole, demoRole, request, section, onSectionChan
     {section === "agro" && <AgroBlock onOpen={openTemplate} />}
     {section === "engineering" && <EngineeringBlock role={role} onOpenTemplate={openTemplate} isDemoPreview={Boolean(demoRole)} />}
     {section === "economic" && <EconomicBlock role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />}
+    {section === "legal" && <LegalBlock role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />}
     {section === "settings" && <SettingsPage role={role} request={request} />}
   </>;
 }

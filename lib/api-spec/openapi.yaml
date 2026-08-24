@@ -554,7 +554,7 @@ components:
           type: string
         reportType:
           type: string
-          enum: [agronomy, financing_register, engineering_document]
+          enum: [agronomy, financing_register, engineering_document, legal_document]
         fileName:
           type: string
         fileSize:

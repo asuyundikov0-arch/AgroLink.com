@@ -27,6 +27,12 @@ function canUseTemplate(access: RoleAccess, template: typeof templatesTable.$inf
   if (template.accessGroup === "engineers") {
     return ["engineer", "chief_engineer", "general_director"].includes(access.role!);
   }
+  if (template.accessGroup === "economists") {
+    return ["economist", "farm_director", "general_director"].includes(access.role!);
+  }
+  if (template.accessGroup === "lawyers") {
+    return ["lawyer", "general_director"].includes(access.role!);
+  }
   return true;
 }
 

@@ -13,4 +13,5 @@ export const ReportReportType = {
   agronomy: 'agronomy',
   financing_register: 'financing_register',
   engineering_document: 'engineering_document',
+  legal_document: 'legal_document',
 } as const;

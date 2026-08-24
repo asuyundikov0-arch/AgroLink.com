@@ -23,7 +23,7 @@ const objectStorage = new ObjectStorageService();
 
 const allowedStatuses = ["submitted", "in_review", "returned", "approved", "sent_to_management", "archived"] as const;
 type ReportStatus = typeof allowedStatuses[number];
-const allowedReportTypes = ["agronomy", "financing_register", "engineering_document"] as const;
+const allowedReportTypes = ["agronomy", "financing_register", "engineering_document", "legal_document"] as const;
 type ReportType = typeof allowedReportTypes[number];
 const maxUploadSize = 25 * 1024 * 1024;
 
@@ -55,6 +55,7 @@ function canViewReport(report: typeof reportsTable.$inferSelect, access: RoleAcc
   if (access.role === "agronomist") return report.reportType === "agronomy" && report.submittedByUserId === access.userId;
   if (access.role === "engineer") return isEngineeringDocument(report) && report.submittedByUserId === access.userId;
   if (access.role === "economist") return report.reportType === "financing_register" && report.submittedByUserId === access.userId;
+  if (access.role === "lawyer") return report.reportType === "legal_document" && report.submittedByUserId === access.userId;
   if (access.role === "chief_agronomist") return report.reportType === "agronomy";
   if (access.role === "chief_engineer") return isEngineeringDocument(report);
   if (access.role === "farm_director") return report.reportType === "financing_register";
@@ -121,6 +122,8 @@ router.get("/reports", requireApprovedRole, async (req, res, next) => {
       conditions.push(eq(reportsTable.reportType, "engineering_document"));
     } else if (role === "farm_director") {
       conditions.push(eq(reportsTable.reportType, "financing_register"));
+    } else if (role === "lawyer") {
+      conditions.push(eq(reportsTable.reportType, "legal_document"), eq(reportsTable.submittedByUserId, userId));
     } else if (role === "general_director") {
       conditions.push(eq(reportsTable.status, "sent_to_management"));
     }
@@ -137,7 +140,7 @@ router.post("/reports", requireApprovedRole, async (req, res, next) => {
   try {
     const body = CreateReportBody.parse(req.body);
     const access = res.locals.access as RoleAccess;
-    if (!["agronomist", "economist", "engineer"].includes(access.role ?? "")) {
+    if (!["agronomist", "economist", "engineer", "lawyer"].includes(access.role ?? "")) {
       res.status(403).json({ error: "У вас нет права подавать документы" });
       return;
     }
@@ -145,8 +148,10 @@ router.post("/reports", requireApprovedRole, async (req, res, next) => {
       ? "financing_register"
       : access.role === "engineer"
         ? "engineering_document"
-        : "agronomy";
-    if (access.role === "engineer" && !body.fileUrl.startsWith("/objects/uploads/")) {
+        : access.role === "lawyer"
+          ? "legal_document"
+          : "agronomy";
+    if ((access.role === "engineer" || access.role === "lawyer") && !body.fileUrl.startsWith("/objects/uploads/")) {
       res.status(400).json({ error: "Инженерный документ должен быть загружен через защищённое хранилище" });
       return;
     }
@@ -155,6 +160,7 @@ router.post("/reports", requireApprovedRole, async (req, res, next) => {
       reportType,
       submittedBy: access.displayName,
       submittedByUserId: access.userId,
+      status: access.role === "lawyer" ? "sent_to_management" : "submitted",
     }).returning();
     res.status(201).json(CreateReportResponse.parse(serializeReport(report)));
   } catch (error) {
@@ -269,6 +275,10 @@ router.patch("/reports/:id/status", requireApprovedRole, async (req, res, next) 
       && (body.archiveSection !== "engineering" || body.archiveSubarchive !== "general")
     ) {
       res.status(400).json({ error: "Инженерский документ можно отправить только в инженерский архив" });
+      return;
+    }
+    if (isFinalArchive && existing.reportType === "legal_document" && (body.archiveSection !== "legal" || body.archiveSubarchive !== "general")) {
+      res.status(400).json({ error: "Юридический документ можно отправить только в юридический архив" });
       return;
     }
     const transitionAllowed = (existing.status === "submitted" && body.status === "in_review")
