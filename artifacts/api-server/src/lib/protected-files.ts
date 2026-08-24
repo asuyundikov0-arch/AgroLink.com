@@ -20,6 +20,10 @@ const protectedAttachmentFiles: Record<string, string> = {
     attachedAssetsDirectory,
     "Химия_1787596545001.xlsx",
   ),
+  "Баланс_зерна_2026_1787596714462.xlsx": path.join(
+    attachedAssetsDirectory,
+    "Баланс_зерна_2026_1787596714462.xlsx",
+  ),
 };
 
 export function resolveProtectedFile(fileUrl: string): string {

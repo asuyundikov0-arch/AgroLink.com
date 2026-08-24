@@ -180,6 +180,19 @@ const seedTemplates = [
     version: "v1.0",
     updatedBy: "Администратор",
   },
+  {
+    name: "Баланс зерна 2026 · Сводные отчёты Гл.Агронома",
+    description: "Excel-шаблон баланса зерна за 2026 год для сводных отчётов главного агронома.",
+    category: "Шаблоны Сводных отчетов Гл.Агронома",
+    department: "Агрономия",
+    fileName: "Баланс_зерна_2026_1787596714462.xlsx",
+    fileSize: "18 КБ",
+    fileType: "Excel",
+    accessGroup: "agronomists",
+    fileUrl: "/files/Баланс_зерна_2026_1787596714462.xlsx",
+    version: "v1.0",
+    updatedBy: "Администратор",
+  },
 ];
 
 let seedPromise: Promise<void> | null = null;
