@@ -4,6 +4,7 @@ import templatesRouter from "./templates";
 import reportsRouter from "./reports";
 import archivesRouter from "./archives";
 import roleApplicationsRouter from "./role-applications";
+import equipmentRepairsRouter from "./equipment-repairs";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use(templatesRouter);
 router.use(reportsRouter);
 router.use(archivesRouter);
 router.use(roleApplicationsRouter);
+router.use(equipmentRepairsRouter);
 
 export default router;

@@ -22,6 +22,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export * from "./role-applications";
+export * from "./equipment-repairs";
 
 export const templatesTable = pgTable("templates", {
   id: serial("id").primaryKey(),

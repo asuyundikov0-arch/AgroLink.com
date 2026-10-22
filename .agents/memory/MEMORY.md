@@ -1,3 +1,4 @@
 - [OpenAPI Zod compatibility](api-integer-zod-compat.md) — generated Zod schemas may emit unsupported integer and URL helpers with this workspace's Zod version.
 - [Secure role bootstrap](secure-role-bootstrap.md) — the first general director is configured server-side; no browser user may self-assign it.
 - [Protected document downloads](protected-document-downloads.md) — original files must stream through role-checked API routes, never public URLs.
+- [Engineering repair register](engineering-repairs.md) — repair data is entered on the site; preserve the source workbook's cost accounting.

@@ -67,6 +67,7 @@ import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { Route, Router as WouterRouter, Switch, useLocation } from "wouter";
 import { ErrorBoundary } from "@/components/error-boundary";
+import EngineeringWorkspace from "@/components/engineering/EngineeringWorkspace";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import companyEmblem from "@assets/IMG_0731_1787404427367.jpeg";
@@ -1037,7 +1038,7 @@ function Workspace({ role, actualRole, demoRole, request, section, onSectionChan
     {section === "templates" && (templateId ? <TemplateDetails id={templateId} role={role} onBack={() => setTemplateId(null)} /> : uploading ? <TemplateUpload onCancel={() => setUploading(false)} onSaved={(id) => { setUploading(false); setTemplateId(id); queryClient.invalidateQueries({ queryKey: getListTemplatesQueryKey() }); }} /> : <TemplateCatalog role={role} onOpen={openTemplate} onUpload={() => setUploading(true)} />)}
     {section === "archive" && <ArchivePage selectedCell={selectedArchiveCell} onSelectCell={setSelectedArchiveCell} />}
     {section === "agro" && <AgroBlock onOpen={openTemplate} />}
-    {section === "engineering" && <EngineeringBlock role={role} onOpenTemplate={openTemplate} isDemoPreview={Boolean(demoRole)} />}
+    {section === "engineering" && <EngineeringWorkspace role={role}><EngineeringBlock role={role} onOpenTemplate={openTemplate} isDemoPreview={Boolean(demoRole)} /></EngineeringWorkspace>}
     {section === "economic" && <EconomicBlock role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />}
     {section === "legal" && <LegalBlock role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />}
     {section === "settings" && <SettingsPage role={role} request={request} />}

@@ -5,6 +5,136 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type RepairInputUnit = typeof RepairInputUnit[keyof typeof RepairInputUnit];
+
+
+export const RepairInputUnit = {
+  АПК_Арыстан_Grain: 'АПК Арыстан Grain',
+  АФ_Веденовка: 'АФ Веденовка',
+} as const;
+
+export interface RepairInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  equipment: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  responsible: string;
+  unit: RepairInputUnit;
+  /** @nullable */
+  plannedStart: string | null;
+  /** @nullable */
+  plannedEnd: string | null;
+  /** @nullable */
+  actualStart: string | null;
+  /** @nullable */
+  actualEnd: string | null;
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  readiness: number | null;
+  /**
+     * @minimum 0
+     * @maximum 1000000000000
+     * @nullable
+     */
+  capitalCost: number | null;
+  /**
+     * @minimum 0
+     * @maximum 1000000000000
+     * @nullable
+     */
+  currentCost: number | null;
+  /**
+     * @minimum 0
+     * @maximum 1000000000000
+     * @nullable
+     */
+  tiresCost: number | null;
+  /**
+     * @minimum 0
+     * @maximum 1000000000000
+     * @nullable
+     */
+  oilsCost: number | null;
+  /**
+     * @minimum 0
+     * @maximum 1000000000000
+     * @nullable
+     */
+  serviceCost: number | null;
+  /** @maxLength 3000 */
+  notes: string;
+}
+
+export type RepairUpdate = RepairInput & {
+  /** @minimum 1 */
+  version: number;
+};
+
+export type RepairEntryStatus = typeof RepairEntryStatus[keyof typeof RepairEntryStatus];
+
+
+export const RepairEntryStatus = {
+  planned: 'planned',
+  in_progress: 'in_progress',
+  overdue: 'overdue',
+  completed: 'completed',
+} as const;
+
+export type RepairEntry = RepairInput & ({
+  id: number;
+  version: number;
+  updatedAt: string;
+  updatedBy: string;
+  createdBy: string;
+  status: RepairEntryStatus;
+  /** @nullable */
+  totalCost: number | null;
+  /** @nullable */
+  deviationDays: number | null;
+  /** @nullable */
+  deviationPercent: number | null;
+  overdueDays: number;
+});
+
+export interface RepairSummary {
+  total: number;
+  planned: number;
+  inProgress: number;
+  overdue: number;
+  completed: number;
+  totalCost: number;
+  capitalCost: number;
+  currentCost: number;
+  tiresCost: number;
+  oilsCost: number;
+  serviceCost: number;
+  unpricedCount: number;
+  /** @nullable */
+  averageReadiness: number | null;
+}
+
+export type RepairDashboardCurrency = typeof RepairDashboardCurrency[keyof typeof RepairDashboardCurrency];
+
+
+export const RepairDashboardCurrency = {
+  KZT: 'KZT',
+} as const;
+
+export interface RepairDashboard {
+  items: RepairEntry[];
+  summary: RepairSummary;
+  asOfDate: string;
+  currency: RepairDashboardCurrency;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -327,6 +457,18 @@ export interface RoleRequestDecision {
   decision: RoleRequestDecisionDecision;
   reviewComment: string;
 }
+
+export type ListEngineeringRepairsParams = {
+unit?: ListEngineeringRepairsUnit;
+};
+
+export type ListEngineeringRepairsUnit = typeof ListEngineeringRepairsUnit[keyof typeof ListEngineeringRepairsUnit];
+
+
+export const ListEngineeringRepairsUnit = {
+  АПК_Арыстан_Grain: 'АПК Арыстан Grain',
+  АФ_Веденовка: 'АФ Веденовка',
+} as const;
 
 export type ListTemplatesParams = {
 search?: string;

@@ -19,6 +19,80 @@ tags:
   - name: uploads
     description: Protected document upload workflow
 paths:
+  /engineering/repairs:
+    get:
+      operationId: listEngineeringRepairs
+      tags: [engineering]
+      summary: Current equipment repair register and totals
+      parameters:
+        - name: unit
+          in: query
+          schema:
+            type: string
+            enum: ["АПК Арыстан Grain", "АФ Веденовка"]
+      responses:
+        "200":
+          description: Current repair register
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RepairDashboard"
+    post:
+      operationId: createEngineeringRepair
+      tags: [engineering]
+      summary: Record an equipment repair
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepairInput"
+      responses:
+        "201":
+          description: Repair recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RepairEntry"
+  /engineering/repairs/{id}:
+    put:
+      operationId: updateEngineeringRepair
+      tags: [engineering]
+      summary: Update a repair with optimistic concurrency protection
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepairUpdate"
+      responses:
+        "200":
+          description: Updated repair
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RepairEntry"
+        "409":
+          description: Repair changed by another user; reload before saving
+    delete:
+      operationId: deleteEngineeringRepair
+      tags: [engineering]
+      summary: Delete a repair as general director only
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Repair removed
   /healthz:
     get:
       operationId: healthCheck
@@ -430,6 +504,137 @@ paths:
           description: User access revoked
 components:
   schemas:
+    RepairInput:
+      type: object
+      required: [equipment, responsible, unit, plannedStart, plannedEnd, actualStart, actualEnd, readiness, capitalCost, currentCost, tiresCost, oilsCost, serviceCost, notes]
+      properties:
+        equipment:
+          type: string
+          minLength: 1
+          maxLength: 200
+        responsible:
+          type: string
+          minLength: 1
+          maxLength: 200
+        unit:
+          type: string
+          enum: ["АПК Арыстан Grain", "АФ Веденовка"]
+        plannedStart:
+          type: ["string", "null"]
+        plannedEnd:
+          type: ["string", "null"]
+        actualStart:
+          type: ["string", "null"]
+        actualEnd:
+          type: ["string", "null"]
+        readiness:
+          type: ["number", "null"]
+          minimum: 0
+          maximum: 100
+        capitalCost:
+          type: ["number", "null"]
+          minimum: 0
+          maximum: 1000000000000
+        currentCost:
+          type: ["number", "null"]
+          minimum: 0
+          maximum: 1000000000000
+        tiresCost:
+          type: ["number", "null"]
+          minimum: 0
+          maximum: 1000000000000
+        oilsCost:
+          type: ["number", "null"]
+          minimum: 0
+          maximum: 1000000000000
+        serviceCost:
+          type: ["number", "null"]
+          minimum: 0
+          maximum: 1000000000000
+        notes:
+          type: string
+          maxLength: 3000
+    RepairUpdate:
+      allOf:
+        - $ref: "#/components/schemas/RepairInput"
+        - type: object
+          required: [version]
+          properties:
+            version:
+              type: number
+              minimum: 1
+    RepairEntry:
+      allOf:
+        - $ref: "#/components/schemas/RepairInput"
+        - type: object
+          required: [id, version, updatedAt, updatedBy, createdBy, status, totalCost, deviationDays, deviationPercent, overdueDays]
+          properties:
+            id:
+              type: number
+            version:
+              type: number
+            updatedAt:
+              type: string
+            updatedBy:
+              type: string
+            createdBy:
+              type: string
+            status:
+              type: string
+              enum: [planned, in_progress, overdue, completed]
+            totalCost:
+              type: ["number", "null"]
+            deviationDays:
+              type: ["number", "null"]
+            deviationPercent:
+              type: ["number", "null"]
+            overdueDays:
+              type: number
+    RepairSummary:
+      type: object
+      required: [total, planned, inProgress, overdue, completed, totalCost, capitalCost, currentCost, tiresCost, oilsCost, serviceCost, unpricedCount, averageReadiness]
+      properties:
+        total:
+          type: number
+        planned:
+          type: number
+        inProgress:
+          type: number
+        overdue:
+          type: number
+        completed:
+          type: number
+        totalCost:
+          type: number
+        capitalCost:
+          type: number
+        currentCost:
+          type: number
+        tiresCost:
+          type: number
+        oilsCost:
+          type: number
+        serviceCost:
+          type: number
+        unpricedCount:
+          type: number
+        averageReadiness:
+          type: ["number", "null"]
+    RepairDashboard:
+      type: object
+      required: [items, summary, asOfDate, currency]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RepairEntry"
+        summary:
+          $ref: "#/components/schemas/RepairSummary"
+        asOfDate:
+          type: string
+        currency:
+          type: string
+          enum: [KZT]
     HealthStatus:
       type: object
       properties:
