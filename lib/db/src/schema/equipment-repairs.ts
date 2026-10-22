@@ -1,7 +1,9 @@
-import { date, integer, numeric, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { date, integer, numeric, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { fleetEquipmentTable } from "./fleet-equipment";
 
 export const equipmentRepairsTable = pgTable("equipment_repairs", {
   id: serial("id").primaryKey(),
+  fleetId: integer("fleet_id").references(() => fleetEquipmentTable.id, { onDelete: "restrict" }),
   equipment: text("equipment").notNull(),
   responsible: text("responsible").notNull(),
   unit: text("unit").notNull(),
@@ -20,4 +22,4 @@ export const equipmentRepairsTable = pgTable("equipment_repairs", {
   createdBy: text("created_by").notNull(),
   updatedBy: text("updated_by").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [uniqueIndex("equipment_repairs_fleet_idx").on(table.fleetId)]);

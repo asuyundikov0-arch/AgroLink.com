@@ -96,7 +96,7 @@ test("whitespace-only identity and nonfinite/excess-precision costs are rejected
 test("summary excludes unknown readiness and flags incomplete costs", () => {
   const entries = [blank, { ...blank, actualStart: "2026-10-01", readiness: 60, capitalCost: 10, currentCost: 20 }]
     .map((input, index): RepairEntry => ({
-      ...input, ...calculateRepair(input, today), id: index + 1, version: 1,
+      ...input, ...calculateRepair(input, today), id: index + 1, fleetId: index + 1, registrationNumber: null, version: 1,
       createdBy: "test", updatedBy: "test", updatedAt: new Date().toISOString(),
     }));
   const summary = summarizeRepairs(entries);

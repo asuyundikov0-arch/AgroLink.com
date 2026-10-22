@@ -8,6 +8,254 @@
 import * as zod from 'zod';
 
 
+export const ListFleetEquipmentResponseItem = zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "registrationNumber": zod.string().nullable(),
+  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
+  "version": zod.number(),
+  "updatedAt": zod.string(),
+  "updatedBy": zod.string()
+})
+export const ListFleetEquipmentResponse = zod.array(ListFleetEquipmentResponseItem)
+
+
+export const createFleetEquipmentBodyKindMax = 200;
+
+export const createFleetEquipmentBodyRegistrationNumberMax = 40;
+
+
+
+export const CreateFleetEquipmentBody = zod.object({
+  "kind": zod.string().min(1).max(createFleetEquipmentBodyKindMax),
+  "registrationNumber": zod.string().min(1).max(createFleetEquipmentBodyRegistrationNumberMax),
+  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка'])
+})
+
+export const CreateFleetEquipmentResponse = zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "registrationNumber": zod.string().nullable(),
+  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
+  "version": zod.number(),
+  "updatedAt": zod.string(),
+  "updatedBy": zod.string()
+})
+
+
+export const UpdateFleetEquipmentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateFleetEquipmentBodyOneKindMax = 200;
+
+export const updateFleetEquipmentBodyOneRegistrationNumberMax = 40;
+
+
+
+
+export const UpdateFleetEquipmentBody = zod.object({
+  "kind": zod.string().min(1).max(updateFleetEquipmentBodyOneKindMax),
+  "registrationNumber": zod.string().min(1).max(updateFleetEquipmentBodyOneRegistrationNumberMax),
+  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка'])
+}).and(zod.object({
+  "version": zod.number().min(1)
+}))
+
+export const UpdateFleetEquipmentResponse = zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "registrationNumber": zod.string().nullable(),
+  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
+  "version": zod.number(),
+  "updatedAt": zod.string(),
+  "updatedBy": zod.string()
+})
+
+
+export const DeleteFleetEquipmentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteFleetEquipmentResponse = zod.void()
+
+
+
+export const createRepairPlanBatchBodyItemsItemResponsibleMax = 200;
+
+export const createRepairPlanBatchBodyItemsItemReadinessMin = 0;
+export const createRepairPlanBatchBodyItemsItemReadinessMax = 100;
+
+export const createRepairPlanBatchBodyItemsItemNotesMax = 3000;
+
+export const createRepairPlanBatchBodyItemsMax = 100;
+
+
+
+export const CreateRepairPlanBatchBody = zod.object({
+  "items": zod.array(zod.object({
+  "fleetId": zod.number().min(1),
+  "responsible": zod.string().min(1).max(createRepairPlanBatchBodyItemsItemResponsibleMax),
+  "plannedStart": zod.string().nullable(),
+  "plannedEnd": zod.string().nullable(),
+  "actualStart": zod.string().nullable(),
+  "actualEnd": zod.string().nullable(),
+  "readiness": zod.number().min(createRepairPlanBatchBodyItemsItemReadinessMin).max(createRepairPlanBatchBodyItemsItemReadinessMax).nullable(),
+  "notes": zod.string().max(createRepairPlanBatchBodyItemsItemNotesMax)
+})).min(1).max(createRepairPlanBatchBodyItemsMax)
+})
+
+export const createRepairPlanBatchResponseOneEquipmentMax = 200;
+
+export const createRepairPlanBatchResponseOneResponsibleMax = 200;
+
+export const createRepairPlanBatchResponseOneReadinessMin = 0;
+export const createRepairPlanBatchResponseOneReadinessMax = 100;
+
+export const createRepairPlanBatchResponseOneCapitalCostMin = 0;
+export const createRepairPlanBatchResponseOneCapitalCostMax = 1000000000000;
+
+export const createRepairPlanBatchResponseOneCurrentCostMin = 0;
+export const createRepairPlanBatchResponseOneCurrentCostMax = 1000000000000;
+
+export const createRepairPlanBatchResponseOneTiresCostMin = 0;
+export const createRepairPlanBatchResponseOneTiresCostMax = 1000000000000;
+
+export const createRepairPlanBatchResponseOneOilsCostMin = 0;
+export const createRepairPlanBatchResponseOneOilsCostMax = 1000000000000;
+
+export const createRepairPlanBatchResponseOneServiceCostMin = 0;
+export const createRepairPlanBatchResponseOneServiceCostMax = 1000000000000;
+
+export const createRepairPlanBatchResponseOneNotesMax = 3000;
+
+
+
+export const CreateRepairPlanBatchResponseItem = zod.object({
+  "equipment": zod.string().min(1).max(createRepairPlanBatchResponseOneEquipmentMax),
+  "responsible": zod.string().min(1).max(createRepairPlanBatchResponseOneResponsibleMax),
+  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
+  "plannedStart": zod.string().nullable(),
+  "plannedEnd": zod.string().nullable(),
+  "actualStart": zod.string().nullable(),
+  "actualEnd": zod.string().nullable(),
+  "readiness": zod.number().min(createRepairPlanBatchResponseOneReadinessMin).max(createRepairPlanBatchResponseOneReadinessMax).nullable(),
+  "capitalCost": zod.number().min(createRepairPlanBatchResponseOneCapitalCostMin).max(createRepairPlanBatchResponseOneCapitalCostMax).nullable(),
+  "currentCost": zod.number().min(createRepairPlanBatchResponseOneCurrentCostMin).max(createRepairPlanBatchResponseOneCurrentCostMax).nullable(),
+  "tiresCost": zod.number().min(createRepairPlanBatchResponseOneTiresCostMin).max(createRepairPlanBatchResponseOneTiresCostMax).nullable(),
+  "oilsCost": zod.number().min(createRepairPlanBatchResponseOneOilsCostMin).max(createRepairPlanBatchResponseOneOilsCostMax).nullable(),
+  "serviceCost": zod.number().min(createRepairPlanBatchResponseOneServiceCostMin).max(createRepairPlanBatchResponseOneServiceCostMax).nullable(),
+  "notes": zod.string().max(createRepairPlanBatchResponseOneNotesMax)
+}).and(zod.object({
+  "fleetId": zod.number(),
+  "registrationNumber": zod.string().nullable(),
+  "id": zod.number(),
+  "version": zod.number(),
+  "updatedAt": zod.string(),
+  "updatedBy": zod.string(),
+  "createdBy": zod.string(),
+  "status": zod.enum(['planned', 'in_progress', 'overdue', 'completed']),
+  "totalCost": zod.number().nullable(),
+  "deviationDays": zod.number().nullable(),
+  "deviationPercent": zod.number().nullable(),
+  "overdueDays": zod.number()
+}))
+export const CreateRepairPlanBatchResponse = zod.array(CreateRepairPlanBatchResponseItem)
+
+
+export const ListRepairExpensesQueryParams = zod.object({
+  "fleetId": zod.coerce.number().optional()
+})
+
+export const ListRepairExpensesResponseItem = zod.object({
+  "id": zod.number(),
+  "fleetId": zod.number(),
+  "incurredOn": zod.string().nullable(),
+  "category": zod.enum(['capital', 'current', 'tires', 'oils', 'service']),
+  "amount": zod.number(),
+  "description": zod.string(),
+  "version": zod.number(),
+  "source": zod.enum(['manual', 'legacy']),
+  "updatedAt": zod.string(),
+  "updatedBy": zod.string()
+})
+export const ListRepairExpensesResponse = zod.array(ListRepairExpensesResponseItem)
+
+
+
+export const createRepairExpenseBodyAmountMin = 0.01;
+export const createRepairExpenseBodyAmountMax = 1000000000000;
+
+export const createRepairExpenseBodyDescriptionMax = 3000;
+
+
+
+export const CreateRepairExpenseBody = zod.object({
+  "fleetId": zod.number().min(1),
+  "incurredOn": zod.string(),
+  "category": zod.enum(['capital', 'current', 'tires', 'oils', 'service']),
+  "amount": zod.number().min(createRepairExpenseBodyAmountMin).max(createRepairExpenseBodyAmountMax),
+  "description": zod.string().max(createRepairExpenseBodyDescriptionMax)
+})
+
+export const CreateRepairExpenseResponse = zod.object({
+  "id": zod.number(),
+  "fleetId": zod.number(),
+  "incurredOn": zod.string().nullable(),
+  "category": zod.enum(['capital', 'current', 'tires', 'oils', 'service']),
+  "amount": zod.number(),
+  "description": zod.string(),
+  "version": zod.number(),
+  "source": zod.enum(['manual', 'legacy']),
+  "updatedAt": zod.string(),
+  "updatedBy": zod.string()
+})
+
+
+export const UpdateRepairExpenseParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+export const updateRepairExpenseBodyOneAmountMin = 0.01;
+export const updateRepairExpenseBodyOneAmountMax = 1000000000000;
+
+export const updateRepairExpenseBodyOneDescriptionMax = 3000;
+
+
+
+
+export const UpdateRepairExpenseBody = zod.object({
+  "fleetId": zod.number().min(1),
+  "incurredOn": zod.string(),
+  "category": zod.enum(['capital', 'current', 'tires', 'oils', 'service']),
+  "amount": zod.number().min(updateRepairExpenseBodyOneAmountMin).max(updateRepairExpenseBodyOneAmountMax),
+  "description": zod.string().max(updateRepairExpenseBodyOneDescriptionMax)
+}).and(zod.object({
+  "version": zod.number().min(1)
+}))
+
+export const UpdateRepairExpenseResponse = zod.object({
+  "id": zod.number(),
+  "fleetId": zod.number(),
+  "incurredOn": zod.string().nullable(),
+  "category": zod.enum(['capital', 'current', 'tires', 'oils', 'service']),
+  "amount": zod.number(),
+  "description": zod.string(),
+  "version": zod.number(),
+  "source": zod.enum(['manual', 'legacy']),
+  "updatedAt": zod.string(),
+  "updatedBy": zod.string()
+})
+
+
+export const DeleteRepairExpenseParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteRepairExpenseResponse = zod.void()
+
+
 /**
  * @summary Current equipment repair register and totals
  */
@@ -58,6 +306,8 @@ export const ListEngineeringRepairsResponse = zod.object({
   "serviceCost": zod.number().min(listEngineeringRepairsResponseItemsItemOneServiceCostMin).max(listEngineeringRepairsResponseItemsItemOneServiceCostMax).nullable(),
   "notes": zod.string().max(listEngineeringRepairsResponseItemsItemOneNotesMax)
 }).and(zod.object({
+  "fleetId": zod.number(),
+  "registrationNumber": zod.string().nullable(),
   "id": zod.number(),
   "version": zod.number(),
   "updatedAt": zod.string(),
@@ -92,46 +342,24 @@ export const ListEngineeringRepairsResponse = zod.object({
 /**
  * @summary Record an equipment repair
  */
-export const createEngineeringRepairBodyEquipmentMax = 200;
 
 export const createEngineeringRepairBodyResponsibleMax = 200;
 
 export const createEngineeringRepairBodyReadinessMin = 0;
 export const createEngineeringRepairBodyReadinessMax = 100;
 
-export const createEngineeringRepairBodyCapitalCostMin = 0;
-export const createEngineeringRepairBodyCapitalCostMax = 1000000000000;
-
-export const createEngineeringRepairBodyCurrentCostMin = 0;
-export const createEngineeringRepairBodyCurrentCostMax = 1000000000000;
-
-export const createEngineeringRepairBodyTiresCostMin = 0;
-export const createEngineeringRepairBodyTiresCostMax = 1000000000000;
-
-export const createEngineeringRepairBodyOilsCostMin = 0;
-export const createEngineeringRepairBodyOilsCostMax = 1000000000000;
-
-export const createEngineeringRepairBodyServiceCostMin = 0;
-export const createEngineeringRepairBodyServiceCostMax = 1000000000000;
-
 export const createEngineeringRepairBodyNotesMax = 3000;
 
 
 
 export const CreateEngineeringRepairBody = zod.object({
-  "equipment": zod.string().min(1).max(createEngineeringRepairBodyEquipmentMax),
+  "fleetId": zod.number().min(1),
   "responsible": zod.string().min(1).max(createEngineeringRepairBodyResponsibleMax),
-  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
   "plannedStart": zod.string().nullable(),
   "plannedEnd": zod.string().nullable(),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
   "readiness": zod.number().min(createEngineeringRepairBodyReadinessMin).max(createEngineeringRepairBodyReadinessMax).nullable(),
-  "capitalCost": zod.number().min(createEngineeringRepairBodyCapitalCostMin).max(createEngineeringRepairBodyCapitalCostMax).nullable(),
-  "currentCost": zod.number().min(createEngineeringRepairBodyCurrentCostMin).max(createEngineeringRepairBodyCurrentCostMax).nullable(),
-  "tiresCost": zod.number().min(createEngineeringRepairBodyTiresCostMin).max(createEngineeringRepairBodyTiresCostMax).nullable(),
-  "oilsCost": zod.number().min(createEngineeringRepairBodyOilsCostMin).max(createEngineeringRepairBodyOilsCostMax).nullable(),
-  "serviceCost": zod.number().min(createEngineeringRepairBodyServiceCostMin).max(createEngineeringRepairBodyServiceCostMax).nullable(),
   "notes": zod.string().max(createEngineeringRepairBodyNotesMax)
 })
 
@@ -177,6 +405,8 @@ export const CreateEngineeringRepairResponse = zod.object({
   "serviceCost": zod.number().min(createEngineeringRepairResponseOneServiceCostMin).max(createEngineeringRepairResponseOneServiceCostMax).nullable(),
   "notes": zod.string().max(createEngineeringRepairResponseOneNotesMax)
 }).and(zod.object({
+  "fleetId": zod.number(),
+  "registrationNumber": zod.string().nullable(),
   "id": zod.number(),
   "version": zod.number(),
   "updatedAt": zod.string(),
@@ -197,27 +427,11 @@ export const UpdateEngineeringRepairParams = zod.object({
   "id": zod.coerce.number()
 })
 
-export const updateEngineeringRepairBodyOneEquipmentMax = 200;
 
 export const updateEngineeringRepairBodyOneResponsibleMax = 200;
 
 export const updateEngineeringRepairBodyOneReadinessMin = 0;
 export const updateEngineeringRepairBodyOneReadinessMax = 100;
-
-export const updateEngineeringRepairBodyOneCapitalCostMin = 0;
-export const updateEngineeringRepairBodyOneCapitalCostMax = 1000000000000;
-
-export const updateEngineeringRepairBodyOneCurrentCostMin = 0;
-export const updateEngineeringRepairBodyOneCurrentCostMax = 1000000000000;
-
-export const updateEngineeringRepairBodyOneTiresCostMin = 0;
-export const updateEngineeringRepairBodyOneTiresCostMax = 1000000000000;
-
-export const updateEngineeringRepairBodyOneOilsCostMin = 0;
-export const updateEngineeringRepairBodyOneOilsCostMax = 1000000000000;
-
-export const updateEngineeringRepairBodyOneServiceCostMin = 0;
-export const updateEngineeringRepairBodyOneServiceCostMax = 1000000000000;
 
 export const updateEngineeringRepairBodyOneNotesMax = 3000;
 
@@ -225,19 +439,13 @@ export const updateEngineeringRepairBodyOneNotesMax = 3000;
 
 
 export const UpdateEngineeringRepairBody = zod.object({
-  "equipment": zod.string().min(1).max(updateEngineeringRepairBodyOneEquipmentMax),
+  "fleetId": zod.number().min(1),
   "responsible": zod.string().min(1).max(updateEngineeringRepairBodyOneResponsibleMax),
-  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
   "plannedStart": zod.string().nullable(),
   "plannedEnd": zod.string().nullable(),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
   "readiness": zod.number().min(updateEngineeringRepairBodyOneReadinessMin).max(updateEngineeringRepairBodyOneReadinessMax).nullable(),
-  "capitalCost": zod.number().min(updateEngineeringRepairBodyOneCapitalCostMin).max(updateEngineeringRepairBodyOneCapitalCostMax).nullable(),
-  "currentCost": zod.number().min(updateEngineeringRepairBodyOneCurrentCostMin).max(updateEngineeringRepairBodyOneCurrentCostMax).nullable(),
-  "tiresCost": zod.number().min(updateEngineeringRepairBodyOneTiresCostMin).max(updateEngineeringRepairBodyOneTiresCostMax).nullable(),
-  "oilsCost": zod.number().min(updateEngineeringRepairBodyOneOilsCostMin).max(updateEngineeringRepairBodyOneOilsCostMax).nullable(),
-  "serviceCost": zod.number().min(updateEngineeringRepairBodyOneServiceCostMin).max(updateEngineeringRepairBodyOneServiceCostMax).nullable(),
   "notes": zod.string().max(updateEngineeringRepairBodyOneNotesMax)
 }).and(zod.object({
   "version": zod.number().min(1)
@@ -285,6 +493,8 @@ export const UpdateEngineeringRepairResponse = zod.object({
   "serviceCost": zod.number().min(updateEngineeringRepairResponseOneServiceCostMin).max(updateEngineeringRepairResponseOneServiceCostMax).nullable(),
   "notes": zod.string().max(updateEngineeringRepairResponseOneNotesMax)
 }).and(zod.object({
+  "fleetId": zod.number(),
+  "registrationNumber": zod.string().nullable(),
   "id": zod.number(),
   "version": zod.number(),
   "updatedAt": zod.string(),

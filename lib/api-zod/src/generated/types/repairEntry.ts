@@ -9,6 +9,9 @@ import type { RepairEntryStatus } from './repairEntryStatus';
 import type { RepairInput } from './repairInput';
 
 export type RepairEntry = RepairInput & ({
+  fleetId: number;
+  /** @nullable */
+  registrationNumber: string | null;
   id: number;
   version: number;
   updatedAt: string;

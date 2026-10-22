@@ -89,6 +89,9 @@ export const RepairEntryStatus = {
 } as const;
 
 export type RepairEntry = RepairInput & ({
+  fleetId: number;
+  /** @nullable */
+  registrationNumber: string | null;
   id: number;
   version: number;
   updatedAt: string;
@@ -133,6 +136,154 @@ export interface RepairDashboard {
   summary: RepairSummary;
   asOfDate: string;
   currency: RepairDashboardCurrency;
+}
+
+export type FleetInputUnit = typeof FleetInputUnit[keyof typeof FleetInputUnit];
+
+
+export const FleetInputUnit = {
+  АПК_Арыстан_Grain: 'АПК Арыстан Grain',
+  АФ_Веденовка: 'АФ Веденовка',
+} as const;
+
+export interface FleetInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  kind: string;
+  /**
+     * @minLength 1
+     * @maxLength 40
+     */
+  registrationNumber: string;
+  unit: FleetInputUnit;
+}
+
+export type FleetUpdate = FleetInput & {
+  /** @minimum 1 */
+  version: number;
+};
+
+export type FleetEquipmentUnit = typeof FleetEquipmentUnit[keyof typeof FleetEquipmentUnit];
+
+
+export const FleetEquipmentUnit = {
+  АПК_Арыстан_Grain: 'АПК Арыстан Grain',
+  АФ_Веденовка: 'АФ Веденовка',
+} as const;
+
+export interface FleetEquipment {
+  id: number;
+  kind: string;
+  /** @nullable */
+  registrationNumber: string | null;
+  unit: FleetEquipmentUnit;
+  version: number;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface PlanInput {
+  /** @minimum 1 */
+  fleetId: number;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  responsible: string;
+  /** @nullable */
+  plannedStart: string | null;
+  /** @nullable */
+  plannedEnd: string | null;
+  /** @nullable */
+  actualStart: string | null;
+  /** @nullable */
+  actualEnd: string | null;
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  readiness: number | null;
+  /** @maxLength 3000 */
+  notes: string;
+}
+
+export type PlanUpdate = PlanInput & {
+  /** @minimum 1 */
+  version: number;
+};
+
+export interface PlanBatchInput {
+  /**
+     * @minItems 1
+     * @maxItems 100
+     */
+  items: PlanInput[];
+}
+
+export type ExpenseInputCategory = typeof ExpenseInputCategory[keyof typeof ExpenseInputCategory];
+
+
+export const ExpenseInputCategory = {
+  capital: 'capital',
+  current: 'current',
+  tires: 'tires',
+  oils: 'oils',
+  service: 'service',
+} as const;
+
+export interface ExpenseInput {
+  /** @minimum 1 */
+  fleetId: number;
+  incurredOn: string;
+  category: ExpenseInputCategory;
+  /**
+     * @minimum 0.01
+     * @maximum 1000000000000
+     */
+  amount: number;
+  /** @maxLength 3000 */
+  description: string;
+}
+
+export type ExpenseUpdate = ExpenseInput & {
+  /** @minimum 1 */
+  version: number;
+};
+
+export type RepairExpenseCategory = typeof RepairExpenseCategory[keyof typeof RepairExpenseCategory];
+
+
+export const RepairExpenseCategory = {
+  capital: 'capital',
+  current: 'current',
+  tires: 'tires',
+  oils: 'oils',
+  service: 'service',
+} as const;
+
+export type RepairExpenseSource = typeof RepairExpenseSource[keyof typeof RepairExpenseSource];
+
+
+export const RepairExpenseSource = {
+  manual: 'manual',
+  legacy: 'legacy',
+} as const;
+
+export interface RepairExpense {
+  id: number;
+  fleetId: number;
+  /** @nullable */
+  incurredOn: string | null;
+  category: RepairExpenseCategory;
+  amount: number;
+  description: string;
+  version: number;
+  source: RepairExpenseSource;
+  updatedAt: string;
+  updatedBy: string;
 }
 
 export interface HealthStatus {
@@ -457,6 +608,10 @@ export interface RoleRequestDecision {
   decision: RoleRequestDecisionDecision;
   reviewComment: string;
 }
+
+export type ListRepairExpensesParams = {
+fleetId?: number;
+};
 
 export type ListEngineeringRepairsParams = {
 unit?: ListEngineeringRepairsUnit;

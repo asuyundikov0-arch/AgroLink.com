@@ -16,7 +16,7 @@ export function repairBusinessDate(now = new Date()): string {
   return `${value("year")}-${value("month")}-${value("day")}`;
 }
 
-function validDate(value: string): boolean {
+export function validRepairDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || value < "1900-01-01" || value > "2200-12-31") return false;
   const date = new Date(`${value}T00:00:00Z`);
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
@@ -27,7 +27,7 @@ const cents = (value: number | null) => Math.round((value ?? 0) * 100);
 export function validateRepairInput(input: RepairInput, today = repairBusinessDate()): string | null {
   if (!input.equipment.trim() || !input.responsible.trim()) return "Укажите технику и ответственного за ремонт.";
   for (const field of ["plannedStart", "plannedEnd", "actualStart", "actualEnd"] as const) {
-    if (input[field] !== null && !validDate(input[field])) return "Укажите корректные даты в формате ГГГГ-ММ-ДД.";
+    if (input[field] !== null && !validRepairDate(input[field])) return "Укажите корректные даты в формате ГГГГ-ММ-ДД.";
   }
   if (input.plannedStart && input.plannedEnd && input.plannedEnd < input.plannedStart) {
     return "Плановое окончание не может быть раньше планового начала ремонта.";
@@ -41,7 +41,7 @@ export function validateRepairInput(input: RepairInput, today = repairBusinessDa
   }
   for (const field of [...repairCostFields, "readiness"] as const) {
     const value = input[field];
-    if (value !== null && (!Number.isFinite(value) || Math.abs(value * 100 - Math.round(value * 100)) > 0.01)) {
+    if (value !== null && (!Number.isFinite(value) || Number(value.toFixed(2)) !== value)) {
       return "Укажите конечные числовые значения с точностью не более двух знаков после запятой.";
     }
   }
