@@ -286,6 +286,151 @@ export interface RepairExpense {
   updatedBy: string;
 }
 
+export interface GrainCropInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  name: string;
+}
+
+export type GrainCrop = GrainCropInput & {
+  id: number;
+};
+
+export type GrainLocationInputKind = typeof GrainLocationInputKind[keyof typeof GrainLocationInputKind];
+
+
+export const GrainLocationInputKind = {
+  warehouse: 'warehouse',
+  yard: 'yard',
+  elevator: 'elevator',
+} as const;
+
+export type GrainLocationInputUnit = typeof GrainLocationInputUnit[keyof typeof GrainLocationInputUnit];
+
+
+export const GrainLocationInputUnit = {
+  АПК_Арыстан_Grain: 'АПК Арыстан Grain',
+  АФ_Веденовка: 'АФ Веденовка',
+} as const;
+
+export interface GrainLocationInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  name: string;
+  kind: GrainLocationInputKind;
+  unit: GrainLocationInputUnit;
+}
+
+export type GrainLocation = GrainLocationInput & {
+  id: number;
+};
+
+export type GrainMovementInputUnit = typeof GrainMovementInputUnit[keyof typeof GrainMovementInputUnit];
+
+
+export const GrainMovementInputUnit = {
+  АПК_Арыстан_Grain: 'АПК Арыстан Grain',
+  АФ_Веденовка: 'АФ Веденовка',
+} as const;
+
+export type GrainMovementInputOperation = typeof GrainMovementInputOperation[keyof typeof GrainMovementInputOperation];
+
+
+export const GrainMovementInputOperation = {
+  opening: 'opening',
+  receipt: 'receipt',
+  transfer: 'transfer',
+  sale: 'sale',
+} as const;
+
+export interface GrainMovementInput {
+  /**
+     * @minLength 16
+     * @maxLength 80
+     */
+  requestId: string;
+  unit: GrainMovementInputUnit;
+  operation: GrainMovementInputOperation;
+  /** @minimum 1 */
+  cropId: number;
+  occurredOn: string;
+  /**
+     * @minimum 0.001
+     * @maximum 1000000
+     */
+  quantityTons: number;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  fromLocationId: number | null;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  toLocationId: number | null;
+  /** @maxLength 200 */
+  fieldName: string;
+  /** @maxLength 200 */
+  counterparty: string;
+  /** @maxLength 3000 */
+  notes: string;
+}
+
+export type GrainMovement = GrainMovementInput & ({
+  id: number;
+  createdBy: string;
+  createdAt: string;
+  /** @nullable */
+  voidedAt: string | null;
+  voidedBy: string;
+  voidReason: string;
+});
+
+export interface GrainVoidInput {
+  /**
+     * @minLength 3
+     * @maxLength 500
+     */
+  reason: string;
+}
+
+export type GrainBalanceUnit = typeof GrainBalanceUnit[keyof typeof GrainBalanceUnit];
+
+
+export const GrainBalanceUnit = {
+  АПК_Арыстан_Grain: 'АПК Арыстан Grain',
+  АФ_Веденовка: 'АФ Веденовка',
+} as const;
+
+export interface GrainBalance {
+  cropId: number;
+  locationId: number;
+  unit: GrainBalanceUnit;
+  quantityTons: number;
+}
+
+export interface GrainSummary {
+  totalTons: number;
+  openingTons: number;
+  receivedTons: number;
+  soldTons: number;
+  transferredTons: number;
+}
+
+export interface GrainDashboard {
+  crops: GrainCrop[];
+  locations: GrainLocation[];
+  movements: GrainMovement[];
+  balances: GrainBalance[];
+  summary: GrainSummary;
+  asOfDate: string;
+}
+
 export interface HealthStatus {
   status: string;
 }

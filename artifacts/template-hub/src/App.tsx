@@ -68,6 +68,7 @@ import { shadcn } from "@clerk/themes";
 import { Route, Router as WouterRouter, Switch, useLocation } from "wouter";
 import { ErrorBoundary } from "@/components/error-boundary";
 import EngineeringWorkspace from "@/components/engineering/EngineeringWorkspace";
+import AgroWorkspace from "@/components/agro/AgroWorkspace";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import companyEmblem from "@assets/IMG_0731_1787404427367.jpeg";
@@ -378,8 +379,8 @@ function Shell({
   };
 
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground">
-      <aside className={cn("fixed inset-y-0 left-0 z-30 flex w-[256px] flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground transition-transform duration-300 md:translate-x-0", mobileOpen ? "translate-x-0" : "-translate-x-full")} data-testid="sidebar-navigation">
+    <div className="min-h-[100dvh] overflow-x-clip bg-background text-foreground">
+      <aside className={cn("fixed inset-y-0 left-0 z-30 w-[256px] flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground transition-transform duration-300 md:translate-x-0", mobileOpen ? "flex translate-x-0" : "hidden -translate-x-full md:flex")} data-testid="sidebar-navigation">
         <div className="mb-9 flex items-center gap-3 px-2"><BrandEmblem /><div><div className="font-display text-[15px] font-bold tracking-[-0.02em]">AGROLINK</div><div className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-sidebar-foreground/55">Единая база шаблонов</div></div></div>
         <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/35">Рабочее пространство</div>
         <nav className="grid gap-1" aria-label="Разделы рабочего пространства">
@@ -1037,7 +1038,7 @@ function Workspace({ role, actualRole, demoRole, request, section, onSectionChan
     {section === "cabinet" && <Cabinet role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />}
     {section === "templates" && (templateId ? <TemplateDetails id={templateId} role={role} onBack={() => setTemplateId(null)} /> : uploading ? <TemplateUpload onCancel={() => setUploading(false)} onSaved={(id) => { setUploading(false); setTemplateId(id); queryClient.invalidateQueries({ queryKey: getListTemplatesQueryKey() }); }} /> : <TemplateCatalog role={role} onOpen={openTemplate} onUpload={() => setUploading(true)} />)}
     {section === "archive" && <ArchivePage selectedCell={selectedArchiveCell} onSelectCell={setSelectedArchiveCell} />}
-    {section === "agro" && <AgroBlock onOpen={openTemplate} />}
+    {section === "agro" && <AgroWorkspace role={role}><AgroBlock onOpen={openTemplate} /></AgroWorkspace>}
     {section === "engineering" && <EngineeringWorkspace role={role}><EngineeringBlock role={role} onOpenTemplate={openTemplate} isDemoPreview={Boolean(demoRole)} /></EngineeringWorkspace>}
     {section === "economic" && <EconomicBlock role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />}
     {section === "legal" && <LegalBlock role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />}

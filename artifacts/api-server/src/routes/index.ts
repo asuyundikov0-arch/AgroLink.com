@@ -5,6 +5,7 @@ import reportsRouter from "./reports";
 import archivesRouter from "./archives";
 import roleApplicationsRouter from "./role-applications";
 import equipmentRepairsRouter from "./equipment-repairs";
+import grainRouter from "./grain";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(reportsRouter);
 router.use(archivesRouter);
 router.use(roleApplicationsRouter);
 router.use(equipmentRepairsRouter);
+router.use(grainRouter);
 
 export default router;

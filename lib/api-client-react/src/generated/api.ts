@@ -31,6 +31,14 @@ import type {
   FleetInput,
   FleetUpdate,
   GetMyRoleRequest200,
+  GrainCrop,
+  GrainCropInput,
+  GrainDashboard,
+  GrainLocation,
+  GrainLocationInput,
+  GrainMovement,
+  GrainMovementInput,
+  GrainVoidInput,
   HealthStatus,
   ListEngineeringRepairsParams,
   ListRepairExpensesParams,
@@ -78,6 +86,338 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetGrainDashboardUrl = () => {
+
+
+
+
+  return `/api/agro/grain`
+}
+
+export const getGrainDashboard = async ( options?: Parameters<typeof customFetch>[1]): Promise<GrainDashboard> => {
+
+  return customFetch<GrainDashboard>(getGetGrainDashboardUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGrainDashboardQueryKey = () => {
+    return [
+    `/api/agro/grain`
+    ] as const;
+    }
+
+
+export const getGetGrainDashboardQueryOptions = <TData = Awaited<ReturnType<typeof getGrainDashboard>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGrainDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGrainDashboardQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGrainDashboard>>> = ({ signal }) => getGrainDashboard({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGrainDashboard>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGrainDashboardQueryResult = NonNullable<Awaited<ReturnType<typeof getGrainDashboard>>>
+export type GetGrainDashboardQueryError = ErrorType<unknown>
+
+
+
+export function useGetGrainDashboard<TData = Awaited<ReturnType<typeof getGrainDashboard>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGrainDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGrainDashboardQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateGrainCropUrl = () => {
+
+
+
+
+  return `/api/agro/grain/crops`
+}
+
+export const createGrainCrop = async (grainCropInput: GrainCropInput, options?: Parameters<typeof customFetch>[1]): Promise<GrainCrop> => {
+
+  return customFetch<GrainCrop>(getCreateGrainCropUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(grainCropInput)
+  }
+);}
+
+
+
+
+
+export const getCreateGrainCropMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGrainCrop>>, TError,{data: BodyType<GrainCropInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createGrainCrop>>, TError,{data: BodyType<GrainCropInput>}, TContext> => {
+
+const mutationKey = ['createGrainCrop'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createGrainCrop>>, {data: BodyType<GrainCropInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createGrainCrop(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateGrainCropMutationResult = NonNullable<Awaited<ReturnType<typeof createGrainCrop>>>
+    export type CreateGrainCropMutationBody = BodyType<GrainCropInput>
+    export type CreateGrainCropMutationError = ErrorType<unknown>
+
+    export const useCreateGrainCrop = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGrainCrop>>, TError,{data: BodyType<GrainCropInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createGrainCrop>>,
+        TError,
+        {data: BodyType<GrainCropInput>},
+        TContext
+      > => {
+      return useMutation(getCreateGrainCropMutationOptions(options));
+    }
+
+export const getCreateGrainLocationUrl = () => {
+
+
+
+
+  return `/api/agro/grain/locations`
+}
+
+export const createGrainLocation = async (grainLocationInput: GrainLocationInput, options?: Parameters<typeof customFetch>[1]): Promise<GrainLocation> => {
+
+  return customFetch<GrainLocation>(getCreateGrainLocationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(grainLocationInput)
+  }
+);}
+
+
+
+
+
+export const getCreateGrainLocationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGrainLocation>>, TError,{data: BodyType<GrainLocationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createGrainLocation>>, TError,{data: BodyType<GrainLocationInput>}, TContext> => {
+
+const mutationKey = ['createGrainLocation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createGrainLocation>>, {data: BodyType<GrainLocationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createGrainLocation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateGrainLocationMutationResult = NonNullable<Awaited<ReturnType<typeof createGrainLocation>>>
+    export type CreateGrainLocationMutationBody = BodyType<GrainLocationInput>
+    export type CreateGrainLocationMutationError = ErrorType<unknown>
+
+    export const useCreateGrainLocation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGrainLocation>>, TError,{data: BodyType<GrainLocationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createGrainLocation>>,
+        TError,
+        {data: BodyType<GrainLocationInput>},
+        TContext
+      > => {
+      return useMutation(getCreateGrainLocationMutationOptions(options));
+    }
+
+export const getCreateGrainMovementUrl = () => {
+
+
+
+
+  return `/api/agro/grain/movements`
+}
+
+export const createGrainMovement = async (grainMovementInput: GrainMovementInput, options?: Parameters<typeof customFetch>[1]): Promise<GrainMovement> => {
+
+  return customFetch<GrainMovement>(getCreateGrainMovementUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(grainMovementInput)
+  }
+);}
+
+
+
+
+
+export const getCreateGrainMovementMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGrainMovement>>, TError,{data: BodyType<GrainMovementInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createGrainMovement>>, TError,{data: BodyType<GrainMovementInput>}, TContext> => {
+
+const mutationKey = ['createGrainMovement'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createGrainMovement>>, {data: BodyType<GrainMovementInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createGrainMovement(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateGrainMovementMutationResult = NonNullable<Awaited<ReturnType<typeof createGrainMovement>>>
+    export type CreateGrainMovementMutationBody = BodyType<GrainMovementInput>
+    export type CreateGrainMovementMutationError = ErrorType<void>
+
+    export const useCreateGrainMovement = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGrainMovement>>, TError,{data: BodyType<GrainMovementInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createGrainMovement>>,
+        TError,
+        {data: BodyType<GrainMovementInput>},
+        TContext
+      > => {
+      return useMutation(getCreateGrainMovementMutationOptions(options));
+    }
+
+export const getVoidGrainMovementUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/grain/movements/${id}/void`
+}
+
+export const voidGrainMovement = async (id: number,
+    grainVoidInput: GrainVoidInput, options?: Parameters<typeof customFetch>[1]): Promise<GrainMovement> => {
+
+  return customFetch<GrainMovement>(getVoidGrainMovementUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(grainVoidInput)
+  }
+);}
+
+
+
+
+
+export const getVoidGrainMovementMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof voidGrainMovement>>, TError,{id: number;data: BodyType<GrainVoidInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof voidGrainMovement>>, TError,{id: number;data: BodyType<GrainVoidInput>}, TContext> => {
+
+const mutationKey = ['voidGrainMovement'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof voidGrainMovement>>, {id: number;data: BodyType<GrainVoidInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  voidGrainMovement(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VoidGrainMovementMutationResult = NonNullable<Awaited<ReturnType<typeof voidGrainMovement>>>
+    export type VoidGrainMovementMutationBody = BodyType<GrainVoidInput>
+    export type VoidGrainMovementMutationError = ErrorType<void>
+
+    export const useVoidGrainMovement = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof voidGrainMovement>>, TError,{id: number;data: BodyType<GrainVoidInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof voidGrainMovement>>,
+        TError,
+        {id: number;data: BodyType<GrainVoidInput>},
+        TContext
+      > => {
+      return useMutation(getVoidGrainMovementMutationOptions(options));
+    }
 
 export const getListFleetEquipmentUrl = () => {
 

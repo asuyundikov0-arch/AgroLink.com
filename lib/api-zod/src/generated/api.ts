@@ -8,6 +8,241 @@
 import * as zod from 'zod';
 
 
+export const getGrainDashboardResponseCropsItemOneNameMax = 100;
+
+export const getGrainDashboardResponseLocationsItemOneNameMax = 100;
+
+export const getGrainDashboardResponseMovementsItemOneRequestIdMin = 16;
+export const getGrainDashboardResponseMovementsItemOneRequestIdMax = 80;
+
+
+export const getGrainDashboardResponseMovementsItemOneQuantityTonsMin = 0.001;
+export const getGrainDashboardResponseMovementsItemOneQuantityTonsMax = 1000000;
+
+
+
+export const getGrainDashboardResponseMovementsItemOneFieldNameMax = 200;
+
+export const getGrainDashboardResponseMovementsItemOneCounterpartyMax = 200;
+
+export const getGrainDashboardResponseMovementsItemOneNotesMax = 3000;
+
+
+
+export const GetGrainDashboardResponse = zod.object({
+  "crops": zod.array(zod.object({
+  "name": zod.string().min(1).max(getGrainDashboardResponseCropsItemOneNameMax)
+}).and(zod.object({
+  "id": zod.number()
+}))),
+  "locations": zod.array(zod.object({
+  "name": zod.string().min(1).max(getGrainDashboardResponseLocationsItemOneNameMax),
+  "kind": zod.enum(['warehouse', 'yard', 'elevator']),
+  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка'])
+}).and(zod.object({
+  "id": zod.number()
+}))),
+  "movements": zod.array(zod.object({
+  "requestId": zod.string().min(getGrainDashboardResponseMovementsItemOneRequestIdMin).max(getGrainDashboardResponseMovementsItemOneRequestIdMax),
+  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
+  "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale']),
+  "cropId": zod.number().min(1),
+  "occurredOn": zod.string(),
+  "quantityTons": zod.number().min(getGrainDashboardResponseMovementsItemOneQuantityTonsMin).max(getGrainDashboardResponseMovementsItemOneQuantityTonsMax),
+  "fromLocationId": zod.number().min(1).nullable(),
+  "toLocationId": zod.number().min(1).nullable(),
+  "fieldName": zod.string().max(getGrainDashboardResponseMovementsItemOneFieldNameMax),
+  "counterparty": zod.string().max(getGrainDashboardResponseMovementsItemOneCounterpartyMax),
+  "notes": zod.string().max(getGrainDashboardResponseMovementsItemOneNotesMax)
+}).and(zod.object({
+  "id": zod.number(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string(),
+  "voidedAt": zod.string().nullable(),
+  "voidedBy": zod.string(),
+  "voidReason": zod.string()
+}))),
+  "balances": zod.array(zod.object({
+  "cropId": zod.number(),
+  "locationId": zod.number(),
+  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
+  "quantityTons": zod.number()
+})),
+  "summary": zod.object({
+  "totalTons": zod.number(),
+  "openingTons": zod.number(),
+  "receivedTons": zod.number(),
+  "soldTons": zod.number(),
+  "transferredTons": zod.number()
+}),
+  "asOfDate": zod.string()
+})
+
+
+export const createGrainCropBodyNameMax = 100;
+
+
+
+export const CreateGrainCropBody = zod.object({
+  "name": zod.string().min(1).max(createGrainCropBodyNameMax)
+})
+
+export const createGrainCropResponseOneNameMax = 100;
+
+
+
+export const CreateGrainCropResponse = zod.object({
+  "name": zod.string().min(1).max(createGrainCropResponseOneNameMax)
+}).and(zod.object({
+  "id": zod.number()
+}))
+
+
+export const createGrainLocationBodyNameMax = 100;
+
+
+
+export const CreateGrainLocationBody = zod.object({
+  "name": zod.string().min(1).max(createGrainLocationBodyNameMax),
+  "kind": zod.enum(['warehouse', 'yard', 'elevator']),
+  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка'])
+})
+
+export const createGrainLocationResponseOneNameMax = 100;
+
+
+
+export const CreateGrainLocationResponse = zod.object({
+  "name": zod.string().min(1).max(createGrainLocationResponseOneNameMax),
+  "kind": zod.enum(['warehouse', 'yard', 'elevator']),
+  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка'])
+}).and(zod.object({
+  "id": zod.number()
+}))
+
+
+export const createGrainMovementBodyRequestIdMin = 16;
+export const createGrainMovementBodyRequestIdMax = 80;
+
+
+export const createGrainMovementBodyQuantityTonsMin = 0.001;
+export const createGrainMovementBodyQuantityTonsMax = 1000000;
+
+
+
+export const createGrainMovementBodyFieldNameMax = 200;
+
+export const createGrainMovementBodyCounterpartyMax = 200;
+
+export const createGrainMovementBodyNotesMax = 3000;
+
+
+
+export const CreateGrainMovementBody = zod.object({
+  "requestId": zod.string().min(createGrainMovementBodyRequestIdMin).max(createGrainMovementBodyRequestIdMax),
+  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
+  "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale']),
+  "cropId": zod.number().min(1),
+  "occurredOn": zod.string(),
+  "quantityTons": zod.number().min(createGrainMovementBodyQuantityTonsMin).max(createGrainMovementBodyQuantityTonsMax),
+  "fromLocationId": zod.number().min(1).nullable(),
+  "toLocationId": zod.number().min(1).nullable(),
+  "fieldName": zod.string().max(createGrainMovementBodyFieldNameMax),
+  "counterparty": zod.string().max(createGrainMovementBodyCounterpartyMax),
+  "notes": zod.string().max(createGrainMovementBodyNotesMax)
+})
+
+export const createGrainMovementResponseOneRequestIdMin = 16;
+export const createGrainMovementResponseOneRequestIdMax = 80;
+
+
+export const createGrainMovementResponseOneQuantityTonsMin = 0.001;
+export const createGrainMovementResponseOneQuantityTonsMax = 1000000;
+
+
+
+export const createGrainMovementResponseOneFieldNameMax = 200;
+
+export const createGrainMovementResponseOneCounterpartyMax = 200;
+
+export const createGrainMovementResponseOneNotesMax = 3000;
+
+
+
+export const CreateGrainMovementResponse = zod.object({
+  "requestId": zod.string().min(createGrainMovementResponseOneRequestIdMin).max(createGrainMovementResponseOneRequestIdMax),
+  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
+  "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale']),
+  "cropId": zod.number().min(1),
+  "occurredOn": zod.string(),
+  "quantityTons": zod.number().min(createGrainMovementResponseOneQuantityTonsMin).max(createGrainMovementResponseOneQuantityTonsMax),
+  "fromLocationId": zod.number().min(1).nullable(),
+  "toLocationId": zod.number().min(1).nullable(),
+  "fieldName": zod.string().max(createGrainMovementResponseOneFieldNameMax),
+  "counterparty": zod.string().max(createGrainMovementResponseOneCounterpartyMax),
+  "notes": zod.string().max(createGrainMovementResponseOneNotesMax)
+}).and(zod.object({
+  "id": zod.number(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string(),
+  "voidedAt": zod.string().nullable(),
+  "voidedBy": zod.string(),
+  "voidReason": zod.string()
+}))
+
+
+export const VoidGrainMovementParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const voidGrainMovementBodyReasonMin = 3;
+export const voidGrainMovementBodyReasonMax = 500;
+
+
+
+export const VoidGrainMovementBody = zod.object({
+  "reason": zod.string().min(voidGrainMovementBodyReasonMin).max(voidGrainMovementBodyReasonMax)
+})
+
+export const voidGrainMovementResponseOneRequestIdMin = 16;
+export const voidGrainMovementResponseOneRequestIdMax = 80;
+
+
+export const voidGrainMovementResponseOneQuantityTonsMin = 0.001;
+export const voidGrainMovementResponseOneQuantityTonsMax = 1000000;
+
+
+
+export const voidGrainMovementResponseOneFieldNameMax = 200;
+
+export const voidGrainMovementResponseOneCounterpartyMax = 200;
+
+export const voidGrainMovementResponseOneNotesMax = 3000;
+
+
+
+export const VoidGrainMovementResponse = zod.object({
+  "requestId": zod.string().min(voidGrainMovementResponseOneRequestIdMin).max(voidGrainMovementResponseOneRequestIdMax),
+  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
+  "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale']),
+  "cropId": zod.number().min(1),
+  "occurredOn": zod.string(),
+  "quantityTons": zod.number().min(voidGrainMovementResponseOneQuantityTonsMin).max(voidGrainMovementResponseOneQuantityTonsMax),
+  "fromLocationId": zod.number().min(1).nullable(),
+  "toLocationId": zod.number().min(1).nullable(),
+  "fieldName": zod.string().max(voidGrainMovementResponseOneFieldNameMax),
+  "counterparty": zod.string().max(voidGrainMovementResponseOneCounterpartyMax),
+  "notes": zod.string().max(voidGrainMovementResponseOneNotesMax)
+}).and(zod.object({
+  "id": zod.number(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string(),
+  "voidedAt": zod.string().nullable(),
+  "voidedBy": zod.string(),
+  "voidReason": zod.string()
+}))
+
+
 export const ListFleetEquipmentResponseItem = zod.object({
   "id": zod.number(),
   "kind": zod.string(),

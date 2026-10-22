@@ -25,6 +25,9 @@ export * from "./role-applications";
 export * from "./equipment-repairs";
 export * from "./fleet-equipment";
 export * from "./repair-expenses";
+export * from "./grain-crops";
+export * from "./grain-locations";
+export * from "./grain-movements";
 
 export const templatesTable = pgTable("templates", {
   id: serial("id").primaryKey(),

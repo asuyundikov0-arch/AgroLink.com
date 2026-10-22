@@ -19,6 +19,91 @@ tags:
   - name: uploads
     description: Protected document upload workflow
 paths:
+  /agro/grain:
+    get:
+      operationId: getGrainDashboard
+      tags: [grain]
+      responses:
+        "200":
+          description: Grain ledger, directories and current inventory, tonnes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GrainDashboard"
+  /agro/grain/crops:
+    post:
+      operationId: createGrainCrop
+      tags: [grain]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GrainCropInput"
+      responses:
+        "201":
+          description: Created product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GrainCrop"
+  /agro/grain/locations:
+    post:
+      operationId: createGrainLocation
+      tags: [grain]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GrainLocationInput"
+      responses:
+        "201":
+          description: Created storage location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GrainLocation"
+  /agro/grain/movements:
+    post:
+      operationId: createGrainMovement
+      tags: [grain]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GrainMovementInput"
+      responses:
+        "201":
+          description: Posted movement or safely replayed submission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GrainMovement"
+        "409":
+          description: Insufficient stock or reused request key
+  /agro/grain/movements/{id}/void:
+    post:
+      operationId: voidGrainMovement
+      tags: [grain]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GrainVoidInput"
+      responses:
+        "200":
+          description: Cancelled movement retained in audit ledger, general director only
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GrainMovement"
+        "409":
+          description: Cancellation would cause a negative stock balance
   /engineering/fleet:
     get:
       operationId: listFleetEquipment
@@ -850,6 +935,99 @@ components:
         source: { type: string, enum: [manual, legacy] }
         updatedAt: { type: string }
         updatedBy: { type: string }
+    GrainCropInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+    GrainCrop:
+      allOf:
+        - $ref: "#/components/schemas/GrainCropInput"
+        - type: object
+          required: [id]
+          properties:
+            id: { type: number }
+    GrainLocationInput:
+      type: object
+      required: [name, kind, unit]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        kind: { type: string, enum: [warehouse, yard, elevator] }
+        unit: { type: string, enum: ["АПК Арыстан Grain", "АФ Веденовка"] }
+    GrainLocation:
+      allOf:
+        - $ref: "#/components/schemas/GrainLocationInput"
+        - type: object
+          required: [id]
+          properties:
+            id: { type: number }
+    GrainMovementInput:
+      type: object
+      required: [requestId, unit, operation, cropId, occurredOn, quantityTons, fromLocationId, toLocationId, fieldName, counterparty, notes]
+      properties:
+        requestId: { type: string, minLength: 16, maxLength: 80 }
+        unit: { type: string, enum: ["АПК Арыстан Grain", "АФ Веденовка"] }
+        operation: { type: string, enum: [opening, receipt, transfer, sale] }
+        cropId: { type: number, minimum: 1 }
+        occurredOn: { type: string }
+        quantityTons: { type: number, minimum: 0.001, maximum: 1000000 }
+        fromLocationId: { type: ["number", "null"], minimum: 1 }
+        toLocationId: { type: ["number", "null"], minimum: 1 }
+        fieldName: { type: string, maxLength: 200 }
+        counterparty: { type: string, maxLength: 200 }
+        notes: { type: string, maxLength: 3000 }
+    GrainMovement:
+      allOf:
+        - $ref: "#/components/schemas/GrainMovementInput"
+        - type: object
+          required: [id, createdBy, createdAt, voidedAt, voidedBy, voidReason]
+          properties:
+            id: { type: number }
+            createdBy: { type: string }
+            createdAt: { type: string }
+            voidedAt: { type: ["string", "null"] }
+            voidedBy: { type: string }
+            voidReason: { type: string }
+    GrainVoidInput:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 3, maxLength: 500 }
+    GrainBalance:
+      type: object
+      required: [cropId, locationId, unit, quantityTons]
+      properties:
+        cropId: { type: number }
+        locationId: { type: number }
+        unit: { type: string, enum: ["АПК Арыстан Grain", "АФ Веденовка"] }
+        quantityTons: { type: number }
+    GrainSummary:
+      type: object
+      required: [totalTons, openingTons, receivedTons, soldTons, transferredTons]
+      properties:
+        totalTons: { type: number }
+        openingTons: { type: number }
+        receivedTons: { type: number }
+        soldTons: { type: number }
+        transferredTons: { type: number }
+    GrainDashboard:
+      type: object
+      required: [crops, locations, movements, balances, summary, asOfDate]
+      properties:
+        crops:
+          type: array
+          items: { $ref: "#/components/schemas/GrainCrop" }
+        locations:
+          type: array
+          items: { $ref: "#/components/schemas/GrainLocation" }
+        movements:
+          type: array
+          items: { $ref: "#/components/schemas/GrainMovement" }
+        balances:
+          type: array
+          items: { $ref: "#/components/schemas/GrainBalance" }
+        summary: { $ref: "#/components/schemas/GrainSummary" }
+        asOfDate: { type: string }
     HealthStatus:
       type: object
       properties:

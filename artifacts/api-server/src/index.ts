@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { migrateLegacyRepairs } from "./lib/repair-ledger";
+import { ensureGrainDefaults } from "./lib/grain-defaults";
 
 const rawPort = process.env["PORT"];
 
@@ -18,6 +19,7 @@ if (Number.isNaN(port) || port <= 0) {
 
 async function start() {
 await migrateLegacyRepairs();
+await ensureGrainDefaults();
 app.listen(port, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
