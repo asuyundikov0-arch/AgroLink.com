@@ -305,6 +305,8 @@ export const GrainLocationInputKind = {
   warehouse: 'warehouse',
   yard: 'yard',
   elevator: 'elevator',
+  dryer: 'dryer',
+  cleaner: 'cleaner',
 } as const;
 
 export type GrainLocationInputUnit = typeof GrainLocationInputUnit[keyof typeof GrainLocationInputUnit];
@@ -345,6 +347,16 @@ export const GrainMovementInputOperation = {
   receipt: 'receipt',
   transfer: 'transfer',
   sale: 'sale',
+  drying: 'drying',
+  cleaning: 'cleaning',
+} as const;
+
+export type GrainMovementInputStockKind = typeof GrainMovementInputStockKind[keyof typeof GrainMovementInputStockKind];
+
+
+export const GrainMovementInputStockKind = {
+  grain: 'grain',
+  grain_waste: 'grain_waste',
 } as const;
 
 export interface GrainMovementInput {
@@ -355,6 +367,27 @@ export interface GrainMovementInput {
   requestId: string;
   unit: GrainMovementInputUnit;
   operation: GrainMovementInputOperation;
+  stockKind?: GrainMovementInputStockKind;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  outputTons?: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  deadWasteTons?: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  grainWasteTons?: number;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  wasteToLocationId?: number | null;
   /** @minimum 1 */
   cropId: number;
   occurredOn: string;
@@ -389,6 +422,7 @@ export type GrainMovement = GrainMovementInput & ({
   voidedAt: string | null;
   voidedBy: string;
   voidReason: string;
+  moistureLossTons: number;
 });
 
 export interface GrainVoidInput {
@@ -407,11 +441,20 @@ export const GrainBalanceUnit = {
   АФ_Веденовка: 'АФ Веденовка',
 } as const;
 
+export type GrainBalanceStockKind = typeof GrainBalanceStockKind[keyof typeof GrainBalanceStockKind];
+
+
+export const GrainBalanceStockKind = {
+  grain: 'grain',
+  grain_waste: 'grain_waste',
+} as const;
+
 export interface GrainBalance {
   cropId: number;
   locationId: number;
   unit: GrainBalanceUnit;
   quantityTons: number;
+  stockKind: GrainBalanceStockKind;
 }
 
 export interface GrainSummary {
@@ -420,6 +463,10 @@ export interface GrainSummary {
   receivedTons: number;
   soldTons: number;
   transferredTons: number;
+  grainWasteTons: number;
+  deadWasteTons: number;
+  moistureLossTons: number;
+  processedTons: number;
 }
 
 export interface GrainDashboard {

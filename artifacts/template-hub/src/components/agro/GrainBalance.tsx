@@ -1,13 +1,14 @@
 import { type ReactNode, useMemo, useState } from "react";
-import { ArrowLeftRight, Plus, RefreshCw, ShoppingCart, Sprout, Warehouse } from "lucide-react";
+import { ArrowLeftRight, Droplets, Flame, Plus, Trash2, RefreshCw, ShoppingCart, Sprout, Warehouse } from "lucide-react";
 import { getGetGrainDashboardQueryKey, useGetGrainDashboard } from "@workspace/api-client-react";
 import Directory from "./grain/Directory";
 import Journal from "./grain/Journal";
 import MovementForm from "./grain/MovementForm";
+import ProcessingPanel from "./grain/ProcessingPanel";
 import StockOverview, { type Cell } from "./grain/StockOverview";
-import { POLL_MS, UNITS, type Unit, canManageDir, canRead, canRecord, cx, dateFmt, errorInfo, kg, tonsKg } from "./grain/shared";
+import { POLL_MS, UNITS, type Unit, canManageDir, canRead, canRecord, cx, dateFmt, errorInfo, isProcessor, kg, n0, type StockKind, tonsKg } from "./grain/shared";
 
-type View = "stock" | "journal" | "directory";
+type View = "stock" | "processing" | "journal" | "directory";
 
 export default function GrainBalance({ role }: { role: string }) {
   const allowed = canRead(role);
@@ -22,15 +23,22 @@ export default function GrainBalance({ role }: { role: string }) {
   const okU = (u: string) => unit === "all" || u === unit;
   const okC = (c: number) => cropF === "all" || String(c) === cropF;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const cells: Cell[] = useMemo(() => (d?.balances ?? []).filter((b) => okU(b.unit) && okC(b.cropId)).map((b) => ({ cropId: b.cropId, locationId: b.locationId, kg: kg(b.quantityTons) })), [d, unit, cropF]);
+  const fBal = useMemo(() => (d?.balances ?? []).filter((b) => okU(b.unit) && okC(b.cropId)), [d, unit, cropF]);
+  const cells: Cell[] = useMemo(() => fBal.filter((b) => (b.stockKind ?? "grain") === "grain").map((b) => ({ cropId: b.cropId, locationId: b.locationId, kg: kg(b.quantityTons) })), [fBal]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const movements = useMemo(() => (d?.movements ?? []).filter((m) => okU(m.unit) && okC(m.cropId)), [d, unit, cropF]);
   const kpi = useMemo(() => {
     const live = movements.filter((m) => !m.voidedAt);
     const sum = (op: string) => live.filter((m) => m.operation === op).reduce((s, m) => s + kg(m.quantityTons), 0);
-    return { total: cells.reduce((s, c) => s + c.kg, 0), opening: sum("opening"), receipt: sum("receipt"), sale: sum("sale"), transfer: sum("transfer") };
-  }, [movements, cells]);
-  const stock = (u: string, c: number, l: number) => (d?.balances ?? []).filter((b) => b.unit === u && b.cropId === c && b.locationId === l).reduce((s, b) => s + kg(b.quantityTons), 0);
+    const grainOnly = (op: string) => live.filter((m) => m.operation === op && (m.stockKind ?? "grain") === "grain").reduce((s, m) => s + kg(m.quantityTons), 0);
+    const proc = live.filter((m) => m.operation === "drying" || m.operation === "cleaning");
+    const kindOf = (id: number) => locations.find((l) => l.id === id)?.kind ?? "warehouse";
+    return { total: cells.reduce((s, c) => s + c.kg, 0), opening: grainOnly("opening"), receipt: sum("receipt"), sale: grainOnly("sale"), transfer: grainOnly("transfer"),
+      inProc: cells.filter((c) => isProcessor(kindOf(c.locationId))).reduce((s, c) => s + c.kg, 0),
+      waste: fBal.filter((b) => b.stockKind === "grain_waste").reduce((s, b) => s + kg(b.quantityTons), 0),
+      dead: proc.reduce((s, m) => s + kg(n0(m.deadWasteTons)), 0), moist: proc.reduce((s, m) => s + kg(n0(m.moistureLossTons)), 0) };
+  }, [movements, cells, fBal, locations]);
+  const stock = (u: string, c: number, l: number, k: StockKind) => (d?.balances ?? []).filter((b) => b.unit === u && b.cropId === c && b.locationId === l && (b.stockKind ?? "grain") === k).reduce((s, b) => s + kg(b.quantityTons), 0);
 
   if (!allowed) return (
     <div className="surface-card empty-state" data-testid="status-grain-forbidden"><h3 className="text-sm font-bold">Нет доступа к учёту зерна</h3>
@@ -61,19 +69,24 @@ export default function GrainBalance({ role }: { role: string }) {
       ) : (
         <>
           <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Сводка">
-            <Kpi icon={<Warehouse size={16} />} label="Остаток всего" value={tonsKg(kpi.total)} sub="включая элеватор (своё)" testId="text-kpi-total" />
+            <Kpi icon={<Warehouse size={16} />} label="Остаток всего" value={tonsKg(kpi.total)} sub={`зерно, вкл. элеватор · в обработке ${tonsKg(kpi.inProc)}`} testId="text-kpi-total" />
             <Kpi icon={<Sprout size={16} />} label="Приход с полей" value={tonsKg(kpi.receipt)} sub={`нач. остаток ${tonsKg(kpi.opening)}`} testId="text-kpi-receipt" />
             <Kpi icon={<ArrowLeftRight size={16} />} label="Перемещено" value={tonsKg(kpi.transfer)} sub="не меняет общий остаток" testId="text-kpi-transfer" />
             <Kpi icon={<ShoppingCart size={16} />} label="Продано" value={tonsKg(kpi.sale)} sub="уменьшает остаток" testId="text-kpi-sale" />
+            <Kpi icon={<Flame size={16} />} label="В обработке" value={tonsKg(kpi.inProc)} sub="на сушилках и очистках" testId="text-kpi-inprocessing" />
+            <Kpi icon={<Sprout size={16} />} label="Зерновые отходы" value={tonsKg(kpi.waste)} sub="отдельно, не в остатке зерна" testId="text-kpi-grain-waste" />
+            <Kpi icon={<Trash2 size={16} />} label="Мёртвый сор" value={tonsKg(kpi.dead)} sub="списано нарастающим итогом" testId="text-kpi-dead-waste" />
+            <Kpi icon={<Droplets size={16} />} label="Усушка" value={tonsKg(kpi.moist)} sub="влага нарастающим итогом" testId="text-kpi-moisture" />
           </section>
           {!canRecord(role) && <p className="text-[11px] text-muted-foreground" data-testid="text-readonly">Режим просмотра: ваша роль не вносит операции.</p>}
           <div className="inline-flex flex-wrap rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Раздел">
-            {([["stock", "Остатки"], ["journal", "Журнал"], ["directory", "Справочники"]] as const).map(([k, l]) => (
+            {([["stock", "Остатки"], ["processing", "Обработка и отходы"], ["journal", "Журнал"], ["directory", "Справочники"]] as const).map(([k, l]) => (
               <button key={k} type="button" role="tab" aria-selected={view === k} onClick={() => setView(k)} data-testid={`tab-grain-${k}`}
                 className={cx("rounded-md px-3 py-1.5 text-[11px] font-bold", view === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>{l}</button>
             ))}
           </div>
           {view === "stock" && <StockOverview cells={cells} crops={crops} locations={locations} />}
+          {view === "processing" && <ProcessingPanel balances={fBal} movements={movements} crops={crops} locations={locations} />}
           {view === "journal" && <Journal role={role} movements={movements} crops={crops} locations={locations} />}
           {view === "directory" && <Directory crops={crops} locations={locations} canEdit={canManageDir(role)} />}
           {formOpen && <MovementForm crops={crops} locations={locations} stock={stock} asOfDate={d.asOfDate.slice(0, 10)} defaultUnit={unit === "all" ? UNITS[0] : unit} onClose={() => setFormOpen(false)} />}

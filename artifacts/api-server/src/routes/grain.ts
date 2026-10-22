@@ -2,11 +2,12 @@ import { Router, type IRouter, type RequestHandler } from "express";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import {
   CreateGrainCropBody, CreateGrainLocationBody, CreateGrainMovementBody, VoidGrainMovementBody,
-  GetGrainDashboardResponse, type GrainMovementInput,
+  CreateGrainMovementResponse, GetGrainDashboardResponse, type GrainMovementInput,
 } from "@workspace/api-zod";
 import { activityTable, db, grainCropsTable, grainLocationsTable, grainMovementsTable } from "@workspace/db";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { calculateGrainLedger, grainBusinessDate, grainNameKey, toGrainKg, validGrainDate } from "../lib/grain-ledger";
+import { processingWeights } from "../lib/grain-processing";
 
 const router: IRouter = Router();
 const writers = ["agronomist", "chief_agronomist", "farm_director", "general_director"];
@@ -24,8 +25,12 @@ const validId = (id: unknown) => Number.isSafeInteger(Number(id)) && Number(id) 
 const cropJson = ({ id, name }: typeof grainCropsTable.$inferSelect) => ({ id, name });
 const locationJson = ({ id, name, unit, kind }: typeof grainLocationsTable.$inferSelect) => ({ id, name, unit, kind });
 const movementJson = (row: typeof grainMovementsTable.$inferSelect) => {
-  const { quantityKg, createdByUserId: _user, ...rest } = row;
-  return { ...rest, quantityTons: quantityKg / 1000, createdAt: row.createdAt.toISOString(), voidedAt: row.voidedAt?.toISOString() ?? null };
+  const { quantityKg, outputKg, deadWasteKg, grainWasteKg, moistureLossKg, createdByUserId: _user, ...rest } = row;
+  return CreateGrainMovementResponse.parse({
+    ...rest, quantityTons: quantityKg / 1000, outputTons: outputKg / 1000, deadWasteTons: deadWasteKg / 1000,
+    grainWasteTons: grainWasteKg / 1000, moistureLossTons: moistureLossKg / 1000,
+    createdAt: row.createdAt.toISOString(), voidedAt: row.voidedAt?.toISOString() ?? null,
+  });
 };
 const safe = (handler: RequestHandler): RequestHandler => async (req, res, next) => {
   try { await handler(req, res, next); }
@@ -52,6 +57,8 @@ router.get("/agro/grain", safe(async (_req, res) => {
         totalTons: stock.summary.totalKg / 1000, openingTons: stock.summary.openingKg / 1000,
         receivedTons: stock.summary.receivedKg / 1000, soldTons: stock.summary.soldKg / 1000,
         transferredTons: stock.summary.transferredKg / 1000,
+        grainWasteTons: stock.summary.grainWasteKg / 1000, deadWasteTons: stock.summary.deadWasteKg / 1000,
+        moistureLossTons: stock.summary.moistureLossKg / 1000, processedTons: stock.summary.processedKg / 1000,
       },
       asOfDate: grainBusinessDate(),
     };
@@ -86,7 +93,7 @@ router.post("/agro/grain/locations", management, safe(async (req, res) => {
 
 function validateInput(input: GrainMovementInput): string | null {
   if (!/^[a-zA-Z0-9_-]{16,80}$/.test(input.requestId)) return "Некорректный идентификатор операции. Откройте новую форму.";
-  if (!validId(input.cropId) || (input.fromLocationId !== null && !validId(input.fromLocationId)) || (input.toLocationId !== null && !validId(input.toLocationId))) return "Выберите продукцию и корректные места хранения.";
+  if (!validId(input.cropId) || [input.fromLocationId, input.toLocationId, input.wasteToLocationId].some((id) => id != null && !validId(id))) return "Выберите продукцию и корректные места хранения.";
   if (toGrainKg(input.quantityTons) === null) return "Укажите положительный вес в тоннах с точностью до 0,001 т, не более 1 000 000 т за операцию.";
   if (!validGrainDate(input.occurredOn) || input.occurredOn > grainBusinessDate()) return "Укажите корректную дату, не позднее сегодняшней.";
   if (input.operation === "opening" || input.operation === "receipt") {
@@ -101,8 +108,13 @@ router.post("/agro/grain/movements", write, safe(async (req, res) => {
   const parsed = CreateGrainMovementBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Проверьте обязательные поля операции и вес." }); return; }
   const input = parsed.data;
+  if ((input.operation === "drying" || input.operation === "cleaning") && typeof req.body.outputTons !== "number") {
+    res.status(400).json({ error: "Для переработки укажите фактический выход зерна; 0 допустим только при полной потере." }); return;
+  }
   const error = validateInput(input);
   if (error) { res.status(400).json({ error }); return; }
+  const weights = processingWeights(input);
+  if (weights.error) { res.status(400).json({ error: weights.error }); return; }
   const access = res.locals.access as RoleAccess;
   const result = await db.transaction(async (tx) => {
     // One lock serializes balance-sensitive writes including backdated entries/cancellations.
@@ -111,6 +123,9 @@ router.post("/agro/grain/movements", write, safe(async (req, res) => {
     const values = {
       requestId: input.requestId, unit: input.unit, operation: input.operation, cropId: input.cropId,
       occurredOn: input.occurredOn, quantityKg: toGrainKg(input.quantityTons)!,
+      stockKind: input.stockKind ?? "grain", outputKg: weights.outputKg, deadWasteKg: weights.deadWasteKg,
+      grainWasteKg: weights.grainWasteKg, moistureLossKg: weights.moistureLossKg,
+      wasteToLocationId: input.wasteToLocationId ?? null,
       fromLocationId: input.fromLocationId, toLocationId: input.toLocationId,
       fieldName: input.fieldName.trim(), counterparty: input.counterparty.trim(), notes: input.notes.trim(),
     };
@@ -121,14 +136,25 @@ router.post("/agro/grain/movements", write, safe(async (req, res) => {
     const [crop] = await tx.select().from(grainCropsTable).where(eq(grainCropsTable.id, input.cropId));
     if (!crop) return { status: 400, error: "Продукция не найдена в справочнике." };
     const locations = await tx.select().from(grainLocationsTable).where(eq(grainLocationsTable.unit, input.unit));
-    for (const id of [input.fromLocationId, input.toLocationId]) {
+    for (const id of [input.fromLocationId, input.toLocationId, input.wasteToLocationId ?? null]) {
       if (id !== null && !locations.some((location) => location.id === id)) return { status: 400, error: "Места хранения должны относиться к выбранному хозяйству." };
+    }
+    const source = locations.find((place) => place.id === input.fromLocationId);
+    const target = locations.find((place) => place.id === input.toLocationId);
+    const wasteTarget = locations.find((place) => place.id === input.wasteToLocationId);
+    const isProcessor = (place: typeof source) => place?.kind === "dryer" || place?.kind === "cleaner";
+    if (input.operation === "drying" || input.operation === "cleaning") {
+      if (source?.kind !== (input.operation === "drying" ? "dryer" : "cleaner") || isProcessor(target) || isProcessor(wasteTarget)) {
+        return { status: 400, error: "Выберите соответствующую сушилку или очистку, а для готового зерна и зерновых отходов — склад, площадку или элеватор." };
+      }
+    } else if (values.stockKind === "grain_waste" && (isProcessor(source) || isProcessor(target))) {
+      return { status: 400, error: "Зерновые отходы размещаются на складе, площадке или элеваторе, не в установке переработки." };
     }
     const rows = await tx.select().from(grainMovementsTable).where(and(eq(grainMovementsTable.unit, input.unit), eq(grainMovementsTable.cropId, input.cropId)));
     const stock = calculateGrainLedger([...rows, { ...values, id: Number.MAX_SAFE_INTEGER, voidedAt: null }]);
     if (stock.issue) {
       const location = locations.find((place) => place.id === stock.issue!.locationId);
-      return { status: 409, error: `Недостаточно зерна: ${location?.name ?? "место хранения"}, ${stock.issue.occurredOn}. Не хватает ${(stock.issue.shortageKg / 1000).toLocaleString("ru-RU")} т. Проверьте также даты предыдущих операций.` };
+      return { status: 409, error: `Недостаточно ${stock.issue.stockKind === "grain_waste" ? "зерновых отходов" : "зерна"}: ${location?.name ?? "место хранения"}, ${stock.issue.occurredOn}. Не хватает ${(stock.issue.shortageKg / 1000).toLocaleString("ru-RU")} т. Проверьте также даты предыдущих операций.` };
     }
     const [created] = await tx.insert(grainMovementsTable).values({
       ...values, createdBy: actor(access), createdByUserId: access.userId,

@@ -41,14 +41,14 @@ export default function StockOverview({ cells, crops, locations }: { cells: Cell
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div className="mt-3 grid grid-cols-3 gap-2">
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
           {byKind.map(({ k, kg }) => (
             <div key={k} className="rounded-lg bg-muted/60 p-2"><p className="truncate text-[10px] font-semibold text-muted-foreground">{KIND_LABEL[k]}</p><p className="font-mono text-xs font-bold" data-testid={`text-kind-${k}`}>{tonsKg(kg)}</p></div>
           ))}
         </div>
       </div>
       <div className="surface-card min-w-0 overflow-x-auto p-4">
-        <p className="eyebrow">Остатки: культура × место</p>
+        <p className="eyebrow">Остатки зерна: культура × место</p>
         <table className="mt-3 w-full text-xs" data-testid="table-grain-stock">
           <thead><tr className="text-left text-[10px] uppercase text-muted-foreground"><th className="py-1.5 pr-2">Место</th>{cropIds.map((c) => <th key={c.id} className="px-1 text-right">{c.name}</th>)}<th className="pl-2 text-right">Итого</th></tr></thead>
           <tbody>

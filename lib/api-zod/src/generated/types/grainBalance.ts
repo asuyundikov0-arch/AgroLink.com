@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { GrainBalanceStockKind } from './grainBalanceStockKind';
 import type { GrainBalanceUnit } from './grainBalanceUnit';
 
 export interface GrainBalance {
@@ -12,4 +13,5 @@ export interface GrainBalance {
   locationId: number;
   unit: GrainBalanceUnit;
   quantityTons: number;
+  stockKind: GrainBalanceStockKind;
 }

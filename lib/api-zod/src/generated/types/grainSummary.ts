@@ -12,4 +12,8 @@ export interface GrainSummary {
   receivedTons: number;
   soldTons: number;
   transferredTons: number;
+  grainWasteTons: number;
+  deadWasteTons: number;
+  moistureLossTons: number;
+  processedTons: number;
 }

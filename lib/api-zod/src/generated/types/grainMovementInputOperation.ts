@@ -14,4 +14,6 @@ export const GrainMovementInputOperation = {
   receipt: 'receipt',
   transfer: 'transfer',
   sale: 'sale',
+  drying: 'drying',
+  cleaning: 'cleaning',
 } as const;

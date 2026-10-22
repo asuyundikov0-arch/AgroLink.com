@@ -13,4 +13,6 @@ export const GrainLocationInputKind = {
   warehouse: 'warehouse',
   yard: 'yard',
   elevator: 'elevator',
+  dryer: 'dryer',
+  cleaner: 'cleaner',
 } as const;

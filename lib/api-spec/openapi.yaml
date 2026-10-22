@@ -952,7 +952,7 @@ components:
       required: [name, kind, unit]
       properties:
         name: { type: string, minLength: 1, maxLength: 100 }
-        kind: { type: string, enum: [warehouse, yard, elevator] }
+        kind: { type: string, enum: [warehouse, yard, elevator, dryer, cleaner] }
         unit: { type: string, enum: ["АПК Арыстан Grain", "АФ Веденовка"] }
     GrainLocation:
       allOf:
@@ -967,7 +967,12 @@ components:
       properties:
         requestId: { type: string, minLength: 16, maxLength: 80 }
         unit: { type: string, enum: ["АПК Арыстан Grain", "АФ Веденовка"] }
-        operation: { type: string, enum: [opening, receipt, transfer, sale] }
+        operation: { type: string, enum: [opening, receipt, transfer, sale, drying, cleaning] }
+        stockKind: { type: string, enum: [grain, grain_waste], default: grain }
+        outputTons: { type: number, minimum: 0, maximum: 1000000, default: 0 }
+        deadWasteTons: { type: number, minimum: 0, maximum: 1000000, default: 0 }
+        grainWasteTons: { type: number, minimum: 0, maximum: 1000000, default: 0 }
+        wasteToLocationId: { type: ["number", "null"], minimum: 1, default: null }
         cropId: { type: number, minimum: 1 }
         occurredOn: { type: string }
         quantityTons: { type: number, minimum: 0.001, maximum: 1000000 }
@@ -980,7 +985,7 @@ components:
       allOf:
         - $ref: "#/components/schemas/GrainMovementInput"
         - type: object
-          required: [id, createdBy, createdAt, voidedAt, voidedBy, voidReason]
+          required: [id, createdBy, createdAt, voidedAt, voidedBy, voidReason, moistureLossTons]
           properties:
             id: { type: number }
             createdBy: { type: string }
@@ -988,6 +993,7 @@ components:
             voidedAt: { type: ["string", "null"] }
             voidedBy: { type: string }
             voidReason: { type: string }
+            moistureLossTons: { type: number }
     GrainVoidInput:
       type: object
       required: [reason]
@@ -995,21 +1001,26 @@ components:
         reason: { type: string, minLength: 3, maxLength: 500 }
     GrainBalance:
       type: object
-      required: [cropId, locationId, unit, quantityTons]
+      required: [cropId, locationId, unit, quantityTons, stockKind]
       properties:
         cropId: { type: number }
         locationId: { type: number }
         unit: { type: string, enum: ["АПК Арыстан Grain", "АФ Веденовка"] }
         quantityTons: { type: number }
+        stockKind: { type: string, enum: [grain, grain_waste] }
     GrainSummary:
       type: object
-      required: [totalTons, openingTons, receivedTons, soldTons, transferredTons]
+      required: [totalTons, openingTons, receivedTons, soldTons, transferredTons, grainWasteTons, deadWasteTons, moistureLossTons, processedTons]
       properties:
         totalTons: { type: number }
         openingTons: { type: number }
         receivedTons: { type: number }
         soldTons: { type: number }
         transferredTons: { type: number }
+        grainWasteTons: { type: number }
+        deadWasteTons: { type: number }
+        moistureLossTons: { type: number }
+        processedTons: { type: number }
     GrainDashboard:
       type: object
       required: [crops, locations, movements, balances, summary, asOfDate]

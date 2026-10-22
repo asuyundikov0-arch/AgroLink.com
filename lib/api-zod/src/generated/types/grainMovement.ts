@@ -15,4 +15,5 @@ export type GrainMovement = GrainMovementInput & ({
   voidedAt: string | null;
   voidedBy: string;
   voidReason: string;
+  moistureLossTons: number;
 });

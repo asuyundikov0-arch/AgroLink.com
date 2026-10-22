@@ -6,6 +6,7 @@ export async function ensureGrainDefaults() {
   const locations = [
     { name: "Склад №1", kind: "warehouse" }, { name: "Склад №2", kind: "warehouse" },
     { name: "Зерноплощадка", kind: "yard" }, { name: "Элеватор", kind: "elevator" },
+    { name: "Зерносушилка", kind: "dryer" }, { name: "Зерноочистка", kind: "cleaner" },
   ];
   await db.insert(grainLocationsTable).values(grainUnits.flatMap((unit) => locations.map((location) => ({
     ...location, unit, nameKey: grainNameKey(location.name),

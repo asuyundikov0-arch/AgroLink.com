@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { GrainMovementInputOperation } from './grainMovementInputOperation';
+import type { GrainMovementInputStockKind } from './grainMovementInputStockKind';
 import type { GrainMovementInputUnit } from './grainMovementInputUnit';
 
 export interface GrainMovementInput {
@@ -16,6 +17,27 @@ export interface GrainMovementInput {
   requestId: string;
   unit: GrainMovementInputUnit;
   operation: GrainMovementInputOperation;
+  stockKind?: GrainMovementInputStockKind;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  outputTons?: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  deadWasteTons?: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  grainWasteTons?: number;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  wasteToLocationId?: number | null;
   /** @minimum 1 */
   cropId: number;
   occurredOn: string;

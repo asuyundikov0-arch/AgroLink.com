@@ -3,3 +3,4 @@
 - [Protected document downloads](protected-document-downloads.md) — original files must stream through role-checked API routes, never public URLs.
 - [Engineering repair register](engineering-repairs.md) — repair data is entered on the site; preserve the source workbook's cost accounting.
 - [Grain ownership at elevators](grain-ownership.md) — elevator grain remains company stock; movement to an elevator is not a sale.
+- [Processing waste categories](grain-processing-waste.md) — the user requires separate weights for dead impurities and grain waste after drying or cleaning.
