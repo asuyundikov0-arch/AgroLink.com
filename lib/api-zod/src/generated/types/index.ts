@@ -8,6 +8,10 @@
 
 export * from './activity';
 export * from './activityAction';
+export * from './agroField';
+export * from './agroFieldInput';
+export * from './agroFieldInputUnit';
+export * from './agroFieldUpdate';
 export * from './archiveCell';
 export * from './archiveCellSection';
 export * from './archiveCellSubarchive';
@@ -17,6 +21,16 @@ export * from './documentUploadTarget';
 export * from './expenseInput';
 export * from './expenseInputCategory';
 export * from './expenseUpdate';
+export * from './fieldActualInput';
+export * from './fieldDashboard';
+export * from './fieldOperation';
+export * from './fieldOperationInput';
+export * from './fieldOperationStatus';
+export * from './fieldOperationUpdate';
+export * from './fieldOperationVoidInput';
+export * from './fieldSeason';
+export * from './fieldSeasonInput';
+export * from './fieldSeasonUpdate';
 export * from './fleetEquipment';
 export * from './fleetEquipmentUnit';
 export * from './fleetInput';

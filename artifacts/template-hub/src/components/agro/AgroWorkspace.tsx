@@ -1,15 +1,17 @@
 import { type ReactNode, useState } from "react";
-import { FileSpreadsheet, Wheat } from "lucide-react";
+import { FileSpreadsheet, LandPlot, Wheat } from "lucide-react";
 import GrainBalance from "./GrainBalance";
+import FieldsWorkspace from "./fields/FieldsWorkspace";
 
 export default function AgroWorkspace({ role, children }: { role: string; children: ReactNode }) {
   const allowed = ["agronomist", "chief_agronomist", "farm_director", "general_director", "economist"].includes(role);
-  const [tab, setTab] = useState<"grain" | "documents">(allowed ? "grain" : "documents");
+  const [tab, setTab] = useState<"grain" | "fields" | "documents">(allowed ? "grain" : "documents");
   return <div>
     <div className="mb-7 flex flex-wrap gap-2" role="tablist" aria-label="Разделы агроблока">
       {allowed && <button type="button" className={`workspace-tab ${tab === "grain" ? "workspace-tab-active" : ""}`} role="tab" aria-selected={tab === "grain"} onClick={() => setTab("grain")} data-testid="tab-agro-grain"><Wheat size={15} />Баланс зерна</button>}
+      {allowed && <button type="button" className={`workspace-tab ${tab === "fields" ? "workspace-tab-active" : ""}`} role="tab" aria-selected={tab === "fields"} onClick={() => setTab("fields")} data-testid="tab-agro-fields"><LandPlot size={15} />Поля и операции</button>}
       <button type="button" className={`workspace-tab ${tab === "documents" ? "workspace-tab-active" : ""}`} role="tab" aria-selected={tab === "documents"} onClick={() => setTab("documents")} data-testid="tab-agro-documents"><FileSpreadsheet size={15} />Шаблоны и отчёты</button>
     </div>
-    <div role="tabpanel">{tab === "grain" && allowed ? <GrainBalance role={role} /> : children}</div>
+    <div role="tabpanel">{tab === "grain" && allowed ? <GrainBalance role={role} /> : tab === "fields" && allowed ? <FieldsWorkspace role={role} /> : children}</div>
   </div>;
 }

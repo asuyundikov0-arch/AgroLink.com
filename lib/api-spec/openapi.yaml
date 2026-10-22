@@ -19,6 +19,136 @@ tags:
   - name: uploads
     description: Protected document upload workflow
 paths:
+  /agro/fields:
+    get:
+      operationId: getFieldDashboard
+      responses:
+        "200":
+          description: Field directory, crop rotations and operation history
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FieldDashboard" }
+    post:
+      operationId: createAgroField
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgroFieldInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgroField" }
+  /agro/fields/{id}:
+    patch:
+      operationId: updateAgroField
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgroFieldUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgroField" }
+  /agro/fields/seasons:
+    post:
+      operationId: createFieldSeason
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FieldSeasonInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FieldSeason" }
+  /agro/fields/seasons/{id}:
+    patch:
+      operationId: updateFieldSeason
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FieldSeasonUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FieldSeason" }
+  /agro/fields/operations:
+    post:
+      operationId: createFieldOperation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FieldOperationInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FieldOperation" }
+  /agro/fields/operations/{id}:
+    patch:
+      operationId: updateFieldOperation
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FieldOperationUpdate" }
+      responses:
+        "200":
+          description: Updated plan
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FieldOperation" }
+  /agro/fields/operations/{id}/actual:
+    patch:
+      operationId: updateFieldOperationActual
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FieldActualInput" }
+      responses:
+        "200":
+          description: Updated actual results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FieldOperation" }
+  /agro/fields/operations/{id}/void:
+    post:
+      operationId: voidFieldOperation
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FieldOperationVoidInput" }
+      responses:
+        "200":
+          description: Cancelled with audit
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FieldOperation" }
   /agro/grain:
     get:
       operationId: getGrainDashboard
@@ -718,6 +848,123 @@ paths:
           description: User access revoked
 components:
   schemas:
+    AgroFieldInput:
+      type: object
+      required: [unit, number, areaHa, notes, isActive]
+      properties:
+        unit: { type: string, enum: ["АПК Арыстан Grain", "АФ Веденовка"] }
+        number: { type: string, minLength: 1, maxLength: 80 }
+        areaHa: { type: number, minimum: 0.01, maximum: 1000000 }
+        notes: { type: string, maxLength: 3000 }
+        isActive: { type: boolean }
+    AgroFieldUpdate:
+      allOf:
+        - $ref: "#/components/schemas/AgroFieldInput"
+        - type: object
+          required: [version]
+          properties:
+            version: { type: number, minimum: 1 }
+    AgroField:
+      allOf:
+        - $ref: "#/components/schemas/AgroFieldUpdate"
+        - type: object
+          required: [id, updatedBy, updatedAt]
+          properties:
+            id: { type: number }
+            updatedBy: { type: string }
+            updatedAt: { type: string }
+    FieldSeasonInput:
+      type: object
+      required: [fieldId, year, cropName, variety, areaHa, notes]
+      properties:
+        fieldId: { type: number, minimum: 1 }
+        year: { type: number, minimum: 2000, maximum: 2100 }
+        cropName: { type: string, minLength: 1, maxLength: 100 }
+        variety: { type: string, maxLength: 200 }
+        areaHa: { type: number, minimum: 0.01, maximum: 1000000 }
+        notes: { type: string, maxLength: 3000 }
+    FieldSeasonUpdate:
+      allOf:
+        - $ref: "#/components/schemas/FieldSeasonInput"
+        - type: object
+          required: [version]
+          properties:
+            version: { type: number, minimum: 1 }
+    FieldSeason:
+      allOf:
+        - $ref: "#/components/schemas/FieldSeasonUpdate"
+        - type: object
+          required: [id, updatedBy, updatedAt]
+          properties:
+            id: { type: number }
+            updatedBy: { type: string }
+            updatedAt: { type: string }
+    FieldOperationInput:
+      type: object
+      required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, responsible, notes]
+      properties:
+        seasonId: { type: number, minimum: 1 }
+        name: { type: string, minLength: 1, maxLength: 150 }
+        plannedStart: { type: string }
+        plannedEnd: { type: string }
+        plannedAreaHa: { type: number, minimum: 0.01, maximum: 1000000 }
+        responsible: { type: string, maxLength: 200 }
+        notes: { type: string, maxLength: 3000 }
+    FieldOperationUpdate:
+      allOf:
+        - $ref: "#/components/schemas/FieldOperationInput"
+        - type: object
+          required: [version]
+          properties:
+            version: { type: number, minimum: 1 }
+    FieldActualInput:
+      type: object
+      required: [version, actualStart, actualEnd, actualAreaHa, actualNotes]
+      properties:
+        version: { type: number, minimum: 1 }
+        actualStart: { type: ["string", "null"] }
+        actualEnd: { type: ["string", "null"] }
+        actualAreaHa: { type: number, minimum: 0, maximum: 1000000 }
+        actualNotes: { type: string, maxLength: 3000 }
+    FieldOperationVoidInput:
+      type: object
+      required: [version, reason]
+      properties:
+        version: { type: number, minimum: 1 }
+        reason: { type: string, minLength: 3, maxLength: 500 }
+    FieldOperation:
+      allOf:
+        - $ref: "#/components/schemas/FieldOperationUpdate"
+        - $ref: "#/components/schemas/FieldActualInput"
+        - type: object
+          required: [id, status, isOverdue, progressPercent, voidedAt, voidReason, voidedBy, updatedAt, updatedBy]
+          properties:
+            id: { type: number }
+            status: { type: string, enum: [planned, in_progress, completed, cancelled] }
+            isOverdue: { type: boolean }
+            progressPercent: { type: number }
+            voidedAt: { type: ["string", "null"] }
+            voidReason: { type: string }
+            voidedBy: { type: string }
+            updatedAt: { type: string }
+            updatedBy: { type: string }
+    FieldDashboard:
+      type: object
+      required: [fields, seasons, operations, cropSuggestions, asOfDate]
+      properties:
+        fields:
+          type: array
+          items: { $ref: "#/components/schemas/AgroField" }
+        seasons:
+          type: array
+          items: { $ref: "#/components/schemas/FieldSeason" }
+        operations:
+          type: array
+          items: { $ref: "#/components/schemas/FieldOperation" }
+        cropSuggestions:
+          type: array
+          items: { type: string }
+        asOfDate: { type: string }
     RepairInput:
       type: object
       required: [equipment, responsible, unit, plannedStart, plannedEnd, actualStart, actualEnd, readiness, capitalCost, currentCost, tiresCost, oilsCost, serviceCost, notes]

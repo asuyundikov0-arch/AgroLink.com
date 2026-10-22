@@ -4,3 +4,4 @@
 - [Engineering repair register](engineering-repairs.md) — repair data is entered on the site; preserve the source workbook's cost accounting.
 - [Grain ownership at elevators](grain-ownership.md) — elevator grain remains company stock; movement to an elevator is not a sale.
 - [Processing waste categories](grain-processing-waste.md) — the user requires separate weights for dead impurities and grain waste after drying or cleaning.
+- [Partial index changes](partial-index-push.md) — Drizzle push may miss a changed WHERE predicate; verify the live index definition.

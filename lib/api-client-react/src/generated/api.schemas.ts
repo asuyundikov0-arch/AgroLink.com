@@ -5,6 +5,160 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type AgroFieldInputUnit = typeof AgroFieldInputUnit[keyof typeof AgroFieldInputUnit];
+
+
+export const AgroFieldInputUnit = {
+  АПК_Арыстан_Grain: 'АПК Арыстан Grain',
+  АФ_Веденовка: 'АФ Веденовка',
+} as const;
+
+export interface AgroFieldInput {
+  unit: AgroFieldInputUnit;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  number: string;
+  /**
+     * @minimum 0.01
+     * @maximum 1000000
+     */
+  areaHa: number;
+  /** @maxLength 3000 */
+  notes: string;
+  isActive: boolean;
+}
+
+export type AgroFieldUpdate = AgroFieldInput & {
+  /** @minimum 1 */
+  version: number;
+};
+
+export type AgroField = AgroFieldUpdate & {
+  id: number;
+  updatedBy: string;
+  updatedAt: string;
+};
+
+export interface FieldSeasonInput {
+  /** @minimum 1 */
+  fieldId: number;
+  /**
+     * @minimum 2000
+     * @maximum 2100
+     */
+  year: number;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  cropName: string;
+  /** @maxLength 200 */
+  variety: string;
+  /**
+     * @minimum 0.01
+     * @maximum 1000000
+     */
+  areaHa: number;
+  /** @maxLength 3000 */
+  notes: string;
+}
+
+export type FieldSeasonUpdate = FieldSeasonInput & {
+  /** @minimum 1 */
+  version: number;
+};
+
+export type FieldSeason = FieldSeasonUpdate & {
+  id: number;
+  updatedBy: string;
+  updatedAt: string;
+};
+
+export interface FieldOperationInput {
+  /** @minimum 1 */
+  seasonId: number;
+  /**
+     * @minLength 1
+     * @maxLength 150
+     */
+  name: string;
+  plannedStart: string;
+  plannedEnd: string;
+  /**
+     * @minimum 0.01
+     * @maximum 1000000
+     */
+  plannedAreaHa: number;
+  /** @maxLength 200 */
+  responsible: string;
+  /** @maxLength 3000 */
+  notes: string;
+}
+
+export type FieldOperationUpdate = FieldOperationInput & {
+  /** @minimum 1 */
+  version: number;
+};
+
+export interface FieldActualInput {
+  /** @minimum 1 */
+  version: number;
+  /** @nullable */
+  actualStart: string | null;
+  /** @nullable */
+  actualEnd: string | null;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  actualAreaHa: number;
+  /** @maxLength 3000 */
+  actualNotes: string;
+}
+
+export interface FieldOperationVoidInput {
+  /** @minimum 1 */
+  version: number;
+  /**
+     * @minLength 3
+     * @maxLength 500
+     */
+  reason: string;
+}
+
+export type FieldOperationStatus = typeof FieldOperationStatus[keyof typeof FieldOperationStatus];
+
+
+export const FieldOperationStatus = {
+  planned: 'planned',
+  in_progress: 'in_progress',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export type FieldOperation = FieldOperationUpdate & FieldActualInput & ({
+  id: number;
+  status: FieldOperationStatus;
+  isOverdue: boolean;
+  progressPercent: number;
+  /** @nullable */
+  voidedAt: string | null;
+  voidReason: string;
+  voidedBy: string;
+  updatedAt: string;
+  updatedBy: string;
+});
+
+export interface FieldDashboard {
+  fields: AgroField[];
+  seasons: FieldSeason[];
+  operations: FieldOperation[];
+  cropSuggestions: string[];
+  asOfDate: string;
+}
+
 export type RepairInputUnit = typeof RepairInputUnit[keyof typeof RepairInputUnit];
 
 

@@ -21,12 +21,24 @@ import type {
 
 import type {
   Activity,
+  AgroField,
+  AgroFieldInput,
+  AgroFieldUpdate,
   ArchiveCell,
   DashboardSummary,
   DocumentUploadInput,
   DocumentUploadTarget,
   ExpenseInput,
   ExpenseUpdate,
+  FieldActualInput,
+  FieldDashboard,
+  FieldOperation,
+  FieldOperationInput,
+  FieldOperationUpdate,
+  FieldOperationVoidInput,
+  FieldSeason,
+  FieldSeasonInput,
+  FieldSeasonUpdate,
   FleetEquipment,
   FleetInput,
   FleetUpdate,
@@ -86,6 +98,602 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetFieldDashboardUrl = () => {
+
+
+
+
+  return `/api/agro/fields`
+}
+
+export const getFieldDashboard = async ( options?: Parameters<typeof customFetch>[1]): Promise<FieldDashboard> => {
+
+  return customFetch<FieldDashboard>(getGetFieldDashboardUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFieldDashboardQueryKey = () => {
+    return [
+    `/api/agro/fields`
+    ] as const;
+    }
+
+
+export const getGetFieldDashboardQueryOptions = <TData = Awaited<ReturnType<typeof getFieldDashboard>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFieldDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFieldDashboardQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFieldDashboard>>> = ({ signal }) => getFieldDashboard({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFieldDashboard>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFieldDashboardQueryResult = NonNullable<Awaited<ReturnType<typeof getFieldDashboard>>>
+export type GetFieldDashboardQueryError = ErrorType<unknown>
+
+
+
+export function useGetFieldDashboard<TData = Awaited<ReturnType<typeof getFieldDashboard>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFieldDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFieldDashboardQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAgroFieldUrl = () => {
+
+
+
+
+  return `/api/agro/fields`
+}
+
+export const createAgroField = async (agroFieldInput: AgroFieldInput, options?: Parameters<typeof customFetch>[1]): Promise<AgroField> => {
+
+  return customFetch<AgroField>(getCreateAgroFieldUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agroFieldInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAgroFieldMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgroField>>, TError,{data: BodyType<AgroFieldInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAgroField>>, TError,{data: BodyType<AgroFieldInput>}, TContext> => {
+
+const mutationKey = ['createAgroField'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAgroField>>, {data: BodyType<AgroFieldInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAgroField(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAgroFieldMutationResult = NonNullable<Awaited<ReturnType<typeof createAgroField>>>
+    export type CreateAgroFieldMutationBody = BodyType<AgroFieldInput>
+    export type CreateAgroFieldMutationError = ErrorType<unknown>
+
+    export const useCreateAgroField = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgroField>>, TError,{data: BodyType<AgroFieldInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAgroField>>,
+        TError,
+        {data: BodyType<AgroFieldInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAgroFieldMutationOptions(options));
+    }
+
+export const getUpdateAgroFieldUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/fields/${id}`
+}
+
+export const updateAgroField = async (id: number,
+    agroFieldUpdate: AgroFieldUpdate, options?: Parameters<typeof customFetch>[1]): Promise<AgroField> => {
+
+  return customFetch<AgroField>(getUpdateAgroFieldUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agroFieldUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAgroFieldMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgroField>>, TError,{id: number;data: BodyType<AgroFieldUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAgroField>>, TError,{id: number;data: BodyType<AgroFieldUpdate>}, TContext> => {
+
+const mutationKey = ['updateAgroField'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAgroField>>, {id: number;data: BodyType<AgroFieldUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAgroField(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAgroFieldMutationResult = NonNullable<Awaited<ReturnType<typeof updateAgroField>>>
+    export type UpdateAgroFieldMutationBody = BodyType<AgroFieldUpdate>
+    export type UpdateAgroFieldMutationError = ErrorType<unknown>
+
+    export const useUpdateAgroField = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgroField>>, TError,{id: number;data: BodyType<AgroFieldUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAgroField>>,
+        TError,
+        {id: number;data: BodyType<AgroFieldUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateAgroFieldMutationOptions(options));
+    }
+
+export const getCreateFieldSeasonUrl = () => {
+
+
+
+
+  return `/api/agro/fields/seasons`
+}
+
+export const createFieldSeason = async (fieldSeasonInput: FieldSeasonInput, options?: Parameters<typeof customFetch>[1]): Promise<FieldSeason> => {
+
+  return customFetch<FieldSeason>(getCreateFieldSeasonUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(fieldSeasonInput)
+  }
+);}
+
+
+
+
+
+export const getCreateFieldSeasonMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFieldSeason>>, TError,{data: BodyType<FieldSeasonInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createFieldSeason>>, TError,{data: BodyType<FieldSeasonInput>}, TContext> => {
+
+const mutationKey = ['createFieldSeason'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createFieldSeason>>, {data: BodyType<FieldSeasonInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createFieldSeason(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateFieldSeasonMutationResult = NonNullable<Awaited<ReturnType<typeof createFieldSeason>>>
+    export type CreateFieldSeasonMutationBody = BodyType<FieldSeasonInput>
+    export type CreateFieldSeasonMutationError = ErrorType<unknown>
+
+    export const useCreateFieldSeason = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFieldSeason>>, TError,{data: BodyType<FieldSeasonInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createFieldSeason>>,
+        TError,
+        {data: BodyType<FieldSeasonInput>},
+        TContext
+      > => {
+      return useMutation(getCreateFieldSeasonMutationOptions(options));
+    }
+
+export const getUpdateFieldSeasonUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/fields/seasons/${id}`
+}
+
+export const updateFieldSeason = async (id: number,
+    fieldSeasonUpdate: FieldSeasonUpdate, options?: Parameters<typeof customFetch>[1]): Promise<FieldSeason> => {
+
+  return customFetch<FieldSeason>(getUpdateFieldSeasonUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(fieldSeasonUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateFieldSeasonMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFieldSeason>>, TError,{id: number;data: BodyType<FieldSeasonUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateFieldSeason>>, TError,{id: number;data: BodyType<FieldSeasonUpdate>}, TContext> => {
+
+const mutationKey = ['updateFieldSeason'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateFieldSeason>>, {id: number;data: BodyType<FieldSeasonUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateFieldSeason(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateFieldSeasonMutationResult = NonNullable<Awaited<ReturnType<typeof updateFieldSeason>>>
+    export type UpdateFieldSeasonMutationBody = BodyType<FieldSeasonUpdate>
+    export type UpdateFieldSeasonMutationError = ErrorType<unknown>
+
+    export const useUpdateFieldSeason = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFieldSeason>>, TError,{id: number;data: BodyType<FieldSeasonUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateFieldSeason>>,
+        TError,
+        {id: number;data: BodyType<FieldSeasonUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateFieldSeasonMutationOptions(options));
+    }
+
+export const getCreateFieldOperationUrl = () => {
+
+
+
+
+  return `/api/agro/fields/operations`
+}
+
+export const createFieldOperation = async (fieldOperationInput: FieldOperationInput, options?: Parameters<typeof customFetch>[1]): Promise<FieldOperation> => {
+
+  return customFetch<FieldOperation>(getCreateFieldOperationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(fieldOperationInput)
+  }
+);}
+
+
+
+
+
+export const getCreateFieldOperationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFieldOperation>>, TError,{data: BodyType<FieldOperationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createFieldOperation>>, TError,{data: BodyType<FieldOperationInput>}, TContext> => {
+
+const mutationKey = ['createFieldOperation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createFieldOperation>>, {data: BodyType<FieldOperationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createFieldOperation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateFieldOperationMutationResult = NonNullable<Awaited<ReturnType<typeof createFieldOperation>>>
+    export type CreateFieldOperationMutationBody = BodyType<FieldOperationInput>
+    export type CreateFieldOperationMutationError = ErrorType<unknown>
+
+    export const useCreateFieldOperation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFieldOperation>>, TError,{data: BodyType<FieldOperationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createFieldOperation>>,
+        TError,
+        {data: BodyType<FieldOperationInput>},
+        TContext
+      > => {
+      return useMutation(getCreateFieldOperationMutationOptions(options));
+    }
+
+export const getUpdateFieldOperationUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/fields/operations/${id}`
+}
+
+export const updateFieldOperation = async (id: number,
+    fieldOperationUpdate: FieldOperationUpdate, options?: Parameters<typeof customFetch>[1]): Promise<FieldOperation> => {
+
+  return customFetch<FieldOperation>(getUpdateFieldOperationUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(fieldOperationUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateFieldOperationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFieldOperation>>, TError,{id: number;data: BodyType<FieldOperationUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateFieldOperation>>, TError,{id: number;data: BodyType<FieldOperationUpdate>}, TContext> => {
+
+const mutationKey = ['updateFieldOperation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateFieldOperation>>, {id: number;data: BodyType<FieldOperationUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateFieldOperation(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateFieldOperationMutationResult = NonNullable<Awaited<ReturnType<typeof updateFieldOperation>>>
+    export type UpdateFieldOperationMutationBody = BodyType<FieldOperationUpdate>
+    export type UpdateFieldOperationMutationError = ErrorType<unknown>
+
+    export const useUpdateFieldOperation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFieldOperation>>, TError,{id: number;data: BodyType<FieldOperationUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateFieldOperation>>,
+        TError,
+        {id: number;data: BodyType<FieldOperationUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateFieldOperationMutationOptions(options));
+    }
+
+export const getUpdateFieldOperationActualUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/fields/operations/${id}/actual`
+}
+
+export const updateFieldOperationActual = async (id: number,
+    fieldActualInput: FieldActualInput, options?: Parameters<typeof customFetch>[1]): Promise<FieldOperation> => {
+
+  return customFetch<FieldOperation>(getUpdateFieldOperationActualUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(fieldActualInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateFieldOperationActualMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFieldOperationActual>>, TError,{id: number;data: BodyType<FieldActualInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateFieldOperationActual>>, TError,{id: number;data: BodyType<FieldActualInput>}, TContext> => {
+
+const mutationKey = ['updateFieldOperationActual'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateFieldOperationActual>>, {id: number;data: BodyType<FieldActualInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateFieldOperationActual(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateFieldOperationActualMutationResult = NonNullable<Awaited<ReturnType<typeof updateFieldOperationActual>>>
+    export type UpdateFieldOperationActualMutationBody = BodyType<FieldActualInput>
+    export type UpdateFieldOperationActualMutationError = ErrorType<unknown>
+
+    export const useUpdateFieldOperationActual = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFieldOperationActual>>, TError,{id: number;data: BodyType<FieldActualInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateFieldOperationActual>>,
+        TError,
+        {id: number;data: BodyType<FieldActualInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateFieldOperationActualMutationOptions(options));
+    }
+
+export const getVoidFieldOperationUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/fields/operations/${id}/void`
+}
+
+export const voidFieldOperation = async (id: number,
+    fieldOperationVoidInput: FieldOperationVoidInput, options?: Parameters<typeof customFetch>[1]): Promise<FieldOperation> => {
+
+  return customFetch<FieldOperation>(getVoidFieldOperationUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(fieldOperationVoidInput)
+  }
+);}
+
+
+
+
+
+export const getVoidFieldOperationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof voidFieldOperation>>, TError,{id: number;data: BodyType<FieldOperationVoidInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof voidFieldOperation>>, TError,{id: number;data: BodyType<FieldOperationVoidInput>}, TContext> => {
+
+const mutationKey = ['voidFieldOperation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof voidFieldOperation>>, {id: number;data: BodyType<FieldOperationVoidInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  voidFieldOperation(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VoidFieldOperationMutationResult = NonNullable<Awaited<ReturnType<typeof voidFieldOperation>>>
+    export type VoidFieldOperationMutationBody = BodyType<FieldOperationVoidInput>
+    export type VoidFieldOperationMutationError = ErrorType<unknown>
+
+    export const useVoidFieldOperation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof voidFieldOperation>>, TError,{id: number;data: BodyType<FieldOperationVoidInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof voidFieldOperation>>,
+        TError,
+        {id: number;data: BodyType<FieldOperationVoidInput>},
+        TContext
+      > => {
+      return useMutation(getVoidFieldOperationMutationOptions(options));
+    }
 
 export const getGetGrainDashboardUrl = () => {
 
