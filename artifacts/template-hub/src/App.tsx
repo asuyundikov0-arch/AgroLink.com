@@ -172,7 +172,7 @@ function formatDate(value: string) {
 }
 
 function BrandEmblem({ size = "md" }: { size?: "md" | "lg" }) {
-  return <img src={companyEmblem} alt="Agrolink" className={cn("brand-emblem", size === "lg" ? "brand-emblem-lg" : "brand-emblem-md")} />;
+  return <img src={companyEmblem} alt="AgroLink operation" className={cn("brand-emblem", size === "lg" ? "brand-emblem-lg" : "brand-emblem-md")} />;
 }
 
 type WorkspaceSection = "cabinet" | "templates" | "archive" | "agro" | "engineering" | "economic" | "legal" | "settings";
@@ -200,7 +200,7 @@ function PublicLanding() {
     <main className="auth-landing">
       <div className="auth-landing-grid" aria-hidden="true" />
       <section className="auth-landing-card">
-        <div className="landing-brand"><BrandEmblem size="lg" /><div><p className="landing-brand-name">AGROLINK</p><p className="landing-brand-caption">Корпоративная база документов</p></div></div>
+        <div className="landing-brand"><BrandEmblem size="lg" /><div><p className="landing-brand-name">AgroLink operation</p><p className="landing-brand-caption">Корпоративная база документов</p></div></div>
         <p className="eyebrow mt-7">Единая база шаблонов</p>
         <h1 className="mt-3 font-display text-4xl font-bold tracking-[-0.05em] text-foreground">Рабочие документы.<br /><span className="text-[#0b679e]">Понятные роли.</span></h1>
         <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground">Каждый сотрудник выбирает роль при регистрации. Доступ к отчётам открывается только после согласования руководителем.</p>
@@ -235,7 +235,7 @@ function PublicDemo() {
   const scenario = demoRoleScenarios[role];
   return <main className="min-h-screen bg-background px-4 py-6 sm:px-7 sm:py-10">
     <div className="mx-auto max-w-5xl">
-      <div className="mb-7 flex flex-col justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-center"><div className="flex items-center gap-3"><BrandEmblem /><div><p className="landing-brand-name">AGROLINK</p><p className="text-xs text-muted-foreground">Интерактивная демо-версия</p></div></div><a href={basePath || "/"} className="button button-secondary text-xs"><ArrowLeft size={14} />К стартовой странице</a></div>
+      <div className="mb-7 flex flex-col justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-center"><div className="flex items-center gap-3"><BrandEmblem /><div><p className="landing-brand-name">AgroLink operation</p><p className="text-xs text-muted-foreground">Интерактивная демо-версия</p></div></div><a href={basePath || "/"} className="button button-secondary text-xs"><ArrowLeft size={14} />К стартовой странице</a></div>
       <section className="surface-card mb-6 border-l-[4px] border-l-amber-400 p-5 sm:p-7"><p className="eyebrow">Без регистрации и доступа к данным</p><h1 className="mt-2 font-display text-3xl font-bold tracking-[-0.05em]">Посмотрите работу каждой роли</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">Это безопасная учебная копия интерфейса. Все действия работают только внутри этого экрана и не создают пользователей, документы или заявки.</p><label className="form-label mt-6 block max-w-sm">Роль для демонстрации<select className="text-input mt-2" value={role} onChange={(event) => { setRole(event.target.value as AppRole); setMessage(""); }} data-testid="select-public-demo-role">{(Object.keys(roleLabels) as AppRole[]).map((item) => <option key={item} value={item}>{roleLabels[item]}</option>)}</select></label></section>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_330px]"><section className="surface-card overflow-hidden"><div className="border-b border-border bg-muted/25 px-5 py-5 sm:px-7"><p className="eyebrow">{scenario.workspace}</p><h2 className="mt-2 font-display text-2xl font-bold tracking-[-0.045em]">{scenario.title}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{scenario.description}</p></div><div className="p-5 sm:p-7"><article className="rounded-xl border border-border bg-card p-4 sm:p-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div className="flex min-w-0 items-start gap-3"><FileBadge /><div><div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-bold">{scenario.document}</h3><span className="meta-chip">Демо-документ</span></div><p className="mt-1 text-xs text-muted-foreground">Excel/PDF · маршрут согласования показан на примере</p></div></div><button type="button" className="button button-primary shrink-0 text-xs" onClick={() => setMessage(scenario.result)} data-testid="button-run-demo-action"><Check size={14} />{scenario.action}</button></div></article>{message && <div className="notice-banner mt-5"><Check size={16} />{message}<button type="button" aria-label="Закрыть" onClick={() => setMessage("")}><X size={14} /></button></div>}</div></section>
         <aside className="surface-card p-5 sm:p-6"><div className="section-heading"><div className="setting-icon"><Users size={17} /></div><div><h2>Маршрут роли</h2><p>Без настоящих прав доступа.</p></div></div><ol className="mt-6 space-y-4 text-sm"><li className="flex gap-3"><span className="meta-chip">1</span><span>Выберите роль в списке.</span></li><li className="flex gap-3"><span className="meta-chip">2</span><span>Посмотрите доступный ей рабочий раздел.</span></li><li className="flex gap-3"><span className="meta-chip">3</span><span>Нажмите действие и увидите результат в демо-режиме.</span></li></ol><a href={`${basePath}/sign-up`} className="button button-secondary mt-7 w-full justify-center text-xs">Перейти к настоящей регистрации</a></aside>
@@ -381,7 +381,7 @@ function Shell({
   return (
     <div className="min-h-[100dvh] overflow-x-clip bg-background text-foreground">
       <aside className={cn("fixed inset-y-0 left-0 z-30 w-[256px] flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground transition-transform duration-300 md:translate-x-0", mobileOpen ? "flex translate-x-0" : "hidden -translate-x-full md:flex")} data-testid="sidebar-navigation">
-        <div className="mb-9 flex items-center gap-3 px-2"><BrandEmblem /><div><div className="font-display text-[15px] font-bold tracking-[-0.02em]">AGROLINK</div><div className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-sidebar-foreground/55">Единая база шаблонов</div></div></div>
+        <div className="mb-9 flex items-center gap-3 px-2"><BrandEmblem /><div><div className="font-display text-[15px] font-bold tracking-[-0.02em]">AgroLink operation</div><div className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-sidebar-foreground/55">Единая база шаблонов</div></div></div>
         <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/35">Рабочее пространство</div>
         <nav className="grid gap-1" aria-label="Разделы рабочего пространства">
           {navigation.map(({ id, label, icon: Icon }) => (

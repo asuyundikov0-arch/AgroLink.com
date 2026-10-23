@@ -453,7 +453,7 @@
   .workspace-tab-active { border-color:hsl(203 87% 33% / .45); color:hsl(203 87% 28%); background:hsl(203 87% 33% / .11); }
   .font-display { font-family: var(--app-font-sans); }
   .landing-brand { display:flex; align-items:center; gap:16px; }
-  .landing-brand-name { color:#0b679e; font:800 20px var(--app-font-sans); letter-spacing:.18em; }
+  .landing-brand-name { color:#0b679e; font:800 17px var(--app-font-sans); letter-spacing:.02em; }
   .landing-brand-caption { margin-top:4px; color:hsl(var(--muted-foreground)); font-size:11px; font-weight:600; }
   .brand-emblem { display:block; flex:none; border-radius:12px; object-fit:contain; background:#fff; box-shadow:0 8px 18px rgba(11,103,158,.18); }
   .brand-emblem-md { width:48px; height:48px; }
