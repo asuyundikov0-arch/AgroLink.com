@@ -456,6 +456,105 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SparePartMovement"
+  /engineering/spare-part-requests:
+    get:
+      operationId: listSparePartRequests
+      tags: [engineering]
+      responses:
+        "200":
+          description: Requests visible to the current engineering role
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SparePartRequest"
+    post:
+      operationId: createSparePartRequest
+      tags: [engineering]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SparePartRequestInput"
+      responses:
+        "201":
+          description: Spare-part request submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SparePartRequest"
+  /engineering/spare-part-requests/{id}/chief-review:
+    patch:
+      operationId: reviewSparePartRequestByChief
+      tags: [engineering]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SparePartChiefReviewInput"
+      responses:
+        "200":
+          description: Chief engineer decisions saved and accepted lines sent to the director
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SparePartRequest"
+  /engineering/spare-part-requests/{id}/director-review:
+    patch:
+      operationId: reviewSparePartRequestByDirector
+      tags: [engineering]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SparePartDirectorReviewInput"
+      responses:
+        "200":
+          description: Director decisions saved per request line
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SparePartRequest"
+  /engineering/spare-part-requests/{id}/items/{itemId}/resubmit:
+    patch:
+      operationId: resubmitSparePartRequestItem
+      tags: [engineering]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number, minimum: 1 }
+        - name: itemId
+          in: path
+          required: true
+          schema: { type: number, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SparePartRequestItemInput"
+      responses:
+        "200":
+          description: Returned request line edited and resubmitted for review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SparePartRequest"
   /engineering/repairs:
     get:
       operationId: listEngineeringRepairs
@@ -837,7 +936,7 @@ paths:
                     type: string
                   requestedRole:
                     type: string
-                    enum: [agronomist, chief_agronomist, engineer, chief_engineer, economist, lawyer, farm_director, general_director]
+                    enum: [agronomist, chief_agronomist, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
                   status:
                     type: string
                     enum: [pending, approved, rejected]
@@ -1345,6 +1444,7 @@ components:
         invoiceDate: { type: string }
         supplier: { type: string, maxLength: 200 }
         description: { type: string, maxLength: 1000 }
+        requestItemId: { type: number, minimum: 1 }
     SparePartIssueInput:
       type: object
       required: [requestId, sparePartId, fleetId, category, quantity, occurredOn, description]
@@ -1356,9 +1456,97 @@ components:
         quantity: { type: number, exclusiveMinimum: 0, maximum: 1000000 }
         occurredOn: { type: string }
         description: { type: string, maxLength: 1000 }
+    SparePartRequest:
+      type: object
+      required: [id, requestId, requesterUserId, requesterName, department, status, createdAt, updatedAt, items]
+      properties:
+        id: { type: number }
+        requestId: { type: string }
+        requesterUserId: { type: string }
+        requesterName: { type: string }
+        department: { type: string }
+        status: { type: string, enum: [chief_review, director_review, awaiting_delivery, returned_to_engineer, completed, rejected] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SparePartRequestItem"
+    SparePartRequestItem:
+      type: object
+      required: [id, name, articleNumber, unit, quantity, fleetId, fleetKind, registrationNumber, status, unitPrice, chiefComment, directorComment, receivedQuantity, chiefReviewedByName, chiefReviewedAt, directorReviewedByName, directorReviewedAt, receivedByName, receivedAt]
+      properties:
+        id: { type: number }
+        name: { type: string }
+        articleNumber: { type: string }
+        unit: { type: string }
+        quantity: { type: number }
+        fleetId: { type: number }
+        fleetKind: { type: string }
+        registrationNumber: { type: ["string", "null"] }
+        status: { type: string, enum: [chief_review, director_review, returned_to_engineer, awaiting_delivery, received, rejected] }
+        unitPrice: { type: ["number", "null"] }
+        chiefComment: { type: string }
+        directorComment: { type: string }
+        receivedQuantity: { type: number }
+        chiefReviewedByName: { type: string }
+        chiefReviewedAt: { type: ["string", "null"] }
+        directorReviewedByName: { type: string }
+        directorReviewedAt: { type: ["string", "null"] }
+        receivedByName: { type: string }
+        receivedAt: { type: ["string", "null"] }
+    SparePartRequestItemInput:
+      type: object
+      required: [name, articleNumber, unit, quantity, fleetId]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        articleNumber: { type: string, maxLength: 100 }
+        unit: { type: string, minLength: 1, maxLength: 40 }
+        quantity: { type: number, exclusiveMinimum: 0, maximum: 1000000 }
+        fleetId: { type: number, minimum: 1 }
+    SparePartRequestInput:
+      type: object
+      required: [requestId, items]
+      properties:
+        requestId: { type: string, minLength: 16, maxLength: 80 }
+        items:
+          type: array
+          minItems: 1
+          maxItems: 30
+          items:
+            $ref: "#/components/schemas/SparePartRequestItemInput"
+    SparePartChiefReviewInput:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [itemId, decision, unitPrice, comment]
+            properties:
+              itemId: { type: number, minimum: 1 }
+              decision: { type: string, enum: [approved, returned] }
+              unitPrice: { type: ["number", "null"], minimum: 0, maximum: 1000000000000 }
+              comment: { type: string, maxLength: 1000 }
+    SparePartDirectorReviewInput:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [itemId, decision, comment]
+            properties:
+              itemId: { type: number, minimum: 1 }
+              decision: { type: string, enum: [approved, rejected] }
+              comment: { type: string, maxLength: 1000 }
     SparePartMovement:
       type: object
-      required: [id, sparePartId, sparePartName, articleNumber, unit, movementKind, repairCategory, quantity, unitPrice, amount, occurredOn, invoiceNumber, invoiceDate, supplier, fleetId, description, createdBy, createdAt]
+      required: [id, sparePartId, sparePartName, articleNumber, unit, movementKind, repairCategory, purchaseRequestItemId, quantity, unitPrice, amount, occurredOn, invoiceNumber, invoiceDate, supplier, fleetId, description, createdBy, createdAt]
       properties:
         id: { type: number }
         sparePartId: { type: number }
@@ -1367,6 +1555,7 @@ components:
         unit: { type: string }
         movementKind: { type: string, enum: [receipt, issue] }
         repairCategory: { type: ["string", "null"], enum: [current, capital, null] }
+        purchaseRequestItemId: { type: ["number", "null"] }
         quantity: { type: number }
         unitPrice: { type: number }
         amount: { type: number }
@@ -1770,7 +1959,7 @@ components:
           type: string
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, engineer, chief_engineer, economist, lawyer, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
         status:
           type: string
           enum: [pending, approved, rejected]
@@ -1799,7 +1988,7 @@ components:
       properties:
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, engineer, chief_engineer, economist, lawyer, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
         department:
           type: string
           minLength: 1

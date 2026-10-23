@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { Boxes, ClipboardCheck, Wrench } from "lucide-react";
+import { Boxes, ClipboardCheck, ClipboardList, Wrench } from "lucide-react";
 import {
   type FleetEquipment,
   getListFleetEquipmentQueryKey,
@@ -7,33 +7,32 @@ import {
 } from "@workspace/api-client-react";
 import RepairDashboard from "./RepairDashboard";
 import SparePartsWarehouse from "./SparePartsWarehouse";
+import SparePartRequests from "./SparePartRequests";
 import { POLL_MS, SectionError, errorInfo } from "./repairs/shared";
 
 export default function EngineeringWorkspace({ role, children }: { role: string; children: ReactNode }) {
-  const [tab, setTab] = useState<"repairs" | "warehouse" | "documents">("repairs");
+  const storekeeper = role === "storekeeper";
+  const [tab, setTab] = useState<"repairs" | "warehouse" | "requests" | "documents">(storekeeper ? "requests" : "repairs");
+  const tabs = [
+    ...(!storekeeper ? [{ id: "repairs" as const, label: "Ремонт техники", icon: Wrench }] : []),
+    { id: "warehouse" as const, label: "Склад запчастей", icon: Boxes },
+    { id: "requests" as const, label: "Заявки на запчасти", icon: ClipboardList },
+    ...(!storekeeper ? [{ id: "documents" as const, label: "Шаблоны и документы", icon: ClipboardCheck }] : []),
+  ];
   return (
     <div>
       <div className="mb-7 flex flex-wrap gap-2" role="tablist" aria-label="Разделы инженерного блока">
-        <button type="button" role="tab" aria-selected={tab === "repairs"} aria-controls="engineering-panel"
-          className={`workspace-tab ${tab === "repairs" ? "workspace-tab-active" : ""}`}
-          onClick={() => setTab("repairs")} data-testid="tab-engineering-repairs">
-          <Wrench size={15} />Ремонт техники
-        </button>
-        <button type="button" role="tab" aria-selected={tab === "warehouse"} aria-controls="engineering-panel"
-          className={`workspace-tab ${tab === "warehouse" ? "workspace-tab-active" : ""}`}
-          onClick={() => setTab("warehouse")} data-testid="tab-engineering-warehouse">
-          <Boxes size={15} />Склад запчастей
-        </button>
-        <button type="button" role="tab" aria-selected={tab === "documents"} aria-controls="engineering-panel"
-          className={`workspace-tab ${tab === "documents" ? "workspace-tab-active" : ""}`}
-          onClick={() => setTab("documents")} data-testid="tab-engineering-documents">
-          <ClipboardCheck size={15} />Шаблоны и документы
-        </button>
+        {tabs.map(({ id, label, icon: Icon }) => <button key={id} type="button" role="tab" aria-selected={tab === id} aria-controls="engineering-panel"
+          className={`workspace-tab ${tab === id ? "workspace-tab-active" : ""}`}
+          onClick={() => setTab(id)} data-testid={`tab-engineering-${id}`}>
+          <Icon size={15} />{label}
+        </button>)}
       </div>
       <div id="engineering-panel" role="tabpanel">
         {tab === "repairs" ? <RepairDashboard role={role} />
           : tab === "warehouse" ? <WarehousePanel role={role} />
-            : children}
+            : tab === "requests" ? <SparePartRequests role={role as "engineer" | "chief_engineer" | "general_director" | "storekeeper"} />
+              : children}
       </div>
     </div>
   );

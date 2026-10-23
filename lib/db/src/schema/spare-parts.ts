@@ -1,5 +1,6 @@
 import { date, integer, numeric, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { fleetEquipmentTable } from "./fleet-equipment";
+import { sparePartRequestItemsTable } from "./spare-part-requests";
 
 export const sparePartsTable = pgTable("spare_parts", {
   id: serial("id").primaryKey(),
@@ -31,6 +32,7 @@ export const sparePartMovementsTable = pgTable("spare_part_movements", {
   invoiceDate: date("invoice_date", { mode: "string" }),
   supplier: text("supplier").notNull().default(""),
   fleetId: integer("fleet_id").references(() => fleetEquipmentTable.id, { onDelete: "restrict" }),
+  purchaseRequestItemId: integer("purchase_request_item_id").references(() => sparePartRequestItemsTable.id, { onDelete: "restrict" }),
   description: text("description").notNull().default(""),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

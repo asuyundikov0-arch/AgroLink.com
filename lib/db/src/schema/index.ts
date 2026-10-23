@@ -26,6 +26,7 @@ export * from "./equipment-repairs";
 export * from "./fleet-equipment";
 export * from "./repair-expenses";
 export * from "./spare-parts";
+export * from "./spare-part-requests";
 export * from "./grain-crops";
 export * from "./grain-locations";
 export * from "./grain-movements";

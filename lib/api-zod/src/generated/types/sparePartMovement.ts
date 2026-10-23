@@ -17,6 +17,8 @@ export interface SparePartMovement {
   movementKind: SparePartMovementMovementKind;
   /** @nullable */
   repairCategory: SparePartMovementRepairCategory;
+  /** @nullable */
+  purchaseRequestItemId: number | null;
   quantity: number;
   unitPrice: number;
   amount: number;

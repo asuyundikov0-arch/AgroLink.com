@@ -1589,6 +1589,7 @@ export const ListEngineeringSparePartMovementsResponseItem = zod.object({
   "unit": zod.string(),
   "movementKind": zod.enum(['receipt', 'issue']),
   "repairCategory": zod.union([zod.literal('current'),zod.literal('capital'),zod.literal(null)]).nullable(),
+  "purchaseRequestItemId": zod.number().nullable(),
   "quantity": zod.number(),
   "unitPrice": zod.number(),
   "amount": zod.number(),
@@ -1627,6 +1628,7 @@ export const createEngineeringSparePartReceiptBodyDescriptionMax = 1000;
 
 
 
+
 export const CreateEngineeringSparePartReceiptBody = zod.object({
   "requestId": zod.string().min(createEngineeringSparePartReceiptBodyRequestIdMin).max(createEngineeringSparePartReceiptBodyRequestIdMax),
   "name": zod.string().min(1).max(createEngineeringSparePartReceiptBodyNameMax),
@@ -1638,7 +1640,8 @@ export const CreateEngineeringSparePartReceiptBody = zod.object({
   "invoiceNumber": zod.string().min(1).max(createEngineeringSparePartReceiptBodyInvoiceNumberMax),
   "invoiceDate": zod.string(),
   "supplier": zod.string().max(createEngineeringSparePartReceiptBodySupplierMax),
-  "description": zod.string().max(createEngineeringSparePartReceiptBodyDescriptionMax)
+  "description": zod.string().max(createEngineeringSparePartReceiptBodyDescriptionMax),
+  "requestItemId": zod.number().min(1).optional()
 })
 
 export const CreateEngineeringSparePartReceiptResponse = zod.object({
@@ -1649,6 +1652,7 @@ export const CreateEngineeringSparePartReceiptResponse = zod.object({
   "unit": zod.string(),
   "movementKind": zod.enum(['receipt', 'issue']),
   "repairCategory": zod.union([zod.literal('current'),zod.literal('capital'),zod.literal(null)]).nullable(),
+  "purchaseRequestItemId": zod.number().nullable(),
   "quantity": zod.number(),
   "unitPrice": zod.number(),
   "amount": zod.number(),
@@ -1693,6 +1697,7 @@ export const CreateEngineeringSparePartIssueResponse = zod.object({
   "unit": zod.string(),
   "movementKind": zod.enum(['receipt', 'issue']),
   "repairCategory": zod.union([zod.literal('current'),zod.literal('capital'),zod.literal(null)]).nullable(),
+  "purchaseRequestItemId": zod.number().nullable(),
   "quantity": zod.number(),
   "unitPrice": zod.number(),
   "amount": zod.number(),
@@ -1704,6 +1709,275 @@ export const CreateEngineeringSparePartIssueResponse = zod.object({
   "description": zod.string(),
   "createdBy": zod.string(),
   "createdAt": zod.string()
+})
+
+
+export const ListSparePartRequestsResponseItem = zod.object({
+  "id": zod.number(),
+  "requestId": zod.string(),
+  "requesterUserId": zod.string(),
+  "requesterName": zod.string(),
+  "department": zod.string(),
+  "status": zod.enum(['chief_review', 'director_review', 'awaiting_delivery', 'returned_to_engineer', 'completed', 'rejected']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "articleNumber": zod.string(),
+  "unit": zod.string(),
+  "quantity": zod.number(),
+  "fleetId": zod.number(),
+  "fleetKind": zod.string(),
+  "registrationNumber": zod.string().nullable(),
+  "status": zod.enum(['chief_review', 'director_review', 'returned_to_engineer', 'awaiting_delivery', 'received', 'rejected']),
+  "unitPrice": zod.number().nullable(),
+  "chiefComment": zod.string(),
+  "directorComment": zod.string(),
+  "receivedQuantity": zod.number(),
+  "chiefReviewedByName": zod.string(),
+  "chiefReviewedAt": zod.string().nullable(),
+  "directorReviewedByName": zod.string(),
+  "directorReviewedAt": zod.string().nullable(),
+  "receivedByName": zod.string(),
+  "receivedAt": zod.string().nullable()
+}))
+})
+export const ListSparePartRequestsResponse = zod.array(ListSparePartRequestsResponseItem)
+
+
+export const createSparePartRequestBodyRequestIdMin = 16;
+export const createSparePartRequestBodyRequestIdMax = 80;
+
+export const createSparePartRequestBodyItemsItemNameMax = 200;
+
+export const createSparePartRequestBodyItemsItemArticleNumberMax = 100;
+
+export const createSparePartRequestBodyItemsItemUnitMax = 40;
+
+export const createSparePartRequestBodyItemsItemQuantityExclusiveMin = 0;
+export const createSparePartRequestBodyItemsItemQuantityMax = 1000000;
+
+
+export const createSparePartRequestBodyItemsMax = 30;
+
+
+
+export const CreateSparePartRequestBody = zod.object({
+  "requestId": zod.string().min(createSparePartRequestBodyRequestIdMin).max(createSparePartRequestBodyRequestIdMax),
+  "items": zod.array(zod.object({
+  "name": zod.string().min(1).max(createSparePartRequestBodyItemsItemNameMax),
+  "articleNumber": zod.string().max(createSparePartRequestBodyItemsItemArticleNumberMax),
+  "unit": zod.string().min(1).max(createSparePartRequestBodyItemsItemUnitMax),
+  "quantity": zod.number().gt(createSparePartRequestBodyItemsItemQuantityExclusiveMin).max(createSparePartRequestBodyItemsItemQuantityMax),
+  "fleetId": zod.number().min(1)
+})).min(1).max(createSparePartRequestBodyItemsMax)
+})
+
+export const CreateSparePartRequestResponse = zod.object({
+  "id": zod.number(),
+  "requestId": zod.string(),
+  "requesterUserId": zod.string(),
+  "requesterName": zod.string(),
+  "department": zod.string(),
+  "status": zod.enum(['chief_review', 'director_review', 'awaiting_delivery', 'returned_to_engineer', 'completed', 'rejected']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "articleNumber": zod.string(),
+  "unit": zod.string(),
+  "quantity": zod.number(),
+  "fleetId": zod.number(),
+  "fleetKind": zod.string(),
+  "registrationNumber": zod.string().nullable(),
+  "status": zod.enum(['chief_review', 'director_review', 'returned_to_engineer', 'awaiting_delivery', 'received', 'rejected']),
+  "unitPrice": zod.number().nullable(),
+  "chiefComment": zod.string(),
+  "directorComment": zod.string(),
+  "receivedQuantity": zod.number(),
+  "chiefReviewedByName": zod.string(),
+  "chiefReviewedAt": zod.string().nullable(),
+  "directorReviewedByName": zod.string(),
+  "directorReviewedAt": zod.string().nullable(),
+  "receivedByName": zod.string(),
+  "receivedAt": zod.string().nullable()
+}))
+})
+
+
+
+
+
+export const ReviewSparePartRequestByChiefParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+
+export const reviewSparePartRequestByChiefBodyItemsItemUnitPriceMin = 0;
+export const reviewSparePartRequestByChiefBodyItemsItemUnitPriceMax = 1000000000000;
+
+export const reviewSparePartRequestByChiefBodyItemsItemCommentMax = 1000;
+
+
+
+
+export const ReviewSparePartRequestByChiefBody = zod.object({
+  "items": zod.array(zod.object({
+  "itemId": zod.number().min(1),
+  "decision": zod.enum(['approved', 'returned']),
+  "unitPrice": zod.number().min(reviewSparePartRequestByChiefBodyItemsItemUnitPriceMin).max(reviewSparePartRequestByChiefBodyItemsItemUnitPriceMax).nullable(),
+  "comment": zod.string().max(reviewSparePartRequestByChiefBodyItemsItemCommentMax)
+})).min(1)
+})
+
+export const ReviewSparePartRequestByChiefResponse = zod.object({
+  "id": zod.number(),
+  "requestId": zod.string(),
+  "requesterUserId": zod.string(),
+  "requesterName": zod.string(),
+  "department": zod.string(),
+  "status": zod.enum(['chief_review', 'director_review', 'awaiting_delivery', 'returned_to_engineer', 'completed', 'rejected']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "articleNumber": zod.string(),
+  "unit": zod.string(),
+  "quantity": zod.number(),
+  "fleetId": zod.number(),
+  "fleetKind": zod.string(),
+  "registrationNumber": zod.string().nullable(),
+  "status": zod.enum(['chief_review', 'director_review', 'returned_to_engineer', 'awaiting_delivery', 'received', 'rejected']),
+  "unitPrice": zod.number().nullable(),
+  "chiefComment": zod.string(),
+  "directorComment": zod.string(),
+  "receivedQuantity": zod.number(),
+  "chiefReviewedByName": zod.string(),
+  "chiefReviewedAt": zod.string().nullable(),
+  "directorReviewedByName": zod.string(),
+  "directorReviewedAt": zod.string().nullable(),
+  "receivedByName": zod.string(),
+  "receivedAt": zod.string().nullable()
+}))
+})
+
+
+
+
+
+export const ReviewSparePartRequestByDirectorParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+
+export const reviewSparePartRequestByDirectorBodyItemsItemCommentMax = 1000;
+
+
+
+
+export const ReviewSparePartRequestByDirectorBody = zod.object({
+  "items": zod.array(zod.object({
+  "itemId": zod.number().min(1),
+  "decision": zod.enum(['approved', 'rejected']),
+  "comment": zod.string().max(reviewSparePartRequestByDirectorBodyItemsItemCommentMax)
+})).min(1)
+})
+
+export const ReviewSparePartRequestByDirectorResponse = zod.object({
+  "id": zod.number(),
+  "requestId": zod.string(),
+  "requesterUserId": zod.string(),
+  "requesterName": zod.string(),
+  "department": zod.string(),
+  "status": zod.enum(['chief_review', 'director_review', 'awaiting_delivery', 'returned_to_engineer', 'completed', 'rejected']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "articleNumber": zod.string(),
+  "unit": zod.string(),
+  "quantity": zod.number(),
+  "fleetId": zod.number(),
+  "fleetKind": zod.string(),
+  "registrationNumber": zod.string().nullable(),
+  "status": zod.enum(['chief_review', 'director_review', 'returned_to_engineer', 'awaiting_delivery', 'received', 'rejected']),
+  "unitPrice": zod.number().nullable(),
+  "chiefComment": zod.string(),
+  "directorComment": zod.string(),
+  "receivedQuantity": zod.number(),
+  "chiefReviewedByName": zod.string(),
+  "chiefReviewedAt": zod.string().nullable(),
+  "directorReviewedByName": zod.string(),
+  "directorReviewedAt": zod.string().nullable(),
+  "receivedByName": zod.string(),
+  "receivedAt": zod.string().nullable()
+}))
+})
+
+
+
+
+
+
+export const ResubmitSparePartRequestItemParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "itemId": zod.coerce.number().min(1)
+})
+
+export const resubmitSparePartRequestItemBodyNameMax = 200;
+
+export const resubmitSparePartRequestItemBodyArticleNumberMax = 100;
+
+export const resubmitSparePartRequestItemBodyUnitMax = 40;
+
+export const resubmitSparePartRequestItemBodyQuantityExclusiveMin = 0;
+export const resubmitSparePartRequestItemBodyQuantityMax = 1000000;
+
+
+
+
+export const ResubmitSparePartRequestItemBody = zod.object({
+  "name": zod.string().min(1).max(resubmitSparePartRequestItemBodyNameMax),
+  "articleNumber": zod.string().max(resubmitSparePartRequestItemBodyArticleNumberMax),
+  "unit": zod.string().min(1).max(resubmitSparePartRequestItemBodyUnitMax),
+  "quantity": zod.number().gt(resubmitSparePartRequestItemBodyQuantityExclusiveMin).max(resubmitSparePartRequestItemBodyQuantityMax),
+  "fleetId": zod.number().min(1)
+})
+
+export const ResubmitSparePartRequestItemResponse = zod.object({
+  "id": zod.number(),
+  "requestId": zod.string(),
+  "requesterUserId": zod.string(),
+  "requesterName": zod.string(),
+  "department": zod.string(),
+  "status": zod.enum(['chief_review', 'director_review', 'awaiting_delivery', 'returned_to_engineer', 'completed', 'rejected']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "articleNumber": zod.string(),
+  "unit": zod.string(),
+  "quantity": zod.number(),
+  "fleetId": zod.number(),
+  "fleetKind": zod.string(),
+  "registrationNumber": zod.string().nullable(),
+  "status": zod.enum(['chief_review', 'director_review', 'returned_to_engineer', 'awaiting_delivery', 'received', 'rejected']),
+  "unitPrice": zod.number().nullable(),
+  "chiefComment": zod.string(),
+  "directorComment": zod.string(),
+  "receivedQuantity": zod.number(),
+  "chiefReviewedByName": zod.string(),
+  "chiefReviewedAt": zod.string().nullable(),
+  "directorReviewedByName": zod.string(),
+  "directorReviewedAt": zod.string().nullable(),
+  "receivedByName": zod.string(),
+  "receivedAt": zod.string().nullable()
+}))
 })
 
 
@@ -2287,7 +2561,7 @@ export const GetMyRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -2305,7 +2579,7 @@ export const ListRoleRequestsResponseItem = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -2322,7 +2596,7 @@ export const ListRoleRequestsResponse = zod.array(ListRoleRequestsResponseItem)
 
 
 export const CreateRoleRequestBody = zod.object({
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "department": zod.string().min(1)
 })
 
@@ -2332,7 +2606,7 @@ export const CreateRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -2359,7 +2633,7 @@ export const ReviewRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -2377,7 +2651,7 @@ export const ListUsersResponseItem = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),

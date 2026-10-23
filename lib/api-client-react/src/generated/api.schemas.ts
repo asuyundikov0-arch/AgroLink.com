@@ -544,6 +544,8 @@ export interface SparePartReceiptInput {
   supplier: string;
   /** @maxLength 1000 */
   description: string;
+  /** @minimum 1 */
+  requestItemId?: number;
 }
 
 export type SparePartIssueInputCategory = typeof SparePartIssueInputCategory[keyof typeof SparePartIssueInputCategory];
@@ -575,6 +577,152 @@ export interface SparePartIssueInput {
   description: string;
 }
 
+export type SparePartRequestStatus = typeof SparePartRequestStatus[keyof typeof SparePartRequestStatus];
+
+
+export const SparePartRequestStatus = {
+  chief_review: 'chief_review',
+  director_review: 'director_review',
+  awaiting_delivery: 'awaiting_delivery',
+  returned_to_engineer: 'returned_to_engineer',
+  completed: 'completed',
+  rejected: 'rejected',
+} as const;
+
+export type SparePartRequestItemStatus = typeof SparePartRequestItemStatus[keyof typeof SparePartRequestItemStatus];
+
+
+export const SparePartRequestItemStatus = {
+  chief_review: 'chief_review',
+  director_review: 'director_review',
+  returned_to_engineer: 'returned_to_engineer',
+  awaiting_delivery: 'awaiting_delivery',
+  received: 'received',
+  rejected: 'rejected',
+} as const;
+
+export interface SparePartRequestItem {
+  id: number;
+  name: string;
+  articleNumber: string;
+  unit: string;
+  quantity: number;
+  fleetId: number;
+  fleetKind: string;
+  /** @nullable */
+  registrationNumber: string | null;
+  status: SparePartRequestItemStatus;
+  /** @nullable */
+  unitPrice: number | null;
+  chiefComment: string;
+  directorComment: string;
+  receivedQuantity: number;
+  chiefReviewedByName: string;
+  /** @nullable */
+  chiefReviewedAt: string | null;
+  directorReviewedByName: string;
+  /** @nullable */
+  directorReviewedAt: string | null;
+  receivedByName: string;
+  /** @nullable */
+  receivedAt: string | null;
+}
+
+export interface SparePartRequest {
+  id: number;
+  requestId: string;
+  requesterUserId: string;
+  requesterName: string;
+  department: string;
+  status: SparePartRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+  items: SparePartRequestItem[];
+}
+
+export interface SparePartRequestItemInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  name: string;
+  /** @maxLength 100 */
+  articleNumber: string;
+  /**
+     * @minLength 1
+     * @maxLength 40
+     */
+  unit: string;
+  /**
+     * @maximum 1000000
+     * @exclusiveMinimum 0
+     */
+  quantity: number;
+  /** @minimum 1 */
+  fleetId: number;
+}
+
+export interface SparePartRequestInput {
+  /**
+     * @minLength 16
+     * @maxLength 80
+     */
+  requestId: string;
+  /**
+     * @minItems 1
+     * @maxItems 30
+     */
+  items: SparePartRequestItemInput[];
+}
+
+export type SparePartChiefReviewInputItemsItemDecision = typeof SparePartChiefReviewInputItemsItemDecision[keyof typeof SparePartChiefReviewInputItemsItemDecision];
+
+
+export const SparePartChiefReviewInputItemsItemDecision = {
+  approved: 'approved',
+  returned: 'returned',
+} as const;
+
+export type SparePartChiefReviewInputItemsItem = {
+  /** @minimum 1 */
+  itemId: number;
+  decision: SparePartChiefReviewInputItemsItemDecision;
+  /**
+     * @minimum 0
+     * @maximum 1000000000000
+     * @nullable
+     */
+  unitPrice: number | null;
+  /** @maxLength 1000 */
+  comment: string;
+};
+
+export interface SparePartChiefReviewInput {
+  /** @minItems 1 */
+  items: SparePartChiefReviewInputItemsItem[];
+}
+
+export type SparePartDirectorReviewInputItemsItemDecision = typeof SparePartDirectorReviewInputItemsItemDecision[keyof typeof SparePartDirectorReviewInputItemsItemDecision];
+
+
+export const SparePartDirectorReviewInputItemsItemDecision = {
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export type SparePartDirectorReviewInputItemsItem = {
+  /** @minimum 1 */
+  itemId: number;
+  decision: SparePartDirectorReviewInputItemsItemDecision;
+  /** @maxLength 1000 */
+  comment: string;
+};
+
+export interface SparePartDirectorReviewInput {
+  /** @minItems 1 */
+  items: SparePartDirectorReviewInputItemsItem[];
+}
+
 export type SparePartMovementMovementKind = typeof SparePartMovementMovementKind[keyof typeof SparePartMovementMovementKind];
 
 
@@ -603,6 +751,8 @@ export interface SparePartMovement {
   movementKind: SparePartMovementMovementKind;
   /** @nullable */
   repairCategory: SparePartMovementRepairCategory;
+  /** @nullable */
+  purchaseRequestItemId: number | null;
   quantity: number;
   unitPrice: number;
   amount: number;
@@ -1070,6 +1220,7 @@ export const RoleRequestRequestedRole = {
   chief_agronomist: 'chief_agronomist',
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
+  storekeeper: 'storekeeper',
   economist: 'economist',
   lawyer: 'lawyer',
   farm_director: 'farm_director',
@@ -1108,6 +1259,7 @@ export const RoleRequestInputRequestedRole = {
   chief_agronomist: 'chief_agronomist',
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
+  storekeeper: 'storekeeper',
   economist: 'economist',
   lawyer: 'lawyer',
   farm_director: 'farm_director',
@@ -1205,6 +1357,7 @@ export const GetMyRoleRequest200RequestedRole = {
   chief_agronomist: 'chief_agronomist',
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
+  storekeeper: 'storekeeper',
   economist: 'economist',
   lawyer: 'lawyer',
   farm_director: 'farm_director',

@@ -105,6 +105,7 @@ const roleLabels = {
   general_director: "Генеральный директор",
   engineer: "Инженер",
   chief_engineer: "Главный инженер",
+  storekeeper: "Заведующий складом",
   lawyer: "Юрист",
 } as const;
 type AppRole = keyof typeof roleLabels;
@@ -226,6 +227,7 @@ const demoRoleScenarios: Record<AppRole, { workspace: string; title: string; des
   general_director: { workspace: "Личный кабинет", title: "Финальное согласование", description: "Утвердите документ и разместите его в соответствующем архиве.", document: "Акт технического осмотра · Инженерная служба", action: "Одобрить и в архив", result: "Демо: документ утверждён и помещён в инженерский архив." },
   engineer: { workspace: "Инженерный блок", title: "Отправка инженерного документа", description: "Откройте шаблон, подготовьте Excel или PDF и передайте его главному инженеру.", document: "Акт технического осмотра · Инженерная служба", action: "Отправить главному инженеру", result: "Демо: инженерный документ направлен главному инженеру." },
   chief_engineer: { workspace: "Личный кабинет", title: "Очередь главного инженера", description: "Проверьте инженерный документ, верните его на доработку или направьте генеральному директору.", document: "Акт технического осмотра · Инженерная служба", action: "Принять и направить директору", result: "Демо: документ согласован главным инженером и направлен генеральному директору." },
+  storekeeper: { workspace: "Инженерный блок", title: "Приёмка запчастей", description: "Проверьте одобренные заявки, внесите фактическое поступление по накладной и пополните склад.", document: "Заявка на покупку запчастей · Инженерная служба", action: "Оприходовать накладную", result: "Демо: поступление по заявке оприходовано на складе." },
   lawyer: { workspace: "Юридический блок", title: "Отправка юридического документа", description: "Подготовьте документ и направьте его на финальное согласование генеральному директору.", document: "Юридическое заключение · Юридический отдел", action: "Отправить генеральному директору", result: "Демо: юридический документ направлен генеральному директору." },
 };
 
@@ -361,7 +363,7 @@ function Shell({
   const [topNotice, setTopNotice] = useState("");
   const { signOut } = useClerk();
   const activeSidebarSection: SidebarSection = activeSection === "templates" ? "cabinet" : activeSection;
-  const isEngineeringVisible = ["engineer", "chief_engineer", "general_director"].includes(role);
+  const isEngineeringVisible = ["engineer", "chief_engineer", "storekeeper", "general_director"].includes(role);
   const isEconomicVisible = ["economist", "farm_director", "general_director"].includes(role);
   const isLegalVisible = ["lawyer", "general_director"].includes(role);
   const navigation = [

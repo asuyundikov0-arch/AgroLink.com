@@ -45,4 +45,6 @@ export interface SparePartReceiptInput {
   supplier: string;
   /** @maxLength 1000 */
   description: string;
+  /** @minimum 1 */
+  requestItemId?: number;
 }

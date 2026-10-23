@@ -88,6 +88,8 @@ export default function SparePartsWarehouse({ role, fleet, fleetById }: Props) {
   }, [parts, search]);
   const availableParts = parts.filter((part) => part.quantity > 0).length;
   const totalValue = parts.reduce((sum, part) => sum + part.quantity * part.averageUnitCost, 0);
+  const canReceive = ["engineer", "chief_engineer", "storekeeper", "general_director"].includes(role);
+  const canIssue = ["engineer", "chief_engineer", "general_director"].includes(role);
   const pending = receive.isPending || issue.isPending;
   const loading = stockQ.isLoading || movementsQ.isLoading;
   const failed = stockQ.isError ? stockQ : movementsQ.isError ? movementsQ : null;
@@ -180,12 +182,12 @@ export default function SparePartsWarehouse({ role, fleet, fleetById }: Props) {
           <p className="mt-1 text-xs text-muted-foreground">Поступления по накладным и точная выдача на технику</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="button button-secondary" onClick={openReceipt} data-testid="button-spare-part-receipt">
+          {canReceive && <button type="button" className="button button-secondary" onClick={openReceipt} data-testid="button-spare-part-receipt">
             <ArrowDownToLine size={14} />Приход по накладной
-          </button>
-          <button type="button" className="button button-primary" onClick={() => openIssue()} disabled={!parts.some((part) => part.quantity > 0) || fleet.length === 0} data-testid="button-spare-part-issue">
+          </button>}
+          {canIssue && <button type="button" className="button button-primary" onClick={() => openIssue()} disabled={!parts.some((part) => part.quantity > 0) || fleet.length === 0} data-testid="button-spare-part-issue">
             <ArrowUpFromLine size={14} />Выдать на технику
-          </button>
+          </button>}
         </div>
       </header>
 
@@ -235,7 +237,7 @@ export default function SparePartsWarehouse({ role, fleet, fleetById }: Props) {
                     <div className="text-[11px] text-muted-foreground md:text-foreground">{part.unit}</div>
                     <div className="flex items-baseline justify-between md:justify-end"><span className="text-[10px] text-muted-foreground md:hidden">Остаток</span><span className={cx("font-mono text-sm font-bold", part.quantity <= 0 && "text-muted-foreground")} data-testid={`text-spare-part-quantity-${part.id}`}>{fmt.format(part.quantity)}</span></div>
                     <div className="flex items-baseline justify-between md:justify-end"><span className="text-[10px] text-muted-foreground md:hidden">Средняя цена</span><span className="font-mono text-xs">{money(part.averageUnitCost)}</span></div>
-                    <button type="button" className="button button-secondary !min-h-[32px] w-full !px-2.5 text-[11px] md:w-auto" onClick={() => openIssue(part)} disabled={part.quantity <= 0 || fleet.length === 0} data-testid={`button-issue-spare-part-${part.id}`}><ArrowUpFromLine size={13} />Выдать</button>
+                     {canIssue && <button type="button" className="button button-secondary !min-h-[32px] w-full !px-2.5 text-[11px] md:w-auto" onClick={() => openIssue(part)} disabled={part.quantity <= 0 || fleet.length === 0} data-testid={`button-issue-spare-part-${part.id}`}><ArrowUpFromLine size={13} />Выдать</button>}
                   </li>
                 ))}
               </ul>

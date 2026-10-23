@@ -14,6 +14,7 @@ export const GetMyRoleRequest200RequestedRole = {
   chief_agronomist: 'chief_agronomist',
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
+  storekeeper: 'storekeeper',
   economist: 'economist',
   lawyer: 'lawyer',
   farm_director: 'farm_director',

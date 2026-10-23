@@ -9,11 +9,12 @@ import {
 } from "@workspace/api-zod";
 import {
   activityTable, db, equipmentRepairsTable, fleetEquipmentTable, repairExpensesTable,
-  sparePartMovementsTable, sparePartsTable,
+  sparePartMovementsTable, sparePartsTable, sparePartRequestItemsTable,
 } from "@workspace/db";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { calculateRepair, repairBusinessDate, summarizeRepairs, validRepairDate, validateRepairInput } from "../lib/repair-calculations";
 import { ledgerTotals, registrationKey } from "../lib/repair-ledger";
+import { refreshSparePartRequestStatus } from "../lib/spare-part-request-status";
 
 const router: IRouter = Router();
 const protect: RequestHandler = (_req, res, next) => {
@@ -24,12 +25,20 @@ const protect: RequestHandler = (_req, res, next) => {
   }
   next();
 };
-for (const path of ["/engineering/repairs", "/engineering/expenses", "/engineering/repair-plan", "/engineering/spare-parts"]) {
+for (const path of ["/engineering/repairs", "/engineering/expenses", "/engineering/repair-plan"]) {
   router.use(path, requireApprovedRole, protect);
 }
+const warehouseProtect: RequestHandler = (_req, res, next) => {
+  if (!["engineer", "chief_engineer", "general_director", "storekeeper"].includes(res.locals.access.role ?? "")) {
+    res.status(403).json({ error: "Склад доступен инженерной службе, заведующему складом и генеральному директору." });
+    return;
+  }
+  next();
+};
+router.use("/engineering/spare-parts", requireApprovedRole, warehouseProtect);
 router.use("/engineering/fleet", requireApprovedRole);
 const fleetReaders = new Set([
-  "engineer", "chief_engineer", "general_director",
+  "engineer", "chief_engineer", "general_director", "storekeeper",
   "agronomist", "chief_agronomist", "farm_director", "economist",
 ]);
 const canReadFleet: RequestHandler = (_req, res, next) => {
@@ -91,6 +100,7 @@ const movementJson = ({ movement, part }: MovementRecord) => ({
   id: movement.id, sparePartId: movement.sparePartId, sparePartName: part.name,
   articleNumber: part.articleNumber, unit: part.unit, movementKind: movement.movementKind,
   repairCategory: movement.repairCategory,
+  purchaseRequestItemId: movement.purchaseRequestItemId,
   quantity: Number(movement.quantity), unitPrice: Number(movement.unitPrice), amount: Number(movement.amount),
   occurredOn: movement.occurredOn, invoiceNumber: movement.invoiceNumber, invoiceDate: movement.invoiceDate,
   supplier: movement.supplier, fleetId: movement.fleetId, description: movement.description,
@@ -301,6 +311,10 @@ router.post("/engineering/spare-parts/receipts", safe(async (req, res) => {
     || !validRepairDate(input.invoiceDate) || input.invoiceDate > repairBusinessDate()) {
     res.status(400).json({ error: "Укажите корректные данные прихода, количество, цену и даты не позднее сегодняшнего." }); return;
   }
+  const access = res.locals.access as RoleAccess;
+  if (input.requestItemId !== undefined && access.role !== "storekeeper") {
+    res.status(403).json({ error: "Поступление по заявке оформляет заведующий складом." }); return;
+  }
   const by = actor(res.locals.access);
   const result = await db.transaction(async (tx) => {
     const [existing] = await tx.select().from(sparePartMovementsTable)
@@ -310,6 +324,26 @@ router.post("/engineering/spare-parts/receipts", safe(async (req, res) => {
     const name = input.name.trim();
     const articleNumber = input.articleNumber.trim();
     const unit = input.unit.trim();
+    let requestItem: typeof sparePartRequestItemsTable.$inferSelect | null = null;
+    if (input.requestItemId !== undefined) {
+      const [requestedItem] = await tx.select().from(sparePartRequestItemsTable)
+        .where(eq(sparePartRequestItemsTable.id, input.requestItemId)).for("update");
+      if (!requestedItem || requestedItem.status !== "awaiting_delivery") {
+        return { error: "Эта позиция не ожидает поступления.", status: 409 as const };
+      }
+      if (
+        requestedItem.name.toLocaleLowerCase("ru-RU") !== name.toLocaleLowerCase("ru-RU")
+        || requestedItem.articleNumber.toLocaleLowerCase("ru-RU") !== articleNumber.toLocaleLowerCase("ru-RU")
+        || requestedItem.unit.toLocaleLowerCase("ru-RU") !== unit.toLocaleLowerCase("ru-RU")
+      ) {
+        return { error: "Наименование, каталожный номер и единица измерения должны совпадать с заявкой.", status: 400 as const };
+      }
+      const remaining = Number(requestedItem.quantity) - Number(requestedItem.receivedQuantity);
+      if (input.quantity > remaining + 1e-9) {
+        return { error: `Нельзя оприходовать больше остатка заявки: ${remaining.toLocaleString("ru-RU")} ${requestedItem.unit}.`, status: 409 as const };
+      }
+      requestItem = requestedItem;
+    }
     const nameKey = name.toLocaleLowerCase("ru-RU");
     const articleKey = articleNumber.toLocaleLowerCase("ru-RU");
     const unitKey = unit.toLocaleLowerCase("ru-RU");
@@ -333,17 +367,34 @@ router.post("/engineering/spare-parts/receipts", safe(async (req, res) => {
     }).returning();
     const [movement] = await tx.insert(sparePartMovementsTable).values({
       requestId: input.requestId, sparePartId: part.id, movementKind: "receipt",
+      purchaseRequestItemId: requestItem?.id ?? null,
       quantity: input.quantity.toFixed(3), unitPrice: input.unitPrice.toFixed(2),
       amount: amount.toFixed(2), occurredOn: input.occurredOn, invoiceNumber: input.invoiceNumber.trim(),
       invoiceDate: input.invoiceDate, supplier: input.supplier.trim(), description: input.description.trim(), createdBy: by,
     }).returning();
+    if (requestItem) {
+      const receivedQuantity = Number(requestItem.receivedQuantity) + input.quantity;
+      const fullyReceived = receivedQuantity + 1e-9 >= Number(requestItem.quantity);
+      await tx.update(sparePartRequestItemsTable).set({
+        receivedQuantity: Math.min(receivedQuantity, Number(requestItem.quantity)).toFixed(3),
+        status: fullyReceived ? "received" : "awaiting_delivery",
+        receivedByName: actor(access),
+        receivedAt: new Date(),
+        updatedAt: new Date(),
+      }).where(eq(sparePartRequestItemsTable.id, requestItem.id));
+      await refreshSparePartRequestStatus(tx, requestItem.requestId);
+    }
     await activity(tx, "Поступили запчасти на склад", `${name}${articleNumber ? ` · ${articleNumber}` : ""} · накладная ${input.invoiceNumber.trim()}`, by);
     return { movement: await movementById(tx, movement.id) };
   });
+  if ("error" in result) { res.status(result.status ?? 409).json({ error: result.error }); return; }
   if (!result.movement) { res.status(500).json({ error: "Не удалось загрузить карточку запчасти после прихода." }); return; }
   res.status(201).json(movementJson(result.movement));
 }));
 router.post("/engineering/spare-parts/issues", safe(async (req, res) => {
+  if ((res.locals.access as RoleAccess).role === "storekeeper") {
+    res.status(403).json({ error: "Заведующий складом может принимать запчасти, но не списывать их на технику." }); return;
+  }
   const parsed = CreateEngineeringSparePartIssueBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Выберите запчасть и технику, укажите количество и дату списания." }); return; }
   const input = parsed.data;

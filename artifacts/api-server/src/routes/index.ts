@@ -7,6 +7,7 @@ import roleApplicationsRouter from "./role-applications";
 import equipmentRepairsRouter from "./equipment-repairs";
 import grainRouter from "./grain";
 import agroFieldsRouter from "./agro-fields";
+import sparePartRequestsRouter from "./spare-part-requests";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(roleApplicationsRouter);
 router.use(equipmentRepairsRouter);
 router.use(grainRouter);
 router.use(agroFieldsRouter);
+router.use(sparePartRequestsRouter);
 
 export default router;
