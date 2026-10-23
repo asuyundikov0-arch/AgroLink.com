@@ -140,6 +140,44 @@ export interface FieldOperationVoidInput {
   reason: string;
 }
 
+export interface FieldProgressInput {
+  /** @minimum 1 */
+  operationVersion: number;
+  reportDate: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  cumulativeAreaHa: number;
+  /** @maxLength 200 */
+  actualMechanic: string;
+  /** @maxLength 200 */
+  actualEquipment: string;
+  /** @maxLength 200 */
+  actualImplement: string;
+  /** @maxLength 3000 */
+  notes: string;
+}
+
+export type FieldProgressUpdate = FieldProgressInput & {
+  /** @minimum 1 */
+  version: number;
+};
+
+export interface FieldProgressReport {
+  id: number;
+  reportDate: string;
+  cumulativeAreaHa: number;
+  dailyAreaHa: number;
+  actualMechanic: string;
+  actualEquipment: string;
+  actualImplement: string;
+  notes: string;
+  version: number;
+  updatedBy: string;
+  updatedAt: string;
+}
+
 export type FieldOperationStatus = typeof FieldOperationStatus[keyof typeof FieldOperationStatus];
 
 
@@ -155,6 +193,7 @@ export type FieldOperation = FieldOperationUpdate & FieldActualInput & ({
   status: FieldOperationStatus;
   isOverdue: boolean;
   progressPercent: number;
+  progressReports: FieldProgressReport[];
   /** @nullable */
   voidedAt: string | null;
   voidReason: string;

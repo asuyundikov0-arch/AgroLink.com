@@ -36,6 +36,8 @@ import type {
   FieldOperationInput,
   FieldOperationUpdate,
   FieldOperationVoidInput,
+  FieldProgressInput,
+  FieldProgressUpdate,
   FieldSeason,
   FieldSeasonInput,
   FieldSeasonUpdate,
@@ -627,6 +629,140 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getUpdateFieldOperationActualMutationOptions(options));
+    }
+
+export const getCreateFieldOperationProgressUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/fields/operations/${id}/progress`
+}
+
+export const createFieldOperationProgress = async (id: number,
+    fieldProgressInput: FieldProgressInput, options?: Parameters<typeof customFetch>[1]): Promise<FieldOperation> => {
+
+  return customFetch<FieldOperation>(getCreateFieldOperationProgressUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(fieldProgressInput)
+  }
+);}
+
+
+
+
+
+export const getCreateFieldOperationProgressMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFieldOperationProgress>>, TError,{id: number;data: BodyType<FieldProgressInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createFieldOperationProgress>>, TError,{id: number;data: BodyType<FieldProgressInput>}, TContext> => {
+
+const mutationKey = ['createFieldOperationProgress'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createFieldOperationProgress>>, {id: number;data: BodyType<FieldProgressInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createFieldOperationProgress(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateFieldOperationProgressMutationResult = NonNullable<Awaited<ReturnType<typeof createFieldOperationProgress>>>
+    export type CreateFieldOperationProgressMutationBody = BodyType<FieldProgressInput>
+    export type CreateFieldOperationProgressMutationError = ErrorType<unknown>
+
+    export const useCreateFieldOperationProgress = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFieldOperationProgress>>, TError,{id: number;data: BodyType<FieldProgressInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createFieldOperationProgress>>,
+        TError,
+        {id: number;data: BodyType<FieldProgressInput>},
+        TContext
+      > => {
+      return useMutation(getCreateFieldOperationProgressMutationOptions(options));
+    }
+
+export const getUpdateFieldOperationProgressUrl = (id: number,
+    progressId: number,) => {
+
+
+
+
+  return `/api/agro/fields/operations/${id}/progress/${progressId}`
+}
+
+export const updateFieldOperationProgress = async (id: number,
+    progressId: number,
+    fieldProgressUpdate: FieldProgressUpdate, options?: Parameters<typeof customFetch>[1]): Promise<FieldOperation> => {
+
+  return customFetch<FieldOperation>(getUpdateFieldOperationProgressUrl(id,progressId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(fieldProgressUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateFieldOperationProgressMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFieldOperationProgress>>, TError,{id: number;progressId: number;data: BodyType<FieldProgressUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateFieldOperationProgress>>, TError,{id: number;progressId: number;data: BodyType<FieldProgressUpdate>}, TContext> => {
+
+const mutationKey = ['updateFieldOperationProgress'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateFieldOperationProgress>>, {id: number;progressId: number;data: BodyType<FieldProgressUpdate>}> = (props) => {
+          const {id,progressId,data} = props ?? {};
+
+          return  updateFieldOperationProgress(id,progressId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateFieldOperationProgressMutationResult = NonNullable<Awaited<ReturnType<typeof updateFieldOperationProgress>>>
+    export type UpdateFieldOperationProgressMutationBody = BodyType<FieldProgressUpdate>
+    export type UpdateFieldOperationProgressMutationError = ErrorType<unknown>
+
+    export const useUpdateFieldOperationProgress = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFieldOperationProgress>>, TError,{id: number;progressId: number;data: BodyType<FieldProgressUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateFieldOperationProgress>>,
+        TError,
+        {id: number;progressId: number;data: BodyType<FieldProgressUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateFieldOperationProgressMutationOptions(options));
     }
 
 export const getVoidFieldOperationUrl = (id: number,) => {

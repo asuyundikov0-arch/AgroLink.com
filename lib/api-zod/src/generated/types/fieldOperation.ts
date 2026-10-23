@@ -8,12 +8,14 @@
 import type { FieldActualInput } from './fieldActualInput';
 import type { FieldOperationStatus } from './fieldOperationStatus';
 import type { FieldOperationUpdate } from './fieldOperationUpdate';
+import type { FieldProgressReport } from './fieldProgressReport';
 
 export type FieldOperation = FieldOperationUpdate & FieldActualInput & ({
   id: number;
   status: FieldOperationStatus;
   isOverdue: boolean;
   progressPercent: number;
+  progressReports: FieldProgressReport[];
   /** @nullable */
   voidedAt: string | null;
   voidReason: string;

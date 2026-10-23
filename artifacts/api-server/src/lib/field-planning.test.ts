@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { FieldActualInput, FieldOperationInput } from "@workspace/api-zod";
-import { fieldNumberKey, fieldOperationState, toAreaAres, validateFieldActual, validateFieldPlan } from "./field-planning";
+import { fieldNumberKey, fieldOperationState, progressDeltaAres, toAreaAres, validateFieldActual, validateFieldPlan, validateFieldProgress } from "./field-planning";
 
 const plan = (extra: Partial<FieldOperationInput> = {}): FieldOperationInput => ({
   seasonId: 1, name: "Посев", plannedStart: "2026-05-01", plannedEnd: "2026-05-10",
@@ -60,6 +60,15 @@ test("actual area needs a start, positive completion and cannot exceed planned a
   assert.equal(validateFieldActual(fact({ actualStart: null, actualAreaHa: 0 }), 12025, "2026-10-23"), null);
   assert.ok(validateFieldActual(fact({ actualAreaHa: 1 }), 12025, "2026-10-23"));
   assert.ok(validateFieldActual(fact({ actualEnd: "2026-05-04" }), 12025, "2026-10-23"));
+});
+test("daily progress uses cumulative area and derives each day's increase", () => {
+  assert.equal(validateFieldProgress(8500, 50000, null, 16000), null);
+  assert.equal(validateFieldProgress(16000, 50000, 8500, null), null);
+  assert.equal(progressDeltaAres(16000, 8500), 7500);
+  assert.ok(validateFieldProgress(8000, 50000, 8500, null));
+  assert.ok(validateFieldProgress(17000, 50000, 8500, 16000));
+  assert.ok(validateFieldProgress(50001, 50000, null, null));
+  assert.equal(validateFieldProgress(0, 50000, null, null), null);
 });
 test("starting an operation requires its type, mechanic, machine and implement", () => {
   for (const change of [

@@ -1,7 +1,7 @@
 import { type ReactNode, useMemo, useState } from "react";
 import { Activity, Ban, CalendarRange, History, LandPlot, Layers, Map as MapIcon, Pencil, Plus, RefreshCw, Sprout, TriangleAlert } from "lucide-react";
 import { type AgroField, type FieldOperation, type FieldSeason, getGetFieldDashboardQueryKey, getListFleetEquipmentQueryKey, useGetFieldDashboard, useListFleetEquipment } from "@workspace/api-client-react";
-import { ActualForm, FieldForm, OperationForm, SeasonForm, VoidDialog } from "./Forms";
+import { ActualForm, FieldForm, OperationForm, ProgressForm, SeasonForm, VoidDialog } from "./Forms";
 import { CropAreaChart, OpPlanFactChart } from "./Charts";
 import { Drawer, POLL_MS, Progress, STATUS, StatusPill, UNITS, type Unit, canActual, canManage, cx, dateFmt, errorInfo, ha, isGD, sumHa } from "./shared";
 
@@ -12,6 +12,7 @@ type Modal =
   | { k: "season"; season: FieldSeason | null; fieldId?: number }
   | { k: "op"; op: FieldOperation | null; seasonId?: number }
   | { k: "actual"; op: FieldOperation }
+  | { k: "progress"; op: FieldOperation }
   | { k: "void"; op: FieldOperation }
   | { k: "history"; fieldId: number };
 
@@ -225,10 +226,15 @@ export default function FieldsWorkspace({ role }: { role: string }) {
                             {cancelled && <p className="text-[10.5px] text-muted-foreground" data-testid={`text-void-reason-${o.id}`}>Отменил {o.voidedBy} {dateFmt(o.voidedAt)}: {o.voidReason}</p>}</td>
                           <td><StatusPill op={o} /></td>
                           <td className="text-[10.5px] leading-5"><span className="font-mono">{dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)}<br />{ha(o.plannedAreaHa)}</span>{o.plannedEquipment && <p>Техника: {o.plannedEquipment}</p>}{o.plannedImplement && <p className="text-muted-foreground">Агрегат: {o.plannedImplement}</p>}</td>
-                          <td className="text-[10.5px] leading-5"><span className="font-mono">{dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)}<br />{ha(o.actualAreaHa)}</span>{o.actualStart && <><p>{o.actualMechanic}</p><p className="text-muted-foreground">{o.actualEquipment}{o.actualImplement ? ` · ${o.actualImplement}` : ""}</p></>}</td>
+                          <td className="text-[10.5px] leading-5"><span className="font-mono">{dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)}<br />{ha(o.actualAreaHa)}</span>{o.actualStart && <><p>{o.actualMechanic}</p><p className="text-muted-foreground">{o.actualEquipment}{o.actualImplement ? ` · ${o.actualImplement}` : ""}</p></>}{o.progressReports.at(-1) && <p className="text-muted-foreground">Отчёт {dateFmt(o.progressReports.at(-1)!.reportDate)} · +{ha(o.progressReports.at(-1)!.dailyAreaHa)}</p>}</td>
                           <td><Progress value={o.progressPercent} label={`Выполнено ${o.name}`} /></td>
                           <td className="px-4"><div className="flex justify-end gap-1.5">
-                            {actual && !cancelled && <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => setModal({ k: "actual", op: o })} data-testid={`button-actual-op-${o.id}`}><Activity size={13} />{o.actualStart ? o.actualEnd ? "Факт" : "Завершить" : "Начать"}</button>}
+                            {actual && !cancelled && !o.actualStart && <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => setModal({ k: "actual", op: o })} data-testid={`button-actual-op-${o.id}`}><Activity size={13} />Начать</button>}
+                            {actual && !cancelled && !!o.actualStart && !o.actualEnd && <>
+                              <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => setModal({ k: "progress", op: o })} data-testid={`button-progress-op-${o.id}`}><Activity size={13} />Отчёт</button>
+                              <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => setModal({ k: "actual", op: o })} data-testid={`button-actual-op-${o.id}`}>Завершить</button>
+                            </>}
+                            {actual && !cancelled && !!o.actualEnd && <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => setModal({ k: "actual", op: o })} data-testid={`button-actual-op-${o.id}`}><Activity size={13} />Факт</button>}
                             {manage && !cancelled && <button type="button" className="button button-secondary !min-h-[30px] !px-2" onClick={() => setModal({ k: "op", op: o })} aria-label="Изменить план" data-testid={`button-edit-op-${o.id}`}><Pencil size={13} /></button>}
                             {gd && !cancelled && <button type="button" className="button button-danger border !min-h-[30px] !px-2" onClick={() => setModal({ k: "void", op: o })} aria-label="Отменить операцию" data-testid={`button-void-op-${o.id}`}><Ban size={13} /></button>}
                           </div></td>
@@ -267,6 +273,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
           {modal?.k === "season" && <SeasonForm season={modal.season} fields={fields} seasons={seasons} cropSuggestions={d.cropSuggestions} defaultYear={year} defaultFieldId={modal.fieldId ?? (fieldF !== "all" ? Number(fieldF) : undefined)} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "op" && <OperationForm op={modal.op} seasons={seasons} fields={fields} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} defaultSeasonId={modal.seasonId ?? yearSeasons[0]?.id} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "actual" && <ActualForm op={modal.op} title={opTitle(modal.op)} today={today} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} onClose={() => setModal(null)} onDone={done} />}
+          {modal?.k === "progress" && <ProgressForm op={modal.op} title={opTitle(modal.op)} today={today} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "void" && <VoidDialog op={modal.op} title={opTitle(modal.op)} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "history" && fieldById.get(modal.fieldId) && <FieldHistory field={fieldById.get(modal.fieldId)!} seasons={seasons} ops={ops} onClose={() => setModal(null)} />}
         </>
@@ -300,6 +307,7 @@ function FieldHistory({ field, seasons, ops, onClose }: { field: AgroField; seas
                     <p className="font-mono text-[10.5px] text-muted-foreground">план {dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)} · {ha(o.plannedAreaHa)} | факт {dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)} · {ha(o.actualAreaHa)}</p>
                     {(o.plannedEquipment || o.plannedImplement) && <p className="text-muted-foreground">Плановая техника: {o.plannedEquipment || "не указана"} · агрегат: {o.plannedImplement || "не указан"}</p>}
                     {o.actualStart && <p>Факт: {o.actualOperationName || o.name} · механизатор {o.actualMechanic || "не указан"} · {o.actualEquipment || "техника не указана"} · {o.actualImplement || "агрегат не указан"}</p>}
+                    {o.progressReports.length > 0 && <div className="mt-1 rounded-md bg-muted/30 px-2.5 py-2" data-testid={`history-progress-${o.id}`}><p className="font-semibold">Дневные отчёты</p><ul className="mt-1 space-y-1">{[...o.progressReports].reverse().map((report) => <li key={report.id}>{dateFmt(report.reportDate)} · +{ha(report.dailyAreaHa)} · итого {ha(report.cumulativeAreaHa)} · {report.actualMechanic} · {report.actualEquipment}{report.actualImplement ? ` · ${report.actualImplement}` : ""}</li>)}</ul></div>}
                     {o.responsible && <p className="text-muted-foreground">Ответственный: {o.responsible}</p>}
                     {o.notes && <p>План: {o.notes}</p>}
                     {o.actualNotes && <p>Факт: {o.actualNotes}</p>}

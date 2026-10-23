@@ -7,10 +7,12 @@ import {
   type FieldSeason,
   useCreateAgroField,
   useCreateFieldOperation,
+  useCreateFieldOperationProgress,
   useCreateFieldSeason,
   useUpdateAgroField,
   useUpdateFieldOperation,
   useUpdateFieldOperationActual,
+  useUpdateFieldOperationProgress,
   useUpdateFieldSeason,
   useVoidFieldOperation,
 } from "@workspace/api-client-react";
@@ -395,6 +397,125 @@ export function ActualForm({ op, title, today, fleet, fleetLoading, fleetError, 
           <Field label="Фактический агрегат *" error={errs.implement} hint="Можно изменить относительно плана" htmlFor="ac-implement"><input id="ac-implement" className="text-input" maxLength={200} value={f.implement} onChange={(ev) => setF({ ...f, implement: ev.target.value })} data-testid="input-actual-implement" /></Field>
           <Field label="Примечание к факту" htmlFor="ac-notes" wide><textarea id="ac-notes" className="text-input min-h-[72px]" maxLength={3000} value={f.notes} onChange={(ev) => setF({ ...f, notes: ev.target.value })} data-testid="input-actual-notes" /></Field>
         </div>
+      </Drawer>
+    </form>
+  );
+}
+
+/* ---------------- Daily cumulative progress ---------------- */
+export function ProgressForm({ op, title, today, fleet, fleetLoading, fleetError, onRetry, onClose, onDone }: {
+  op: FieldOperation; title: string; today: string; fleet: FleetEquipment[]; fleetLoading: boolean; fleetError: boolean;
+  onRetry: () => void; onClose: () => void; onDone: Done;
+}) {
+  const create = useCreateFieldOperationProgress();
+  const update = useUpdateFieldOperationProgress();
+  const invalidate = useInvalidateFields();
+  const e = useErr();
+  const reports = useMemo(() => [...op.progressReports].sort((a, b) => a.reportDate.localeCompare(b.reportDate)), [op.progressReports]);
+  const initialDate = today >= (op.actualStart ?? today) ? today : op.actualStart ?? today;
+  const [reportDate, setReportDate] = useState(initialDate);
+  const initialExisting = reports.find((report) => report.reportDate === initialDate);
+  const initialPrevious = reports.filter((report) => report.reportDate < initialDate).at(-1);
+  const [f, setF] = useState({
+    area: haStr(initialExisting?.cumulativeAreaHa ?? initialPrevious?.cumulativeAreaHa ?? op.actualAreaHa),
+    mechanic: initialExisting?.actualMechanic ?? op.actualMechanic,
+    equipment: initialExisting?.actualEquipment ?? op.actualEquipment,
+    implement: initialExisting?.actualImplement ?? op.actualImplement,
+    notes: initialExisting?.notes ?? "",
+  });
+  const [errs, setErrs] = useState<Record<string, string>>({});
+  const pending = create.isPending || update.isPending;
+  const close = () => { if (!pending) onClose(); };
+  const existing = reports.find((report) => report.reportDate === reportDate);
+  const previous = reports.filter((report) => report.reportDate < reportDate).at(-1);
+  const next = reports.find((report) => report.reportDate > reportDate);
+  const parsed = f.area.trim() === "" ? null : parseHa(f.area);
+  const dailyChange = parsed === null ? null : parsed - (previous?.cumulativeAreaHa ?? 0);
+
+  const chooseDate = (date: string) => {
+    const saved = reports.find((report) => report.reportDate === date);
+    const prior = reports.filter((report) => report.reportDate < date).at(-1);
+    setReportDate(date);
+    setF({
+      area: haStr(saved?.cumulativeAreaHa ?? prior?.cumulativeAreaHa ?? 0),
+      mechanic: saved?.actualMechanic ?? op.actualMechanic,
+      equipment: saved?.actualEquipment ?? op.actualEquipment,
+      implement: saved?.actualImplement ?? op.actualImplement,
+      notes: saved?.notes ?? "",
+    });
+    setErrs({});
+    e.clear();
+  };
+
+  const submit = async (ev: FormEvent) => {
+    ev.preventDefault();
+    if (pending || e.conflict) return;
+    const er: Record<string, string> = {};
+    if (!reportDate || reportDate < (op.actualStart ?? "") || reportDate > today) er.reportDate = "Дата должна быть между началом операции и сегодняшним днём.";
+    if (parsed === null) er.area = "Укажите число с точностью до 0,01 га.";
+    else if (parsed > op.plannedAreaHa) er.area = `Не больше плана (${ha(op.plannedAreaHa)}).`;
+    else if (previous && parsed < previous.cumulativeAreaHa) er.area = `Не меньше предыдущего отчёта (${ha(previous.cumulativeAreaHa)}).`;
+    else if (next && parsed > next.cumulativeAreaHa) er.area = `Не больше следующего отчёта (${ha(next.cumulativeAreaHa)}).`;
+    if (!f.mechanic.trim()) er.mechanic = "Укажите механизатора.";
+    if (!f.equipment.trim()) er.equipment = "Выберите технику из справочника.";
+    if (!f.implement.trim()) er.implement = "Укажите агрегат.";
+    setErrs(er); e.clear();
+    if (Object.keys(er).length || parsed === null) return;
+    const data = {
+      operationVersion: op.version, reportDate, cumulativeAreaHa: parsed,
+      actualMechanic: f.mechanic.trim(), actualEquipment: f.equipment.trim(),
+      actualImplement: f.implement.trim(), notes: f.notes.trim(),
+    };
+    try {
+      if (existing) await update.mutateAsync({ id: op.id, progressId: existing.id, data: { ...data, version: existing.version } });
+      else await create.mutateAsync({ id: op.id, data });
+      await invalidate();
+      const increment = ha(Math.max(0, dailyChange ?? 0));
+      onDone(`Отчёт за ${dateFmt(reportDate)} сохранён: прирост ${increment}, итого ${ha(parsed)}.`);
+    } catch (err) { handleSaveError(err, true, e.set); }
+  };
+
+  return (
+    <form onSubmit={submit} noValidate>
+      <Drawer title={existing ? "Изменить дневной отчёт" : "Отчёт о ходе операции"} eyebrow={`${title} · план ${ha(op.plannedAreaHa)}`} onClose={close} testId="form-operation-progress"
+        footer={<Footer pending={pending} conflict={e.conflict} onCancel={close} prefix="operation-progress" label={existing ? "Сохранить отчёт" : "Добавить отчёт"} />}>
+        <SaveError message={e.saveError} conflict={e.conflict} testId="text-operation-progress-error" />
+        <p className="rounded-lg border border-border bg-muted/40 p-3 text-[11px] leading-5 text-muted-foreground">
+          Введите общий итог выполненных гектаров на выбранную дату. Прирост относительно предыдущего отчёта и остаток до плана посчитаются автоматически.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Дата отчёта *" error={errs.reportDate} htmlFor="pr-date">
+            <input id="pr-date" type="date" min={op.actualStart ?? undefined} max={today} className="text-input" value={reportDate} onChange={(event) => chooseDate(event.target.value)} data-testid="input-progress-date" />
+          </Field>
+          <Field label="Итого выполнено на дату, га *" error={errs.area} hint={dailyChange !== null ? `Прирост: ${ha(Math.max(0, dailyChange))} · осталось: ${ha(Math.max(0, op.plannedAreaHa - (parsed ?? 0)))}` : undefined} htmlFor="pr-area">
+            <input id="pr-area" className="text-input font-mono" inputMode="decimal" value={f.area} onChange={(event) => setF({ ...f, area: event.target.value })} data-testid="input-progress-cumulative-area" />
+          </Field>
+          <Field label="Механизатор *" error={errs.mechanic} htmlFor="pr-mechanic">
+            <input id="pr-mechanic" className="text-input" maxLength={200} value={f.mechanic} onChange={(event) => setF({ ...f, mechanic: event.target.value })} data-testid="input-progress-mechanic" />
+          </Field>
+          <Field label="Техника *" error={errs.equipment} htmlFor="pr-equipment">
+            <EquipmentSelect id="pr-equipment" testId="select-progress-equipment" value={f.equipment} fleet={fleet} loading={fleetLoading} failed={fleetError} onRetry={onRetry} onChange={(equipment) => setF({ ...f, equipment })} />
+          </Field>
+          <Field label="Агрегат *" error={errs.implement} htmlFor="pr-implement">
+            <input id="pr-implement" className="text-input" maxLength={200} value={f.implement} onChange={(event) => setF({ ...f, implement: event.target.value })} data-testid="input-progress-implement" />
+          </Field>
+          <Field label="Примечание" htmlFor="pr-notes">
+            <input id="pr-notes" className="text-input" maxLength={3000} value={f.notes} onChange={(event) => setF({ ...f, notes: event.target.value })} data-testid="input-progress-notes" />
+          </Field>
+        </div>
+        <section className="rounded-lg border border-border p-3" aria-label="Предыдущие отчёты">
+          <h3 className="text-xs font-bold">История дневных отчётов</h3>
+          {reports.length === 0 ? <p className="mt-1 text-[10px] text-muted-foreground">Это первый отчёт по операции.</p> : (
+            <ul className="mt-2 divide-y divide-border/70">
+              {[...reports].reverse().map((report) => (
+                <li key={report.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-[10.5px]" data-testid={`row-progress-report-${report.id}`}>
+                  <span><strong>{dateFmt(report.reportDate)}</strong> · +{ha(report.dailyAreaHa)} · итого {ha(report.cumulativeAreaHa)}<br /><span className="text-muted-foreground">{report.actualMechanic} · {report.actualEquipment}{report.actualImplement ? ` · ${report.actualImplement}` : ""}</span></span>
+                  <button type="button" className="button button-secondary !min-h-[28px] !px-2 text-[10px]" onClick={() => chooseDate(report.reportDate)} data-testid={`button-edit-progress-report-${report.id}`}>Изменить</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </Drawer>
     </form>
   );

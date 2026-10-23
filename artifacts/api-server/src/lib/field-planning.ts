@@ -31,6 +31,19 @@ export function validateFieldActual(input: FieldActualInput, plannedAreaAres: nu
   if (input.actualOperationName.length > 150 || input.actualMechanic.length > 200 || input.actualEquipment.length > 200 || input.actualImplement.length > 200) return "Слишком длинное значение в фактических данных операции.";
   return null;
 }
+export function validateFieldProgress(cumulativeAreaAres: number, plannedAreaAres: number, previousAreaAres: number | null, nextAreaAres: number | null) {
+  if (!Number.isSafeInteger(cumulativeAreaAres) || cumulativeAreaAres < 0 || cumulativeAreaAres > plannedAreaAres) {
+    return "Факт на дату должен быть от 0 до плановой площади, с точностью до 0,01 га.";
+  }
+  if (previousAreaAres !== null && cumulativeAreaAres < previousAreaAres) {
+    return "Факт на дату не может быть меньше предыдущего отчёта.";
+  }
+  if (nextAreaAres !== null && cumulativeAreaAres > nextAreaAres) {
+    return "Факт на дату не может быть больше следующего отчёта.";
+  }
+  return null;
+}
+export const progressDeltaAres = (currentAreaAres: number, previousAreaAres = 0) => currentAreaAres - previousAreaAres;
 export function fieldOperationState(row: {
   actualStart: string | null; actualEnd: string | null; actualAreaAres: number;
   plannedAreaAres: number; plannedEnd: string; voidedAt: Date | string | null;

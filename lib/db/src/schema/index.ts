@@ -31,6 +31,7 @@ export * from "./grain-movements";
 export * from "./agro-fields";
 export * from "./field-seasons";
 export * from "./field-operations";
+export * from "./field-operation-progress";
 
 export const templatesTable = pgTable("templates", {
   id: serial("id").primaryKey(),

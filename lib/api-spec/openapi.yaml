@@ -133,6 +133,39 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/FieldOperation" }
+  /agro/fields/operations/{id}/progress:
+    post:
+      operationId: createFieldOperationProgress
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FieldProgressInput" }
+      responses:
+        "201":
+          description: Daily cumulative progress recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FieldOperation" }
+  /agro/fields/operations/{id}/progress/{progressId}:
+    patch:
+      operationId: updateFieldOperationProgress
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+        - { name: progressId, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FieldProgressUpdate" }
+      responses:
+        "200":
+          description: Daily report updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FieldOperation" }
   /agro/fields/operations/{id}/void:
     post:
       operationId: voidFieldOperation
@@ -938,17 +971,53 @@ components:
       properties:
         version: { type: number, minimum: 1 }
         reason: { type: string, minLength: 3, maxLength: 500 }
+    FieldProgressInput:
+      type: object
+      required: [operationVersion, reportDate, cumulativeAreaHa, actualMechanic, actualEquipment, actualImplement, notes]
+      properties:
+        operationVersion: { type: number, minimum: 1 }
+        reportDate: { type: string }
+        cumulativeAreaHa: { type: number, minimum: 0, maximum: 1000000 }
+        actualMechanic: { type: string, maxLength: 200 }
+        actualEquipment: { type: string, maxLength: 200 }
+        actualImplement: { type: string, maxLength: 200 }
+        notes: { type: string, maxLength: 3000 }
+    FieldProgressUpdate:
+      allOf:
+        - $ref: "#/components/schemas/FieldProgressInput"
+        - type: object
+          required: [version]
+          properties:
+            version: { type: number, minimum: 1 }
+    FieldProgressReport:
+      type: object
+      required: [id, reportDate, cumulativeAreaHa, dailyAreaHa, actualMechanic, actualEquipment, actualImplement, notes, version, updatedBy, updatedAt]
+      properties:
+        id: { type: number }
+        reportDate: { type: string }
+        cumulativeAreaHa: { type: number }
+        dailyAreaHa: { type: number }
+        actualMechanic: { type: string }
+        actualEquipment: { type: string }
+        actualImplement: { type: string }
+        notes: { type: string }
+        version: { type: number }
+        updatedBy: { type: string }
+        updatedAt: { type: string }
     FieldOperation:
       allOf:
         - $ref: "#/components/schemas/FieldOperationUpdate"
         - $ref: "#/components/schemas/FieldActualInput"
         - type: object
-          required: [id, status, isOverdue, progressPercent, voidedAt, voidReason, voidedBy, updatedAt, updatedBy]
+          required: [id, status, isOverdue, progressPercent, progressReports, voidedAt, voidReason, voidedBy, updatedAt, updatedBy]
           properties:
             id: { type: number }
             status: { type: string, enum: [planned, in_progress, completed, cancelled] }
             isOverdue: { type: boolean }
             progressPercent: { type: number }
+            progressReports:
+              type: array
+              items: { $ref: "#/components/schemas/FieldProgressReport" }
             voidedAt: { type: ["string", "null"] }
             voidReason: { type: string }
             voidedBy: { type: string }
