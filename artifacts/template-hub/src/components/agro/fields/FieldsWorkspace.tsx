@@ -1,6 +1,6 @@
 import { type ReactNode, useMemo, useState } from "react";
 import { Activity, Ban, CalendarRange, History, LandPlot, Layers, Map as MapIcon, Pencil, Plus, RefreshCw, Sprout, TriangleAlert } from "lucide-react";
-import { type AgroField, type FieldOperation, type FieldSeason, getGetFieldDashboardQueryKey, useGetFieldDashboard } from "@workspace/api-client-react";
+import { type AgroField, type FieldOperation, type FieldSeason, getGetFieldDashboardQueryKey, getListFleetEquipmentQueryKey, useGetFieldDashboard, useListFleetEquipment } from "@workspace/api-client-react";
 import { ActualForm, FieldForm, OperationForm, SeasonForm, VoidDialog } from "./Forms";
 import { CropAreaChart, OpPlanFactChart } from "./Charts";
 import { Drawer, POLL_MS, Progress, STATUS, StatusPill, UNITS, type Unit, canActual, canManage, cx, dateFmt, errorInfo, ha, isGD, sumHa } from "./shared";
@@ -21,6 +21,8 @@ const byNum = (a: AgroField, b: AgroField) => a.unit.localeCompare(b.unit) || a.
 export default function FieldsWorkspace({ role }: { role: string }) {
   const allowed = READ_ROLES.includes(role);
   const q = useGetFieldDashboard({ query: { queryKey: getGetFieldDashboardQueryKey(), refetchInterval: POLL_MS, enabled: allowed } });
+  const fleetQ = useListFleetEquipment({ query: { queryKey: getListFleetEquipmentQueryKey(), refetchInterval: POLL_MS, enabled: allowed } });
+  const fleet = fleetQ.data ?? [];
   const d = q.data;
   const today = d?.asOfDate.slice(0, 10) ?? "";
   const baseYear = today ? Number(today.slice(0, 4)) : 0;
@@ -263,8 +265,8 @@ export default function FieldsWorkspace({ role }: { role: string }) {
 
           {modal?.k === "field" && <FieldForm role={role} field={modal.field} fields={fields} defaultUnit={unit === "all" ? UNITS[0] : unit} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "season" && <SeasonForm season={modal.season} fields={fields} seasons={seasons} cropSuggestions={d.cropSuggestions} defaultYear={year} defaultFieldId={modal.fieldId ?? (fieldF !== "all" ? Number(fieldF) : undefined)} onClose={() => setModal(null)} onDone={done} />}
-          {modal?.k === "op" && <OperationForm op={modal.op} seasons={seasons} fields={fields} defaultSeasonId={modal.seasonId ?? yearSeasons[0]?.id} onClose={() => setModal(null)} onDone={done} />}
-          {modal?.k === "actual" && <ActualForm op={modal.op} title={opTitle(modal.op)} today={today} onClose={() => setModal(null)} onDone={done} />}
+          {modal?.k === "op" && <OperationForm op={modal.op} seasons={seasons} fields={fields} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} defaultSeasonId={modal.seasonId ?? yearSeasons[0]?.id} onClose={() => setModal(null)} onDone={done} />}
+          {modal?.k === "actual" && <ActualForm op={modal.op} title={opTitle(modal.op)} today={today} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "void" && <VoidDialog op={modal.op} title={opTitle(modal.op)} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "history" && fieldById.get(modal.fieldId) && <FieldHistory field={fieldById.get(modal.fieldId)!} seasons={seasons} ops={ops} onClose={() => setModal(null)} />}
         </>

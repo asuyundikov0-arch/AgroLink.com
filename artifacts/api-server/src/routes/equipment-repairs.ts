@@ -20,9 +20,21 @@ const protect: RequestHandler = (_req, res, next) => {
   }
   next();
 };
-for (const path of ["/engineering/repairs", "/engineering/fleet", "/engineering/expenses", "/engineering/repair-plan"]) {
+for (const path of ["/engineering/repairs", "/engineering/expenses", "/engineering/repair-plan"]) {
   router.use(path, requireApprovedRole, protect);
 }
+router.use("/engineering/fleet", requireApprovedRole);
+const fleetReaders = new Set([
+  "engineer", "chief_engineer", "general_director",
+  "agronomist", "chief_agronomist", "farm_director", "economist",
+]);
+const canReadFleet: RequestHandler = (_req, res, next) => {
+  if (!fleetReaders.has((res.locals.access as RoleAccess).role ?? "")) {
+    res.status(403).json({ error: "Нет доступа к справочнику техники." });
+    return;
+  }
+  next();
+};
 const chiefOnly: RequestHandler = (_req, res, next) => {
   if (!["chief_engineer", "general_director"].includes(res.locals.access.role)) {
     res.status(403).json({ error: "Справочник техники ведёт главный инженер или генеральный директор." }); return;
@@ -103,12 +115,12 @@ async function planValues(input: PlanInput, tx: Tx, by: string) {
   };
 }
 
-router.get("/engineering/fleet", safe(async (_req, res) => {
+router.get("/engineering/fleet", canReadFleet, safe(async (_req, res) => {
   const rows = await db.select().from(fleetEquipmentTable).orderBy(fleetEquipmentTable.kind, fleetEquipmentTable.id);
   res.setHeader("Cache-Control", "no-store");
   res.json(rows.map(fleetJson));
 }));
-router.post("/engineering/fleet", chiefOnly, safe(async (req, res) => {
+router.post("/engineering/fleet", protect, chiefOnly, safe(async (req, res) => {
   const parsed = CreateFleetEquipmentBody.safeParse(req.body);
   if (!parsed.success || !parsed.data.kind.trim() || !registrationKey(parsed.data.registrationNumber)) {
     res.status(400).json({ error: "Укажите вид техники, госномер и хозяйство." }); return;
@@ -124,7 +136,7 @@ router.post("/engineering/fleet", chiefOnly, safe(async (req, res) => {
   });
   res.status(201).json(fleetJson(row));
 }));
-router.put("/engineering/fleet/:id", chiefOnly, safe(async (req, res) => {
+router.put("/engineering/fleet/:id", protect, chiefOnly, safe(async (req, res) => {
   const id = positiveId(req.params.id);
   const parsed = UpdateFleetEquipmentBody.safeParse(req.body);
   if (!id || !parsed.success || !positiveId(parsed.data.version) || !parsed.data.kind.trim() || !registrationKey(parsed.data.registrationNumber)) {
@@ -143,7 +155,7 @@ router.put("/engineering/fleet/:id", chiefOnly, safe(async (req, res) => {
   if (!row) { res.status(409).json({ error: "Запись изменена или удалена. Загрузите актуальный справочник." }); return; }
   res.json(fleetJson(row));
 }));
-router.delete("/engineering/fleet/:id", directorOnly, safe(async (req, res) => {
+router.delete("/engineering/fleet/:id", protect, directorOnly, safe(async (req, res) => {
   const id = positiveId(req.params.id);
   if (!id) { res.status(400).json({ error: "Некорректная техника." }); return; }
   const row = await db.transaction(async (tx) => {

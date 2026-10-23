@@ -2,6 +2,7 @@ import { type FormEvent, useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import {
   type AgroField,
+  type FleetEquipment,
   type FieldOperation,
   type FieldSeason,
   useCreateAgroField,
@@ -23,6 +24,42 @@ function Footer({ pending, conflict, onCancel, prefix, label = "Сохранит
     <button type="button" className="button button-ghost" onClick={onCancel} disabled={pending} data-testid={`button-cancel-${prefix}`}>Отмена</button>
     <button type="submit" className="button button-primary" disabled={pending || conflict} data-testid={`button-save-${prefix}`}>{pending ? "Сохраняем..." : label}</button>
   </>;
+}
+
+function EquipmentSelect({ value, fleet, loading, failed, onRetry, onChange, id, testId }: {
+  value: string;
+  fleet: FleetEquipment[];
+  loading: boolean;
+  failed: boolean;
+  onRetry: () => void;
+  onChange: (value: string) => void;
+  id: string;
+  testId: string;
+}) {
+  const labelOf = (item: FleetEquipment) => `${item.kind} · ${item.registrationNumber || "без госномера"}`;
+  const selectedExists = fleet.some((item) => labelOf(item) === value);
+  return (
+    <div className="space-y-1.5">
+      {failed && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-2.5 text-[10px] leading-4 text-destructive" role="alert">
+          Не удалось загрузить справочник техники.
+          <button type="button" className="ml-2 underline" onClick={onRetry} data-testid={`${testId}-retry`}>Повторить</button>
+        </div>
+      )}
+      {!loading && !failed && fleet.length === 0 && <p className="text-[10px] text-muted-foreground">Справочник пуст. Добавьте технику в разделе инженерии.</p>}
+      {value && !selectedExists && (
+        <p className="text-[10px] text-amber-700">Сохранено ранее; этой записи нет в текущем справочнике.</p>
+      )}
+      <select id={id} className="text-input" value={value} onChange={(event) => onChange(event.target.value)} disabled={loading || failed} data-testid={testId}>
+        <option value="">{loading ? "Загрузка справочника…" : "Выберите технику из справочника"}</option>
+        {value && !selectedExists && <option value={value}>{value} · сохранено ранее</option>}
+        {fleet.map((item) => {
+          const label = labelOf(item);
+          return <option key={item.id} value={label}>{label} — {item.unit}</option>;
+        })}
+      </select>
+    </div>
+  );
 }
 
 function useErr() {
@@ -201,7 +238,7 @@ export function SeasonForm({ season, fields, seasons, cropSuggestions, defaultYe
 }
 
 /* ---------------- Operation plan ---------------- */
-export function OperationForm({ op, seasons, fields, defaultSeasonId, onClose, onDone }: { op: FieldOperation | null; seasons: FieldSeason[]; fields: AgroField[]; defaultSeasonId?: number; onClose: () => void; onDone: Done }) {
+export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetError, onRetry, defaultSeasonId, onClose, onDone }: { op: FieldOperation | null; seasons: FieldSeason[]; fields: AgroField[]; fleet: FleetEquipment[]; fleetLoading: boolean; fleetError: boolean; onRetry: () => void; defaultSeasonId?: number; onClose: () => void; onDone: Done }) {
   const create = useCreateFieldOperation();
   const update = useUpdateFieldOperation();
   const invalidate = useInvalidateFields();
@@ -269,7 +306,7 @@ export function OperationForm({ op, seasons, fields, defaultSeasonId, onClose, o
             <Field label="Плановое окончание *" error={errs.plannedEnd} htmlFor="op-pe"><input id="op-pe" type="date" className="text-input" value={f.plannedEnd} onChange={(ev) => setF({ ...f, plannedEnd: ev.target.value })} data-testid="input-operation-planned-end" /></Field>
             <Field label="Плановая площадь, га *" error={errs.area} hint={season ? `Площадь сезона ${ha(season.areaHa)}` : undefined} htmlFor="op-area"><input id="op-area" className="text-input font-mono" inputMode="decimal" value={f.area} onChange={(ev) => setF({ ...f, area: ev.target.value })} data-testid="input-operation-area" /></Field>
             <Field label="Ответственный" error={errs.responsible} htmlFor="op-resp"><input id="op-resp" className="text-input" maxLength={200} value={f.responsible} onChange={(ev) => setF({ ...f, responsible: ev.target.value })} data-testid="input-operation-responsible" /></Field>
-            <Field label="Техника по плану" error={errs.plannedEquipment} hint="Например, трактор МТЗ-1221" htmlFor="op-equipment"><input id="op-equipment" className="text-input" maxLength={200} value={f.plannedEquipment} onChange={(ev) => setF({ ...f, plannedEquipment: ev.target.value })} data-testid="input-operation-equipment" /></Field>
+            <Field label="Техника по плану" error={errs.plannedEquipment} hint="Выберите из общего справочника техники" htmlFor="op-equipment"><EquipmentSelect id="op-equipment" testId="select-operation-equipment" value={f.plannedEquipment} fleet={fleet} loading={fleetLoading} failed={fleetError} onRetry={onRetry} onChange={(plannedEquipment) => setF({ ...f, plannedEquipment })} /></Field>
             <Field label="Агрегат по плану" error={errs.plannedImplement} hint="Например, сеялка СЗС-2.1" htmlFor="op-implement"><input id="op-implement" className="text-input" maxLength={200} value={f.plannedImplement} onChange={(ev) => setF({ ...f, plannedImplement: ev.target.value })} data-testid="input-operation-implement" /></Field>
             <Field label="Примечания" htmlFor="op-notes" wide><textarea id="op-notes" className="text-input min-h-[72px]" maxLength={3000} value={f.notes} onChange={(ev) => setF({ ...f, notes: ev.target.value })} data-testid="input-operation-notes" /></Field>
           </div>
@@ -280,7 +317,7 @@ export function OperationForm({ op, seasons, fields, defaultSeasonId, onClose, o
 }
 
 /* ---------------- Actual ---------------- */
-export function ActualForm({ op, title, today, onClose, onDone }: { op: FieldOperation; title: string; today: string; onClose: () => void; onDone: Done }) {
+export function ActualForm({ op, title, today, fleet, fleetLoading, fleetError, onRetry, onClose, onDone }: { op: FieldOperation; title: string; today: string; fleet: FleetEquipment[]; fleetLoading: boolean; fleetError: boolean; onRetry: () => void; onClose: () => void; onDone: Done }) {
   const mut = useUpdateFieldOperationActual();
   const invalidate = useInvalidateFields();
   const e = useErr();
@@ -354,7 +391,7 @@ export function ActualForm({ op, title, today, onClose, onDone }: { op: FieldOpe
             </Field>
           </>}
           <Field label="Механизатор *" error={errs.mechanic} htmlFor="ac-mechanic"><input id="ac-mechanic" className="text-input" maxLength={200} value={f.mechanic} onChange={(ev) => setF({ ...f, mechanic: ev.target.value })} data-testid="input-actual-mechanic" /></Field>
-          <Field label="Фактическая техника *" error={errs.equipment} hint="Можно изменить относительно плана" htmlFor="ac-equipment"><input id="ac-equipment" className="text-input" maxLength={200} value={f.equipment} onChange={(ev) => setF({ ...f, equipment: ev.target.value })} data-testid="input-actual-equipment" /></Field>
+          <Field label="Фактическая техника *" error={errs.equipment} hint="Выберите из справочника; можно изменить относительно плана" htmlFor="ac-equipment"><EquipmentSelect id="ac-equipment" testId="select-actual-equipment" value={f.equipment} fleet={fleet} loading={fleetLoading} failed={fleetError} onRetry={onRetry} onChange={(equipment) => setF({ ...f, equipment })} /></Field>
           <Field label="Фактический агрегат *" error={errs.implement} hint="Можно изменить относительно плана" htmlFor="ac-implement"><input id="ac-implement" className="text-input" maxLength={200} value={f.implement} onChange={(ev) => setF({ ...f, implement: ev.target.value })} data-testid="input-actual-implement" /></Field>
           <Field label="Примечание к факту" htmlFor="ac-notes" wide><textarea id="ac-notes" className="text-input min-h-[72px]" maxLength={3000} value={f.notes} onChange={(ev) => setF({ ...f, notes: ev.target.value })} data-testid="input-actual-notes" /></Field>
         </div>
