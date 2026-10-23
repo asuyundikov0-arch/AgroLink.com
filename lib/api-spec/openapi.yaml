@@ -901,7 +901,7 @@ components:
             updatedAt: { type: string }
     FieldOperationInput:
       type: object
-      required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, responsible, notes]
+      required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, responsible, plannedEquipment, plannedImplement, notes]
       properties:
         seasonId: { type: number, minimum: 1 }
         name: { type: string, minLength: 1, maxLength: 150 }
@@ -909,6 +909,8 @@ components:
         plannedEnd: { type: string }
         plannedAreaHa: { type: number, minimum: 0.01, maximum: 1000000 }
         responsible: { type: string, maxLength: 200 }
+        plannedEquipment: { type: string, maxLength: 200 }
+        plannedImplement: { type: string, maxLength: 200 }
         notes: { type: string, maxLength: 3000 }
     FieldOperationUpdate:
       allOf:
@@ -919,12 +921,16 @@ components:
             version: { type: number, minimum: 1 }
     FieldActualInput:
       type: object
-      required: [version, actualStart, actualEnd, actualAreaHa, actualNotes]
+      required: [version, actualStart, actualEnd, actualAreaHa, actualOperationName, actualMechanic, actualEquipment, actualImplement, actualNotes]
       properties:
         version: { type: number, minimum: 1 }
         actualStart: { type: ["string", "null"] }
         actualEnd: { type: ["string", "null"] }
         actualAreaHa: { type: number, minimum: 0, maximum: 1000000 }
+        actualOperationName: { type: string, maxLength: 150 }
+        actualMechanic: { type: string, maxLength: 200 }
+        actualEquipment: { type: string, maxLength: 200 }
+        actualImplement: { type: string, maxLength: 200 }
         actualNotes: { type: string, maxLength: 3000 }
     FieldOperationVoidInput:
       type: object

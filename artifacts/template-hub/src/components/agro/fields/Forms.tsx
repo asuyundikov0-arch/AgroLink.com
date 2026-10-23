@@ -211,7 +211,8 @@ export function OperationForm({ op, seasons, fields, defaultSeasonId, onClose, o
   const initSeason = op?.seasonId ?? defaultSeasonId ?? options[0]?.id ?? 0;
   const [f, setF] = useState({
     seasonId: String(initSeason), name: op?.name ?? "", plannedStart: op?.plannedStart?.slice(0, 10) ?? "", plannedEnd: op?.plannedEnd?.slice(0, 10) ?? "",
-    area: op ? haStr(op.plannedAreaHa) : (() => { const s = seasons.find((x) => x.id === initSeason); return s ? haStr(s.areaHa) : ""; })(), responsible: op?.responsible ?? "", notes: op?.notes ?? "",
+     area: op ? haStr(op.plannedAreaHa) : (() => { const s = seasons.find((x) => x.id === initSeason); return s ? haStr(s.areaHa) : ""; })(),
+     responsible: op?.responsible ?? "", plannedEquipment: op?.plannedEquipment ?? "", plannedImplement: op?.plannedImplement ?? "", notes: op?.notes ?? "",
   });
   const [errs, setErrs] = useState<Record<string, string>>({});
   const pending = create.isPending || update.isPending;
@@ -234,9 +235,11 @@ export function OperationForm({ op, seasons, fields, defaultSeasonId, onClose, o
     else if (season && area > season.areaHa) er.area = `Не больше площади сезона (${ha(season.areaHa)})`;
     else if (op && area < op.actualAreaHa) er.area = `Не меньше уже выполненного (${ha(op.actualAreaHa)})`;
     if (f.responsible.length > 200) er.responsible = "Не более 200 символов";
+    if (f.plannedEquipment.length > 200) er.plannedEquipment = "Не более 200 символов";
+    if (f.plannedImplement.length > 200) er.plannedImplement = "Не более 200 символов";
     setErrs(er); e.clear();
     if (Object.keys(er).length) return;
-    const data = { seasonId: Number(f.seasonId), name, plannedStart: f.plannedStart, plannedEnd: f.plannedEnd, plannedAreaHa: area!, responsible: f.responsible.trim(), notes: f.notes };
+    const data = { seasonId: Number(f.seasonId), name, plannedStart: f.plannedStart, plannedEnd: f.plannedEnd, plannedAreaHa: area!, responsible: f.responsible.trim(), plannedEquipment: f.plannedEquipment.trim(), plannedImplement: f.plannedImplement.trim(), notes: f.notes };
     try {
       if (op) await update.mutateAsync({ id: op.id, data: { ...data, version: op.version } });
       else await create.mutateAsync({ data });
@@ -266,6 +269,8 @@ export function OperationForm({ op, seasons, fields, defaultSeasonId, onClose, o
             <Field label="Плановое окончание *" error={errs.plannedEnd} htmlFor="op-pe"><input id="op-pe" type="date" className="text-input" value={f.plannedEnd} onChange={(ev) => setF({ ...f, plannedEnd: ev.target.value })} data-testid="input-operation-planned-end" /></Field>
             <Field label="Плановая площадь, га *" error={errs.area} hint={season ? `Площадь сезона ${ha(season.areaHa)}` : undefined} htmlFor="op-area"><input id="op-area" className="text-input font-mono" inputMode="decimal" value={f.area} onChange={(ev) => setF({ ...f, area: ev.target.value })} data-testid="input-operation-area" /></Field>
             <Field label="Ответственный" error={errs.responsible} htmlFor="op-resp"><input id="op-resp" className="text-input" maxLength={200} value={f.responsible} onChange={(ev) => setF({ ...f, responsible: ev.target.value })} data-testid="input-operation-responsible" /></Field>
+            <Field label="Техника по плану" error={errs.plannedEquipment} hint="Например, трактор МТЗ-1221" htmlFor="op-equipment"><input id="op-equipment" className="text-input" maxLength={200} value={f.plannedEquipment} onChange={(ev) => setF({ ...f, plannedEquipment: ev.target.value })} data-testid="input-operation-equipment" /></Field>
+            <Field label="Агрегат по плану" error={errs.plannedImplement} hint="Например, сеялка СЗС-2.1" htmlFor="op-implement"><input id="op-implement" className="text-input" maxLength={200} value={f.plannedImplement} onChange={(ev) => setF({ ...f, plannedImplement: ev.target.value })} data-testid="input-operation-implement" /></Field>
             <Field label="Примечания" htmlFor="op-notes" wide><textarea id="op-notes" className="text-input min-h-[72px]" maxLength={3000} value={f.notes} onChange={(ev) => setF({ ...f, notes: ev.target.value })} data-testid="input-operation-notes" /></Field>
           </div>
         )}
@@ -279,7 +284,13 @@ export function ActualForm({ op, title, today, onClose, onDone }: { op: FieldOpe
   const mut = useUpdateFieldOperationActual();
   const invalidate = useInvalidateFields();
   const e = useErr();
-  const [f, setF] = useState({ start: op.actualStart?.slice(0, 10) ?? "", end: op.actualEnd?.slice(0, 10) ?? "", area: op.actualAreaHa > 0 ? haStr(op.actualAreaHa) : "", notes: op.actualNotes ?? "" });
+  const starting = !op.actualStart;
+  const [f, setF] = useState({
+    start: op.actualStart?.slice(0, 10) ?? "", end: op.actualEnd?.slice(0, 10) ?? "",
+    area: op.actualAreaHa > 0 ? haStr(op.actualAreaHa) : "", notes: op.actualNotes ?? "",
+    operationName: op.actualOperationName || op.name, mechanic: op.actualMechanic ?? "",
+    equipment: op.actualEquipment || op.plannedEquipment, implement: op.actualImplement || op.plannedImplement,
+  });
   const [errs, setErrs] = useState<Record<string, string>>({});
   const pending = mut.isPending;
   const close = () => { if (!pending) onClose(); };
@@ -289,38 +300,62 @@ export function ActualForm({ op, title, today, onClose, onDone }: { op: FieldOpe
     ev.preventDefault();
     if (pending || e.conflict) return;
     const er: Record<string, string> = {};
-    if (parsed === null) er.area = "Число с точностью до 0,01 га";
-    else if (parsed > op.plannedAreaHa) er.area = `Не больше плана (${ha(op.plannedAreaHa)})`;
+    if (starting) {
+      if (!f.operationName.trim()) er.operationName = "Укажите вид операции";
+      if (f.operationName.trim().length > 150) er.operationName = "Не более 150 символов";
+      if (!f.mechanic.trim()) er.mechanic = "Укажите механизатора";
+      if (!f.equipment.trim()) er.equipment = "Укажите технику";
+      if (!f.implement.trim()) er.implement = "Укажите агрегат";
+    } else {
+      if (parsed === null) er.area = "Число с точностью до 0,01 га";
+      else if (parsed > op.plannedAreaHa) er.area = `Не больше плана (${ha(op.plannedAreaHa)})`;
+      else if (!(parsed > 0)) er.area = "Укажите фактическую площадь";
+      if (!f.end) er.end = "Укажите дату завершения";
+      if (!f.mechanic.trim()) er.mechanic = "Укажите механизатора";
+      if (!f.equipment.trim()) er.equipment = "Укажите технику";
+      if (!f.implement.trim()) er.implement = "Укажите агрегат";
+    }
     if (f.start && f.start > today) er.start = "Дата не может быть позже сегодняшней";
-    if (f.end && f.end > today) er.end = "Дата не может быть позже сегодняшней";
-    if (f.end && f.start && f.end < f.start) er.end = "Раньше фактического начала";
-    if (parsed !== null && parsed > 0 && !f.start) er.start = "Укажите начало, если работа выполнена";
-    if (f.end && !f.start) er.start = "Для завершения нужна дата начала";
-    if (f.end && !(parsed && parsed > 0)) er.area = "Для завершения укажите выполненную площадь";
+    if (!f.start) er.start = "Укажите фактическую дату начала";
+    if (!starting && f.end && f.end > today) er.end = "Дата не может быть позже сегодняшней";
+    if (!starting && f.end && f.start && f.end < f.start) er.end = "Раньше фактического начала";
     setErrs(er); e.clear();
     if (Object.keys(er).length) return;
     try {
-      await mut.mutateAsync({ id: op.id, data: { version: op.version, actualStart: f.start || null, actualEnd: f.end || null, actualAreaHa: parsed ?? 0, actualNotes: f.notes } });
+      await mut.mutateAsync({ id: op.id, data: {
+        version: op.version, actualStart: f.start || null, actualEnd: starting ? null : f.end || null,
+        actualAreaHa: starting ? 0 : parsed ?? 0, actualOperationName: f.operationName.trim(),
+        actualMechanic: f.mechanic.trim(), actualEquipment: f.equipment.trim(), actualImplement: f.implement.trim(), actualNotes: f.notes,
+      } });
       await invalidate();
-      onDone(`Факт по «${op.name}» сохранён${f.end ? " · операция завершена" : ""}.`);
+      onDone(starting ? `Начало операции «${f.operationName.trim()}» зафиксировано.` : `Операция «${op.name}» завершена: ${ha(parsed ?? 0)}.`);
     } catch (err) { handleSaveError(err, true, e.set); }
   };
 
   const cov = parsed && op.plannedAreaHa > 0 ? (parsed / op.plannedAreaHa) * 100 : 0;
   return (
     <form onSubmit={submit} noValidate>
-      <Drawer title="Фактическое выполнение" eyebrow={`${title} · версия ${op.version}`} onClose={close} testId="form-actual"
-        footer={<Footer pending={pending} conflict={e.conflict} onCancel={close} prefix="actual" />}>
+      <Drawer title={starting ? "Начать операцию" : op.actualEnd ? "Изменить факт завершения" : "Завершить операцию"} eyebrow={`${title} · версия ${op.version}`} onClose={close} testId="form-actual"
+        footer={<Footer pending={pending} conflict={e.conflict} onCancel={close} prefix="actual" label={starting ? "Зафиксировать начало" : "Завершить операцию"} />}>
         <SaveError message={e.saveError} conflict={e.conflict} testId="text-actual-error" />
         <div className="rounded-lg border border-border bg-muted/40 p-3 font-mono text-[11px] leading-5" data-testid="text-actual-plan">
           План: {dateFmt(op.plannedStart)} – {dateFmt(op.plannedEnd)} · {ha(op.plannedAreaHa)}{op.responsible ? ` · ${op.responsible}` : ""}
+          {op.plannedEquipment && <><br />Техника: {op.plannedEquipment}</>}{op.plannedImplement && <> · агрегат: {op.plannedImplement}</>}
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Фактическое начало" error={errs.start} hint="Пусто — работа не начата" htmlFor="ac-start"><input id="ac-start" type="date" max={today} className="text-input" value={f.start} onChange={(ev) => setF({ ...f, start: ev.target.value })} data-testid="input-actual-start" /></Field>
-          <Field label="Фактическое окончание" error={errs.end} hint="Заполните, когда работа завершена" htmlFor="ac-end"><input id="ac-end" type="date" max={today} className="text-input" value={f.end} onChange={(ev) => setF({ ...f, end: ev.target.value })} data-testid="input-actual-end" /></Field>
-          <Field label="Выполнено, га" error={errs.area} hint={parsed ? `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(cov)}% от плана. Завершить можно и при меньшей площади.` : "Можно вносить частично по мере работы"} htmlFor="ac-area" wide>
-            <input id="ac-area" className="text-input font-mono" inputMode="decimal" value={f.area} onChange={(ev) => setF({ ...f, area: ev.target.value })} data-testid="input-actual-area" />
-          </Field>
+          {starting ? <>
+            <Field label="Фактическое начало *" error={errs.start} htmlFor="ac-start"><input id="ac-start" type="date" max={today} className="text-input" value={f.start} onChange={(ev) => setF({ ...f, start: ev.target.value })} data-testid="input-actual-start" /></Field>
+            <Field label="Вид операции *" error={errs.operationName} htmlFor="ac-operation-name"><input id="ac-operation-name" className="text-input" maxLength={150} value={f.operationName} onChange={(ev) => setF({ ...f, operationName: ev.target.value })} data-testid="input-actual-operation-name" /></Field>
+          </> : <>
+            <Field label="Фактическое начало" error={errs.start} htmlFor="ac-start"><input id="ac-start" type="date" className="text-input" value={f.start} readOnly data-testid="input-actual-start" /></Field>
+            <Field label="Фактическое окончание *" error={errs.end} htmlFor="ac-end"><input id="ac-end" type="date" max={today} className="text-input" value={f.end} onChange={(ev) => setF({ ...f, end: ev.target.value })} data-testid="input-actual-end" /></Field>
+            <Field label="Фактическая площадь, га *" error={errs.area} hint={parsed ? `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(cov)}% от плана` : "Можно завершить меньшей площадью, чем запланировано"} htmlFor="ac-area" wide>
+              <input id="ac-area" className="text-input font-mono" inputMode="decimal" value={f.area} onChange={(ev) => setF({ ...f, area: ev.target.value })} data-testid="input-actual-area" />
+            </Field>
+          </>}
+          <Field label="Механизатор *" error={errs.mechanic} htmlFor="ac-mechanic"><input id="ac-mechanic" className="text-input" maxLength={200} value={f.mechanic} onChange={(ev) => setF({ ...f, mechanic: ev.target.value })} data-testid="input-actual-mechanic" /></Field>
+          <Field label="Фактическая техника *" error={errs.equipment} hint="Можно изменить относительно плана" htmlFor="ac-equipment"><input id="ac-equipment" className="text-input" maxLength={200} value={f.equipment} onChange={(ev) => setF({ ...f, equipment: ev.target.value })} data-testid="input-actual-equipment" /></Field>
+          <Field label="Фактический агрегат *" error={errs.implement} hint="Можно изменить относительно плана" htmlFor="ac-implement"><input id="ac-implement" className="text-input" maxLength={200} value={f.implement} onChange={(ev) => setF({ ...f, implement: ev.target.value })} data-testid="input-actual-implement" /></Field>
           <Field label="Примечание к факту" htmlFor="ac-notes" wide><textarea id="ac-notes" className="text-input min-h-[72px]" maxLength={3000} value={f.notes} onChange={(ev) => setF({ ...f, notes: ev.target.value })} data-testid="input-actual-notes" /></Field>
         </div>
       </Drawer>

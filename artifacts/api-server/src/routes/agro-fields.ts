@@ -182,6 +182,7 @@ router.post("/agro/fields/operations", manage, safe(async (req, res) => {
     const [created] = await tx.insert(fieldOperationsTable).values({
       seasonId: season.id, name: input.name.trim(), nameKey: fieldNumberKey(input.name), plannedStart: input.plannedStart,
       plannedEnd: input.plannedEnd, plannedAreaAres: toAreaAres(input.plannedAreaHa)!, responsible: input.responsible.trim(),
+      plannedEquipment: input.plannedEquipment.trim(), plannedImplement: input.plannedImplement.trim(),
       notes: input.notes.trim(), updatedBy: by,
     }).returning();
     return created;
@@ -201,7 +202,9 @@ router.patch("/agro/fields/operations/:id", manage, safe(async (req, res) => {
     requireValue(toAreaAres(input.plannedAreaHa)! >= old.actualAreaAres, "Плановая площадь меньше уже выполненной.", 409);
     const [updated] = await tx.update(fieldOperationsTable).set({
       seasonId: season.id, name: input.name.trim(), nameKey: fieldNumberKey(input.name), plannedStart: input.plannedStart, plannedEnd: input.plannedEnd,
-      plannedAreaAres: toAreaAres(input.plannedAreaHa)!, responsible: input.responsible.trim(), notes: input.notes.trim(), ...stamp(by, old.version),
+      plannedAreaAres: toAreaAres(input.plannedAreaHa)!, responsible: input.responsible.trim(),
+      plannedEquipment: input.plannedEquipment.trim(), plannedImplement: input.plannedImplement.trim(),
+      notes: input.notes.trim(), ...stamp(by, old.version),
     }).where(eq(fieldOperationsTable.id, old.id)).returning();
     return updated;
   });
@@ -213,10 +216,12 @@ router.patch("/agro/fields/operations/:id/actual", roles(writers), safe(async (r
   const row = await mutate("Внесён факт полевой операции", by, async (tx) => {
     const old = await getOperation(tx, Number(req.params.id)); revision(old, input.version);
     requireValue(!old.voidedAt, "Отменённая операция недоступна для внесения факта.", 409);
-    const error = validateFieldActual(input, old.plannedAreaAres); requireValue(!error, error ?? "");
+    const error = validateFieldActual(input, old.plannedAreaAres, undefined, old.actualStart !== null); requireValue(!error, error ?? "");
     requireValue(!old.actualStart || input.actualStart !== null || res.locals.access.role === "general_director", "Сбросить уже внесённый факт может только генеральный директор.", 403);
     const [updated] = await tx.update(fieldOperationsTable).set({
       actualStart: input.actualStart, actualEnd: input.actualEnd, actualAreaAres: toAreaAres(input.actualAreaHa, true)!,
+      actualOperationName: input.actualOperationName.trim(), actualMechanic: input.actualMechanic.trim(),
+      actualEquipment: input.actualEquipment.trim(), actualImplement: input.actualImplement.trim(),
       actualNotes: input.actualNotes.trim(), ...stamp(by, old.version),
     }).where(eq(fieldOperationsTable.id, old.id)).returning();
     return updated;

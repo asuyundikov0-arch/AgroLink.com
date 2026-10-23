@@ -38,12 +38,24 @@ export const getFieldDashboardResponseOperationsItemOneOnePlannedAreaHaMax = 100
 
 export const getFieldDashboardResponseOperationsItemOneOneResponsibleMax = 200;
 
+export const getFieldDashboardResponseOperationsItemOneOnePlannedEquipmentMax = 200;
+
+export const getFieldDashboardResponseOperationsItemOneOnePlannedImplementMax = 200;
+
 export const getFieldDashboardResponseOperationsItemOneOneNotesMax = 3000;
 
 
 
 export const getFieldDashboardResponseOperationsItemTwoActualAreaHaMin = 0;
 export const getFieldDashboardResponseOperationsItemTwoActualAreaHaMax = 1000000;
+
+export const getFieldDashboardResponseOperationsItemTwoActualOperationNameMax = 150;
+
+export const getFieldDashboardResponseOperationsItemTwoActualMechanicMax = 200;
+
+export const getFieldDashboardResponseOperationsItemTwoActualEquipmentMax = 200;
+
+export const getFieldDashboardResponseOperationsItemTwoActualImplementMax = 200;
 
 export const getFieldDashboardResponseOperationsItemTwoActualNotesMax = 3000;
 
@@ -84,6 +96,8 @@ export const GetFieldDashboardResponse = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(getFieldDashboardResponseOperationsItemOneOnePlannedAreaHaMin).max(getFieldDashboardResponseOperationsItemOneOnePlannedAreaHaMax),
   "responsible": zod.string().max(getFieldDashboardResponseOperationsItemOneOneResponsibleMax),
+  "plannedEquipment": zod.string().max(getFieldDashboardResponseOperationsItemOneOnePlannedEquipmentMax),
+  "plannedImplement": zod.string().max(getFieldDashboardResponseOperationsItemOneOnePlannedImplementMax),
   "notes": zod.string().max(getFieldDashboardResponseOperationsItemOneOneNotesMax)
 }).and(zod.object({
   "version": zod.number().min(1)
@@ -92,6 +106,10 @@ export const GetFieldDashboardResponse = zod.object({
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
   "actualAreaHa": zod.number().min(getFieldDashboardResponseOperationsItemTwoActualAreaHaMin).max(getFieldDashboardResponseOperationsItemTwoActualAreaHaMax),
+  "actualOperationName": zod.string().max(getFieldDashboardResponseOperationsItemTwoActualOperationNameMax),
+  "actualMechanic": zod.string().max(getFieldDashboardResponseOperationsItemTwoActualMechanicMax),
+  "actualEquipment": zod.string().max(getFieldDashboardResponseOperationsItemTwoActualEquipmentMax),
+  "actualImplement": zod.string().max(getFieldDashboardResponseOperationsItemTwoActualImplementMax),
   "actualNotes": zod.string().max(getFieldDashboardResponseOperationsItemTwoActualNotesMax)
 })).and(zod.object({
   "id": zod.number(),
@@ -327,6 +345,10 @@ export const createFieldOperationBodyPlannedAreaHaMax = 1000000;
 
 export const createFieldOperationBodyResponsibleMax = 200;
 
+export const createFieldOperationBodyPlannedEquipmentMax = 200;
+
+export const createFieldOperationBodyPlannedImplementMax = 200;
+
 export const createFieldOperationBodyNotesMax = 3000;
 
 
@@ -338,6 +360,8 @@ export const CreateFieldOperationBody = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(createFieldOperationBodyPlannedAreaHaMin).max(createFieldOperationBodyPlannedAreaHaMax),
   "responsible": zod.string().max(createFieldOperationBodyResponsibleMax),
+  "plannedEquipment": zod.string().max(createFieldOperationBodyPlannedEquipmentMax),
+  "plannedImplement": zod.string().max(createFieldOperationBodyPlannedImplementMax),
   "notes": zod.string().max(createFieldOperationBodyNotesMax)
 })
 
@@ -349,12 +373,24 @@ export const createFieldOperationResponseOneOnePlannedAreaHaMax = 1000000;
 
 export const createFieldOperationResponseOneOneResponsibleMax = 200;
 
+export const createFieldOperationResponseOneOnePlannedEquipmentMax = 200;
+
+export const createFieldOperationResponseOneOnePlannedImplementMax = 200;
+
 export const createFieldOperationResponseOneOneNotesMax = 3000;
 
 
 
 export const createFieldOperationResponseTwoActualAreaHaMin = 0;
 export const createFieldOperationResponseTwoActualAreaHaMax = 1000000;
+
+export const createFieldOperationResponseTwoActualOperationNameMax = 150;
+
+export const createFieldOperationResponseTwoActualMechanicMax = 200;
+
+export const createFieldOperationResponseTwoActualEquipmentMax = 200;
+
+export const createFieldOperationResponseTwoActualImplementMax = 200;
 
 export const createFieldOperationResponseTwoActualNotesMax = 3000;
 
@@ -367,6 +403,8 @@ export const CreateFieldOperationResponse = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(createFieldOperationResponseOneOnePlannedAreaHaMin).max(createFieldOperationResponseOneOnePlannedAreaHaMax),
   "responsible": zod.string().max(createFieldOperationResponseOneOneResponsibleMax),
+  "plannedEquipment": zod.string().max(createFieldOperationResponseOneOnePlannedEquipmentMax),
+  "plannedImplement": zod.string().max(createFieldOperationResponseOneOnePlannedImplementMax),
   "notes": zod.string().max(createFieldOperationResponseOneOneNotesMax)
 }).and(zod.object({
   "version": zod.number().min(1)
@@ -375,6 +413,10 @@ export const CreateFieldOperationResponse = zod.object({
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
   "actualAreaHa": zod.number().min(createFieldOperationResponseTwoActualAreaHaMin).max(createFieldOperationResponseTwoActualAreaHaMax),
+  "actualOperationName": zod.string().max(createFieldOperationResponseTwoActualOperationNameMax),
+  "actualMechanic": zod.string().max(createFieldOperationResponseTwoActualMechanicMax),
+  "actualEquipment": zod.string().max(createFieldOperationResponseTwoActualEquipmentMax),
+  "actualImplement": zod.string().max(createFieldOperationResponseTwoActualImplementMax),
   "actualNotes": zod.string().max(createFieldOperationResponseTwoActualNotesMax)
 })).and(zod.object({
   "id": zod.number(),
@@ -401,6 +443,10 @@ export const updateFieldOperationBodyOnePlannedAreaHaMax = 1000000;
 
 export const updateFieldOperationBodyOneResponsibleMax = 200;
 
+export const updateFieldOperationBodyOnePlannedEquipmentMax = 200;
+
+export const updateFieldOperationBodyOnePlannedImplementMax = 200;
+
 export const updateFieldOperationBodyOneNotesMax = 3000;
 
 
@@ -413,6 +459,8 @@ export const UpdateFieldOperationBody = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(updateFieldOperationBodyOnePlannedAreaHaMin).max(updateFieldOperationBodyOnePlannedAreaHaMax),
   "responsible": zod.string().max(updateFieldOperationBodyOneResponsibleMax),
+  "plannedEquipment": zod.string().max(updateFieldOperationBodyOnePlannedEquipmentMax),
+  "plannedImplement": zod.string().max(updateFieldOperationBodyOnePlannedImplementMax),
   "notes": zod.string().max(updateFieldOperationBodyOneNotesMax)
 }).and(zod.object({
   "version": zod.number().min(1)
@@ -426,12 +474,24 @@ export const updateFieldOperationResponseOneOnePlannedAreaHaMax = 1000000;
 
 export const updateFieldOperationResponseOneOneResponsibleMax = 200;
 
+export const updateFieldOperationResponseOneOnePlannedEquipmentMax = 200;
+
+export const updateFieldOperationResponseOneOnePlannedImplementMax = 200;
+
 export const updateFieldOperationResponseOneOneNotesMax = 3000;
 
 
 
 export const updateFieldOperationResponseTwoActualAreaHaMin = 0;
 export const updateFieldOperationResponseTwoActualAreaHaMax = 1000000;
+
+export const updateFieldOperationResponseTwoActualOperationNameMax = 150;
+
+export const updateFieldOperationResponseTwoActualMechanicMax = 200;
+
+export const updateFieldOperationResponseTwoActualEquipmentMax = 200;
+
+export const updateFieldOperationResponseTwoActualImplementMax = 200;
 
 export const updateFieldOperationResponseTwoActualNotesMax = 3000;
 
@@ -444,6 +504,8 @@ export const UpdateFieldOperationResponse = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(updateFieldOperationResponseOneOnePlannedAreaHaMin).max(updateFieldOperationResponseOneOnePlannedAreaHaMax),
   "responsible": zod.string().max(updateFieldOperationResponseOneOneResponsibleMax),
+  "plannedEquipment": zod.string().max(updateFieldOperationResponseOneOnePlannedEquipmentMax),
+  "plannedImplement": zod.string().max(updateFieldOperationResponseOneOnePlannedImplementMax),
   "notes": zod.string().max(updateFieldOperationResponseOneOneNotesMax)
 }).and(zod.object({
   "version": zod.number().min(1)
@@ -452,6 +514,10 @@ export const UpdateFieldOperationResponse = zod.object({
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
   "actualAreaHa": zod.number().min(updateFieldOperationResponseTwoActualAreaHaMin).max(updateFieldOperationResponseTwoActualAreaHaMax),
+  "actualOperationName": zod.string().max(updateFieldOperationResponseTwoActualOperationNameMax),
+  "actualMechanic": zod.string().max(updateFieldOperationResponseTwoActualMechanicMax),
+  "actualEquipment": zod.string().max(updateFieldOperationResponseTwoActualEquipmentMax),
+  "actualImplement": zod.string().max(updateFieldOperationResponseTwoActualImplementMax),
   "actualNotes": zod.string().max(updateFieldOperationResponseTwoActualNotesMax)
 })).and(zod.object({
   "id": zod.number(),
@@ -474,6 +540,14 @@ export const UpdateFieldOperationActualParams = zod.object({
 export const updateFieldOperationActualBodyActualAreaHaMin = 0;
 export const updateFieldOperationActualBodyActualAreaHaMax = 1000000;
 
+export const updateFieldOperationActualBodyActualOperationNameMax = 150;
+
+export const updateFieldOperationActualBodyActualMechanicMax = 200;
+
+export const updateFieldOperationActualBodyActualEquipmentMax = 200;
+
+export const updateFieldOperationActualBodyActualImplementMax = 200;
+
 export const updateFieldOperationActualBodyActualNotesMax = 3000;
 
 
@@ -483,6 +557,10 @@ export const UpdateFieldOperationActualBody = zod.object({
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
   "actualAreaHa": zod.number().min(updateFieldOperationActualBodyActualAreaHaMin).max(updateFieldOperationActualBodyActualAreaHaMax),
+  "actualOperationName": zod.string().max(updateFieldOperationActualBodyActualOperationNameMax),
+  "actualMechanic": zod.string().max(updateFieldOperationActualBodyActualMechanicMax),
+  "actualEquipment": zod.string().max(updateFieldOperationActualBodyActualEquipmentMax),
+  "actualImplement": zod.string().max(updateFieldOperationActualBodyActualImplementMax),
   "actualNotes": zod.string().max(updateFieldOperationActualBodyActualNotesMax)
 })
 
@@ -494,12 +572,24 @@ export const updateFieldOperationActualResponseOneOnePlannedAreaHaMax = 1000000;
 
 export const updateFieldOperationActualResponseOneOneResponsibleMax = 200;
 
+export const updateFieldOperationActualResponseOneOnePlannedEquipmentMax = 200;
+
+export const updateFieldOperationActualResponseOneOnePlannedImplementMax = 200;
+
 export const updateFieldOperationActualResponseOneOneNotesMax = 3000;
 
 
 
 export const updateFieldOperationActualResponseTwoActualAreaHaMin = 0;
 export const updateFieldOperationActualResponseTwoActualAreaHaMax = 1000000;
+
+export const updateFieldOperationActualResponseTwoActualOperationNameMax = 150;
+
+export const updateFieldOperationActualResponseTwoActualMechanicMax = 200;
+
+export const updateFieldOperationActualResponseTwoActualEquipmentMax = 200;
+
+export const updateFieldOperationActualResponseTwoActualImplementMax = 200;
 
 export const updateFieldOperationActualResponseTwoActualNotesMax = 3000;
 
@@ -512,6 +602,8 @@ export const UpdateFieldOperationActualResponse = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(updateFieldOperationActualResponseOneOnePlannedAreaHaMin).max(updateFieldOperationActualResponseOneOnePlannedAreaHaMax),
   "responsible": zod.string().max(updateFieldOperationActualResponseOneOneResponsibleMax),
+  "plannedEquipment": zod.string().max(updateFieldOperationActualResponseOneOnePlannedEquipmentMax),
+  "plannedImplement": zod.string().max(updateFieldOperationActualResponseOneOnePlannedImplementMax),
   "notes": zod.string().max(updateFieldOperationActualResponseOneOneNotesMax)
 }).and(zod.object({
   "version": zod.number().min(1)
@@ -520,6 +612,10 @@ export const UpdateFieldOperationActualResponse = zod.object({
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
   "actualAreaHa": zod.number().min(updateFieldOperationActualResponseTwoActualAreaHaMin).max(updateFieldOperationActualResponseTwoActualAreaHaMax),
+  "actualOperationName": zod.string().max(updateFieldOperationActualResponseTwoActualOperationNameMax),
+  "actualMechanic": zod.string().max(updateFieldOperationActualResponseTwoActualMechanicMax),
+  "actualEquipment": zod.string().max(updateFieldOperationActualResponseTwoActualEquipmentMax),
+  "actualImplement": zod.string().max(updateFieldOperationActualResponseTwoActualImplementMax),
   "actualNotes": zod.string().max(updateFieldOperationActualResponseTwoActualNotesMax)
 })).and(zod.object({
   "id": zod.number(),
@@ -557,12 +653,24 @@ export const voidFieldOperationResponseOneOnePlannedAreaHaMax = 1000000;
 
 export const voidFieldOperationResponseOneOneResponsibleMax = 200;
 
+export const voidFieldOperationResponseOneOnePlannedEquipmentMax = 200;
+
+export const voidFieldOperationResponseOneOnePlannedImplementMax = 200;
+
 export const voidFieldOperationResponseOneOneNotesMax = 3000;
 
 
 
 export const voidFieldOperationResponseTwoActualAreaHaMin = 0;
 export const voidFieldOperationResponseTwoActualAreaHaMax = 1000000;
+
+export const voidFieldOperationResponseTwoActualOperationNameMax = 150;
+
+export const voidFieldOperationResponseTwoActualMechanicMax = 200;
+
+export const voidFieldOperationResponseTwoActualEquipmentMax = 200;
+
+export const voidFieldOperationResponseTwoActualImplementMax = 200;
 
 export const voidFieldOperationResponseTwoActualNotesMax = 3000;
 
@@ -575,6 +683,8 @@ export const VoidFieldOperationResponse = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(voidFieldOperationResponseOneOnePlannedAreaHaMin).max(voidFieldOperationResponseOneOnePlannedAreaHaMax),
   "responsible": zod.string().max(voidFieldOperationResponseOneOneResponsibleMax),
+  "plannedEquipment": zod.string().max(voidFieldOperationResponseOneOnePlannedEquipmentMax),
+  "plannedImplement": zod.string().max(voidFieldOperationResponseOneOnePlannedImplementMax),
   "notes": zod.string().max(voidFieldOperationResponseOneOneNotesMax)
 }).and(zod.object({
   "version": zod.number().min(1)
@@ -583,6 +693,10 @@ export const VoidFieldOperationResponse = zod.object({
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
   "actualAreaHa": zod.number().min(voidFieldOperationResponseTwoActualAreaHaMin).max(voidFieldOperationResponseTwoActualAreaHaMax),
+  "actualOperationName": zod.string().max(voidFieldOperationResponseTwoActualOperationNameMax),
+  "actualMechanic": zod.string().max(voidFieldOperationResponseTwoActualMechanicMax),
+  "actualEquipment": zod.string().max(voidFieldOperationResponseTwoActualEquipmentMax),
+  "actualImplement": zod.string().max(voidFieldOperationResponseTwoActualImplementMax),
   "actualNotes": zod.string().max(voidFieldOperationResponseTwoActualNotesMax)
 })).and(zod.object({
   "id": zod.number(),

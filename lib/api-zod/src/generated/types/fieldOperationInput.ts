@@ -23,6 +23,10 @@ export interface FieldOperationInput {
   plannedAreaHa: number;
   /** @maxLength 200 */
   responsible: string;
+  /** @maxLength 200 */
+  plannedEquipment: string;
+  /** @maxLength 200 */
+  plannedImplement: string;
   /** @maxLength 3000 */
   notes: string;
 }

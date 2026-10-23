@@ -18,6 +18,14 @@ export interface FieldActualInput {
      * @maximum 1000000
      */
   actualAreaHa: number;
+  /** @maxLength 150 */
+  actualOperationName: string;
+  /** @maxLength 200 */
+  actualMechanic: string;
+  /** @maxLength 200 */
+  actualEquipment: string;
+  /** @maxLength 200 */
+  actualImplement: string;
   /** @maxLength 3000 */
   actualNotes: string;
 }

@@ -212,21 +212,21 @@ export default function FieldsWorkspace({ role }: { role: string }) {
             <section className="surface-card overflow-hidden" data-testid="section-operations">
               <SectionHead title={`Полевые операции ${year}`} text="План задают руководители, факт — агрономы. Отменённые остаются в истории." action={manage && <button type="button" className="button button-primary" onClick={() => setModal({ k: "op", op: null })} disabled={seasons.length === 0} data-testid="button-new-operation-list"><Plus size={14} />Операция</button>} />
               {yearOps.length === 0 ? <Empty icon={<CalendarRange size={18} />} title="Операций нет" text={yearSeasons.length === 0 ? `Сначала задайте сезоны на ${year} год.` : "По выбранным фильтрам операций нет."} testId="status-operations-empty" /> : (
-                <div className="overflow-x-auto"><table className="w-full min-w-[880px] text-xs">
-                  <thead className="border-b border-border bg-muted/20 text-left text-[10.5px] text-muted-foreground"><tr><th className="px-4 py-2 font-semibold">Операция · поле</th><th className="font-semibold">Статус</th><th className="font-semibold">План</th><th className="font-semibold">Факт</th><th className="font-semibold">Выполнено</th><th className="px-4" /></tr></thead>
+                <div className="overflow-x-auto"><table className="w-full min-w-[1080px] text-xs">
+                  <thead className="border-b border-border bg-muted/20 text-left text-[10.5px] text-muted-foreground"><tr><th className="px-4 py-2 font-semibold">Операция · поле</th><th className="font-semibold">Статус</th><th className="font-semibold">План · техника</th><th className="font-semibold">Факт · исполнитель</th><th className="font-semibold">Выполнено</th><th className="px-4" /></tr></thead>
                   <tbody className="divide-y divide-border/70">
                     {[...yearOps].sort((a, b) => a.plannedStart.localeCompare(b.plannedStart) || a.id - b.id).map((o) => {
                       const s = seasonById.get(o.seasonId); const f = s && fieldById.get(s.fieldId); const cancelled = o.status === "cancelled";
                       return (
                         <tr key={o.id} className={cx(cancelled && "opacity-60")} data-testid={`row-operation-${o.id}`}>
-                          <td className="px-4 py-2.5"><p className="font-bold">{o.name}</p><p className="text-[10.5px] text-muted-foreground">№ {f?.number} · {s?.cropName} · {f?.unit}{o.responsible ? ` · ${o.responsible}` : ""}</p>
+                          <td className="px-4 py-2.5"><p className="font-bold">{o.name}</p>{o.actualOperationName && o.actualOperationName !== o.name && <p className="text-[10.5px] text-muted-foreground">Факт: {o.actualOperationName}</p>}<p className="text-[10.5px] text-muted-foreground">№ {f?.number} · {s?.cropName} · {f?.unit}{o.responsible ? ` · ${o.responsible}` : ""}</p>
                             {cancelled && <p className="text-[10.5px] text-muted-foreground" data-testid={`text-void-reason-${o.id}`}>Отменил {o.voidedBy} {dateFmt(o.voidedAt)}: {o.voidReason}</p>}</td>
                           <td><StatusPill op={o} /></td>
-                          <td className="font-mono text-[10.5px] leading-5">{dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)}<br />{ha(o.plannedAreaHa)}</td>
-                          <td className="font-mono text-[10.5px] leading-5">{dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)}<br />{ha(o.actualAreaHa)}</td>
+                          <td className="text-[10.5px] leading-5"><span className="font-mono">{dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)}<br />{ha(o.plannedAreaHa)}</span>{o.plannedEquipment && <p>Техника: {o.plannedEquipment}</p>}{o.plannedImplement && <p className="text-muted-foreground">Агрегат: {o.plannedImplement}</p>}</td>
+                          <td className="text-[10.5px] leading-5"><span className="font-mono">{dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)}<br />{ha(o.actualAreaHa)}</span>{o.actualStart && <><p>{o.actualMechanic}</p><p className="text-muted-foreground">{o.actualEquipment}{o.actualImplement ? ` · ${o.actualImplement}` : ""}</p></>}</td>
                           <td><Progress value={o.progressPercent} label={`Выполнено ${o.name}`} /></td>
                           <td className="px-4"><div className="flex justify-end gap-1.5">
-                            {actual && !cancelled && <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => setModal({ k: "actual", op: o })} data-testid={`button-actual-op-${o.id}`}><Activity size={13} />Факт</button>}
+                            {actual && !cancelled && <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => setModal({ k: "actual", op: o })} data-testid={`button-actual-op-${o.id}`}><Activity size={13} />{o.actualStart ? o.actualEnd ? "Факт" : "Завершить" : "Начать"}</button>}
                             {manage && !cancelled && <button type="button" className="button button-secondary !min-h-[30px] !px-2" onClick={() => setModal({ k: "op", op: o })} aria-label="Изменить план" data-testid={`button-edit-op-${o.id}`}><Pencil size={13} /></button>}
                             {gd && !cancelled && <button type="button" className="button button-danger border !min-h-[30px] !px-2" onClick={() => setModal({ k: "void", op: o })} aria-label="Отменить операцию" data-testid={`button-void-op-${o.id}`}><Ban size={13} /></button>}
                           </div></td>
@@ -296,6 +296,8 @@ function FieldHistory({ field, seasons, ops, onClose }: { field: AgroField; seas
                   <li key={o.id} className="py-2 text-[11px]" data-testid={`history-op-${o.id}`}>
                     <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{o.name}</span><StatusPill op={o} /></div>
                     <p className="font-mono text-[10.5px] text-muted-foreground">план {dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)} · {ha(o.plannedAreaHa)} | факт {dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)} · {ha(o.actualAreaHa)}</p>
+                    {(o.plannedEquipment || o.plannedImplement) && <p className="text-muted-foreground">Плановая техника: {o.plannedEquipment || "не указана"} · агрегат: {o.plannedImplement || "не указан"}</p>}
+                    {o.actualStart && <p>Факт: {o.actualOperationName || o.name} · механизатор {o.actualMechanic || "не указан"} · {o.actualEquipment || "техника не указана"} · {o.actualImplement || "агрегат не указан"}</p>}
                     {o.responsible && <p className="text-muted-foreground">Ответственный: {o.responsible}</p>}
                     {o.notes && <p>План: {o.notes}</p>}
                     {o.actualNotes && <p>Факт: {o.actualNotes}</p>}
