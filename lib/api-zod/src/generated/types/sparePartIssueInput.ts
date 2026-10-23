@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { SparePartIssueInputCategory } from './sparePartIssueInputCategory';
 
 export interface SparePartIssueInput {
   /**
@@ -16,6 +17,7 @@ export interface SparePartIssueInput {
   sparePartId: number;
   /** @minimum 1 */
   fleetId: number;
+  category: SparePartIssueInputCategory;
   /**
      * @maximum 1000000
      * @exclusiveMinimum 0

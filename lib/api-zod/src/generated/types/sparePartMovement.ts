@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { SparePartMovementMovementKind } from './sparePartMovementMovementKind';
+import type { SparePartMovementRepairCategory } from './sparePartMovementRepairCategory';
 
 export interface SparePartMovement {
   id: number;
@@ -14,6 +15,8 @@ export interface SparePartMovement {
   articleNumber: string;
   unit: string;
   movementKind: SparePartMovementMovementKind;
+  /** @nullable */
+  repairCategory: SparePartMovementRepairCategory;
   quantity: number;
   unitPrice: number;
   amount: number;

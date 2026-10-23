@@ -87,7 +87,7 @@ export default function ExpenseLedger({ role, expenses, fleet, fleetById }: { ro
               <div className="w-24 font-mono text-[11px]">{e.incurredOn ? dateFmt(e.incurredOn) : <span className="font-sans text-amber-700">дата неизвестна (перенесено)</span>}</div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold">{label(e.fleetId)}</p>
-                <p className="truncate text-[11px] text-muted-foreground">{e.source === "warehouse" ? "Списано со склада" : CATEGORY_LABEL[e.category]}{e.description ? ` · ${e.description}` : ""}{e.source === "legacy" ? " · из прежнего реестра" : ""}</p>
+                <p className="truncate text-[11px] text-muted-foreground">{e.source === "warehouse" ? `${e.category === "capital" ? "Капитальный ремонт" : "Текущий ремонт"} · списано со склада` : CATEGORY_LABEL[e.category]}{e.description ? ` · ${e.description}` : ""}{e.source === "legacy" ? " · из прежнего реестра" : ""}</p>
               </div>
               <p className="font-mono text-sm font-bold" data-testid={`text-expense-amount-${e.id}`}>{money(e.amount)}</p>
               <div className="flex gap-1.5">

@@ -1347,17 +1347,18 @@ components:
         description: { type: string, maxLength: 1000 }
     SparePartIssueInput:
       type: object
-      required: [requestId, sparePartId, fleetId, quantity, occurredOn, description]
+      required: [requestId, sparePartId, fleetId, category, quantity, occurredOn, description]
       properties:
         requestId: { type: string, minLength: 16, maxLength: 80 }
         sparePartId: { type: number, minimum: 1 }
         fleetId: { type: number, minimum: 1 }
+        category: { type: string, enum: [current, capital] }
         quantity: { type: number, exclusiveMinimum: 0, maximum: 1000000 }
         occurredOn: { type: string }
         description: { type: string, maxLength: 1000 }
     SparePartMovement:
       type: object
-      required: [id, sparePartId, sparePartName, articleNumber, unit, movementKind, quantity, unitPrice, amount, occurredOn, invoiceNumber, invoiceDate, supplier, fleetId, description, createdBy, createdAt]
+      required: [id, sparePartId, sparePartName, articleNumber, unit, movementKind, repairCategory, quantity, unitPrice, amount, occurredOn, invoiceNumber, invoiceDate, supplier, fleetId, description, createdBy, createdAt]
       properties:
         id: { type: number }
         sparePartId: { type: number }
@@ -1365,6 +1366,7 @@ components:
         articleNumber: { type: string }
         unit: { type: string }
         movementKind: { type: string, enum: [receipt, issue] }
+        repairCategory: { type: ["string", "null"], enum: [current, capital, null] }
         quantity: { type: number }
         unitPrice: { type: number }
         amount: { type: number }

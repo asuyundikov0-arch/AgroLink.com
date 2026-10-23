@@ -39,7 +39,7 @@ type ReceiptForm = {
   supplier: string;
   description: string;
 };
-type IssueForm = { requestId: string; sparePartId: number | null; fleetId: number | null; occurredOn: string; quantity: string; description: string };
+type IssueForm = { requestId: string; sparePartId: number | null; fleetId: number | null; category: "current" | "capital"; occurredOn: string; quantity: string; description: string };
 type View = "stock" | "history";
 type MovementFilter = "all" | "receipt" | "issue";
 
@@ -50,7 +50,7 @@ const initialReceipt = (): ReceiptForm => ({
   occurredOn: businessToday(), invoiceNumber: "", invoiceDate: businessToday(), supplier: "", description: "",
 });
 const initialIssue = (partId: number | null = null): IssueForm => ({
-  requestId: crypto.randomUUID(), sparePartId: partId, fleetId: null, occurredOn: businessToday(), quantity: "", description: "",
+  requestId: crypto.randomUUID(), sparePartId: partId, fleetId: null, category: "current", occurredOn: businessToday(), quantity: "", description: "",
 });
 const decimal = (value: string) => Number(value.trim().replace(/\s/g, "").replace(",", "."));
 const amountInput = /^\d+(?:[.,]\d{1,3})?$/;
@@ -156,7 +156,7 @@ export default function SparePartsWarehouse({ role, fleet, fleetById }: Props) {
     try {
       await issue.mutateAsync({ data: {
         requestId: issueForm.requestId, sparePartId: selected.id, fleetId: issueForm.fleetId,
-        quantity, occurredOn: issueForm.occurredOn, description: issueForm.description.trim(),
+        category: issueForm.category, quantity, occurredOn: issueForm.occurredOn, description: issueForm.description.trim(),
       } });
       await invalidateWarehouse();
       setNotice(`${fmt.format(quantity)} ${selected.unit} «${selected.name}» выдано технике ${fleetById.get(issueForm.fleetId) ? fleetLabel(fleetById.get(issueForm.fleetId)!) : `№${issueForm.fleetId}`}.`);
@@ -297,6 +297,16 @@ export default function SparePartsWarehouse({ role, fleet, fleetById }: Props) {
                 </select>
               </Field>
               {issueForm.sparePartId !== null && parts.find((part) => part.id === issueForm.sparePartId) && <p className="rounded-lg bg-muted/50 p-3 text-[11px] leading-5 text-muted-foreground sm:col-span-2">Доступно: <strong className="font-mono text-foreground">{fmt.format(parts.find((part) => part.id === issueForm.sparePartId)!.quantity)} {parts.find((part) => part.id === issueForm.sparePartId)!.unit}</strong>. Количество сверх остатка не допускается.</p>}
+              <Field label="Вид ремонта *" wide>
+                <div className="grid grid-cols-2 gap-2">
+                  {([["current", "Текущий ремонт"], ["capital", "Капитальный ремонт"]] as const).map(([category, label]) => (
+                    <label key={category} className={cx("flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors", issueForm.category === category ? "border-[hsl(203_87%_33%)] bg-[hsl(203_87%_33%/.08)] text-foreground" : "border-border text-muted-foreground hover:bg-muted/40")}>
+                      <input type="radio" name="spare-part-repair-category" value={category} checked={issueForm.category === category} onChange={() => setIssueForm({ ...issueForm, category })} data-testid={`radio-spare-part-category-${category}`} />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </Field>
               <Field label="Техника *" error={errors.fleetId} htmlFor="sp-issue-fleet" wide><select id="sp-issue-fleet" className={cx("text-input", errors.fleetId && "!border-destructive")} value={issueForm.fleetId ?? ""} onChange={(e) => setIssueForm({ ...issueForm, fleetId: e.target.value ? Number(e.target.value) : null })} data-testid="select-spare-part-issue-fleet"><option value="">Выберите технику из справочника</option>{fleet.map((machine) => <option key={machine.id} value={machine.id}>{fleetLabel(machine)} — {machine.unit}</option>)}</select></Field>
               <Field label="Дата выдачи *" error={errors.occurredOn} htmlFor="sp-issue-date"><input id="sp-issue-date" type="date" className="text-input" value={issueForm.occurredOn} onChange={(e) => setIssueForm({ ...issueForm, occurredOn: e.target.value })} data-testid="input-spare-part-issue-date" /></Field>
               <Field label="Количество *" error={errors.quantity} htmlFor="sp-issue-quantity"><input id="sp-issue-quantity" type="number" min="0.001" step="0.001" max={parts.find((part) => part.id === issueForm.sparePartId)?.quantity} className="text-input font-mono" inputMode="decimal" value={issueForm.quantity} onChange={(e) => setIssueForm({ ...issueForm, quantity: e.target.value })} data-testid="input-spare-part-issue-quantity" /></Field>
@@ -324,6 +334,7 @@ function MovementRow({ movement, machineLabel }: { movement: SparePartMovement; 
         </div>
         <p className="mt-1 text-[10px] leading-4 text-muted-foreground">
           {receipt ? <>Накладная {movement.invoiceNumber || "—"}{movement.supplier ? ` · ${movement.supplier}` : ""}</> : <>Для {machineLabel(movement.fleetId)}</>}
+          {!receipt && ` · ${movement.repairCategory === "capital" ? "Капитальный ремонт" : "Текущий ремонт"}`}
           {movement.description ? ` · ${movement.description}` : ""}
         </p>
         <p className="mt-0.5 text-[10px] text-muted-foreground">{dateFmt(movement.occurredOn)}{receipt && movement.invoiceDate ? ` · дата накладной ${dateFmt(movement.invoiceDate)}` : ""}</p>

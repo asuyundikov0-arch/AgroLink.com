@@ -22,6 +22,7 @@ export const sparePartMovementsTable = pgTable("spare_part_movements", {
   requestId: text("request_id").notNull().unique(),
   sparePartId: integer("spare_part_id").notNull().references(() => sparePartsTable.id, { onDelete: "restrict" }),
   movementKind: text("movement_kind").notNull(),
+  repairCategory: text("repair_category"),
   quantity: numeric("quantity", { precision: 16, scale: 3 }).notNull(),
   unitPrice: numeric("unit_price", { precision: 16, scale: 2 }).notNull(),
   amount: numeric("amount", { precision: 16, scale: 2 }).notNull(),

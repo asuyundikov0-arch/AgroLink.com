@@ -90,6 +90,7 @@ type MovementRecord = {
 const movementJson = ({ movement, part }: MovementRecord) => ({
   id: movement.id, sparePartId: movement.sparePartId, sparePartName: part.name,
   articleNumber: part.articleNumber, unit: part.unit, movementKind: movement.movementKind,
+  repairCategory: movement.repairCategory,
   quantity: Number(movement.quantity), unitPrice: Number(movement.unitPrice), amount: Number(movement.amount),
   occurredOn: movement.occurredOn, invoiceNumber: movement.invoiceNumber, invoiceDate: movement.invoiceDate,
   supplier: movement.supplier, fleetId: movement.fleetId, description: movement.description,
@@ -374,13 +375,13 @@ router.post("/engineering/spare-parts/issues", safe(async (req, res) => {
     }).where(and(eq(sparePartsTable.id, part.id), sql`${sparePartsTable.quantity} >= ${input.quantity}`)).returning();
     if (!updated) return { error: "Остаток изменился другим пользователем. Обновите склад и повторите списание.", status: 409 as const };
     const [movement] = await tx.insert(sparePartMovementsTable).values({
-      requestId: input.requestId, sparePartId: part.id, movementKind: "issue",
+      requestId: input.requestId, sparePartId: part.id, movementKind: "issue", repairCategory: input.category,
       quantity: input.quantity.toFixed(3), unitPrice: unitPrice.toFixed(2), amount: amount.toFixed(2),
       occurredOn: input.occurredOn, fleetId: fleet.id,
       description: input.description.trim(), createdBy: by,
     }).returning();
     await tx.insert(repairExpensesTable).values({
-      fleetId: fleet.id, incurredOn: input.occurredOn, category: "current",
+      fleetId: fleet.id, incurredOn: input.occurredOn, category: input.category,
       amount: amount.toFixed(2),
       description: `Списание со склада: ${part.name}${part.articleNumber ? ` · ${part.articleNumber}` : ""} — ${input.quantity.toLocaleString("ru-RU")} ${part.unit}${input.description.trim() ? ` · ${input.description.trim()}` : ""}`,
       source: "warehouse", sparePartMovementId: movement.id, updatedBy: by,

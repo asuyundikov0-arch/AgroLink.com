@@ -546,6 +546,14 @@ export interface SparePartReceiptInput {
   description: string;
 }
 
+export type SparePartIssueInputCategory = typeof SparePartIssueInputCategory[keyof typeof SparePartIssueInputCategory];
+
+
+export const SparePartIssueInputCategory = {
+  current: 'current',
+  capital: 'capital',
+} as const;
+
 export interface SparePartIssueInput {
   /**
      * @minLength 16
@@ -556,6 +564,7 @@ export interface SparePartIssueInput {
   sparePartId: number;
   /** @minimum 1 */
   fleetId: number;
+  category: SparePartIssueInputCategory;
   /**
      * @maximum 1000000
      * @exclusiveMinimum 0
@@ -574,6 +583,17 @@ export const SparePartMovementMovementKind = {
   issue: 'issue',
 } as const;
 
+/**
+ * @nullable
+ */
+export type SparePartMovementRepairCategory = typeof SparePartMovementRepairCategory[keyof typeof SparePartMovementRepairCategory] | null;
+
+
+export const SparePartMovementRepairCategory = {
+  current: 'current',
+  capital: 'capital',
+} as const;
+
 export interface SparePartMovement {
   id: number;
   sparePartId: number;
@@ -581,6 +601,8 @@ export interface SparePartMovement {
   articleNumber: string;
   unit: string;
   movementKind: SparePartMovementMovementKind;
+  /** @nullable */
+  repairCategory: SparePartMovementRepairCategory;
   quantity: number;
   unitPrice: number;
   amount: number;
