@@ -12,10 +12,9 @@ import CostOverview from "./repairs/CostOverview";
 import ExpenseLedger from "./repairs/ExpenseLedger";
 import FleetDirectory from "./repairs/FleetDirectory";
 import PlanRegister from "./repairs/PlanRegister";
-import SparePartsWarehouse from "./SparePartsWarehouse";
 import { POLL_MS, SectionError, UNITS, type UnitFilter, addMoney, cx, dateFmt, effReadiness, errorInfo, money, num } from "./repairs/shared";
 
-type View = "plan" | "warehouse" | "expenses" | "fleet";
+type View = "plan" | "expenses" | "fleet";
 
 export default function RepairDashboard({ role }: { role: string }) {
   const [unit, setUnit] = useState<UnitFilter>("all");
@@ -94,14 +93,13 @@ export default function RepairDashboard({ role }: { role: string }) {
           <CostOverview expenses={expenses} fleetById={fleetById} planFleetIds={planFleetIdsAll} />
 
           <div className="inline-flex flex-wrap rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Раздел">
-            {([["plan", "План ремонта"], ["warehouse", "Склад запчастей"], ["expenses", "Затраты на ремонт"], ["fleet", "Справочник техники"]] as const).map(([k, l]) => (
+            {([["plan", "План ремонта"], ["expenses", "Затраты на ремонт"], ["fleet", "Справочник техники"]] as const).map(([k, l]) => (
               <button key={k} type="button" role="tab" aria-selected={view === k} onClick={() => setView(k)} data-testid={`tab-repair-view-${k}`}
                 className={cx("rounded-md px-3 py-1.5 text-[11px] font-bold transition-colors", view === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>{l}</button>
             ))}
           </div>
 
           {view === "plan" && <PlanRegister role={role} items={plan} fleetById={fleetById} available={available} costByFleet={costByFleet} />}
-          {view === "warehouse" && <SparePartsWarehouse role={role} fleet={fleet} fleetById={fleetById} />}
           {view === "expenses" && <ExpenseLedger role={role} expenses={expenses} fleet={fleet} fleetById={fleetById} />}
           {view === "fleet" && <FleetDirectory role={role} fleet={fleet} plan={planAll} expenses={expQ.data ?? []} />}
         </>
