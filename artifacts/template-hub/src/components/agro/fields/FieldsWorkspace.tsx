@@ -15,7 +15,7 @@ type Modal =
   | { k: "void"; op: FieldOperation }
   | { k: "history"; fieldId: number };
 
-const READ_ROLES = ["agronomist", "chief_agronomist", "farm_director", "general_director", "economist"];
+const READ_ROLES = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "general_director"];
 const byNum = (a: AgroField, b: AgroField) => a.unit.localeCompare(b.unit) || a.number.localeCompare(b.number, "ru", { numeric: true });
 
 export default function FieldsWorkspace({ role }: { role: string }) {

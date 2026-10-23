@@ -11,6 +11,8 @@ export type ReportInputRecipientRole = typeof ReportInputRecipientRole[keyof typ
 
 export const ReportInputRecipientRole = {
   agronomist: 'agronomist',
+  grain_manager: 'grain_manager',
+  weigher: 'weigher',
   engineer: 'engineer',
   economist: 'economist',
   lawyer: 'lawyer',

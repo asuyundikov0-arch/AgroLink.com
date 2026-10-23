@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { GrainMovementApprovalStatus } from './grainMovementApprovalStatus';
 import type { GrainMovementInput } from './grainMovementInput';
 
 export type GrainMovement = GrainMovementInput & ({
@@ -16,4 +17,9 @@ export type GrainMovement = GrainMovementInput & ({
   voidedBy: string;
   voidReason: string;
   moistureLossTons: number;
+  approvalStatus: GrainMovementApprovalStatus;
+  reviewComment: string;
+  reviewedBy: string;
+  /** @nullable */
+  reviewedAt: string | null;
 });

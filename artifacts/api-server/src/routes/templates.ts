@@ -22,7 +22,7 @@ const objectStorage = new ObjectStorageService();
 
 function canUseTemplate(access: RoleAccess, template: typeof templatesTable.$inferSelect) {
   if (template.accessGroup === "agronomists") {
-    return ["agronomist", "chief_agronomist", "farm_director", "general_director"].includes(access.role!);
+    return ["agronomist", "chief_agronomist", "grain_manager", "weigher", "general_director"].includes(access.role!);
   }
   if (template.accessGroup === "engineers") {
     return ["engineer", "chief_engineer", "general_director"].includes(access.role!);

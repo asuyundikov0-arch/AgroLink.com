@@ -7,6 +7,7 @@ type Form = { fleetId: number | null; incurredOn: string; category: RepairExpens
 const today = businessToday;
 
 export default function ExpenseLedger({ role, expenses, fleet, fleetById }: { role: string; expenses: RepairExpense[]; fleet: FleetEquipment[]; fleetById: Map<number, FleetEquipment> }) {
+  const canEdit = isDirector(role);
   const canDelete = isDirector(role);
   const invalidate = useInvalidateRepairs();
   const update = useUpdateRepairExpense();
@@ -91,7 +92,7 @@ export default function ExpenseLedger({ role, expenses, fleet, fleetById }: { ro
               </div>
               <p className="font-mono text-sm font-bold" data-testid={`text-expense-amount-${e.id}`}>{money(e.amount)}</p>
               <div className="flex gap-1.5">
-                {e.source !== "warehouse" && <button type="button" className="button button-secondary !min-h-[32px] !px-2.5" onClick={() => open(e)} aria-label="Изменить затрату" data-testid={`button-edit-expense-${e.id}`}><Pencil size={13} /></button>}
+                {canEdit && e.source !== "warehouse" && <button type="button" className="button button-secondary !min-h-[32px] !px-2.5" onClick={() => open(e)} aria-label="Изменить затрату" data-testid={`button-edit-expense-${e.id}`}><Pencil size={13} /></button>}
                 {canDelete && e.source !== "warehouse" && <button type="button" className="button button-danger border !min-h-[32px] !px-2.5" onClick={() => { setDelError(""); setToDelete(e); }} aria-label="Удалить затрату" data-testid={`button-delete-expense-${e.id}`}><Trash2 size={13} /></button>}
               </div>
             </li>

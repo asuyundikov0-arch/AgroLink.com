@@ -52,6 +52,7 @@ import type {
   GrainLocationInput,
   GrainMovement,
   GrainMovementInput,
+  GrainMovementReviewInput,
   GrainVoidInput,
   HealthStatus,
   ListEngineeringRepairsParams,
@@ -1104,6 +1105,72 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getCreateGrainMovementMutationOptions(options));
+    }
+
+export const getReviewGrainMovementUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/grain/movements/${id}/review`
+}
+
+export const reviewGrainMovement = async (id: number,
+    grainMovementReviewInput: GrainMovementReviewInput, options?: Parameters<typeof customFetch>[1]): Promise<GrainMovement> => {
+
+  return customFetch<GrainMovement>(getReviewGrainMovementUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(grainMovementReviewInput)
+  }
+);}
+
+
+
+
+
+export const getReviewGrainMovementMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewGrainMovement>>, TError,{id: number;data: BodyType<GrainMovementReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewGrainMovement>>, TError,{id: number;data: BodyType<GrainMovementReviewInput>}, TContext> => {
+
+const mutationKey = ['reviewGrainMovement'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewGrainMovement>>, {id: number;data: BodyType<GrainMovementReviewInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reviewGrainMovement(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewGrainMovementMutationResult = NonNullable<Awaited<ReturnType<typeof reviewGrainMovement>>>
+    export type ReviewGrainMovementMutationBody = BodyType<GrainMovementReviewInput>
+    export type ReviewGrainMovementMutationError = ErrorType<void>
+
+    export const useReviewGrainMovement = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewGrainMovement>>, TError,{id: number;data: BodyType<GrainMovementReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reviewGrainMovement>>,
+        TError,
+        {id: number;data: BodyType<GrainMovementReviewInput>},
+        TContext
+      > => {
+      return useMutation(getReviewGrainMovementMutationOptions(options));
     }
 
 export const getVoidGrainMovementUrl = (id: number,) => {

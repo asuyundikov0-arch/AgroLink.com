@@ -12,9 +12,9 @@ import { POLL_MS, SectionError, errorInfo } from "./repairs/shared";
 
 export default function EngineeringWorkspace({ role, children }: { role: string; children: ReactNode }) {
   const storekeeper = role === "storekeeper";
-  const [tab, setTab] = useState<"repairs" | "warehouse" | "requests" | "documents">(storekeeper ? "requests" : "repairs");
+  const [tab, setTab] = useState<"repairs" | "warehouse" | "requests" | "documents">(storekeeper ? "warehouse" : "repairs");
   const tabs = [
-    ...(!storekeeper ? [{ id: "repairs" as const, label: "Ремонт техники", icon: Wrench }] : []),
+    { id: "repairs" as const, label: "Ремонт техники", icon: Wrench },
     { id: "warehouse" as const, label: "Склад запчастей", icon: Boxes },
     { id: "requests" as const, label: "Заявки на запчасти", icon: ClipboardList },
     ...(!storekeeper ? [{ id: "documents" as const, label: "Шаблоны и документы", icon: ClipboardCheck }] : []),

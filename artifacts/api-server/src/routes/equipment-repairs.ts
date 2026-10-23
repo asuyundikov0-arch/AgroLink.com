@@ -19,7 +19,7 @@ import { refreshSparePartRequestStatus } from "../lib/spare-part-request-status"
 const router: IRouter = Router();
 const protect: RequestHandler = (_req, res, next) => {
   const role = (res.locals.access as RoleAccess).role;
-  if (!["engineer", "chief_engineer", "general_director"].includes(role ?? "")) {
+  if (!["engineer", "chief_engineer", "storekeeper", "general_director"].includes(role ?? "")) {
     res.status(403).json({ error: "Раздел доступен только инженерной службе и генеральному директору." });
     return;
   }
@@ -39,7 +39,7 @@ router.use("/engineering/spare-parts", requireApprovedRole, warehouseProtect);
 router.use("/engineering/fleet", requireApprovedRole);
 const fleetReaders = new Set([
   "engineer", "chief_engineer", "general_director", "storekeeper",
-  "agronomist", "chief_agronomist", "farm_director", "economist",
+  "agronomist", "chief_agronomist", "grain_manager", "weigher",
 ]);
 const canReadFleet: RequestHandler = (_req, res, next) => {
   if (!fleetReaders.has((res.locals.access as RoleAccess).role ?? "")) {
@@ -238,7 +238,7 @@ async function createPlans(inputs: PlanInput[], by: string) {
     return (await repairEntries(tx)).filter((row) => ids.has(row.id));
   });
 }
-router.post("/engineering/repairs", safe(async (req, res) => {
+router.post("/engineering/repairs", chiefOnly, safe(async (req, res) => {
   const parsed = CreateEngineeringRepairBody.safeParse(req.body);
   const error = parsed.success ? planError(parsed.data) : "Проверьте поля плана.";
   if (!parsed.success || error) { res.status(400).json({ error }); return; }
@@ -246,7 +246,7 @@ router.post("/engineering/repairs", safe(async (req, res) => {
   if (!rows) { res.status(404).json({ error: "Выбранная техника не найдена." }); return; }
   res.status(201).json(rows[0]);
 }));
-router.post("/engineering/repair-plan/batch", safe(async (req, res) => {
+router.post("/engineering/repair-plan/batch", chiefOnly, safe(async (req, res) => {
   const parsed = CreateRepairPlanBatchBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Добавьте от 1 до 100 корректно заполненных строк." }); return; }
   const error = parsed.data.items.map(planError).find(Boolean);
@@ -261,6 +261,27 @@ router.put("/engineering/repairs/:id", safe(async (req, res) => {
   const id = positiveId(req.params.id);
   const parsed = UpdateEngineeringRepairBody.safeParse(req.body);
   if (!id || !parsed.success || !positiveId(parsed.data.version)) { res.status(400).json({ error: "Проверьте поля плана и версию." }); return; }
+  const [current] = await db.select().from(equipmentRepairsTable).where(eq(equipmentRepairsTable.id, id));
+  if (!current) { res.status(404).json({ error: "Запись плана ремонта не найдена." }); return; }
+  const role = (res.locals.access as RoleAccess).role;
+  const planChanged = parsed.data.responsible !== current.responsible
+    || parsed.data.plannedStart !== current.plannedStart
+    || parsed.data.plannedEnd !== current.plannedEnd
+    || parsed.data.notes !== current.notes;
+  const factChanged = parsed.data.actualStart !== current.actualStart
+    || parsed.data.actualEnd !== current.actualEnd
+    || parsed.data.readiness !== (current.readiness === null ? null : Number(current.readiness));
+  const canEditPlan = ["chief_engineer", "general_director"].includes(role ?? "");
+  const canEditFact = ["engineer", "general_director"].includes(role ?? "");
+  if (!canEditPlan && !canEditFact) {
+    res.status(403).json({ error: "Просмотр плана и факта ремонта доступен без права их изменения." }); return;
+  }
+  if (planChanged && !canEditPlan) {
+    res.status(403).json({ error: "Плановые сроки и ответственного изменяет только главный инженер." }); return;
+  }
+  if (factChanged && !canEditFact) {
+    res.status(403).json({ error: "Фактический ход ремонта вносит инженер хозяйства." }); return;
+  }
   const error = planError(parsed.data);
   if (error) { res.status(400).json({ error }); return; }
   const updated = await db.transaction(async (tx) => {
@@ -302,6 +323,9 @@ router.get("/engineering/spare-parts/movements", safe(async (_req, res) => {
   res.json(rows.map(movementJson));
 }));
 router.post("/engineering/spare-parts/receipts", safe(async (req, res) => {
+  if (!["storekeeper", "general_director"].includes((res.locals.access as RoleAccess).role ?? "")) {
+    res.status(403).json({ error: "Приём и оприходование запчастей выполняет заведующий складом." }); return;
+  }
   const parsed = CreateEngineeringSparePartReceiptBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Проверьте номенклатуру, количество, цену и реквизиты накладной." }); return; }
   const input = parsed.data;
@@ -312,7 +336,7 @@ router.post("/engineering/spare-parts/receipts", safe(async (req, res) => {
     res.status(400).json({ error: "Укажите корректные данные прихода, количество, цену и даты не позднее сегодняшнего." }); return;
   }
   const access = res.locals.access as RoleAccess;
-  if (input.requestItemId !== undefined && access.role !== "storekeeper") {
+  if (input.requestItemId !== undefined && !["storekeeper", "general_director"].includes(access.role ?? "")) {
     res.status(403).json({ error: "Поступление по заявке оформляет заведующий складом." }); return;
   }
   const by = actor(res.locals.access);
@@ -392,8 +416,8 @@ router.post("/engineering/spare-parts/receipts", safe(async (req, res) => {
   res.status(201).json(movementJson(result.movement));
 }));
 router.post("/engineering/spare-parts/issues", safe(async (req, res) => {
-  if ((res.locals.access as RoleAccess).role === "storekeeper") {
-    res.status(403).json({ error: "Заведующий складом может принимать запчасти, но не списывать их на технику." }); return;
+  if (!["storekeeper", "general_director"].includes((res.locals.access as RoleAccess).role ?? "")) {
+    res.status(403).json({ error: "Списание запчастей на технику оформляет заведующий складом." }); return;
   }
   const parsed = CreateEngineeringSparePartIssueBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Выберите запчасть и технику, укажите количество и дату списания." }); return; }
@@ -464,7 +488,7 @@ router.get("/engineering/expenses", safe(async (req, res) => {
 router.post("/engineering/expenses", safe(async (req, res) => {
   res.status(409).json({ error: "Новые затраты на ремонт оформляются через списание запчастей со склада." });
 }));
-router.put("/engineering/expenses/:id", safe(async (req, res) => {
+router.put("/engineering/expenses/:id", directorOnly, safe(async (req, res) => {
   const id = positiveId(req.params.id);
   const parsed = UpdateRepairExpenseBody.safeParse(req.body);
   if (!id || !parsed.success || !positiveId(parsed.data.version)) { res.status(400).json({ error: "Проверьте поля расхода и версию." }); return; }

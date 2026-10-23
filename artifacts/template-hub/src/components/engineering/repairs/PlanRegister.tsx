@@ -22,6 +22,8 @@ function ReadinessBar({ value, label }: { value: number | null; label: string })
 
 export default function PlanRegister({ role, items, fleetById, available, costByFleet }: { role: string; items: RepairEntry[]; fleetById: Map<number, FleetEquipment>; available: FleetEquipment[]; costByFleet: Map<number, { total: number; capital: number; current: number }> }) {
   const canDelete = isDirector(role);
+  const canEditPlan = role === "chief_engineer" || isDirector(role);
+  const canEditProgress = role === "engineer" || isDirector(role);
   const invalidate = useInvalidateRepairs();
   const update = useUpdateEngineeringRepair();
   const remove = useDeleteEngineeringRepair();
@@ -95,14 +97,14 @@ export default function PlanRegister({ role, items, fleetById, available, costBy
       <div className="flex flex-col gap-2 border-b border-border bg-muted/25 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div><h2 className="text-sm font-bold">Общий план ремонта</h2><p className="text-[11px] text-muted-foreground">Плановые даты — для каждой машины. Затраты считаются из журнала затрат.</p></div>
         <div className="flex items-center gap-2"><span className="meta-chip">{items.length} в плане</span>
-          <button type="button" className="button button-primary" onClick={() => setBatchOpen(true)} data-testid="button-open-plan-batch"><Plus size={14} />Добавить в план</button></div>
+          {canEditPlan && <button type="button" className="button button-primary" onClick={() => setBatchOpen(true)} data-testid="button-open-plan-batch"><Plus size={14} />Добавить в план</button>}</div>
       </div>
       {notice && <div className="notice-banner m-4" role="status" data-testid="text-plan-notice">{notice}</div>}
       {items.length === 0 ? (
         <div className="empty-state" data-testid="status-plan-empty"><div className="empty-icon"><CalendarClock size={20} /></div>
           <h3 className="mt-4 text-sm font-bold">В плане пока нет техники</h3>
           <p className="mt-1 max-w-sm text-center text-xs leading-5 text-muted-foreground">Отметьте сразу несколько машин из справочника и задайте каждой ответственного и плановые даты.</p>
-          <button type="button" className="button button-primary mt-4" onClick={() => setBatchOpen(true)} data-testid="button-open-plan-batch-empty"><Plus size={14} />Добавить в план</button></div>
+          {canEditPlan && <button type="button" className="button button-primary mt-4" onClick={() => setBatchOpen(true)} data-testid="button-open-plan-batch-empty"><Plus size={14} />Добавить в план</button>}</div>
       ) : (
         <ul className="divide-y divide-border/70">
           {items.map((e) => {
@@ -125,8 +127,8 @@ export default function PlanRegister({ role, items, fleetById, available, costBy
                   {c && <p className="text-muted-foreground">тек. {money(c.current)} · кап. {money(c.capital)}</p>}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  <button type="button" className="button button-secondary !min-h-[32px] !px-2.5 text-[11px]" onClick={() => open(e, "plan")} aria-label={`Изменить план ${name(e)}`} data-testid={`button-edit-plan-${e.id}`}><Pencil size={13} />План</button>
-                  <button type="button" className="button button-secondary !min-h-[32px] !px-2.5 text-[11px]" onClick={() => open(e, "progress")} aria-label={`Отметить ход ремонта ${name(e)}`} data-testid={`button-edit-progress-${e.id}`}><Activity size={13} />Факт</button>
+                  {canEditPlan && <button type="button" className="button button-secondary !min-h-[32px] !px-2.5 text-[11px]" onClick={() => open(e, "plan")} aria-label={`Изменить план ${name(e)}`} data-testid={`button-edit-plan-${e.id}`}><Pencil size={13} />План</button>}
+                  {canEditProgress && <button type="button" className="button button-secondary !min-h-[32px] !px-2.5 text-[11px]" onClick={() => open(e, "progress")} aria-label={`Отметить ход ремонта ${name(e)}`} data-testid={`button-edit-progress-${e.id}`}><Activity size={13} />Факт</button>}
                   {canDelete && <button type="button" className="button button-danger border !min-h-[32px] !px-2.5" onClick={() => { setDelError(""); setToDelete(e); }} aria-label={`Убрать из плана ${name(e)}`} data-testid={`button-delete-plan-${e.id}`}><Trash2 size={13} /></button>}
                 </div>
               </li>
@@ -135,7 +137,7 @@ export default function PlanRegister({ role, items, fleetById, available, costBy
         </ul>
       )}
 
-      {batchOpen && <PlanBatchDrawer available={available} onClose={() => setBatchOpen(false)} onDone={(n) => { setBatchOpen(false); setNotice(`В план добавлено единиц техники: ${n}.`); }} />}
+      {batchOpen && canEditPlan && <PlanBatchDrawer available={available} onClose={() => setBatchOpen(false)} onDone={(n) => { setBatchOpen(false); setNotice(`В план добавлено единиц техники: ${n}.`); }} />}
 
       {edit && form && (
         <form onSubmit={submit} noValidate>

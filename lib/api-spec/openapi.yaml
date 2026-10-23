@@ -246,6 +246,27 @@ paths:
                 $ref: "#/components/schemas/GrainMovement"
         "409":
           description: Insufficient stock or reused request key
+  /agro/grain/movements/{id}/review:
+    patch:
+      operationId: reviewGrainMovement
+      tags: [grain]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GrainMovementReviewInput"
+      responses:
+        "200":
+          description: Reviewed grain movement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GrainMovement"
+        "409":
+          description: Movement already reviewed or approval would cause a negative balance
   /agro/grain/movements/{id}/void:
     post:
       operationId: voidGrainMovement
@@ -936,7 +957,7 @@ paths:
                     type: string
                   requestedRole:
                     type: string
-                    enum: [agronomist, chief_agronomist, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
+                    enum: [agronomist, chief_agronomist, grain_manager, weigher, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
                   status:
                     type: string
                     enum: [pending, approved, rejected]
@@ -1617,7 +1638,7 @@ components:
       allOf:
         - $ref: "#/components/schemas/GrainMovementInput"
         - type: object
-          required: [id, createdBy, createdAt, voidedAt, voidedBy, voidReason, moistureLossTons]
+          required: [id, createdBy, createdAt, voidedAt, voidedBy, voidReason, moistureLossTons, approvalStatus, reviewComment, reviewedBy, reviewedAt]
           properties:
             id: { type: number }
             createdBy: { type: string }
@@ -1626,6 +1647,16 @@ components:
             voidedBy: { type: string }
             voidReason: { type: string }
             moistureLossTons: { type: number }
+            approvalStatus: { type: string, enum: [pending, approved, returned] }
+            reviewComment: { type: string }
+            reviewedBy: { type: string }
+            reviewedAt: { type: ["string", "null"] }
+    GrainMovementReviewInput:
+      type: object
+      required: [decision, reviewComment]
+      properties:
+        decision: { type: string, enum: [approved, returned] }
+        reviewComment: { type: string, maxLength: 500 }
     GrainVoidInput:
       type: object
       required: [reason]
@@ -1898,7 +1929,7 @@ components:
           type: string
         recipientRole:
           type: string
-          enum: [agronomist, engineer, economist, lawyer]
+          enum: [agronomist, grain_manager, weigher, engineer, economist, lawyer]
       required:
         - title
         - unit
@@ -1959,7 +1990,7 @@ components:
           type: string
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, grain_manager, weigher, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
         status:
           type: string
           enum: [pending, approved, rejected]
@@ -1988,7 +2019,7 @@ components:
       properties:
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, grain_manager, weigher, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
         department:
           type: string
           minLength: 1

@@ -25,7 +25,7 @@ const allowedStatuses = ["submitted", "in_review", "returned", "approved", "sent
 type ReportStatus = typeof allowedStatuses[number];
 const allowedReportTypes = ["agronomy", "financing_register", "engineering_document", "legal_document"] as const;
 type ReportType = typeof allowedReportTypes[number];
-const directorRecipientRoles = ["agronomist", "engineer", "economist", "lawyer"] as const;
+const directorRecipientRoles = ["agronomist", "grain_manager", "weigher", "engineer", "economist", "lawyer"] as const;
 type DirectorRecipientRole = typeof directorRecipientRoles[number];
 const maxUploadSize = 25 * 1024 * 1024;
 
@@ -68,6 +68,7 @@ function serializeReport(report: typeof reportsTable.$inferSelect) {
 
 function canViewReport(report: typeof reportsTable.$inferSelect, access: RoleAccess) {
   if (access.role === "agronomist") return report.reportType === "agronomy" && (report.submittedByUserId === access.userId || report.recipientRole === "agronomist");
+  if (access.role === "grain_manager" || access.role === "weigher") return report.reportType === "agronomy" && report.recipientRole === access.role;
   if (access.role === "engineer") return isEngineeringDocument(report) && (report.submittedByUserId === access.userId || report.recipientRole === "engineer");
   if (access.role === "economist") return report.reportType === "financing_register" && (report.submittedByUserId === access.userId || report.recipientRole === "economist");
   if (access.role === "lawyer") return report.reportType === "legal_document" && (report.submittedByUserId === access.userId || report.recipientRole === "lawyer");
@@ -124,6 +125,8 @@ router.get("/reports", requireApprovedRole, async (req, res, next) => {
     if (filters.archiveSubarchive) conditions.push(eq(reportsTable.archiveSubarchive, filters.archiveSubarchive));
     if (role === "agronomist") {
       conditions.push(eq(reportsTable.reportType, "agronomy"), or(eq(reportsTable.submittedByUserId, userId), eq(reportsTable.recipientRole, "agronomist")));
+    } else if (role === "grain_manager" || role === "weigher") {
+      conditions.push(eq(reportsTable.reportType, "agronomy"), eq(reportsTable.recipientRole, role));
     } else if (role === "engineer") {
       conditions.push(eq(reportsTable.reportType, "engineering_document"), or(eq(reportsTable.submittedByUserId, userId), eq(reportsTable.recipientRole, "engineer")));
     } else if (role === "economist") {

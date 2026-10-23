@@ -12,13 +12,14 @@ import { grainBusinessDate, validGrainDate } from "../lib/grain-ledger";
 import { fieldNumberKey, fieldOperationState, progressDeltaAres, toAreaAres, validateFieldActual, validateFieldPlan, validateFieldProgress } from "../lib/field-planning";
 
 const router: IRouter = Router();
-const managers = ["chief_agronomist", "farm_director", "general_director"];
-const writers = [...managers, "agronomist"];
+const managers = ["chief_agronomist", "general_director"];
+const actualWriters = ["agronomist", "general_director"];
+const readers = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "general_director"];
 const roles = (allowed: string[]): RequestHandler => (_req, res, next) => {
   if (!allowed.includes(res.locals.access.role)) { res.status(403).json({ error: "Недостаточно прав для работы с полями." }); return; }
   next();
 };
-router.use("/agro/fields", requireApprovedRole, roles([...writers, "economist"]));
+router.use("/agro/fields", requireApprovedRole, roles(readers));
 const manage = roles(managers);
 class FieldError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -232,7 +233,7 @@ router.patch("/agro/fields/operations/:id", manage, safe(async (req, res) => {
   });
   res.json(operationJson(row));
 }));
-router.patch("/agro/fields/operations/:id/actual", roles(writers), safe(async (req, res) => {
+router.patch("/agro/fields/operations/:id/actual", roles(actualWriters), safe(async (req, res) => {
   const input = body(UpdateFieldOperationActualBody, req.body);
   const by = actor(res.locals.access);
   const today = grainBusinessDate();
@@ -280,7 +281,7 @@ router.patch("/agro/fields/operations/:id/actual", roles(writers), safe(async (r
     .where(eq(fieldOperationProgressTable.operationId, row.id)).orderBy(asc(fieldOperationProgressTable.reportDate));
   res.json(operationJson(row, today, progressReportsJson(progress)));
 }));
-router.post("/agro/fields/operations/:id/progress", roles(writers), safe(async (req, res) => {
+router.post("/agro/fields/operations/:id/progress", roles(actualWriters), safe(async (req, res) => {
   const input = body(CreateFieldOperationProgressBody, req.body);
   const operationId = Number(req.params.id);
   requireValue(positiveId(operationId), "Выберите корректную операцию.");
@@ -330,7 +331,7 @@ router.post("/agro/fields/operations/:id/progress", roles(writers), safe(async (
     .where(eq(fieldOperationProgressTable.operationId, row.id)).orderBy(asc(fieldOperationProgressTable.reportDate));
   res.status(201).json(operationJson(row, today, progressReportsJson(progress)));
 }));
-router.patch("/agro/fields/operations/:id/progress/:progressId", roles(writers), safe(async (req, res) => {
+router.patch("/agro/fields/operations/:id/progress/:progressId", roles(actualWriters), safe(async (req, res) => {
   const input = body(UpdateFieldOperationProgressBody, req.body);
   const operationId = Number(req.params.id);
   const progressId = Number(req.params.progressId);

@@ -1,14 +1,15 @@
 import { type ReactNode, useMemo, useState } from "react";
-import { ArrowLeftRight, Droplets, Flame, Plus, Trash2, RefreshCw, ShoppingCart, Sprout, Warehouse } from "lucide-react";
+import { ArrowLeftRight, Check, Droplets, Flame, Plus, Trash2, RefreshCw, ShoppingCart, Sprout, Warehouse } from "lucide-react";
 import { getGetGrainDashboardQueryKey, useGetGrainDashboard } from "@workspace/api-client-react";
 import Directory from "./grain/Directory";
 import Journal from "./grain/Journal";
 import MovementForm from "./grain/MovementForm";
+import ApprovalQueue from "./grain/ApprovalQueue";
 import ProcessingPanel from "./grain/ProcessingPanel";
 import StockOverview, { type Cell } from "./grain/StockOverview";
-import { POLL_MS, UNITS, type Unit, canManageDir, canRead, canRecord, cx, dateFmt, errorInfo, isProcessor, kg, n0, type StockKind, tonsKg } from "./grain/shared";
+import { POLL_MS, UNITS, type Unit, canManageDir, canRead, canRecord, canReview, cx, dateFmt, errorInfo, isProcessor, kg, n0, type StockKind, tonsKg } from "./grain/shared";
 
-type View = "stock" | "processing" | "journal" | "directory";
+type View = "stock" | "processing" | "journal" | "directory" | "approval";
 
 export default function GrainBalance({ role }: { role: string }) {
   const allowed = canRead(role);
@@ -16,6 +17,7 @@ export default function GrainBalance({ role }: { role: string }) {
   const [cropF, setCropF] = useState("all");
   const [view, setView] = useState<View>("stock");
   const [formOpen, setFormOpen] = useState(false);
+  const [notice, setNotice] = useState("");
   const q = useGetGrainDashboard({ query: { queryKey: getGetGrainDashboardQueryKey(), refetchInterval: POLL_MS, enabled: allowed } });
   const d = q.data;
   const crops = useMemo(() => d?.crops ?? [], [d]);
@@ -27,8 +29,9 @@ export default function GrainBalance({ role }: { role: string }) {
   const cells: Cell[] = useMemo(() => fBal.filter((b) => (b.stockKind ?? "grain") === "grain").map((b) => ({ cropId: b.cropId, locationId: b.locationId, kg: kg(b.quantityTons) })), [fBal]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const movements = useMemo(() => (d?.movements ?? []).filter((m) => okU(m.unit) && okC(m.cropId)), [d, unit, cropF]);
+  const postedMovements = useMemo(() => movements.filter((m) => m.approvalStatus === "approved"), [movements]);
   const kpi = useMemo(() => {
-    const live = movements.filter((m) => !m.voidedAt);
+    const live = postedMovements.filter((m) => !m.voidedAt);
     const sum = (op: string) => live.filter((m) => m.operation === op).reduce((s, m) => s + kg(m.quantityTons), 0);
     const grainOnly = (op: string) => live.filter((m) => m.operation === op && (m.stockKind ?? "grain") === "grain").reduce((s, m) => s + kg(m.quantityTons), 0);
     const proc = live.filter((m) => m.operation === "drying" || m.operation === "cleaning");
@@ -37,12 +40,12 @@ export default function GrainBalance({ role }: { role: string }) {
       inProc: cells.filter((c) => isProcessor(kindOf(c.locationId))).reduce((s, c) => s + c.kg, 0),
       waste: fBal.filter((b) => b.stockKind === "grain_waste").reduce((s, b) => s + kg(b.quantityTons), 0),
       dead: proc.reduce((s, m) => s + kg(n0(m.deadWasteTons)), 0), moist: proc.reduce((s, m) => s + kg(n0(m.moistureLossTons)), 0) };
-  }, [movements, cells, fBal, locations]);
+  }, [postedMovements, cells, fBal, locations]);
   const stock = (u: string, c: number, l: number, k: StockKind) => (d?.balances ?? []).filter((b) => b.unit === u && b.cropId === c && b.locationId === l && (b.stockKind ?? "grain") === k).reduce((s, b) => s + kg(b.quantityTons), 0);
 
   if (!allowed) return (
     <div className="surface-card empty-state" data-testid="status-grain-forbidden"><h3 className="text-sm font-bold">Нет доступа к учёту зерна</h3>
-      <p className="mt-1 max-w-sm text-center text-xs text-muted-foreground">Раздел доступен агрономам, главному агроному, экономисту, директору хозяйства и генеральному директору.</p></div>
+      <p className="mt-1 max-w-sm text-center text-xs text-muted-foreground">Раздел доступен агроному, главному агроному, заведующему током, весовщице и генеральному директору.</p></div>
   );
 
   return (
@@ -68,6 +71,7 @@ export default function GrainBalance({ role }: { role: string }) {
           <button type="button" className="button button-secondary mt-4" onClick={() => q.refetch()} data-testid="button-retry">Повторить</button></div>
       ) : (
         <>
+          {notice && <p className="notice-banner" role="status" data-testid="text-grain-notice"><Check size={15} />{notice}</p>}
           <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Сводка">
             <Kpi icon={<Warehouse size={16} />} label="Остаток всего" value={tonsKg(kpi.total)} sub={`зерно, вкл. элеватор · в обработке ${tonsKg(kpi.inProc)}`} testId="text-kpi-total" />
             <Kpi icon={<Sprout size={16} />} label="Приход с полей" value={tonsKg(kpi.receipt)} sub={`нач. остаток ${tonsKg(kpi.opening)}`} testId="text-kpi-receipt" />
@@ -84,12 +88,15 @@ export default function GrainBalance({ role }: { role: string }) {
               <button key={k} type="button" role="tab" aria-selected={view === k} onClick={() => setView(k)} data-testid={`tab-grain-${k}`}
                 className={cx("rounded-md px-3 py-1.5 text-[11px] font-bold", view === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>{l}</button>
             ))}
+            {canReview(role) && <button type="button" role="tab" aria-selected={view === "approval"} onClick={() => setView("approval")} data-testid="tab-grain-approval"
+              className={cx("rounded-md px-3 py-1.5 text-[11px] font-bold", view === "approval" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>Согласование ({movements.filter((m) => m.approvalStatus === "pending").length})</button>}
           </div>
           {view === "stock" && <StockOverview cells={cells} crops={crops} locations={locations} />}
-          {view === "processing" && <ProcessingPanel balances={fBal} movements={movements} crops={crops} locations={locations} />}
+          {view === "processing" && <ProcessingPanel balances={fBal} movements={postedMovements} crops={crops} locations={locations} />}
           {view === "journal" && <Journal role={role} movements={movements} crops={crops} locations={locations} />}
           {view === "directory" && <Directory crops={crops} locations={locations} canEdit={canManageDir(role)} />}
-          {formOpen && <MovementForm crops={crops} locations={locations} stock={stock} asOfDate={d.asOfDate.slice(0, 10)} defaultUnit={unit === "all" ? UNITS[0] : unit} onClose={() => setFormOpen(false)} />}
+          {view === "approval" && canReview(role) && <ApprovalQueue movements={movements} crops={crops} locations={locations} />}
+          {formOpen && <MovementForm role={role} crops={crops} locations={locations} stock={stock} asOfDate={d.asOfDate.slice(0, 10)} defaultUnit={unit === "all" ? UNITS[0] : unit} onClose={() => setFormOpen(false)} onDone={setNotice} />}
         </>
       )}
     </div>

@@ -8,8 +8,8 @@ export { UNITS, type Unit, cx, dateFmt, Field, Drawer } from "../grain/shared";
 export const POLL_MS = 30000;
 export const OP_SUGGESTIONS = ["Посев", "Культивация", "Предпосевная культивация", "Дискование", "Боронование", "Прикатывание", "Внесение удобрений", "Обработка СЗР", "Гербицидная обработка", "Десикация", "Уборка", "Лущение стерни", "Снегозадержание"];
 
-export const canManage = (r: string) => ["chief_agronomist", "farm_director", "general_director"].includes(r);
-export const canActual = (r: string) => ["agronomist", "chief_agronomist", "farm_director", "general_director"].includes(r);
+export const canManage = (r: string) => ["chief_agronomist", "general_director"].includes(r);
+export const canActual = (r: string) => ["agronomist", "general_director"].includes(r);
 export const isGD = (r: string) => r === "general_director";
 
 const nf = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 });

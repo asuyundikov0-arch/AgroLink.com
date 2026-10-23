@@ -88,8 +88,8 @@ export default function SparePartsWarehouse({ role, fleet, fleetById }: Props) {
   }, [parts, search]);
   const availableParts = parts.filter((part) => part.quantity > 0).length;
   const totalValue = parts.reduce((sum, part) => sum + part.quantity * part.averageUnitCost, 0);
-  const canReceive = ["engineer", "chief_engineer", "storekeeper", "general_director"].includes(role);
-  const canIssue = ["engineer", "chief_engineer", "general_director"].includes(role);
+  const canReceive = ["storekeeper", "general_director"].includes(role);
+  const canIssue = ["storekeeper", "general_director"].includes(role);
   const pending = receive.isPending || issue.isPending;
   const loading = stockQ.isLoading || movementsQ.isLoading;
   const failed = stockQ.isError ? stockQ : movementsQ.isError ? movementsQ : null;

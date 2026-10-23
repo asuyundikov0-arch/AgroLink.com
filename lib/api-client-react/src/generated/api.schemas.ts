@@ -896,6 +896,15 @@ export interface GrainMovementInput {
   notes: string;
 }
 
+export type GrainMovementApprovalStatus = typeof GrainMovementApprovalStatus[keyof typeof GrainMovementApprovalStatus];
+
+
+export const GrainMovementApprovalStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  returned: 'returned',
+} as const;
+
 export type GrainMovement = GrainMovementInput & ({
   id: number;
   createdBy: string;
@@ -905,7 +914,26 @@ export type GrainMovement = GrainMovementInput & ({
   voidedBy: string;
   voidReason: string;
   moistureLossTons: number;
+  approvalStatus: GrainMovementApprovalStatus;
+  reviewComment: string;
+  reviewedBy: string;
+  /** @nullable */
+  reviewedAt: string | null;
 });
+
+export type GrainMovementReviewInputDecision = typeof GrainMovementReviewInputDecision[keyof typeof GrainMovementReviewInputDecision];
+
+
+export const GrainMovementReviewInputDecision = {
+  approved: 'approved',
+  returned: 'returned',
+} as const;
+
+export interface GrainMovementReviewInput {
+  decision: GrainMovementReviewInputDecision;
+  /** @maxLength 500 */
+  reviewComment: string;
+}
 
 export interface GrainVoidInput {
   /**
@@ -1139,6 +1167,8 @@ export type ReportInputRecipientRole = typeof ReportInputRecipientRole[keyof typ
 
 export const ReportInputRecipientRole = {
   agronomist: 'agronomist',
+  grain_manager: 'grain_manager',
+  weigher: 'weigher',
   engineer: 'engineer',
   economist: 'economist',
   lawyer: 'lawyer',
@@ -1218,6 +1248,8 @@ export type RoleRequestRequestedRole = typeof RoleRequestRequestedRole[keyof typ
 export const RoleRequestRequestedRole = {
   agronomist: 'agronomist',
   chief_agronomist: 'chief_agronomist',
+  grain_manager: 'grain_manager',
+  weigher: 'weigher',
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
   storekeeper: 'storekeeper',
@@ -1257,6 +1289,8 @@ export type RoleRequestInputRequestedRole = typeof RoleRequestInputRequestedRole
 export const RoleRequestInputRequestedRole = {
   agronomist: 'agronomist',
   chief_agronomist: 'chief_agronomist',
+  grain_manager: 'grain_manager',
+  weigher: 'weigher',
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
   storekeeper: 'storekeeper',
@@ -1355,6 +1389,8 @@ export type GetMyRoleRequest200RequestedRole = typeof GetMyRoleRequest200Request
 export const GetMyRoleRequest200RequestedRole = {
   agronomist: 'agronomist',
   chief_agronomist: 'chief_agronomist',
+  grain_manager: 'grain_manager',
+  weigher: 'weigher',
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
   storekeeper: 'storekeeper',

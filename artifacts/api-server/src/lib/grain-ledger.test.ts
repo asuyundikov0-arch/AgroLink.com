@@ -45,6 +45,17 @@ test("cancelled sales and transfers have no impact on stock or totals", () => {
   assert.equal(result.summary.soldKg, 0);
   assert.equal(result.summary.transferredKg, 0);
 });
+test("unapproved grain entries do not change inventory until accepted", () => {
+  const result = calculateGrainLedger([
+    row(1, "receipt", 10000, null, 1),
+    row(2, "sale", 4000, 1, null, { approvalStatus: "pending" }),
+    row(3, "transfer", 2000, 1, 2, { approvalStatus: "returned" }),
+  ]);
+  assert.equal(result.summary.totalKg, 10000);
+  assert.deepEqual(result.balances.map((balance) => [balance.locationId, balance.quantityKg]), [[1, 10000]]);
+  assert.equal(result.summary.soldKg, 0);
+  assert.equal(result.issue, null);
+});
 test("integer kg accounting leaves exact zero after full sale", () => {
   const result = calculateGrainLedger([row(1, "receipt", toGrainKg(0.1)!, null, 1), row(2, "receipt", toGrainKg(0.2)!, null, 1), row(3, "sale", toGrainKg(0.3)!, 1, null)]);
   assert.equal(result.summary.totalKg, 0);

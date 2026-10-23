@@ -12,6 +12,8 @@ export type RoleRequestInputRequestedRole = typeof RoleRequestInputRequestedRole
 export const RoleRequestInputRequestedRole = {
   agronomist: 'agronomist',
   chief_agronomist: 'chief_agronomist',
+  grain_manager: 'grain_manager',
+  weigher: 'weigher',
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
   storekeeper: 'storekeeper',

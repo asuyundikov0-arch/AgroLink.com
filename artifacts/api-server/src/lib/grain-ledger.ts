@@ -8,6 +8,7 @@ export type GrainLedgerRow = {
   fromLocationId: number | null;
   toLocationId: number | null;
   voidedAt: Date | string | null;
+  approvalStatus?: string;
   stockKind?: string;
   outputKg?: number;
   deadWasteKg?: number;
@@ -43,7 +44,8 @@ export function calculateGrainLedger(rows: GrainLedgerRow[]): {
   const balances = new Map<string, GrainStock>();
   const summary = { openingKg: 0, receivedKg: 0, soldKg: 0, transferredKg: 0, totalKg: 0, grainWasteKg: 0, deadWasteKg: 0, moistureLossKg: 0, processedKg: 0 };
   let issue: GrainLedgerIssue | null = null;
-  const active = rows.filter((row) => !row.voidedAt).sort((a, b) => a.occurredOn.localeCompare(b.occurredOn) || a.id - b.id);
+  const active = rows.filter((row) => !row.voidedAt && (row.approvalStatus ?? "approved") === "approved")
+    .sort((a, b) => a.occurredOn.localeCompare(b.occurredOn) || a.id - b.id);
   const change = (row: GrainLedgerRow, locationId: number, delta: number, stockKind = row.stockKind ?? "grain") => {
     const key = `${row.unit}\0${row.cropId}\0${locationId}\0${stockKind}`;
     const balance = balances.get(key) ?? { unit: row.unit, cropId: row.cropId, locationId, stockKind, quantityKg: 0 };

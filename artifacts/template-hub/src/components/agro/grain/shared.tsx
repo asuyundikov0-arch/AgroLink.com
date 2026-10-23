@@ -20,9 +20,10 @@ export const isProcessor = (k: GrainLocation["kind"]) => k === "dryer" || k === 
 export const pct = (part: number, whole: number) => (whole > 0 ? `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format((part / whole) * 100)} %` : "—");
 export const n0 = (v: number | null | undefined) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 export const CROP_COLORS = ["#2F6F86", "#CED14E", "#C0623B", "#61A9BD", "#7A8B3A", "#8E5A9B", "#D9A441", "#3E8E6E"];
-export const canRead = (r: string) => ["agronomist", "chief_agronomist", "farm_director", "general_director", "economist"].includes(r);
-export const canRecord = (r: string) => ["agronomist", "chief_agronomist", "farm_director", "general_director"].includes(r);
-export const canManageDir = (r: string) => ["chief_agronomist", "farm_director", "general_director"].includes(r);
+export const canRead = (r: string) => ["agronomist", "chief_agronomist", "grain_manager", "weigher", "general_director"].includes(r);
+export const canRecord = (r: string) => ["weigher", "general_director"].includes(r);
+export const canReview = (r: string) => ["grain_manager", "general_director"].includes(r);
+export const canManageDir = (r: string) => ["chief_agronomist", "general_director"].includes(r);
 export const isGD = (r: string) => r === "general_director";
 
 export function errorInfo(err: unknown): { status?: number; message: string } {

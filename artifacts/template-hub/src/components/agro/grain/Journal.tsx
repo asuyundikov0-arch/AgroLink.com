@@ -18,6 +18,8 @@ export default function Journal({ role, movements, crops, locations }: { role: s
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
                   <span>{dateFmt(m.occurredOn)}</span><span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">{OP_LABEL[m.operation]}</span><span>{cn(m.cropId)}</span>{m.stockKind === "grain_waste" && <span className="rounded bg-[hsl(39_100%_52%/.18)] px-1.5 py-0.5 text-[10px]" data-testid={`text-movement-kind-${m.id}`}>{STOCK_LABEL.grain_waste}</span>}
+                  {m.approvalStatus === "pending" && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-900" data-testid={`status-pending-${m.id}`}>Ждёт согласования</span>}
+                  {m.approvalStatus === "returned" && <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] text-rose-900" data-testid={`status-returned-${m.id}`}>Возвращено</span>}
                   {m.voidedAt && <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] text-destructive" data-testid={`status-voided-${m.id}`}>Отменено — не в остатках</span>}
                 </div>
                 <p className="mt-0.5 break-words text-[11px] text-muted-foreground">
@@ -25,6 +27,7 @@ export default function Journal({ role, movements, crops, locations }: { role: s
                 </p>
                 {(m.operation === "drying" || m.operation === "cleaning") && <ProcDetails m={m} ln={ln} />}
                 {m.voidedAt && <p className="text-[11px] text-destructive">Отменил {m.voidedBy} {dateFmt(m.voidedAt)}: {m.voidReason}</p>}
+                {m.reviewComment && <p className="mt-1 text-[11px] text-rose-800">Комментарий заведующего током: {m.reviewComment}</p>}
               </div>
               <div className="flex items-center gap-2">
                 <span className={cx("font-mono text-sm font-bold", m.voidedAt && "line-through")} data-testid={`text-movement-qty-${m.id}`}>{m.operation === "sale" ? "−" : m.operation === "transfer" || m.operation === "drying" || m.operation === "cleaning" ? "↔ " : "+"}{tonsKg(kg(m.quantityTons))}</span>

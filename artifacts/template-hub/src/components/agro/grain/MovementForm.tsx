@@ -16,7 +16,7 @@ function parseKg(v: string, allowZero: boolean): { kg: number | null; err?: stri
   return { kg: Math.round(q * 1000) };
 }
 
-export default function MovementForm({ crops, locations, stock, asOfDate, defaultUnit, onClose }: { crops: GrainCrop[]; locations: GrainLocation[]; stock: (unit: string, crop: number, loc: number, kind: StockKind) => number; asOfDate: string; defaultUnit: Unit; onClose: () => void }) {
+export default function MovementForm({ role, crops, locations, stock, asOfDate, defaultUnit, onClose, onDone }: { role: string; crops: GrainCrop[]; locations: GrainLocation[]; stock: (unit: string, crop: number, loc: number, kind: StockKind) => number; asOfDate: string; defaultUnit: Unit; onClose: () => void; onDone: (message: string) => void }) {
   const [requestId] = useState(uuid);
   const [f, setF] = useState({ unit: defaultUnit as Unit, operation: "receipt" as Op, stockKind: "grain" as StockKind, cropId: "", occurredOn: asOfDate, qty: "", out: "", dead: "", gw: "", wasteTo: "", from: "", to: "", fieldName: "", counterparty: "", notes: "" });
   const [errs, setErrs] = useState<Record<string, string>>({});
@@ -80,7 +80,13 @@ export default function MovementForm({ crops, locations, stock, asOfDate, defaul
       wasteToLocationId: gwKg > 0 ? Number(f.wasteTo) : null,
       fromLocationId: needFrom ? Number(f.from) : null, toLocationId: needTo ? Number(f.to) : null,
       fieldName: f.operation === "receipt" ? f.fieldName.trim() : "", counterparty: f.operation === "sale" ? f.counterparty.trim() : "", notes: f.notes.trim(),
-    } }, { onSuccess: () => { invalidate(); onClose(); }, onError: (err) => setSrvErr(errorInfo(err).message) });
+    } }, { onSuccess: () => {
+      invalidate();
+      onDone(role === "weigher"
+        ? "Запись отправлена заведующему током. В баланс она попадёт после согласования."
+        : "Операция внесена в баланс зерна.");
+      onClose();
+    }, onError: (err) => setSrvErr(errorInfo(err).message) });
   };
 
   const locSelect = (k: "from" | "to" | "wasteTo", opts: GrainLocation[], testId: string) => (
@@ -96,7 +102,7 @@ export default function MovementForm({ crops, locations, stock, asOfDate, defaul
   return (
     <Drawer title="Новая операция с зерном" eyebrow="Журнал движения" onClose={close} testId="form-grain-movement"
       footer={<><button type="button" className="button button-secondary" onClick={close} disabled={create.isPending} data-testid="button-movement-cancel">Отмена</button>
-        <button type="button" className="button button-primary" onClick={submit} disabled={create.isPending} data-testid="button-movement-submit">{create.isPending ? "Проводим..." : "Провести"}</button></>}>
+        <button type="button" className="button button-primary" onClick={submit} disabled={create.isPending} data-testid="button-movement-submit">{create.isPending ? "Отправляем..." : role === "weigher" ? "Отправить на согласование" : "Провести"}</button></>}>
       <div className="grid grid-cols-3 gap-1 rounded-lg border border-border p-0.5" role="group" aria-label="Операция">
         {(Object.keys(OP_LABEL) as Op[]).map((o) => (
           <button key={o} type="button" aria-pressed={f.operation === o} onClick={() => setOp(o)} data-testid={`button-op-${o}`}
@@ -139,7 +145,7 @@ export default function MovementForm({ crops, locations, stock, asOfDate, defaul
         {f.operation === "sale" && <Field label="Покупатель (необязательно)" htmlFor="grain-cp"><input id="grain-cp" maxLength={200} className="text-input" value={f.counterparty} onChange={(e) => set("counterparty", e.target.value)} data-testid="input-movement-counterparty" /></Field>}
         <Field label="Примечание" htmlFor="grain-notes" wide><textarea id="grain-notes" maxLength={3000} rows={3} className="text-input" value={f.notes} onChange={(e) => set("notes", e.target.value)} data-testid="input-movement-notes" /></Field>
       </div>
-      <p className="text-[11px] leading-5 text-muted-foreground">Перемещение не меняет общий остаток; продажа уменьшает. Зерновые отходы учитываются отдельно от зерна. Элеватор — собственное зерно хозяйства. Проведённые записи не редактируются: ошибку исправляет генеральный директор отменой с причиной, затем вносится новая запись.</p>
+      <p className="text-[11px] leading-5 text-muted-foreground">{role === "weigher" ? "После отправки запись проверит заведующий током. До согласования она не меняет остаток. Возвращённую запись исправьте и отправьте заново." : "Перемещение не меняет общий остаток; продажа уменьшает. Зерновые отходы учитываются отдельно от зерна. Элеватор — собственное зерно хозяйства. Ошибочную проведённую запись генеральный директор отменяет с причиной."}</p>
       <ErrorBox message={srvErr} testId="error-movement-submit" />
     </Drawer>
   );

@@ -100,6 +100,8 @@ type ArchiveSubarchiveKey = (typeof archiveOptions)[ArchiveSectionKey]["subarchi
 const roleLabels = {
   agronomist: "Агроном",
   chief_agronomist: "Главный агроном",
+  grain_manager: "Заведующий током",
+  weigher: "Весовщица",
   economist: "Экономист",
   farm_director: "Директор хозяйства",
   general_director: "Генеральный директор",
@@ -222,6 +224,8 @@ function PublicLanding() {
 const demoRoleScenarios: Record<AppRole, { workspace: string; title: string; description: string; document: string; action: string; result: string }> = {
   agronomist: { workspace: "АгроБлок", title: "Отчёт агронома", description: "Заполните форму и направьте отчёт главному агроному.", document: "Сводка по уборке · АПК Арыстан Grain", action: "Отправить на проверку", result: "Демо: отчёт направлен главному агроному." },
   chief_agronomist: { workspace: "Личный кабинет", title: "Очередь главного агронома", description: "Проверьте поступивший отчёт и направьте его дальше.", document: "Сводка по уборке · АПК Арыстан Grain", action: "Принять документ", result: "Демо: отчёт принят и готов к следующему этапу." },
+  grain_manager: { workspace: "АгроБлок", title: "Согласование зерновых операций", description: "Проверьте поступившие от весовщицы операции и подтвердите или верните их.", document: "Приход зерна · АФ Веденовка", action: "Согласовать операцию", result: "Демо: операция передана в общий баланс." },
+  weigher: { workspace: "АгроБлок", title: "Ввод зерновых операций", description: "Внесите взвешивание и отправьте запись заведующему током на согласование.", document: "Приход зерна с поля · АПК Арыстан Grain", action: "Отправить на согласование", result: "Демо: запись передана заведующему током." },
   economist: { workspace: "Личный кабинет", title: "Ежедневный реестр", description: "Подайте финансовый реестр директору хозяйства.", document: "Реестр финансирования · АФ Веденовка", action: "Отправить директору", result: "Демо: реестр направлен директору хозяйства." },
   farm_director: { workspace: "Личный кабинет", title: "Очередь директора хозяйства", description: "Согласуйте финансовый реестр и направьте его генеральному директору.", document: "Реестр финансирования · АФ Веденовка", action: "Направить генеральному директору", result: "Демо: реестр направлен на финальное согласование." },
   general_director: { workspace: "Личный кабинет", title: "Финальное согласование", description: "Утвердите документ и разместите его в соответствующем архиве.", document: "Акт технического осмотра · Инженерная служба", action: "Одобрить и в архив", result: "Демо: документ утверждён и помещён в инженерский архив." },
@@ -363,13 +367,14 @@ function Shell({
   const [topNotice, setTopNotice] = useState("");
   const { signOut } = useClerk();
   const activeSidebarSection: SidebarSection = activeSection === "templates" ? "cabinet" : activeSection;
+  const isAgroVisible = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "general_director"].includes(role);
   const isEngineeringVisible = ["engineer", "chief_engineer", "storekeeper", "general_director"].includes(role);
   const isEconomicVisible = ["economist", "farm_director", "general_director"].includes(role);
   const isLegalVisible = ["lawyer", "general_director"].includes(role);
   const navigation = [
     { id: "cabinet" as const, label: "Личный кабинет", icon: ClipboardCheck },
     { id: "archive" as const, label: "Архив", icon: Archive },
-    { id: "agro" as const, label: "АгроБлок", icon: Sprout },
+    ...(isAgroVisible ? [{ id: "agro" as const, label: "АгроБлок", icon: Sprout }] : []),
     ...(isEngineeringVisible ? [{ id: "engineering" as const, label: "Инженерный блок", icon: Wrench }] : []),
     ...(isEconomicVisible ? [{ id: "economic" as const, label: "Экономический блок", icon: BarChart3 }] : []),
     ...(isLegalVisible ? [{ id: "legal" as const, label: "Юридический блок", icon: Scale }] : []),
@@ -496,7 +501,7 @@ function Cabinet({ role, actualRole, demoRole, onDemoRoleChange }: {
   const [file, setFile] = useState<File | null>(null);
   const [unit, setUnit] = useState("АПК Арыстан Grain");
   const [directorReportTitle, setDirectorReportTitle] = useState("");
-  const [directorRecipientRole, setDirectorRecipientRole] = useState<"agronomist" | "engineer" | "economist" | "lawyer">("agronomist");
+  const [directorRecipientRole, setDirectorRecipientRole] = useState<"agronomist" | "grain_manager" | "weigher" | "engineer" | "economist" | "lawyer">("agronomist");
   const [directorFile, setDirectorFile] = useState<File | null>(null);
   const [notice, setNotice] = useState("");
   const [archiveTarget, setArchiveTarget] = useState<Report | null>(null);
@@ -521,6 +526,8 @@ function Cabinet({ role, actualRole, demoRole, onDemoRoleChange }: {
   const reviewer = role === "chief_agronomist" || role === "chief_engineer" || role === "farm_director";
   const directorRecipientOptions = [
     { role: "agronomist" as const, label: "Агрономический блок", unit: "Агрономический отдел" },
+    { role: "grain_manager" as const, label: "АгроБлок — заведующий током", unit: "Зерновой ток" },
+    { role: "weigher" as const, label: "АгроБлок — весовщица", unit: "Весовая" },
     { role: "engineer" as const, label: "Инженерный блок", unit: "Инженерная служба" },
     { role: "economist" as const, label: "Экономический блок", unit: "Экономический отдел" },
     { role: "lawyer" as const, label: "Юридический блок", unit: "Юридический отдел" },
