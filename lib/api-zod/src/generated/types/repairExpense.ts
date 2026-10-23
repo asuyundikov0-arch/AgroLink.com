@@ -18,6 +18,8 @@ export interface RepairExpense {
   description: string;
   version: number;
   source: RepairExpenseSource;
+  /** @nullable */
+  sparePartMovementId: number | null;
   updatedAt: string;
   updatedBy: string;
 }

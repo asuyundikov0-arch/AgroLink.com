@@ -475,6 +475,7 @@ export type RepairExpenseSource = typeof RepairExpenseSource[keyof typeof Repair
 export const RepairExpenseSource = {
   manual: 'manual',
   legacy: 'legacy',
+  warehouse: 'warehouse',
 } as const;
 
 export interface RepairExpense {
@@ -487,8 +488,112 @@ export interface RepairExpense {
   description: string;
   version: number;
   source: RepairExpenseSource;
+  /** @nullable */
+  sparePartMovementId: number | null;
   updatedAt: string;
   updatedBy: string;
+}
+
+export interface SparePart {
+  id: number;
+  name: string;
+  articleNumber: string;
+  unit: string;
+  quantity: number;
+  averageUnitCost: number;
+  updatedBy: string;
+  updatedAt: string;
+}
+
+export interface SparePartReceiptInput {
+  /**
+     * @minLength 16
+     * @maxLength 80
+     */
+  requestId: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  name: string;
+  /** @maxLength 100 */
+  articleNumber: string;
+  /**
+     * @minLength 1
+     * @maxLength 40
+     */
+  unit: string;
+  /**
+     * @maximum 1000000
+     * @exclusiveMinimum 0
+     */
+  quantity: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000000000
+     */
+  unitPrice: number;
+  occurredOn: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  invoiceNumber: string;
+  invoiceDate: string;
+  /** @maxLength 200 */
+  supplier: string;
+  /** @maxLength 1000 */
+  description: string;
+}
+
+export interface SparePartIssueInput {
+  /**
+     * @minLength 16
+     * @maxLength 80
+     */
+  requestId: string;
+  /** @minimum 1 */
+  sparePartId: number;
+  /** @minimum 1 */
+  fleetId: number;
+  /**
+     * @maximum 1000000
+     * @exclusiveMinimum 0
+     */
+  quantity: number;
+  occurredOn: string;
+  /** @maxLength 1000 */
+  description: string;
+}
+
+export type SparePartMovementMovementKind = typeof SparePartMovementMovementKind[keyof typeof SparePartMovementMovementKind];
+
+
+export const SparePartMovementMovementKind = {
+  receipt: 'receipt',
+  issue: 'issue',
+} as const;
+
+export interface SparePartMovement {
+  id: number;
+  sparePartId: number;
+  sparePartName: string;
+  articleNumber: string;
+  unit: string;
+  movementKind: SparePartMovementMovementKind;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  occurredOn: string;
+  invoiceNumber: string;
+  /** @nullable */
+  invoiceDate: string | null;
+  supplier: string;
+  /** @nullable */
+  fleetId: number | null;
+  description: string;
+  createdBy: string;
+  createdAt: string;
 }
 
 export interface GrainCropInput {

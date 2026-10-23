@@ -1,12 +1,16 @@
 import { Router, type IRouter, type RequestHandler } from "express";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import {
   CreateEngineeringRepairBody, CreateRepairPlanBatchBody, UpdateEngineeringRepairBody,
-  CreateFleetEquipmentBody, UpdateFleetEquipmentBody, CreateRepairExpenseBody, UpdateRepairExpenseBody,
+  CreateFleetEquipmentBody, UpdateFleetEquipmentBody, UpdateRepairExpenseBody,
+  CreateEngineeringSparePartReceiptBody, CreateEngineeringSparePartIssueBody,
   ListEngineeringRepairsQueryParams, ListRepairExpensesQueryParams,
   ListEngineeringRepairsResponse, type PlanInput, type RepairEntry, type RepairInput,
 } from "@workspace/api-zod";
-import { activityTable, db, equipmentRepairsTable, fleetEquipmentTable, repairExpensesTable } from "@workspace/db";
+import {
+  activityTable, db, equipmentRepairsTable, fleetEquipmentTable, repairExpensesTable,
+  sparePartMovementsTable, sparePartsTable,
+} from "@workspace/db";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { calculateRepair, repairBusinessDate, summarizeRepairs, validRepairDate, validateRepairInput } from "../lib/repair-calculations";
 import { ledgerTotals, registrationKey } from "../lib/repair-ledger";
@@ -20,7 +24,7 @@ const protect: RequestHandler = (_req, res, next) => {
   }
   next();
 };
-for (const path of ["/engineering/repairs", "/engineering/expenses", "/engineering/repair-plan"]) {
+for (const path of ["/engineering/repairs", "/engineering/expenses", "/engineering/repair-plan", "/engineering/spare-parts"]) {
   router.use(path, requireApprovedRole, protect);
 }
 router.use("/engineering/fleet", requireApprovedRole);
@@ -62,8 +66,8 @@ const safe = (handler: RequestHandler): RequestHandler => async (req, res, next)
   catch (err) {
     const error = err as { code?: string; cause?: { code?: string } };
     const code = error.code ?? error.cause?.code;
-    if (code === "23505") { res.status(409).json({ error: "Такой госномер уже есть в справочнике или техника уже добавлена в план." }); return; }
-    if (code === "23503") { res.status(409).json({ error: "Техника используется в плане или расходах. Сначала проверьте связанные записи." }); return; }
+    if (code === "23505") { res.status(409).json({ error: "Такая запись уже существует. Обновите данные перед повтором." }); return; }
+    if (code === "23503") { res.status(409).json({ error: "Запись используется связанными данными и не может быть удалена." }); return; }
     next(err);
   }
 };
@@ -74,6 +78,39 @@ function fleetJson(row: typeof fleetEquipmentTable.$inferSelect) {
 const expenseJson = (row: typeof repairExpensesTable.$inferSelect) => ({
   ...row, amount: Number(row.amount), updatedAt: row.updatedAt.toISOString(),
 });
+const sparePartJson = (row: typeof sparePartsTable.$inferSelect) => ({
+  id: row.id, name: row.name, articleNumber: row.articleNumber, unit: row.unit,
+  quantity: Number(row.quantity), averageUnitCost: Number(row.averageUnitCost),
+  updatedBy: row.updatedBy, updatedAt: row.updatedAt.toISOString(),
+});
+type MovementRecord = {
+  movement: typeof sparePartMovementsTable.$inferSelect;
+  part: typeof sparePartsTable.$inferSelect;
+};
+const movementJson = ({ movement, part }: MovementRecord) => ({
+  id: movement.id, sparePartId: movement.sparePartId, sparePartName: part.name,
+  articleNumber: part.articleNumber, unit: part.unit, movementKind: movement.movementKind,
+  quantity: Number(movement.quantity), unitPrice: Number(movement.unitPrice), amount: Number(movement.amount),
+  occurredOn: movement.occurredOn, invoiceNumber: movement.invoiceNumber, invoiceDate: movement.invoiceDate,
+  supplier: movement.supplier, fleetId: movement.fleetId, description: movement.description,
+  createdBy: movement.createdBy, createdAt: movement.createdAt.toISOString(),
+});
+async function movementById(tx: Tx | typeof db, id: number) {
+  const [row] = await tx.select({ movement: sparePartMovementsTable, part: sparePartsTable })
+    .from(sparePartMovementsTable)
+    .innerJoin(sparePartsTable, eq(sparePartMovementsTable.sparePartId, sparePartsTable.id))
+    .where(eq(sparePartMovementsTable.id, id));
+  return row;
+}
+function sparePartAmount(quantity: number, unitPrice: number) {
+  return Math.round(quantity * unitPrice * 100) / 100;
+}
+function validQuantity(value: number) {
+  return Number.isFinite(value) && value > 0 && value <= 1_000_000 && Number(value.toFixed(3)) === value;
+}
+function validUnitPrice(value: number) {
+  return Number.isFinite(value) && value >= 0 && value <= 1_000_000_000_000 && Number(value.toFixed(2)) === value;
+}
 
 async function repairEntries(tx: Tx | typeof db = db): Promise<RepairEntry[]> {
   const rows = await tx.select({ plan: equipmentRepairsTable, fleet: fleetEquipmentTable })
@@ -240,6 +277,122 @@ router.delete("/engineering/repairs/:id", directorOnly, safe(async (req, res) =>
   res.status(204).send();
 }));
 
+router.get("/engineering/spare-parts", safe(async (_req, res) => {
+  const rows = await db.select().from(sparePartsTable).orderBy(sparePartsTable.name, sparePartsTable.articleNumber);
+  res.setHeader("Cache-Control", "no-store");
+  res.json(rows.map(sparePartJson));
+}));
+router.get("/engineering/spare-parts/movements", safe(async (_req, res) => {
+  const rows = await db.select({ movement: sparePartMovementsTable, part: sparePartsTable })
+    .from(sparePartMovementsTable)
+    .innerJoin(sparePartsTable, eq(sparePartMovementsTable.sparePartId, sparePartsTable.id))
+    .orderBy(desc(sparePartMovementsTable.createdAt), desc(sparePartMovementsTable.id));
+  res.setHeader("Cache-Control", "no-store");
+  res.json(rows.map(movementJson));
+}));
+router.post("/engineering/spare-parts/receipts", safe(async (req, res) => {
+  const parsed = CreateEngineeringSparePartReceiptBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Проверьте номенклатуру, количество, цену и реквизиты накладной." }); return; }
+  const input = parsed.data;
+  if (!input.name.trim() || !input.unit.trim() || !input.invoiceNumber.trim()
+    || !validQuantity(input.quantity) || !validUnitPrice(input.unitPrice)
+    || !validRepairDate(input.occurredOn) || input.occurredOn > repairBusinessDate()
+    || !validRepairDate(input.invoiceDate) || input.invoiceDate > repairBusinessDate()) {
+    res.status(400).json({ error: "Укажите корректные данные прихода, количество, цену и даты не позднее сегодняшнего." }); return;
+  }
+  const by = actor(res.locals.access);
+  const result = await db.transaction(async (tx) => {
+    const [existing] = await tx.select().from(sparePartMovementsTable)
+      .where(eq(sparePartMovementsTable.requestId, input.requestId));
+    if (existing) return { movement: await movementById(tx, existing.id) };
+
+    const name = input.name.trim();
+    const articleNumber = input.articleNumber.trim();
+    const unit = input.unit.trim();
+    const nameKey = name.toLocaleLowerCase("ru-RU");
+    const articleKey = articleNumber.toLocaleLowerCase("ru-RU");
+    const unitKey = unit.toLocaleLowerCase("ru-RU");
+    const amount = sparePartAmount(input.quantity, input.unitPrice);
+    const [part] = await tx.insert(sparePartsTable).values({
+      name, nameKey, articleNumber, articleKey, unit, unitKey,
+      quantity: input.quantity.toFixed(3), averageUnitCost: input.unitPrice.toFixed(2),
+      updatedBy: by,
+    }).onConflictDoUpdate({
+      target: [sparePartsTable.nameKey, sparePartsTable.articleKey, sparePartsTable.unitKey],
+      set: {
+        quantity: sql`${sparePartsTable.quantity} + EXCLUDED.quantity`,
+        averageUnitCost: sql`CASE WHEN ${sparePartsTable.quantity} = 0
+          THEN EXCLUDED.average_unit_cost
+          ELSE ((${sparePartsTable.quantity} * ${sparePartsTable.averageUnitCost})
+            + (EXCLUDED.quantity * EXCLUDED.average_unit_cost))
+            / (${sparePartsTable.quantity} + EXCLUDED.quantity) END`,
+        updatedBy: by,
+        updatedAt: new Date(),
+      },
+    }).returning();
+    const [movement] = await tx.insert(sparePartMovementsTable).values({
+      requestId: input.requestId, sparePartId: part.id, movementKind: "receipt",
+      quantity: input.quantity.toFixed(3), unitPrice: input.unitPrice.toFixed(2),
+      amount: amount.toFixed(2), occurredOn: input.occurredOn, invoiceNumber: input.invoiceNumber.trim(),
+      invoiceDate: input.invoiceDate, supplier: input.supplier.trim(), description: input.description.trim(), createdBy: by,
+    }).returning();
+    await activity(tx, "Поступили запчасти на склад", `${name}${articleNumber ? ` · ${articleNumber}` : ""} · накладная ${input.invoiceNumber.trim()}`, by);
+    return { movement: await movementById(tx, movement.id) };
+  });
+  if (!result.movement) { res.status(500).json({ error: "Не удалось загрузить карточку запчасти после прихода." }); return; }
+  res.status(201).json(movementJson(result.movement));
+}));
+router.post("/engineering/spare-parts/issues", safe(async (req, res) => {
+  const parsed = CreateEngineeringSparePartIssueBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Выберите запчасть и технику, укажите количество и дату списания." }); return; }
+  const input = parsed.data;
+  if (!positiveId(input.sparePartId) || !positiveId(input.fleetId) || !validQuantity(input.quantity)
+    || !validRepairDate(input.occurredOn) || input.occurredOn > repairBusinessDate()) {
+    res.status(400).json({ error: "Укажите корректные технику, количество и дату списания не позднее сегодняшней." }); return;
+  }
+  const by = actor(res.locals.access);
+  const result = await db.transaction(async (tx) => {
+    const [existing] = await tx.select().from(sparePartMovementsTable)
+      .where(eq(sparePartMovementsTable.requestId, input.requestId));
+    if (existing) return { movement: await movementById(tx, existing.id) };
+
+    const [part] = await tx.select().from(sparePartsTable)
+      .where(eq(sparePartsTable.id, input.sparePartId)).for("update");
+    if (!part) return { error: "Запчасть не найдена.", status: 404 as const };
+    const currentQuantity = Number(part.quantity);
+    if (currentQuantity + 1e-9 < input.quantity) {
+      return { error: `Недостаточно остатка. Доступно: ${currentQuantity.toLocaleString("ru-RU")} ${part.unit}.`, status: 409 as const };
+    }
+    const [fleet] = await tx.select().from(fleetEquipmentTable).where(eq(fleetEquipmentTable.id, input.fleetId));
+    if (!fleet) return { error: "Техника не найдена в справочнике.", status: 404 as const };
+
+    const unitPrice = Number(part.averageUnitCost);
+    const amount = sparePartAmount(input.quantity, unitPrice);
+    const [updated] = await tx.update(sparePartsTable).set({
+      quantity: Math.max(0, currentQuantity - input.quantity).toFixed(3),
+      updatedBy: by, updatedAt: new Date(),
+    }).where(and(eq(sparePartsTable.id, part.id), sql`${sparePartsTable.quantity} >= ${input.quantity}`)).returning();
+    if (!updated) return { error: "Остаток изменился другим пользователем. Обновите склад и повторите списание.", status: 409 as const };
+    const [movement] = await tx.insert(sparePartMovementsTable).values({
+      requestId: input.requestId, sparePartId: part.id, movementKind: "issue",
+      quantity: input.quantity.toFixed(3), unitPrice: unitPrice.toFixed(2), amount: amount.toFixed(2),
+      occurredOn: input.occurredOn, fleetId: fleet.id,
+      description: input.description.trim(), createdBy: by,
+    }).returning();
+    await tx.insert(repairExpensesTable).values({
+      fleetId: fleet.id, incurredOn: input.occurredOn, category: "current",
+      amount: amount.toFixed(2),
+      description: `Списание со склада: ${part.name}${part.articleNumber ? ` · ${part.articleNumber}` : ""} — ${input.quantity.toLocaleString("ru-RU")} ${part.unit}${input.description.trim() ? ` · ${input.description.trim()}` : ""}`,
+      source: "warehouse", sparePartMovementId: movement.id, updatedBy: by,
+    });
+    await activity(tx, "Списаны запчасти на ремонт техники", `${part.name} · ${fleet.kind} · ${fleet.registrationNumber ?? "без госномера"} · ${amount.toFixed(2)} ₸`, by);
+    return { movement: await movementById(tx, movement.id) };
+  });
+  if ("error" in result) { res.status(result.status ?? 409).json({ error: result.error }); return; }
+  if (!result.movement) { res.status(500).json({ error: "Не удалось загрузить запись списания." }); return; }
+  res.status(201).json(movementJson(result.movement));
+}));
+
 function expenseError(input: { fleetId: number; amount: number; incurredOn: string }) {
   if (!positiveId(input.fleetId)) return "Выберите технику из справочника.";
   if (!validRepairDate(input.incurredOn) || input.incurredOn > repairBusinessDate()) return "Укажите корректную дату расхода, не позднее сегодняшней.";
@@ -257,21 +410,7 @@ router.get("/engineering/expenses", safe(async (req, res) => {
   res.setHeader("Cache-Control", "no-store"); res.json(rows.map(expenseJson));
 }));
 router.post("/engineering/expenses", safe(async (req, res) => {
-  const parsed = CreateRepairExpenseBody.safeParse(req.body);
-  const error = parsed.success ? expenseError(parsed.data) : "Проверьте поля расхода и положительную сумму.";
-  if (!parsed.success || error) { res.status(400).json({ error }); return; }
-  const row = await db.transaction(async (tx) => {
-    const [fleet] = await tx.select().from(fleetEquipmentTable).where(eq(fleetEquipmentTable.id, parsed.data.fleetId));
-    if (!fleet) return null;
-    const [created] = await tx.insert(repairExpensesTable).values({
-      ...parsed.data, amount: parsed.data.amount.toFixed(2), description: parsed.data.description.trim(),
-      updatedBy: actor(res.locals.access),
-    }).returning();
-    await activity(tx, "Добавлен расход на технику", `${fleet.kind} · ${fleet.registrationNumber ?? "номер не указан"}`, actor(res.locals.access));
-    return created;
-  });
-  if (!row) { res.status(404).json({ error: "Техника не найдена." }); return; }
-  res.status(201).json(expenseJson(row));
+  res.status(409).json({ error: "Новые затраты на ремонт оформляются через списание запчастей со склада." });
 }));
 router.put("/engineering/expenses/:id", safe(async (req, res) => {
   const id = positiveId(req.params.id);
@@ -280,6 +419,8 @@ router.put("/engineering/expenses/:id", safe(async (req, res) => {
   const error = expenseError(parsed.data);
   if (error) { res.status(400).json({ error }); return; }
   const row = await db.transaction(async (tx) => {
+    const [existing] = await tx.select().from(repairExpensesTable).where(eq(repairExpensesTable.id, id));
+    if (existing?.source === "warehouse") return "warehouse" as const;
     const [fleet] = await tx.select().from(fleetEquipmentTable).where(eq(fleetEquipmentTable.id, parsed.data.fleetId));
     if (!fleet) return null;
     const [updated] = await tx.update(repairExpensesTable).set({
@@ -289,6 +430,7 @@ router.put("/engineering/expenses/:id", safe(async (req, res) => {
     if (updated) await activity(tx, "Исправлен расход на технику", fleet.kind, actor(res.locals.access));
     return updated;
   });
+  if (row === "warehouse") { res.status(409).json({ error: "Расход со склада нельзя менять отдельно от складского движения." }); return; }
   if (!row) { res.status(409).json({ error: "Расход или техника изменены / удалены. Загрузите актуальные данные перед исправлением." }); return; }
   res.json(expenseJson(row));
 }));
@@ -296,10 +438,13 @@ router.delete("/engineering/expenses/:id", directorOnly, safe(async (req, res) =
   const id = positiveId(req.params.id);
   if (!id) { res.status(400).json({ error: "Некорректный расход." }); return; }
   const row = await db.transaction(async (tx) => {
+    const [existing] = await tx.select().from(repairExpensesTable).where(eq(repairExpensesTable.id, id));
+    if (existing?.source === "warehouse") return "warehouse" as const;
     const [deleted] = await tx.delete(repairExpensesTable).where(eq(repairExpensesTable.id, id)).returning();
     if (deleted) await activity(tx, "Удалён расход на технику", `Расход ${deleted.id}`, actor(res.locals.access));
     return deleted;
   });
+  if (row === "warehouse") { res.status(409).json({ error: "Расход со склада нельзя удалить отдельно от складского движения." }); return; }
   if (!row) { res.status(404).json({ error: "Расход не найден." }); return; }
   res.status(204).send();
 }));

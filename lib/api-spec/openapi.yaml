@@ -396,6 +396,66 @@ paths:
       responses:
         "204":
           description: Removed by general director
+  /engineering/spare-parts:
+    get:
+      operationId: listEngineeringSpareParts
+      tags: [engineering]
+      responses:
+        "200":
+          description: Spare-parts stock cards with current balances
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SparePart"
+  /engineering/spare-parts/movements:
+    get:
+      operationId: listEngineeringSparePartMovements
+      tags: [engineering]
+      responses:
+        "200":
+          description: Receipt and issue history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SparePartMovement"
+  /engineering/spare-parts/receipts:
+    post:
+      operationId: createEngineeringSparePartReceipt
+      tags: [engineering]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SparePartReceiptInput"
+      responses:
+        "201":
+          description: Invoice receipt recorded and stock increased
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SparePartMovement"
+  /engineering/spare-parts/issues:
+    post:
+      operationId: createEngineeringSparePartIssue
+      tags: [engineering]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SparePartIssueInput"
+      responses:
+        "201":
+          description: Stock issued to a machine and recorded as a repair expense
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SparePartMovement"
   /engineering/repairs:
     get:
       operationId: listEngineeringRepairs
@@ -1245,7 +1305,7 @@ components:
             version: { type: number, minimum: 1 }
     RepairExpense:
       type: object
-      required: [id, fleetId, incurredOn, category, amount, description, version, source, updatedAt, updatedBy]
+      required: [id, fleetId, incurredOn, category, amount, description, version, source, sparePartMovementId, updatedAt, updatedBy]
       properties:
         id: { type: number }
         fleetId: { type: number }
@@ -1254,9 +1314,68 @@ components:
         amount: { type: number }
         description: { type: string }
         version: { type: number }
-        source: { type: string, enum: [manual, legacy] }
+        source: { type: string, enum: [manual, legacy, warehouse] }
+        sparePartMovementId: { type: ["number", "null"] }
         updatedAt: { type: string }
         updatedBy: { type: string }
+    SparePart:
+      type: object
+      required: [id, name, articleNumber, unit, quantity, averageUnitCost, updatedBy, updatedAt]
+      properties:
+        id: { type: number }
+        name: { type: string }
+        articleNumber: { type: string }
+        unit: { type: string }
+        quantity: { type: number }
+        averageUnitCost: { type: number }
+        updatedBy: { type: string }
+        updatedAt: { type: string }
+    SparePartReceiptInput:
+      type: object
+      required: [requestId, name, articleNumber, unit, quantity, unitPrice, occurredOn, invoiceNumber, invoiceDate, supplier, description]
+      properties:
+        requestId: { type: string, minLength: 16, maxLength: 80 }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        articleNumber: { type: string, maxLength: 100 }
+        unit: { type: string, minLength: 1, maxLength: 40 }
+        quantity: { type: number, exclusiveMinimum: 0, maximum: 1000000 }
+        unitPrice: { type: number, minimum: 0, maximum: 1000000000000 }
+        occurredOn: { type: string }
+        invoiceNumber: { type: string, minLength: 1, maxLength: 100 }
+        invoiceDate: { type: string }
+        supplier: { type: string, maxLength: 200 }
+        description: { type: string, maxLength: 1000 }
+    SparePartIssueInput:
+      type: object
+      required: [requestId, sparePartId, fleetId, quantity, occurredOn, description]
+      properties:
+        requestId: { type: string, minLength: 16, maxLength: 80 }
+        sparePartId: { type: number, minimum: 1 }
+        fleetId: { type: number, minimum: 1 }
+        quantity: { type: number, exclusiveMinimum: 0, maximum: 1000000 }
+        occurredOn: { type: string }
+        description: { type: string, maxLength: 1000 }
+    SparePartMovement:
+      type: object
+      required: [id, sparePartId, sparePartName, articleNumber, unit, movementKind, quantity, unitPrice, amount, occurredOn, invoiceNumber, invoiceDate, supplier, fleetId, description, createdBy, createdAt]
+      properties:
+        id: { type: number }
+        sparePartId: { type: number }
+        sparePartName: { type: string }
+        articleNumber: { type: string }
+        unit: { type: string }
+        movementKind: { type: string, enum: [receipt, issue] }
+        quantity: { type: number }
+        unitPrice: { type: number }
+        amount: { type: number }
+        occurredOn: { type: string }
+        invoiceNumber: { type: string }
+        invoiceDate: { type: ["string", "null"] }
+        supplier: { type: string }
+        fleetId: { type: ["number", "null"] }
+        description: { type: string }
+        createdBy: { type: string }
+        createdAt: { type: string }
     GrainCropInput:
       type: object
       required: [name]

@@ -1484,7 +1484,8 @@ export const ListRepairExpensesResponseItem = zod.object({
   "amount": zod.number(),
   "description": zod.string(),
   "version": zod.number(),
-  "source": zod.enum(['manual', 'legacy']),
+  "source": zod.enum(['manual', 'legacy', 'warehouse']),
+  "sparePartMovementId": zod.number().nullable(),
   "updatedAt": zod.string(),
   "updatedBy": zod.string()
 })
@@ -1515,7 +1516,8 @@ export const CreateRepairExpenseResponse = zod.object({
   "amount": zod.number(),
   "description": zod.string(),
   "version": zod.number(),
-  "source": zod.enum(['manual', 'legacy']),
+  "source": zod.enum(['manual', 'legacy', 'warehouse']),
+  "sparePartMovementId": zod.number().nullable(),
   "updatedAt": zod.string(),
   "updatedBy": zod.string()
 })
@@ -1552,7 +1554,8 @@ export const UpdateRepairExpenseResponse = zod.object({
   "amount": zod.number(),
   "description": zod.string(),
   "version": zod.number(),
-  "source": zod.enum(['manual', 'legacy']),
+  "source": zod.enum(['manual', 'legacy', 'warehouse']),
+  "sparePartMovementId": zod.number().nullable(),
   "updatedAt": zod.string(),
   "updatedBy": zod.string()
 })
@@ -1563,6 +1566,141 @@ export const DeleteRepairExpenseParams = zod.object({
 })
 
 export const DeleteRepairExpenseResponse = zod.void()
+
+
+export const ListEngineeringSparePartsResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "articleNumber": zod.string(),
+  "unit": zod.string(),
+  "quantity": zod.number(),
+  "averageUnitCost": zod.number(),
+  "updatedBy": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListEngineeringSparePartsResponse = zod.array(ListEngineeringSparePartsResponseItem)
+
+
+export const ListEngineeringSparePartMovementsResponseItem = zod.object({
+  "id": zod.number(),
+  "sparePartId": zod.number(),
+  "sparePartName": zod.string(),
+  "articleNumber": zod.string(),
+  "unit": zod.string(),
+  "movementKind": zod.enum(['receipt', 'issue']),
+  "quantity": zod.number(),
+  "unitPrice": zod.number(),
+  "amount": zod.number(),
+  "occurredOn": zod.string(),
+  "invoiceNumber": zod.string(),
+  "invoiceDate": zod.string().nullable(),
+  "supplier": zod.string(),
+  "fleetId": zod.number().nullable(),
+  "description": zod.string(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string()
+})
+export const ListEngineeringSparePartMovementsResponse = zod.array(ListEngineeringSparePartMovementsResponseItem)
+
+
+export const createEngineeringSparePartReceiptBodyRequestIdMin = 16;
+export const createEngineeringSparePartReceiptBodyRequestIdMax = 80;
+
+export const createEngineeringSparePartReceiptBodyNameMax = 200;
+
+export const createEngineeringSparePartReceiptBodyArticleNumberMax = 100;
+
+export const createEngineeringSparePartReceiptBodyUnitMax = 40;
+
+export const createEngineeringSparePartReceiptBodyQuantityExclusiveMin = 0;
+export const createEngineeringSparePartReceiptBodyQuantityMax = 1000000;
+
+export const createEngineeringSparePartReceiptBodyUnitPriceMin = 0;
+export const createEngineeringSparePartReceiptBodyUnitPriceMax = 1000000000000;
+
+export const createEngineeringSparePartReceiptBodyInvoiceNumberMax = 100;
+
+export const createEngineeringSparePartReceiptBodySupplierMax = 200;
+
+export const createEngineeringSparePartReceiptBodyDescriptionMax = 1000;
+
+
+
+export const CreateEngineeringSparePartReceiptBody = zod.object({
+  "requestId": zod.string().min(createEngineeringSparePartReceiptBodyRequestIdMin).max(createEngineeringSparePartReceiptBodyRequestIdMax),
+  "name": zod.string().min(1).max(createEngineeringSparePartReceiptBodyNameMax),
+  "articleNumber": zod.string().max(createEngineeringSparePartReceiptBodyArticleNumberMax),
+  "unit": zod.string().min(1).max(createEngineeringSparePartReceiptBodyUnitMax),
+  "quantity": zod.number().gt(createEngineeringSparePartReceiptBodyQuantityExclusiveMin).max(createEngineeringSparePartReceiptBodyQuantityMax),
+  "unitPrice": zod.number().min(createEngineeringSparePartReceiptBodyUnitPriceMin).max(createEngineeringSparePartReceiptBodyUnitPriceMax),
+  "occurredOn": zod.string(),
+  "invoiceNumber": zod.string().min(1).max(createEngineeringSparePartReceiptBodyInvoiceNumberMax),
+  "invoiceDate": zod.string(),
+  "supplier": zod.string().max(createEngineeringSparePartReceiptBodySupplierMax),
+  "description": zod.string().max(createEngineeringSparePartReceiptBodyDescriptionMax)
+})
+
+export const CreateEngineeringSparePartReceiptResponse = zod.object({
+  "id": zod.number(),
+  "sparePartId": zod.number(),
+  "sparePartName": zod.string(),
+  "articleNumber": zod.string(),
+  "unit": zod.string(),
+  "movementKind": zod.enum(['receipt', 'issue']),
+  "quantity": zod.number(),
+  "unitPrice": zod.number(),
+  "amount": zod.number(),
+  "occurredOn": zod.string(),
+  "invoiceNumber": zod.string(),
+  "invoiceDate": zod.string().nullable(),
+  "supplier": zod.string(),
+  "fleetId": zod.number().nullable(),
+  "description": zod.string(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string()
+})
+
+
+export const createEngineeringSparePartIssueBodyRequestIdMin = 16;
+export const createEngineeringSparePartIssueBodyRequestIdMax = 80;
+
+
+
+export const createEngineeringSparePartIssueBodyQuantityExclusiveMin = 0;
+export const createEngineeringSparePartIssueBodyQuantityMax = 1000000;
+
+export const createEngineeringSparePartIssueBodyDescriptionMax = 1000;
+
+
+
+export const CreateEngineeringSparePartIssueBody = zod.object({
+  "requestId": zod.string().min(createEngineeringSparePartIssueBodyRequestIdMin).max(createEngineeringSparePartIssueBodyRequestIdMax),
+  "sparePartId": zod.number().min(1),
+  "fleetId": zod.number().min(1),
+  "quantity": zod.number().gt(createEngineeringSparePartIssueBodyQuantityExclusiveMin).max(createEngineeringSparePartIssueBodyQuantityMax),
+  "occurredOn": zod.string(),
+  "description": zod.string().max(createEngineeringSparePartIssueBodyDescriptionMax)
+})
+
+export const CreateEngineeringSparePartIssueResponse = zod.object({
+  "id": zod.number(),
+  "sparePartId": zod.number(),
+  "sparePartName": zod.string(),
+  "articleNumber": zod.string(),
+  "unit": zod.string(),
+  "movementKind": zod.enum(['receipt', 'issue']),
+  "quantity": zod.number(),
+  "unitPrice": zod.number(),
+  "amount": zod.number(),
+  "occurredOn": zod.string(),
+  "invoiceNumber": zod.string(),
+  "invoiceDate": zod.string().nullable(),
+  "supplier": zod.string(),
+  "fleetId": zod.number().nullable(),
+  "description": zod.string(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string()
+})
 
 
 /**

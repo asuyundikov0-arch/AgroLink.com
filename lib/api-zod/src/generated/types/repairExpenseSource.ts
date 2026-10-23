@@ -12,4 +12,5 @@ export type RepairExpenseSource = typeof RepairExpenseSource[keyof typeof Repair
 export const RepairExpenseSource = {
   manual: 'manual',
   legacy: 'legacy',
+  warehouse: 'warehouse',
 } as const;

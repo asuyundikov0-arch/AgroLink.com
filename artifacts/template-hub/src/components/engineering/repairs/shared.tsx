@@ -6,6 +6,8 @@ import {
   type RepairEntry,
   type RepairExpense,
   getListEngineeringRepairsQueryKey,
+  getListEngineeringSparePartMovementsQueryKey,
+  getListEngineeringSparePartsQueryKey,
   getListFleetEquipmentQueryKey,
   getListRepairExpensesQueryKey,
 } from "@workspace/api-client-react";
@@ -76,6 +78,8 @@ export function useInvalidateRepairs() {
     qc.invalidateQueries({ queryKey: [getListFleetEquipmentQueryKey()[0]] }),
     qc.invalidateQueries({ queryKey: [getListEngineeringRepairsQueryKey()[0]] }),
     qc.invalidateQueries({ queryKey: [getListRepairExpensesQueryKey()[0]] }),
+    qc.invalidateQueries({ queryKey: [getListEngineeringSparePartsQueryKey()[0]] }),
+    qc.invalidateQueries({ queryKey: [getListEngineeringSparePartMovementsQueryKey()[0]] }),
   ]);
 }
 

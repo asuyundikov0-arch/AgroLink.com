@@ -70,6 +70,10 @@ import type {
   RoleRequest,
   RoleRequestDecision,
   RoleRequestInput,
+  SparePart,
+  SparePartIssueInput,
+  SparePartMovement,
+  SparePartReceiptInput,
   Template,
   TemplateInput
 } from './api.schemas';
@@ -1767,6 +1771,278 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getDeleteRepairExpenseMutationOptions(options));
+    }
+
+export const getListEngineeringSparePartsUrl = () => {
+
+
+
+
+  return `/api/engineering/spare-parts`
+}
+
+export const listEngineeringSpareParts = async ( options?: Parameters<typeof customFetch>[1]): Promise<SparePart[]> => {
+
+  return customFetch<SparePart[]>(getListEngineeringSparePartsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListEngineeringSparePartsQueryKey = () => {
+    return [
+    `/api/engineering/spare-parts`
+    ] as const;
+    }
+
+
+export const getListEngineeringSparePartsQueryOptions = <TData = Awaited<ReturnType<typeof listEngineeringSpareParts>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEngineeringSpareParts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListEngineeringSparePartsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEngineeringSpareParts>>> = ({ signal }) => listEngineeringSpareParts({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEngineeringSpareParts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListEngineeringSparePartsQueryResult = NonNullable<Awaited<ReturnType<typeof listEngineeringSpareParts>>>
+export type ListEngineeringSparePartsQueryError = ErrorType<unknown>
+
+
+
+export function useListEngineeringSpareParts<TData = Awaited<ReturnType<typeof listEngineeringSpareParts>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEngineeringSpareParts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListEngineeringSparePartsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListEngineeringSparePartMovementsUrl = () => {
+
+
+
+
+  return `/api/engineering/spare-parts/movements`
+}
+
+export const listEngineeringSparePartMovements = async ( options?: Parameters<typeof customFetch>[1]): Promise<SparePartMovement[]> => {
+
+  return customFetch<SparePartMovement[]>(getListEngineeringSparePartMovementsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListEngineeringSparePartMovementsQueryKey = () => {
+    return [
+    `/api/engineering/spare-parts/movements`
+    ] as const;
+    }
+
+
+export const getListEngineeringSparePartMovementsQueryOptions = <TData = Awaited<ReturnType<typeof listEngineeringSparePartMovements>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEngineeringSparePartMovements>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListEngineeringSparePartMovementsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEngineeringSparePartMovements>>> = ({ signal }) => listEngineeringSparePartMovements({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEngineeringSparePartMovements>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListEngineeringSparePartMovementsQueryResult = NonNullable<Awaited<ReturnType<typeof listEngineeringSparePartMovements>>>
+export type ListEngineeringSparePartMovementsQueryError = ErrorType<unknown>
+
+
+
+export function useListEngineeringSparePartMovements<TData = Awaited<ReturnType<typeof listEngineeringSparePartMovements>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEngineeringSparePartMovements>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListEngineeringSparePartMovementsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateEngineeringSparePartReceiptUrl = () => {
+
+
+
+
+  return `/api/engineering/spare-parts/receipts`
+}
+
+export const createEngineeringSparePartReceipt = async (sparePartReceiptInput: SparePartReceiptInput, options?: Parameters<typeof customFetch>[1]): Promise<SparePartMovement> => {
+
+  return customFetch<SparePartMovement>(getCreateEngineeringSparePartReceiptUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(sparePartReceiptInput)
+  }
+);}
+
+
+
+
+
+export const getCreateEngineeringSparePartReceiptMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEngineeringSparePartReceipt>>, TError,{data: BodyType<SparePartReceiptInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createEngineeringSparePartReceipt>>, TError,{data: BodyType<SparePartReceiptInput>}, TContext> => {
+
+const mutationKey = ['createEngineeringSparePartReceipt'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createEngineeringSparePartReceipt>>, {data: BodyType<SparePartReceiptInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createEngineeringSparePartReceipt(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateEngineeringSparePartReceiptMutationResult = NonNullable<Awaited<ReturnType<typeof createEngineeringSparePartReceipt>>>
+    export type CreateEngineeringSparePartReceiptMutationBody = BodyType<SparePartReceiptInput>
+    export type CreateEngineeringSparePartReceiptMutationError = ErrorType<unknown>
+
+    export const useCreateEngineeringSparePartReceipt = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEngineeringSparePartReceipt>>, TError,{data: BodyType<SparePartReceiptInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createEngineeringSparePartReceipt>>,
+        TError,
+        {data: BodyType<SparePartReceiptInput>},
+        TContext
+      > => {
+      return useMutation(getCreateEngineeringSparePartReceiptMutationOptions(options));
+    }
+
+export const getCreateEngineeringSparePartIssueUrl = () => {
+
+
+
+
+  return `/api/engineering/spare-parts/issues`
+}
+
+export const createEngineeringSparePartIssue = async (sparePartIssueInput: SparePartIssueInput, options?: Parameters<typeof customFetch>[1]): Promise<SparePartMovement> => {
+
+  return customFetch<SparePartMovement>(getCreateEngineeringSparePartIssueUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(sparePartIssueInput)
+  }
+);}
+
+
+
+
+
+export const getCreateEngineeringSparePartIssueMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEngineeringSparePartIssue>>, TError,{data: BodyType<SparePartIssueInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createEngineeringSparePartIssue>>, TError,{data: BodyType<SparePartIssueInput>}, TContext> => {
+
+const mutationKey = ['createEngineeringSparePartIssue'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createEngineeringSparePartIssue>>, {data: BodyType<SparePartIssueInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createEngineeringSparePartIssue(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateEngineeringSparePartIssueMutationResult = NonNullable<Awaited<ReturnType<typeof createEngineeringSparePartIssue>>>
+    export type CreateEngineeringSparePartIssueMutationBody = BodyType<SparePartIssueInput>
+    export type CreateEngineeringSparePartIssueMutationError = ErrorType<unknown>
+
+    export const useCreateEngineeringSparePartIssue = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEngineeringSparePartIssue>>, TError,{data: BodyType<SparePartIssueInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createEngineeringSparePartIssue>>,
+        TError,
+        {data: BodyType<SparePartIssueInput>},
+        TContext
+      > => {
+      return useMutation(getCreateEngineeringSparePartIssueMutationOptions(options));
     }
 
 export const getListEngineeringRepairsUrl = (params?: ListEngineeringRepairsParams,) => {

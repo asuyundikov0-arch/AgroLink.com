@@ -1,6 +1,6 @@
 import { type FormEvent, useMemo, useState } from "react";
-import { Pencil, Plus, Receipt, Trash2 } from "lucide-react";
-import { type FleetEquipment, type RepairExpense, useCreateRepairExpense, useDeleteRepairExpense, useUpdateRepairExpense } from "@workspace/api-client-react";
+import { Pencil, Receipt, Trash2 } from "lucide-react";
+import { type FleetEquipment, type RepairExpense, useDeleteRepairExpense, useUpdateRepairExpense } from "@workspace/api-client-react";
 import { CATEGORY_LABEL, CATEGORY_ORDER, CONFLICT_TEXT, ConfirmDialog, Drawer, Field, FleetPicker, SaveError, businessToday, dateFmt, errorInfo, fleetLabel, isDirector, money, useInvalidateRepairs } from "./shared";
 
 type Form = { fleetId: number | null; incurredOn: string; category: RepairExpense["category"]; amount: string; description: string };
@@ -9,11 +9,10 @@ const today = businessToday;
 export default function ExpenseLedger({ role, expenses, fleet, fleetById }: { role: string; expenses: RepairExpense[]; fleet: FleetEquipment[]; fleetById: Map<number, FleetEquipment> }) {
   const canDelete = isDirector(role);
   const invalidate = useInvalidateRepairs();
-  const create = useCreateRepairExpense();
   const update = useUpdateRepairExpense();
   const remove = useDeleteRepairExpense();
   const [fleetFilter, setFleetFilter] = useState<number | "">("");
-  const [editing, setEditing] = useState<RepairExpense | "new" | null>(null);
+  const [editing, setEditing] = useState<RepairExpense | null>(null);
   const [form, setForm] = useState<Form>({ fleetId: null, incurredOn: today(), category: "current", amount: "", description: "" });
   const [errors, setErrors] = useState<Partial<Record<keyof Form, string>>>({});
   const [saveError, setSaveError] = useState("");
@@ -26,20 +25,19 @@ export default function ExpenseLedger({ role, expenses, fleet, fleetById }: { ro
     .sort((a, b) => (b.incurredOn ?? "").localeCompare(a.incurredOn ?? "") || b.id - a.id), [expenses, fleetFilter]);
   const label = (id: number) => { const f = fleetById.get(id); return f ? fleetLabel(f) : `Техника №${id}`; };
 
-  const open = (e: RepairExpense | null) => {
-    setEditing(e ?? "new");
-    setForm(e ? { fleetId: e.fleetId, incurredOn: e.incurredOn ?? "", category: e.category, amount: String(e.amount), description: e.description }
-      : { fleetId: fleetFilter === "" ? null : fleetFilter, incurredOn: today(), category: "current", amount: "", description: "" });
+  const open = (e: RepairExpense) => {
+    setEditing(e);
+    setForm({ fleetId: e.fleetId, incurredOn: e.incurredOn ?? "", category: e.category, amount: String(e.amount), description: e.description });
     setErrors({}); setSaveError(""); setConflict(false);
   };
-  const pending = create.isPending || update.isPending;
+  const pending = update.isPending;
 
   const submit = async (ev: FormEvent) => {
     ev.preventDefault();
     if (!editing || conflict) return;
     const errs: typeof errors = {};
     if (!form.fleetId) errs.fleetId = "Выберите технику из справочника";
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.incurredOn)) errs.incurredOn = editing !== "new" && editing.incurredOn === null ? "Для перенесённой записи укажите фактическую дату" : "Укажите дату";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.incurredOn)) errs.incurredOn = editing.incurredOn === null ? "Для перенесённой записи укажите фактическую дату" : "Укажите дату";
     const raw = form.amount.replace(/\s/g, "").replace(",", ".");
     const amount = Number(raw);
     if (!/^\d+(\.\d{1,2})?$/.test(raw)) errs.amount = "Сумма в тенге, не более 2 знаков после запятой";
@@ -50,13 +48,12 @@ export default function ExpenseLedger({ role, expenses, fleet, fleetById }: { ro
     if (Object.keys(errs).length || !form.fleetId) return;
     const data = { fleetId: form.fleetId, incurredOn: form.incurredOn, category: form.category, amount, description: form.description.trim() };
     try {
-      if (editing === "new") await create.mutateAsync({ data });
-      else await update.mutateAsync({ id: editing.id, data: { ...data, version: editing.version } });
+      await update.mutateAsync({ id: editing.id, data: { ...data, version: editing.version } });
       await invalidate();
-      setNotice(`${editing === "new" ? "Затрата добавлена" : "Затрата обновлена"}: ${label(data.fleetId)}, ${money(amount)}.`); setEditing(null);
+      setNotice(`Затрата обновлена: ${label(data.fleetId)}, ${money(amount)}.`); setEditing(null);
     } catch (err) {
       const info = errorInfo(err);
-      if (info.status === 409 && editing !== "new") { setConflict(true); setSaveError(CONFLICT_TEXT); } else setSaveError(info.message);
+      if (info.status === 409) { setConflict(true); setSaveError(CONFLICT_TEXT); } else setSaveError(info.message);
     }
   };
 
@@ -66,24 +63,23 @@ export default function ExpenseLedger({ role, expenses, fleet, fleetById }: { ro
     try { await remove.mutateAsync({ id: toDelete.id }); await invalidate(); setNotice("Затрата удалена."); setToDelete(null); }
     catch (err) { setDelError(errorInfo(err).message); }
   };
-  const legacyEdit = editing !== null && editing !== "new" && editing.incurredOn === null;
+  const legacyEdit = editing !== null && editing.incurredOn === null;
 
   return (
     <section className="surface-card overflow-hidden" data-testid="section-expenses">
       <div className="flex flex-col gap-2 border-b border-border bg-muted/25 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-        <div><h2 className="text-sm font-bold">Журнал затрат</h2><p className="text-[11px] text-muted-foreground">Любая техника справочника, в плане она или нет. Шины, масла и сервис входят в текущий ремонт.</p></div>
+        <div><h2 className="text-sm font-bold">Затраты на ремонт</h2><p className="text-[11px] text-muted-foreground">Новые затраты формируются по списаниям со склада запчастей. Прежние записи сохранены.</p></div>
         <div className="flex gap-2">
           <select className="text-input !min-h-[36px] sm:w-56" value={fleetFilter} onChange={(e) => setFleetFilter(e.target.value ? Number(e.target.value) : "")} aria-label="Фильтр по технике" data-testid="select-expense-fleet-filter">
             <option value="">Вся техника</option>{fleet.map((f) => <option key={f.id} value={f.id}>{fleetLabel(f)}</option>)}
           </select>
-          <button type="button" className="button button-primary whitespace-nowrap" onClick={() => open(null)} disabled={fleet.length === 0} data-testid="button-create-expense"><Plus size={14} />Затрата</button>
         </div>
       </div>
       {notice && <div className="notice-banner m-4" role="status" data-testid="text-expense-notice">{notice}</div>}
       {rows.length === 0 ? (
         <div className="empty-state" data-testid="status-expense-empty"><div className="empty-icon"><Receipt size={20} /></div>
           <h3 className="mt-4 text-sm font-bold">Затрат пока нет</h3>
-          <p className="mt-1 max-w-sm text-center text-xs leading-5 text-muted-foreground">{fleet.length === 0 ? "Сначала нужна техника в справочнике." : "Каждая затрата привязана к машине из справочника и попадает в итоги автоматически."}</p></div>
+          <p className="mt-1 max-w-sm text-center text-xs leading-5 text-muted-foreground">{fleet.length === 0 ? "Сначала добавьте технику в справочник." : "Списание запчасти на технику со склада автоматически появится в этом отчёте."}</p></div>
       ) : (
         <ul className="divide-y divide-border/70">
           {rows.map((e) => (
@@ -91,12 +87,12 @@ export default function ExpenseLedger({ role, expenses, fleet, fleetById }: { ro
               <div className="w-24 font-mono text-[11px]">{e.incurredOn ? dateFmt(e.incurredOn) : <span className="font-sans text-amber-700">дата неизвестна (перенесено)</span>}</div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold">{label(e.fleetId)}</p>
-                <p className="truncate text-[11px] text-muted-foreground">{CATEGORY_LABEL[e.category]}{e.description ? ` · ${e.description}` : ""}{e.source === "legacy" ? " · из прежнего реестра" : ""}</p>
+                <p className="truncate text-[11px] text-muted-foreground">{e.source === "warehouse" ? "Списано со склада" : CATEGORY_LABEL[e.category]}{e.description ? ` · ${e.description}` : ""}{e.source === "legacy" ? " · из прежнего реестра" : ""}</p>
               </div>
               <p className="font-mono text-sm font-bold" data-testid={`text-expense-amount-${e.id}`}>{money(e.amount)}</p>
               <div className="flex gap-1.5">
-                <button type="button" className="button button-secondary !min-h-[32px] !px-2.5" onClick={() => open(e)} aria-label="Изменить затрату" data-testid={`button-edit-expense-${e.id}`}><Pencil size={13} /></button>
-                {canDelete && <button type="button" className="button button-danger border !min-h-[32px] !px-2.5" onClick={() => { setDelError(""); setToDelete(e); }} aria-label="Удалить затрату" data-testid={`button-delete-expense-${e.id}`}><Trash2 size={13} /></button>}
+                {e.source !== "warehouse" && <button type="button" className="button button-secondary !min-h-[32px] !px-2.5" onClick={() => open(e)} aria-label="Изменить затрату" data-testid={`button-edit-expense-${e.id}`}><Pencil size={13} /></button>}
+                {canDelete && e.source !== "warehouse" && <button type="button" className="button button-danger border !min-h-[32px] !px-2.5" onClick={() => { setDelError(""); setToDelete(e); }} aria-label="Удалить затрату" data-testid={`button-delete-expense-${e.id}`}><Trash2 size={13} /></button>}
               </div>
             </li>
           ))}
@@ -105,7 +101,7 @@ export default function ExpenseLedger({ role, expenses, fleet, fleetById }: { ro
 
       {editing && (
         <form onSubmit={submit} noValidate>
-          <Drawer title={editing === "new" ? "Новая затрата" : "Изменить затрату"} eyebrow={editing === "new" ? "Журнал затрат" : `№${editing.id} · версия ${editing.version}`} onClose={() => !pending && setEditing(null)} testId="form-expense"
+        <Drawer title="Изменить затрату" eyebrow={`№${editing.id} · версия ${editing.version}`} onClose={() => !pending && setEditing(null)} testId="form-expense"
             footer={<><button type="button" className="button button-ghost" onClick={() => setEditing(null)} disabled={pending} data-testid="button-cancel-expense">Отмена</button>
               <button type="submit" className="button button-primary" disabled={pending || conflict} data-testid="button-save-expense">{pending ? "Сохраняем..." : "Сохранить"}</button></>}>
             <SaveError message={saveError} conflict={conflict} testId="text-expense-save-error" />
