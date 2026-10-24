@@ -1072,19 +1072,23 @@ function Workspace({ role, actualRole, demoRole, request, section, onSectionChan
 function AccessGate() {
   const requestQuery = useGetMyRoleRequest({ query: { queryKey: getGetMyRoleRequestQueryKey(), refetchInterval: 12000 } });
   const [demoRole, setDemoRole] = useState<AppRole | null>(null);
+  const [section, setSection] = useState<WorkspaceSection>("cabinet");
   useEffect(() => {
     window.localStorage.removeItem("agrolink-role-context");
   }, []);
   const request = (requestQuery.data as RoleRequest | null | undefined) ?? null;
+  useEffect(() => {
+    if (request?.status === "approved" && request.requestedRole === "dispatcher") setSection("agro");
+  }, [request?.requestedRole, request?.status]);
   if (requestQuery.isLoading) return <main className="access-page"><LoadingRows count={2} /></main>;
   if (requestQuery.isError) return <main className="access-page"><ErrorState onRetry={() => requestQuery.refetch()} /></main>;
   if (request?.status !== "approved") return <RoleRequestScreen request={request} />;
   const actualRole = request.requestedRole as AppRole;
-  const [section, setSection] = useState<WorkspaceSection>(actualRole === "dispatcher" ? "agro" : "cabinet");
   const canUseDemo = actualRole === "general_director";
   const role = canUseDemo && demoRole ? demoRole : actualRole;
   const changeDemoRole = (nextRole: AppRole | null) => {
     setDemoRole(nextRole);
+    setSection(nextRole === "dispatcher" ? "agro" : "cabinet");
     if (nextRole) window.localStorage.setItem("agrolink-role-context", nextRole);
     else window.localStorage.removeItem("agrolink-role-context");
     queryClient.clear();
