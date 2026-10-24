@@ -69,6 +69,7 @@ import { Route, Router as WouterRouter, Switch, useLocation } from "wouter";
 import { ErrorBoundary } from "@/components/error-boundary";
 import EngineeringWorkspace from "@/components/engineering/EngineeringWorkspace";
 import AgroWorkspace from "@/components/agro/AgroWorkspace";
+import PaymentRegister from "@/components/economic/PaymentRegister";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import companyEmblem from "@assets/IMG_0731_1787404427367.jpeg";
@@ -924,9 +925,17 @@ function EconomicBlock({ role, actualRole, demoRole, onDemoRoleChange }: {
   demoRole: AppRole | null;
   onDemoRoleChange: (role: AppRole | null) => void;
 }) {
+  const canSeePayments = role === "economist" || role === "general_director";
+  const [tab, setTab] = useState<"payments" | "documents">("payments");
   return <div className="animate-page">
-    <div className="mb-7"><p className="eyebrow">Специализированный раздел</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em]">Экономический блок</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">Ежедневные реестры, согласование через директора хозяйства и экономический архив.</p></div>
-    <Cabinet role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />
+    <div className="mb-7"><p className="eyebrow">Специализированный раздел</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em]">Экономический блок</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">Реестр платежей, финансовые документы и экономический архив.</p></div>
+    {canSeePayments && <div className="mb-5 inline-flex rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Экономический блок">
+      <button type="button" role="tab" aria-selected={tab === "payments"} className={`rounded-md px-3 py-1.5 text-xs font-bold ${tab === "payments" ? "bg-foreground text-background" : "text-muted-foreground"}`} onClick={() => setTab("payments")} data-testid="tab-economic-payments">Реестр платежей</button>
+      <button type="button" role="tab" aria-selected={tab === "documents"} className={`rounded-md px-3 py-1.5 text-xs font-bold ${tab === "documents" ? "bg-foreground text-background" : "text-muted-foreground"}`} onClick={() => setTab("documents")} data-testid="tab-economic-documents">Документы и архив</button>
+    </div>}
+    {canSeePayments && tab === "payments"
+      ? <PaymentRegister canMarkPaid={role === "general_director" && actualRole === "general_director" && !demoRole} />
+      : <Cabinet role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />}
   </div>;
 }
 

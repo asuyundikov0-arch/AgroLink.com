@@ -583,6 +583,7 @@ export type SparePartRequestStatus = typeof SparePartRequestStatus[keyof typeof 
 export const SparePartRequestStatus = {
   chief_review: 'chief_review',
   director_review: 'director_review',
+  awaiting_payment: 'awaiting_payment',
   awaiting_delivery: 'awaiting_delivery',
   returned_to_engineer: 'returned_to_engineer',
   completed: 'completed',
@@ -596,9 +597,19 @@ export const SparePartRequestItemStatus = {
   chief_review: 'chief_review',
   director_review: 'director_review',
   returned_to_engineer: 'returned_to_engineer',
+  awaiting_payment: 'awaiting_payment',
   awaiting_delivery: 'awaiting_delivery',
   received: 'received',
   rejected: 'rejected',
+} as const;
+
+export type SparePartRequestItemPaymentStatus = typeof SparePartRequestItemPaymentStatus[keyof typeof SparePartRequestItemPaymentStatus];
+
+
+export const SparePartRequestItemPaymentStatus = {
+  not_required: 'not_required',
+  pending: 'pending',
+  paid: 'paid',
 } as const;
 
 export interface SparePartRequestItem {
@@ -607,6 +618,8 @@ export interface SparePartRequestItem {
   articleNumber: string;
   unit: string;
   quantity: number;
+  /** @nullable */
+  paymentAmount: number | null;
   fleetId: number;
   fleetKind: string;
   /** @nullable */
@@ -623,6 +636,10 @@ export interface SparePartRequestItem {
   directorReviewedByName: string;
   /** @nullable */
   directorReviewedAt: string | null;
+  paymentStatus: SparePartRequestItemPaymentStatus;
+  /** @nullable */
+  paidAt: string | null;
+  paidByName: string;
   receivedByName: string;
   /** @nullable */
   receivedAt: string | null;
@@ -638,6 +655,40 @@ export interface SparePartRequest {
   createdAt: string;
   updatedAt: string;
   items: SparePartRequestItem[];
+}
+
+export type SparePartPaymentRegisterItemPaymentStatus = typeof SparePartPaymentRegisterItemPaymentStatus[keyof typeof SparePartPaymentRegisterItemPaymentStatus];
+
+
+export const SparePartPaymentRegisterItemPaymentStatus = {
+  pending: 'pending',
+  paid: 'paid',
+} as const;
+
+export interface SparePartPaymentRegisterItem {
+  id: number;
+  requestNumber: number;
+  requestCode: string;
+  requesterName: string;
+  department: string;
+  submittedAt: string;
+  name: string;
+  articleNumber: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  fleetId: number;
+  fleetKind: string;
+  /** @nullable */
+  registrationNumber: string | null;
+  approvedByName: string;
+  /** @nullable */
+  approvedAt: string | null;
+  paymentStatus: SparePartPaymentRegisterItemPaymentStatus;
+  /** @nullable */
+  paidAt: string | null;
+  paidByName: string;
 }
 
 export interface SparePartRequestItemInput {

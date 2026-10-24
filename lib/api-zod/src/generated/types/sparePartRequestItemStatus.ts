@@ -13,6 +13,7 @@ export const SparePartRequestItemStatus = {
   chief_review: 'chief_review',
   director_review: 'director_review',
   returned_to_engineer: 'returned_to_engineer',
+  awaiting_payment: 'awaiting_payment',
   awaiting_delivery: 'awaiting_delivery',
   received: 'received',
   rejected: 'rejected',

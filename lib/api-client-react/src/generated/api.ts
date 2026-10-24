@@ -76,6 +76,7 @@ import type {
   SparePartDirectorReviewInput,
   SparePartIssueInput,
   SparePartMovement,
+  SparePartPaymentRegisterItem,
   SparePartReceiptInput,
   SparePartRequest,
   SparePartRequestInput,
@@ -2451,6 +2452,142 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getResubmitSparePartRequestItemMutationOptions(options));
+    }
+
+export const getListSparePartPaymentRegisterUrl = () => {
+
+
+
+
+  return `/api/economic/payment-register`
+}
+
+export const listSparePartPaymentRegister = async ( options?: Parameters<typeof customFetch>[1]): Promise<SparePartPaymentRegisterItem[]> => {
+
+  return customFetch<SparePartPaymentRegisterItem[]>(getListSparePartPaymentRegisterUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSparePartPaymentRegisterQueryKey = () => {
+    return [
+    `/api/economic/payment-register`
+    ] as const;
+    }
+
+
+export const getListSparePartPaymentRegisterQueryOptions = <TData = Awaited<ReturnType<typeof listSparePartPaymentRegister>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSparePartPaymentRegister>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSparePartPaymentRegisterQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSparePartPaymentRegister>>> = ({ signal }) => listSparePartPaymentRegister({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listSparePartPaymentRegister>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListSparePartPaymentRegisterQueryResult = NonNullable<Awaited<ReturnType<typeof listSparePartPaymentRegister>>>
+export type ListSparePartPaymentRegisterQueryError = ErrorType<unknown>
+
+
+
+export function useListSparePartPaymentRegister<TData = Awaited<ReturnType<typeof listSparePartPaymentRegister>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSparePartPaymentRegister>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListSparePartPaymentRegisterQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getMarkSparePartPaymentPaidUrl = (itemId: number,) => {
+
+
+
+
+  return `/api/economic/payment-register/${itemId}/pay`
+}
+
+export const markSparePartPaymentPaid = async (itemId: number, options?: Parameters<typeof customFetch>[1]): Promise<SparePartPaymentRegisterItem> => {
+
+  return customFetch<SparePartPaymentRegisterItem>(getMarkSparePartPaymentPaidUrl(itemId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkSparePartPaymentPaidMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markSparePartPaymentPaid>>, TError,{itemId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markSparePartPaymentPaid>>, TError,{itemId: number}, TContext> => {
+
+const mutationKey = ['markSparePartPaymentPaid'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markSparePartPaymentPaid>>, {itemId: number}> = (props) => {
+          const {itemId} = props ?? {};
+
+          return  markSparePartPaymentPaid(itemId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkSparePartPaymentPaidMutationResult = NonNullable<Awaited<ReturnType<typeof markSparePartPaymentPaid>>>
+
+    export type MarkSparePartPaymentPaidMutationError = ErrorType<void>
+
+    export const useMarkSparePartPaymentPaid = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markSparePartPaymentPaid>>, TError,{itemId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markSparePartPaymentPaid>>,
+        TError,
+        {itemId: number},
+        TContext
+      > => {
+      return useMutation(getMarkSparePartPaymentPaidMutationOptions(options));
     }
 
 export const getListEngineeringRepairsUrl = (params?: ListEngineeringRepairsParams,) => {

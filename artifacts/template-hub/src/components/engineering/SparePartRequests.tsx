@@ -52,6 +52,7 @@ const when = (value: string) => new Date(value).toLocaleString("ru-RU", { dateSt
 const requestStatusLabel: Record<SparePartRequest["status"], string> = {
   chief_review: "Проверяет главный инженер",
   director_review: "На согласовании у директора",
+  awaiting_payment: "Ожидает оплаты в экономическом блоке",
   awaiting_delivery: "Ожидается поступление",
   returned_to_engineer: "Возвращена инженеру",
   completed: "Получена на склад",
@@ -61,6 +62,7 @@ const itemStatusLabel: Record<SparePartRequestItem["status"], string> = {
   chief_review: "На оценке у главного инженера",
   director_review: "На согласовании у генерального директора",
   returned_to_engineer: "Возвращена инженеру на исправление",
+  awaiting_payment: "Одобрена · ожидает оплаты",
   awaiting_delivery: "Ожидается поставка",
   received: "Получена на склад",
   rejected: "Отклонена",
@@ -81,6 +83,7 @@ function itemTone(status: SparePartRequestItem["status"]): "muted" | "blue" | "g
   if (status === "received") return "green";
   if (status === "rejected") return "red";
   if (status === "returned_to_engineer") return "amber";
+  if (status === "awaiting_payment") return "amber";
   if (status === "awaiting_delivery") return "blue";
   return "muted";
 }
@@ -101,9 +104,10 @@ function ItemSummary({ item }: { item: SparePartRequestItem }) {
         </p>
         {item.chiefComment && <p className="mt-1 text-xs text-amber-800">Главный инженер: {item.chiefComment}</p>}
         {item.directorComment && <p className="mt-1 text-xs text-muted-foreground">Генеральный директор: {item.directorComment}</p>}
+        {item.paymentStatus === "paid" && item.paidByName && <p className="mt-1 text-xs font-medium text-teal-800">Оплатил: {item.paidByName}{item.paidAt ? ` · ${when(item.paidAt)}` : ""}</p>}
         {item.status === "received" && item.receivedByName && <p className="mt-1 text-xs font-medium text-teal-800">Оприходовал: {item.receivedByName}{item.receivedAt ? ` · ${when(item.receivedAt)}` : ""}</p>}
       </div>
-      {item.unitPrice !== null && <p className="shrink-0 font-mono text-xs font-bold">{money(item.unitPrice * item.quantity)}</p>}
+      {item.paymentAmount !== null && <p className="shrink-0 font-mono text-xs font-bold">{money(item.paymentAmount)}</p>}
     </div>
   );
 }
@@ -137,7 +141,7 @@ export default function SparePartRequests({ role }: { role: Role }) {
   const requests = useMemo(() => requestsQuery.data ?? [], [requestsQuery.data]);
   const fleet = fleetQuery.data ?? [];
   const activeWarehouseRequests = requests.reduce((total, request) =>
-    total + request.items.filter((item) => !["received", "rejected"].includes(item.status)).length, 0);
+    total + request.items.filter((item) => item.status === "awaiting_delivery").length, 0);
   const invalidateRequests = () => queryClient.invalidateQueries({ queryKey: getListSparePartRequestsQueryKey() });
   const title = role === "engineer" ? "Мои заявки на запчасти"
     : role === "chief_engineer" ? "Оценка заявок"
@@ -151,7 +155,7 @@ export default function SparePartRequests({ role }: { role: Role }) {
           <p className="eyebrow">Инженерная служба · согласование закупок</p>
           <h2 className="mt-1 text-2xl font-bold tracking-[-0.045em]">{title}</h2>
           <p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">
-            Заявки обновляются автоматически. Склад видит новые позиции с момента отправки инженером; выдача на приёмку открывается после одобрения директором.
+            Заявки обновляются автоматически. После согласования директора позиция попадает в реестр платежей экономиста; склад получает её на приёмку после отметки об оплате.
           </p>
         </div>
         {role === "storekeeper" && <Badge tone={activeWarehouseRequests > 0 ? "amber" : "muted"}><BellRing size={12} className="mr-1.5" />Активные заявки: {activeWarehouseRequests}</Badge>}
@@ -211,7 +215,7 @@ function NewRequestForm({ fleet, fleetLoading, fleetError, onCreated }: {
       onCreated();
       setLines([emptyLine()]);
       setOpen(false);
-      setNotice("Заявка отправлена главному инженеру. Заведующий складом уже видит ожидаемые позиции.");
+       setNotice("Заявка отправлена главному инженеру. После согласования директора одобренные позиции попадут в реестр платежей.");
     } catch (err) {
       setError(errorInfo(err).message);
     }

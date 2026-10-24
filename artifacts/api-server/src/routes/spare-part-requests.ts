@@ -3,7 +3,10 @@ import { Router, type IRouter, type RequestHandler } from "express";
 import {
   CreateSparePartRequestBody,
   CreateSparePartRequestResponse,
+  ListSparePartPaymentRegisterResponse,
   ListSparePartRequestsResponse,
+  MarkSparePartPaymentPaidParams,
+  MarkSparePartPaymentPaidResponse,
   ReviewSparePartRequestByChiefBody,
   ReviewSparePartRequestByChiefResponse,
   ReviewSparePartRequestByDirectorBody,
@@ -24,6 +27,7 @@ import { aggregateSparePartRequestStatus, refreshSparePartRequestStatus } from "
 
 const router: IRouter = Router();
 const allowedRoles = new Set<AppRole>(["engineer", "chief_engineer", "general_director", "storekeeper"]);
+const paymentReaderRoles = new Set<AppRole>(["economist", "general_director"]);
 const protect: RequestHandler = (_req, res, next) => {
   const role = (res.locals.access as RoleAccess).role;
   if (!role || !allowedRoles.has(role)) {
@@ -33,6 +37,14 @@ const protect: RequestHandler = (_req, res, next) => {
   next();
 };
 router.use("/engineering/spare-part-requests", requireApprovedRole, protect);
+router.use("/economic/payment-register", requireApprovedRole, (_req, res, next) => {
+  const role = (res.locals.access as RoleAccess).role;
+  if (!role || !paymentReaderRoles.has(role)) {
+    res.status(403).json({ error: "Реестр платежей доступен экономисту и генеральному директору." });
+    return;
+  }
+  next();
+});
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 const positiveId = (value: unknown) => {
@@ -63,6 +75,7 @@ async function loadRequests() {
     registrationNumber: string | null;
     status: string;
     unitPrice: number | null;
+    paymentAmount: number | null;
     chiefComment: string;
     directorComment: string;
     receivedQuantity: number;
@@ -70,23 +83,29 @@ async function loadRequests() {
     chiefReviewedAt: string | null;
     directorReviewedByName: string;
     directorReviewedAt: string | null;
+    paymentStatus: string;
+    paidAt: string | null;
+    paidByName: string;
     receivedByName: string;
     receivedAt: string | null;
   };
   const grouped = new Map<number, RequestItemView[]>();
   for (const { item, fleet } of items) {
     const list = grouped.get(item.requestId) ?? [];
+    const quantity = Number(item.quantity);
+    const unitPrice = item.unitPrice === null ? null : Number(item.unitPrice);
     list.push({
       id: item.id,
       name: item.name,
       articleNumber: item.articleNumber,
       unit: item.unit,
-      quantity: Number(item.quantity),
+      quantity,
       fleetId: item.fleetId,
       fleetKind: fleet.kind,
       registrationNumber: fleet.registrationNumber,
       status: item.status,
-      unitPrice: item.unitPrice === null ? null : Number(item.unitPrice),
+      unitPrice,
+      paymentAmount: unitPrice === null ? null : Math.round((quantity * unitPrice + Number.EPSILON) * 100) / 100,
       chiefComment: item.chiefComment,
       directorComment: item.directorComment,
       receivedQuantity: Number(item.receivedQuantity),
@@ -94,6 +113,9 @@ async function loadRequests() {
       chiefReviewedAt: item.chiefReviewedAt?.toISOString() ?? null,
       directorReviewedByName: item.directorReviewedByName,
       directorReviewedAt: item.directorReviewedAt?.toISOString() ?? null,
+      paymentStatus: item.paymentStatus,
+      paidAt: item.paidAt?.toISOString() ?? null,
+      paidByName: item.paidByName,
       receivedByName: item.receivedByName,
       receivedAt: item.receivedAt?.toISOString() ?? null,
     });
@@ -129,6 +151,97 @@ function requestError(message: string, status: number) {
   return { error: message, status };
 }
 
+async function loadPaymentRegister() {
+  const requests = await loadRequests();
+  return requests.flatMap((request) => request.items
+    .filter((item) => (item.paymentStatus === "pending" || item.paymentStatus === "paid") && item.paymentAmount !== null)
+    .map((item) => ({
+      id: item.id,
+      requestNumber: request.id,
+      requestCode: request.requestId,
+      requesterName: request.requesterName,
+      department: request.department,
+      submittedAt: request.createdAt,
+      name: item.name,
+      articleNumber: item.articleNumber,
+      unit: item.unit,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice!,
+      amount: item.paymentAmount!,
+      fleetId: item.fleetId,
+      fleetKind: item.fleetKind,
+      registrationNumber: item.registrationNumber,
+      approvedByName: item.directorReviewedByName,
+      approvedAt: item.directorReviewedAt,
+      paymentStatus: item.paymentStatus as "pending" | "paid",
+      paidAt: item.paidAt,
+      paidByName: item.paidByName,
+    })));
+}
+
+router.get("/economic/payment-register", async (_req, res, next): Promise<void> => {
+  try {
+    res.setHeader("Cache-Control", "no-store");
+    res.json(ListSparePartPaymentRegisterResponse.parse(await loadPaymentRegister()));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/economic/payment-register/:itemId/pay", async (req, res, next): Promise<void> => {
+  try {
+    const params = MarkSparePartPaymentPaidParams.safeParse(req.params);
+    const access = res.locals.access as RoleAccess;
+    if (access.role !== "general_director") {
+      res.status(403).json({ error: "Отметить оплату может только генеральный директор." });
+      return;
+    }
+    if (!params.success) {
+      res.status(400).json({ error: "Некорректная позиция реестра платежей." });
+      return;
+    }
+    const result = await db.transaction(async (tx) => {
+      const [item] = await tx.select().from(sparePartRequestItemsTable)
+        .where(eq(sparePartRequestItemsTable.id, params.data.itemId)).for("update");
+      if (!item) return requestError("Позиция заявки не найдена.", 404);
+      if (item.status !== "awaiting_payment" || item.paymentStatus !== "pending" || item.unitPrice === null) {
+        return requestError("Оплатить можно только одобренную позицию, ожидающую оплаты.", 409);
+      }
+      const [request] = await tx.select().from(sparePartRequestsTable)
+        .where(eq(sparePartRequestsTable.id, item.requestId)).for("update");
+      if (!request) return requestError("Заявка не найдена.", 404);
+      const paidAt = new Date();
+      await tx.update(sparePartRequestItemsTable).set({
+        status: "awaiting_delivery",
+        paymentStatus: "paid",
+        paidAt,
+        paidByName: actor(access),
+        updatedAt: paidAt,
+      }).where(eq(sparePartRequestItemsTable.id, item.id));
+      await refreshSparePartRequestStatus(tx, request.id);
+      const amount = Math.round((Number(item.quantity) * Number(item.unitPrice) + Number.EPSILON) * 100) / 100;
+      await tx.insert(activityTable).values({
+        action: "Оплачена одобренная заявка на запчасти",
+        templateName: `Заявка №${request.id} · ${item.name} · ${amount.toLocaleString("ru-RU")} ₸`,
+        userName: actor(access),
+      });
+      return { itemId: item.id };
+    });
+    if ("error" in result) {
+      res.status(result.status).json({ error: result.error });
+      return;
+    }
+    const payment = (await loadPaymentRegister()).find((item) => item.id === result.itemId);
+    if (!payment) {
+      res.status(404).json({ error: "Оплата сохранена, но запись реестра не найдена." });
+      return;
+    }
+    res.json(MarkSparePartPaymentPaidResponse.parse(payment));
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get("/engineering/spare-part-requests", async (_req, res, next): Promise<void> => {
   try {
     const access = res.locals.access as RoleAccess;
@@ -141,7 +254,10 @@ router.get("/engineering/spare-part-requests", async (_req, res, next): Promise<
     } else if (access.role === "general_director") {
       visible = rows.filter((row) => row.items.some((item) => item.status === "director_review"));
     } else if (access.role === "storekeeper") {
-      visible = rows;
+      visible = rows.map((request) => ({
+        ...request,
+        items: request.items.filter((item) => item.status === "awaiting_delivery"),
+      })).filter((request) => request.items.length > 0);
     } else {
       res.status(403).json({ error: "Нет доступа к заявкам на инженерные запчасти." });
       return;
@@ -330,7 +446,10 @@ router.patch("/engineering/spare-part-requests/:id/director-review", async (req,
       const reviewedAt = new Date();
       for (const decision of decisions) {
         await tx.update(sparePartRequestItemsTable).set({
-          status: decision.decision === "approved" ? "awaiting_delivery" : "rejected",
+          status: decision.decision === "approved" ? "awaiting_payment" : "rejected",
+          paymentStatus: decision.decision === "approved" ? "pending" : "not_required",
+          paidAt: null,
+          paidByName: "",
           directorComment: decision.comment.trim(),
           directorReviewedByName: actor(access),
           directorReviewedAt: reviewedAt,

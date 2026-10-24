@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { SparePartRequestItemPaymentStatus } from './sparePartRequestItemPaymentStatus';
 import type { SparePartRequestItemStatus } from './sparePartRequestItemStatus';
 
 export interface SparePartRequestItem {
@@ -13,6 +14,8 @@ export interface SparePartRequestItem {
   articleNumber: string;
   unit: string;
   quantity: number;
+  /** @nullable */
+  paymentAmount: number | null;
   fleetId: number;
   fleetKind: string;
   /** @nullable */
@@ -29,6 +32,10 @@ export interface SparePartRequestItem {
   directorReviewedByName: string;
   /** @nullable */
   directorReviewedAt: string | null;
+  paymentStatus: SparePartRequestItemPaymentStatus;
+  /** @nullable */
+  paidAt: string | null;
+  paidByName: string;
   receivedByName: string;
   /** @nullable */
   receivedAt: string | null;

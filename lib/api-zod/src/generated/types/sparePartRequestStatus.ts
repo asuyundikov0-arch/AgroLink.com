@@ -12,6 +12,7 @@ export type SparePartRequestStatus = typeof SparePartRequestStatus[keyof typeof 
 export const SparePartRequestStatus = {
   chief_review: 'chief_review',
   director_review: 'director_review',
+  awaiting_payment: 'awaiting_payment',
   awaiting_delivery: 'awaiting_delivery',
   returned_to_engineer: 'returned_to_engineer',
   completed: 'completed',

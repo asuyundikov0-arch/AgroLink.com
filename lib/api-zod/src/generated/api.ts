@@ -1807,7 +1807,7 @@ export const ListSparePartRequestsResponseItem = zod.object({
   "requesterUserId": zod.string(),
   "requesterName": zod.string(),
   "department": zod.string(),
-  "status": zod.enum(['chief_review', 'director_review', 'awaiting_delivery', 'returned_to_engineer', 'completed', 'rejected']),
+  "status": zod.enum(['chief_review', 'director_review', 'awaiting_payment', 'awaiting_delivery', 'returned_to_engineer', 'completed', 'rejected']),
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
   "items": zod.array(zod.object({
@@ -1816,10 +1816,11 @@ export const ListSparePartRequestsResponseItem = zod.object({
   "articleNumber": zod.string(),
   "unit": zod.string(),
   "quantity": zod.number(),
+  "paymentAmount": zod.number().nullable(),
   "fleetId": zod.number(),
   "fleetKind": zod.string(),
   "registrationNumber": zod.string().nullable(),
-  "status": zod.enum(['chief_review', 'director_review', 'returned_to_engineer', 'awaiting_delivery', 'received', 'rejected']),
+  "status": zod.enum(['chief_review', 'director_review', 'returned_to_engineer', 'awaiting_payment', 'awaiting_delivery', 'received', 'rejected']),
   "unitPrice": zod.number().nullable(),
   "chiefComment": zod.string(),
   "directorComment": zod.string(),
@@ -1828,6 +1829,9 @@ export const ListSparePartRequestsResponseItem = zod.object({
   "chiefReviewedAt": zod.string().nullable(),
   "directorReviewedByName": zod.string(),
   "directorReviewedAt": zod.string().nullable(),
+  "paymentStatus": zod.enum(['not_required', 'pending', 'paid']),
+  "paidAt": zod.string().nullable(),
+  "paidByName": zod.string(),
   "receivedByName": zod.string(),
   "receivedAt": zod.string().nullable()
 }))
@@ -1869,7 +1873,7 @@ export const CreateSparePartRequestResponse = zod.object({
   "requesterUserId": zod.string(),
   "requesterName": zod.string(),
   "department": zod.string(),
-  "status": zod.enum(['chief_review', 'director_review', 'awaiting_delivery', 'returned_to_engineer', 'completed', 'rejected']),
+  "status": zod.enum(['chief_review', 'director_review', 'awaiting_payment', 'awaiting_delivery', 'returned_to_engineer', 'completed', 'rejected']),
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
   "items": zod.array(zod.object({
@@ -1878,10 +1882,11 @@ export const CreateSparePartRequestResponse = zod.object({
   "articleNumber": zod.string(),
   "unit": zod.string(),
   "quantity": zod.number(),
+  "paymentAmount": zod.number().nullable(),
   "fleetId": zod.number(),
   "fleetKind": zod.string(),
   "registrationNumber": zod.string().nullable(),
-  "status": zod.enum(['chief_review', 'director_review', 'returned_to_engineer', 'awaiting_delivery', 'received', 'rejected']),
+  "status": zod.enum(['chief_review', 'director_review', 'returned_to_engineer', 'awaiting_payment', 'awaiting_delivery', 'received', 'rejected']),
   "unitPrice": zod.number().nullable(),
   "chiefComment": zod.string(),
   "directorComment": zod.string(),
@@ -1890,6 +1895,9 @@ export const CreateSparePartRequestResponse = zod.object({
   "chiefReviewedAt": zod.string().nullable(),
   "directorReviewedByName": zod.string(),
   "directorReviewedAt": zod.string().nullable(),
+  "paymentStatus": zod.enum(['not_required', 'pending', 'paid']),
+  "paidAt": zod.string().nullable(),
+  "paidByName": zod.string(),
   "receivedByName": zod.string(),
   "receivedAt": zod.string().nullable()
 }))
@@ -1927,7 +1935,7 @@ export const ReviewSparePartRequestByChiefResponse = zod.object({
   "requesterUserId": zod.string(),
   "requesterName": zod.string(),
   "department": zod.string(),
-  "status": zod.enum(['chief_review', 'director_review', 'awaiting_delivery', 'returned_to_engineer', 'completed', 'rejected']),
+  "status": zod.enum(['chief_review', 'director_review', 'awaiting_payment', 'awaiting_delivery', 'returned_to_engineer', 'completed', 'rejected']),
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
   "items": zod.array(zod.object({
@@ -1936,10 +1944,11 @@ export const ReviewSparePartRequestByChiefResponse = zod.object({
   "articleNumber": zod.string(),
   "unit": zod.string(),
   "quantity": zod.number(),
+  "paymentAmount": zod.number().nullable(),
   "fleetId": zod.number(),
   "fleetKind": zod.string(),
   "registrationNumber": zod.string().nullable(),
-  "status": zod.enum(['chief_review', 'director_review', 'returned_to_engineer', 'awaiting_delivery', 'received', 'rejected']),
+  "status": zod.enum(['chief_review', 'director_review', 'returned_to_engineer', 'awaiting_payment', 'awaiting_delivery', 'received', 'rejected']),
   "unitPrice": zod.number().nullable(),
   "chiefComment": zod.string(),
   "directorComment": zod.string(),
@@ -1948,6 +1957,9 @@ export const ReviewSparePartRequestByChiefResponse = zod.object({
   "chiefReviewedAt": zod.string().nullable(),
   "directorReviewedByName": zod.string(),
   "directorReviewedAt": zod.string().nullable(),
+  "paymentStatus": zod.enum(['not_required', 'pending', 'paid']),
+  "paidAt": zod.string().nullable(),
+  "paidByName": zod.string(),
   "receivedByName": zod.string(),
   "receivedAt": zod.string().nullable()
 }))
@@ -1981,7 +1993,7 @@ export const ReviewSparePartRequestByDirectorResponse = zod.object({
   "requesterUserId": zod.string(),
   "requesterName": zod.string(),
   "department": zod.string(),
-  "status": zod.enum(['chief_review', 'director_review', 'awaiting_delivery', 'returned_to_engineer', 'completed', 'rejected']),
+  "status": zod.enum(['chief_review', 'director_review', 'awaiting_payment', 'awaiting_delivery', 'returned_to_engineer', 'completed', 'rejected']),
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
   "items": zod.array(zod.object({
@@ -1990,10 +2002,11 @@ export const ReviewSparePartRequestByDirectorResponse = zod.object({
   "articleNumber": zod.string(),
   "unit": zod.string(),
   "quantity": zod.number(),
+  "paymentAmount": zod.number().nullable(),
   "fleetId": zod.number(),
   "fleetKind": zod.string(),
   "registrationNumber": zod.string().nullable(),
-  "status": zod.enum(['chief_review', 'director_review', 'returned_to_engineer', 'awaiting_delivery', 'received', 'rejected']),
+  "status": zod.enum(['chief_review', 'director_review', 'returned_to_engineer', 'awaiting_payment', 'awaiting_delivery', 'received', 'rejected']),
   "unitPrice": zod.number().nullable(),
   "chiefComment": zod.string(),
   "directorComment": zod.string(),
@@ -2002,6 +2015,9 @@ export const ReviewSparePartRequestByDirectorResponse = zod.object({
   "chiefReviewedAt": zod.string().nullable(),
   "directorReviewedByName": zod.string(),
   "directorReviewedAt": zod.string().nullable(),
+  "paymentStatus": zod.enum(['not_required', 'pending', 'paid']),
+  "paidAt": zod.string().nullable(),
+  "paidByName": zod.string(),
   "receivedByName": zod.string(),
   "receivedAt": zod.string().nullable()
 }))
@@ -2043,7 +2059,7 @@ export const ResubmitSparePartRequestItemResponse = zod.object({
   "requesterUserId": zod.string(),
   "requesterName": zod.string(),
   "department": zod.string(),
-  "status": zod.enum(['chief_review', 'director_review', 'awaiting_delivery', 'returned_to_engineer', 'completed', 'rejected']),
+  "status": zod.enum(['chief_review', 'director_review', 'awaiting_payment', 'awaiting_delivery', 'returned_to_engineer', 'completed', 'rejected']),
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
   "items": zod.array(zod.object({
@@ -2052,10 +2068,11 @@ export const ResubmitSparePartRequestItemResponse = zod.object({
   "articleNumber": zod.string(),
   "unit": zod.string(),
   "quantity": zod.number(),
+  "paymentAmount": zod.number().nullable(),
   "fleetId": zod.number(),
   "fleetKind": zod.string(),
   "registrationNumber": zod.string().nullable(),
-  "status": zod.enum(['chief_review', 'director_review', 'returned_to_engineer', 'awaiting_delivery', 'received', 'rejected']),
+  "status": zod.enum(['chief_review', 'director_review', 'returned_to_engineer', 'awaiting_payment', 'awaiting_delivery', 'received', 'rejected']),
   "unitPrice": zod.number().nullable(),
   "chiefComment": zod.string(),
   "directorComment": zod.string(),
@@ -2064,9 +2081,68 @@ export const ResubmitSparePartRequestItemResponse = zod.object({
   "chiefReviewedAt": zod.string().nullable(),
   "directorReviewedByName": zod.string(),
   "directorReviewedAt": zod.string().nullable(),
+  "paymentStatus": zod.enum(['not_required', 'pending', 'paid']),
+  "paidAt": zod.string().nullable(),
+  "paidByName": zod.string(),
   "receivedByName": zod.string(),
   "receivedAt": zod.string().nullable()
 }))
+})
+
+
+export const ListSparePartPaymentRegisterResponseItem = zod.object({
+  "id": zod.number(),
+  "requestNumber": zod.number(),
+  "requestCode": zod.string(),
+  "requesterName": zod.string(),
+  "department": zod.string(),
+  "submittedAt": zod.string(),
+  "name": zod.string(),
+  "articleNumber": zod.string(),
+  "unit": zod.string(),
+  "quantity": zod.number(),
+  "unitPrice": zod.number(),
+  "amount": zod.number(),
+  "fleetId": zod.number(),
+  "fleetKind": zod.string(),
+  "registrationNumber": zod.string().nullable(),
+  "approvedByName": zod.string(),
+  "approvedAt": zod.string().nullable(),
+  "paymentStatus": zod.enum(['pending', 'paid']),
+  "paidAt": zod.string().nullable(),
+  "paidByName": zod.string()
+})
+export const ListSparePartPaymentRegisterResponse = zod.array(ListSparePartPaymentRegisterResponseItem)
+
+
+
+
+
+export const MarkSparePartPaymentPaidParams = zod.object({
+  "itemId": zod.coerce.number().min(1)
+})
+
+export const MarkSparePartPaymentPaidResponse = zod.object({
+  "id": zod.number(),
+  "requestNumber": zod.number(),
+  "requestCode": zod.string(),
+  "requesterName": zod.string(),
+  "department": zod.string(),
+  "submittedAt": zod.string(),
+  "name": zod.string(),
+  "articleNumber": zod.string(),
+  "unit": zod.string(),
+  "quantity": zod.number(),
+  "unitPrice": zod.number(),
+  "amount": zod.number(),
+  "fleetId": zod.number(),
+  "fleetKind": zod.string(),
+  "registrationNumber": zod.string().nullable(),
+  "approvedByName": zod.string(),
+  "approvedAt": zod.string().nullable(),
+  "paymentStatus": zod.enum(['pending', 'paid']),
+  "paidAt": zod.string().nullable(),
+  "paidByName": zod.string()
 })
 
 

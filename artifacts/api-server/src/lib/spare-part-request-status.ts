@@ -4,6 +4,7 @@ import { db, sparePartRequestItemsTable, sparePartRequestsTable } from "@workspa
 export type SparePartRequestStatus =
   | "chief_review"
   | "director_review"
+  | "awaiting_payment"
   | "awaiting_delivery"
   | "returned_to_engineer"
   | "completed"
@@ -15,6 +16,7 @@ export function aggregateSparePartRequestStatus(statuses: readonly string[]): Sp
     return statuses.some((status) => status === "received") ? "completed" : "rejected";
   }
   if (statuses.includes("director_review")) return "director_review";
+  if (statuses.includes("awaiting_payment")) return "awaiting_payment";
   if (statuses.includes("awaiting_delivery")) return "awaiting_delivery";
   if (statuses.includes("chief_review")) return "chief_review";
   if (statuses.includes("returned_to_engineer")) return "returned_to_engineer";

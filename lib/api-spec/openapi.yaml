@@ -576,6 +576,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SparePartRequest"
+  /economic/payment-register:
+    get:
+      operationId: listSparePartPaymentRegister
+      tags: [economy]
+      responses:
+        "200":
+          description: Approved spare-part requests waiting for payment and paid history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SparePartPaymentRegisterItem"
+  /economic/payment-register/{itemId}/pay:
+    post:
+      operationId: markSparePartPaymentPaid
+      tags: [economy]
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema: { type: number, minimum: 1 }
+      responses:
+        "200":
+          description: Payment recorded and item released for warehouse receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SparePartPaymentRegisterItem"
+        "409":
+          description: Item is not awaiting payment
   /engineering/repairs:
     get:
       operationId: listEngineeringRepairs
@@ -1486,7 +1517,7 @@ components:
         requesterUserId: { type: string }
         requesterName: { type: string }
         department: { type: string }
-        status: { type: string, enum: [chief_review, director_review, awaiting_delivery, returned_to_engineer, completed, rejected] }
+        status: { type: string, enum: [chief_review, director_review, awaiting_payment, awaiting_delivery, returned_to_engineer, completed, rejected] }
         createdAt: { type: string }
         updatedAt: { type: string }
         items:
@@ -1495,17 +1526,18 @@ components:
             $ref: "#/components/schemas/SparePartRequestItem"
     SparePartRequestItem:
       type: object
-      required: [id, name, articleNumber, unit, quantity, fleetId, fleetKind, registrationNumber, status, unitPrice, chiefComment, directorComment, receivedQuantity, chiefReviewedByName, chiefReviewedAt, directorReviewedByName, directorReviewedAt, receivedByName, receivedAt]
+      required: [id, name, articleNumber, unit, quantity, paymentAmount, fleetId, fleetKind, registrationNumber, status, unitPrice, chiefComment, directorComment, receivedQuantity, chiefReviewedByName, chiefReviewedAt, directorReviewedByName, directorReviewedAt, paymentStatus, paidAt, paidByName, receivedByName, receivedAt]
       properties:
         id: { type: number }
         name: { type: string }
         articleNumber: { type: string }
         unit: { type: string }
         quantity: { type: number }
+        paymentAmount: { type: ["number", "null"] }
         fleetId: { type: number }
         fleetKind: { type: string }
         registrationNumber: { type: ["string", "null"] }
-        status: { type: string, enum: [chief_review, director_review, returned_to_engineer, awaiting_delivery, received, rejected] }
+        status: { type: string, enum: [chief_review, director_review, returned_to_engineer, awaiting_payment, awaiting_delivery, received, rejected] }
         unitPrice: { type: ["number", "null"] }
         chiefComment: { type: string }
         directorComment: { type: string }
@@ -1514,8 +1546,35 @@ components:
         chiefReviewedAt: { type: ["string", "null"] }
         directorReviewedByName: { type: string }
         directorReviewedAt: { type: ["string", "null"] }
+        paymentStatus: { type: string, enum: [not_required, pending, paid] }
+        paidAt: { type: ["string", "null"] }
+        paidByName: { type: string }
         receivedByName: { type: string }
         receivedAt: { type: ["string", "null"] }
+    SparePartPaymentRegisterItem:
+      type: object
+      required: [id, requestNumber, requestCode, requesterName, department, submittedAt, name, articleNumber, unit, quantity, unitPrice, amount, fleetId, fleetKind, registrationNumber, approvedByName, approvedAt, paymentStatus, paidAt, paidByName]
+      properties:
+        id: { type: number }
+        requestNumber: { type: number }
+        requestCode: { type: string }
+        requesterName: { type: string }
+        department: { type: string }
+        submittedAt: { type: string }
+        name: { type: string }
+        articleNumber: { type: string }
+        unit: { type: string }
+        quantity: { type: number }
+        unitPrice: { type: number }
+        amount: { type: number }
+        fleetId: { type: number }
+        fleetKind: { type: string }
+        registrationNumber: { type: ["string", "null"] }
+        approvedByName: { type: string }
+        approvedAt: { type: ["string", "null"] }
+        paymentStatus: { type: string, enum: [pending, paid] }
+        paidAt: { type: ["string", "null"] }
+        paidByName: { type: string }
     SparePartRequestItemInput:
       type: object
       required: [name, articleNumber, unit, quantity, fleetId]
