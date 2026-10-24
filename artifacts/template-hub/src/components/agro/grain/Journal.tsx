@@ -23,7 +23,7 @@ export default function Journal({ role, movements, crops, locations }: { role: s
                   {m.voidedAt && <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] text-destructive" data-testid={`status-voided-${m.id}`}>Отменено — не в остатках</span>}
                 </div>
                 <p className="mt-0.5 break-words text-[11px] text-muted-foreground">
-                  {[m.unit, m.fromLocationId !== null && `из: ${ln(m.fromLocationId)}`, m.toLocationId !== null && `в: ${ln(m.toLocationId)}`, m.fieldName && `поле: ${m.fieldName}`, m.counterparty && `покупатель: ${m.counterparty}`, m.notes, `внёс: ${m.createdBy}`].filter(Boolean).join(" · ")}
+                  {[m.unit, m.fromLocationId !== null && `из: ${ln(m.fromLocationId)}`, m.toLocationId !== null && `в: ${ln(m.toLocationId)}`, m.fieldName && `поле: ${m.fieldName}`, m.truckNumber && `КамАЗ: ${m.truckNumber}`, m.driverName && `водитель: ${m.driverName}`, m.transportRate !== null && `перевозка: ${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(m.transportRate)} ₸`, m.counterparty && `покупатель: ${m.counterparty}`, m.notes, `внёс: ${m.createdBy}`].filter(Boolean).join(" · ")}
                 </p>
                 {(m.operation === "drying" || m.operation === "cleaning") && <ProcDetails m={m} ln={ln} />}
                 {m.voidedAt && <p className="text-[11px] text-destructive">Отменил {m.voidedBy} {dateFmt(m.voidedAt)}: {m.voidReason}</p>}

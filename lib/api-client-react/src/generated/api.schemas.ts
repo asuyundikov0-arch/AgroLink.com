@@ -91,6 +91,11 @@ export interface FieldOperationInput {
      * @maximum 1000000
      */
   plannedAreaHa: number;
+  /**
+     * @minimum 0.01
+     * @maximum 1000000000
+     */
+  plannedRatePerHa: number;
   /** @maxLength 200 */
   responsible: string;
   /** @maxLength 200 */
@@ -194,6 +199,14 @@ export type FieldOperation = FieldOperationUpdate & FieldActualInput & ({
   isOverdue: boolean;
   progressPercent: number;
   progressReports: FieldProgressReport[];
+  plannedPayAmount: number;
+  /** @nullable */
+  actualRatePerHa: number | null;
+  /** @nullable */
+  actualPayAmount: number | null;
+  actualRateSetBy: string;
+  /** @nullable */
+  actualRateSetAt: string | null;
   /** @nullable */
   voidedAt: string | null;
   voidReason: string;
@@ -201,6 +214,43 @@ export type FieldOperation = FieldOperationUpdate & FieldActualInput & ({
   updatedAt: string;
   updatedBy: string;
 });
+
+export interface FieldDispatchRateInput {
+  /** @minimum 1 */
+  version: number;
+  /**
+     * @minimum 0.01
+     * @maximum 1000000000
+     */
+  ratePerHa: number;
+}
+
+export interface FieldDispatchItem {
+  id: number;
+  version: number;
+  fieldNumber: string;
+  year: number;
+  cropName: string;
+  operationName: string;
+  plannedStart: string;
+  plannedEnd: string;
+  /** @nullable */
+  actualStart: string | null;
+  /** @nullable */
+  actualEnd: string | null;
+  actualAreaHa: number;
+  actualMechanic: string;
+  actualEquipment: string;
+  actualImplement: string;
+  plannedRatePerHa: number;
+  /** @nullable */
+  actualRatePerHa: number | null;
+  /** @nullable */
+  actualPayAmount: number | null;
+  actualRateSetBy: string;
+  /** @nullable */
+  actualRateSetAt: string | null;
+}
 
 export interface FieldDashboard {
   fields: AgroField[];
@@ -941,6 +991,10 @@ export interface GrainMovementInput {
   toLocationId: number | null;
   /** @maxLength 200 */
   fieldName: string;
+  /** @maxLength 40 */
+  truckNumber?: string;
+  /** @maxLength 200 */
+  driverName?: string;
   /** @maxLength 200 */
   counterparty: string;
   /** @maxLength 3000 */
@@ -965,12 +1019,86 @@ export type GrainMovement = GrainMovementInput & ({
   voidedBy: string;
   voidReason: string;
   moistureLossTons: number;
+  /** @nullable */
+  transportRate: number | null;
+  transportRateSetBy: string;
+  /** @nullable */
+  transportRateSetAt: string | null;
   approvalStatus: GrainMovementApprovalStatus;
   reviewComment: string;
   reviewedBy: string;
   /** @nullable */
   reviewedAt: string | null;
-});
+}) & Required<Pick<GrainMovementInput & ({
+  id: number;
+  createdBy: string;
+  createdAt: string;
+  /** @nullable */
+  voidedAt: string | null;
+  voidedBy: string;
+  voidReason: string;
+  moistureLossTons: number;
+  /** @nullable */
+  transportRate: number | null;
+  transportRateSetBy: string;
+  /** @nullable */
+  transportRateSetAt: string | null;
+  approvalStatus: GrainMovementApprovalStatus;
+  reviewComment: string;
+  reviewedBy: string;
+  /** @nullable */
+  reviewedAt: string | null;
+}), 'truckNumber' | 'driverName'>>;
+
+export interface GrainTransportRateInput {
+  /**
+     * @minimum 0.01
+     * @maximum 1000000000000
+     */
+  rateKzt: number;
+}
+
+export type GrainTransportTripOperation = typeof GrainTransportTripOperation[keyof typeof GrainTransportTripOperation];
+
+
+export const GrainTransportTripOperation = {
+  receipt: 'receipt',
+  transfer: 'transfer',
+  drying: 'drying',
+  cleaning: 'cleaning',
+} as const;
+
+export type GrainTransportTripApprovalStatus = typeof GrainTransportTripApprovalStatus[keyof typeof GrainTransportTripApprovalStatus];
+
+
+export const GrainTransportTripApprovalStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  returned: 'returned',
+} as const;
+
+export interface GrainTransportTrip {
+  id: number;
+  unit: string;
+  operation: GrainTransportTripOperation;
+  cropName: string;
+  occurredOn: string;
+  quantityTons: number;
+  /** @nullable */
+  fromLocationName: string | null;
+  /** @nullable */
+  toLocationName: string | null;
+  fieldName: string;
+  truckNumber: string;
+  driverName: string;
+  approvalStatus: GrainTransportTripApprovalStatus;
+  /** @nullable */
+  rateKzt: number | null;
+  rateSetBy: string;
+  /** @nullable */
+  rateSetAt: string | null;
+  createdBy: string;
+}
 
 export type GrainMovementReviewInputDecision = typeof GrainMovementReviewInputDecision[keyof typeof GrainMovementReviewInputDecision];
 
@@ -1301,6 +1429,7 @@ export const RoleRequestRequestedRole = {
   chief_agronomist: 'chief_agronomist',
   grain_manager: 'grain_manager',
   weigher: 'weigher',
+  dispatcher: 'dispatcher',
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
   storekeeper: 'storekeeper',
@@ -1342,6 +1471,7 @@ export const RoleRequestInputRequestedRole = {
   chief_agronomist: 'chief_agronomist',
   grain_manager: 'grain_manager',
   weigher: 'weigher',
+  dispatcher: 'dispatcher',
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
   storekeeper: 'storekeeper',

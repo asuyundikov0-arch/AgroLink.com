@@ -21,6 +21,11 @@ export interface FieldOperationInput {
      * @maximum 1000000
      */
   plannedAreaHa: number;
+  /**
+     * @minimum 0.01
+     * @maximum 1000000000
+     */
+  plannedRatePerHa: number;
   /** @maxLength 200 */
   responsible: string;
   /** @maxLength 200 */

@@ -17,9 +17,33 @@ export type GrainMovement = GrainMovementInput & ({
   voidedBy: string;
   voidReason: string;
   moistureLossTons: number;
+  /** @nullable */
+  transportRate: number | null;
+  transportRateSetBy: string;
+  /** @nullable */
+  transportRateSetAt: string | null;
   approvalStatus: GrainMovementApprovalStatus;
   reviewComment: string;
   reviewedBy: string;
   /** @nullable */
   reviewedAt: string | null;
-});
+}) & Required<Pick<GrainMovementInput & ({
+  id: number;
+  createdBy: string;
+  createdAt: string;
+  /** @nullable */
+  voidedAt: string | null;
+  voidedBy: string;
+  voidReason: string;
+  moistureLossTons: number;
+  /** @nullable */
+  transportRate: number | null;
+  transportRateSetBy: string;
+  /** @nullable */
+  transportRateSetAt: string | null;
+  approvalStatus: GrainMovementApprovalStatus;
+  reviewComment: string;
+  reviewedBy: string;
+  /** @nullable */
+  reviewedAt: string | null;
+}), 'truckNumber' | 'driverName'>>;

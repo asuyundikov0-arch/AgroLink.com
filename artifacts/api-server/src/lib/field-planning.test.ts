@@ -5,7 +5,7 @@ import { fieldNumberKey, fieldOperationState, progressDeltaAres, toAreaAres, val
 
 const plan = (extra: Partial<FieldOperationInput> = {}): FieldOperationInput => ({
   seasonId: 1, name: "Посев", plannedStart: "2026-05-01", plannedEnd: "2026-05-10",
-  plannedAreaHa: 120.25, responsible: "", plannedEquipment: "МТЗ-1221", plannedImplement: "СЗС-2.1", notes: "", ...extra,
+  plannedAreaHa: 120.25, plannedRatePerHa: 1100, responsible: "", plannedEquipment: "МТЗ-1221", plannedImplement: "СЗС-2.1", notes: "", ...extra,
 });
 const fact = (extra: Partial<FieldActualInput> = {}): FieldActualInput => ({
   version: 1, actualStart: "2026-05-03", actualEnd: null, actualAreaHa: 25.75,

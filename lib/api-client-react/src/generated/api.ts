@@ -32,6 +32,8 @@ import type {
   ExpenseUpdate,
   FieldActualInput,
   FieldDashboard,
+  FieldDispatchItem,
+  FieldDispatchRateInput,
   FieldOperation,
   FieldOperationInput,
   FieldOperationUpdate,
@@ -53,6 +55,8 @@ import type {
   GrainMovement,
   GrainMovementInput,
   GrainMovementReviewInput,
+  GrainTransportRateInput,
+  GrainTransportTrip,
   GrainVoidInput,
   HealthStatus,
   ListEngineeringRepairsParams,
@@ -247,6 +251,77 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getCreateAgroFieldMutationOptions(options));
     }
+
+export const getGetFieldDispatchQueueUrl = () => {
+
+
+
+
+  return `/api/agro/fields/dispatch`
+}
+
+export const getFieldDispatchQueue = async ( options?: Parameters<typeof customFetch>[1]): Promise<FieldDispatchItem[]> => {
+
+  return customFetch<FieldDispatchItem[]>(getGetFieldDispatchQueueUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFieldDispatchQueueQueryKey = () => {
+    return [
+    `/api/agro/fields/dispatch`
+    ] as const;
+    }
+
+
+export const getGetFieldDispatchQueueQueryOptions = <TData = Awaited<ReturnType<typeof getFieldDispatchQueue>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFieldDispatchQueue>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFieldDispatchQueueQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFieldDispatchQueue>>> = ({ signal }) => getFieldDispatchQueue({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFieldDispatchQueue>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFieldDispatchQueueQueryResult = NonNullable<Awaited<ReturnType<typeof getFieldDispatchQueue>>>
+export type GetFieldDispatchQueueQueryError = ErrorType<unknown>
+
+
+
+export function useGetFieldDispatchQueue<TData = Awaited<ReturnType<typeof getFieldDispatchQueue>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFieldDispatchQueue>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFieldDispatchQueueQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getUpdateAgroFieldUrl = (id: number,) => {
 
@@ -642,6 +717,72 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getUpdateFieldOperationActualMutationOptions(options));
     }
 
+export const getUpdateFieldDispatchRateUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/fields/operations/${id}/dispatch-rate`
+}
+
+export const updateFieldDispatchRate = async (id: number,
+    fieldDispatchRateInput: FieldDispatchRateInput, options?: Parameters<typeof customFetch>[1]): Promise<FieldDispatchItem> => {
+
+  return customFetch<FieldDispatchItem>(getUpdateFieldDispatchRateUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(fieldDispatchRateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateFieldDispatchRateMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFieldDispatchRate>>, TError,{id: number;data: BodyType<FieldDispatchRateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateFieldDispatchRate>>, TError,{id: number;data: BodyType<FieldDispatchRateInput>}, TContext> => {
+
+const mutationKey = ['updateFieldDispatchRate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateFieldDispatchRate>>, {id: number;data: BodyType<FieldDispatchRateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateFieldDispatchRate(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateFieldDispatchRateMutationResult = NonNullable<Awaited<ReturnType<typeof updateFieldDispatchRate>>>
+    export type UpdateFieldDispatchRateMutationBody = BodyType<FieldDispatchRateInput>
+    export type UpdateFieldDispatchRateMutationError = ErrorType<void>
+
+    export const useUpdateFieldDispatchRate = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFieldDispatchRate>>, TError,{id: number;data: BodyType<FieldDispatchRateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateFieldDispatchRate>>,
+        TError,
+        {id: number;data: BodyType<FieldDispatchRateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateFieldDispatchRateMutationOptions(options));
+    }
+
 export const getCreateFieldOperationProgressUrl = (id: number,) => {
 
 
@@ -912,6 +1053,143 @@ export function useGetGrainDashboard<TData = Awaited<ReturnType<typeof getGrainD
 
 
 
+
+export const getGetGrainTransportTripsUrl = () => {
+
+
+
+
+  return `/api/agro/grain/transport-trips`
+}
+
+export const getGrainTransportTrips = async ( options?: Parameters<typeof customFetch>[1]): Promise<GrainTransportTrip[]> => {
+
+  return customFetch<GrainTransportTrip[]>(getGetGrainTransportTripsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGrainTransportTripsQueryKey = () => {
+    return [
+    `/api/agro/grain/transport-trips`
+    ] as const;
+    }
+
+
+export const getGetGrainTransportTripsQueryOptions = <TData = Awaited<ReturnType<typeof getGrainTransportTrips>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGrainTransportTrips>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGrainTransportTripsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGrainTransportTrips>>> = ({ signal }) => getGrainTransportTrips({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGrainTransportTrips>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGrainTransportTripsQueryResult = NonNullable<Awaited<ReturnType<typeof getGrainTransportTrips>>>
+export type GetGrainTransportTripsQueryError = ErrorType<unknown>
+
+
+
+export function useGetGrainTransportTrips<TData = Awaited<ReturnType<typeof getGrainTransportTrips>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGrainTransportTrips>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGrainTransportTripsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateGrainTransportRateUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/grain/transport-trips/${id}/rate`
+}
+
+export const updateGrainTransportRate = async (id: number,
+    grainTransportRateInput: GrainTransportRateInput, options?: Parameters<typeof customFetch>[1]): Promise<GrainTransportTrip> => {
+
+  return customFetch<GrainTransportTrip>(getUpdateGrainTransportRateUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(grainTransportRateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateGrainTransportRateMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateGrainTransportRate>>, TError,{id: number;data: BodyType<GrainTransportRateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateGrainTransportRate>>, TError,{id: number;data: BodyType<GrainTransportRateInput>}, TContext> => {
+
+const mutationKey = ['updateGrainTransportRate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateGrainTransportRate>>, {id: number;data: BodyType<GrainTransportRateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateGrainTransportRate(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateGrainTransportRateMutationResult = NonNullable<Awaited<ReturnType<typeof updateGrainTransportRate>>>
+    export type UpdateGrainTransportRateMutationBody = BodyType<GrainTransportRateInput>
+    export type UpdateGrainTransportRateMutationError = ErrorType<void>
+
+    export const useUpdateGrainTransportRate = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateGrainTransportRate>>, TError,{id: number;data: BodyType<GrainTransportRateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateGrainTransportRate>>,
+        TError,
+        {id: number;data: BodyType<GrainTransportRateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateGrainTransportRateMutationOptions(options));
+    }
 
 export const getCreateGrainCropUrl = () => {
 

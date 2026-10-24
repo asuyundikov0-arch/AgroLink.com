@@ -58,6 +58,10 @@ export interface GrainMovementInput {
   toLocationId: number | null;
   /** @maxLength 200 */
   fieldName: string;
+  /** @maxLength 40 */
+  truckNumber?: string;
+  /** @maxLength 200 */
+  driverName?: string;
   /** @maxLength 200 */
   counterparty: string;
   /** @maxLength 3000 */

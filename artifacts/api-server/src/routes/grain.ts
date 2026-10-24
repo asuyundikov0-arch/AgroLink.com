@@ -2,7 +2,8 @@ import { Router, type IRouter, type RequestHandler } from "express";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import {
   CreateGrainCropBody, CreateGrainLocationBody, CreateGrainMovementBody, ReviewGrainMovementBody, VoidGrainMovementBody,
-  CreateGrainMovementResponse, GetGrainDashboardResponse, type GrainMovementInput,
+  CreateGrainMovementResponse, GetGrainDashboardResponse, GetGrainTransportTripsResponse,
+  UpdateGrainTransportRateBody, UpdateGrainTransportRateParams, UpdateGrainTransportRateResponse, type GrainMovementInput,
 } from "@workspace/api-zod";
 import { activityTable, db, grainCropsTable, grainLocationsTable, grainMovementsTable } from "@workspace/db";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
@@ -13,13 +14,14 @@ const router: IRouter = Router();
 const readers = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "general_director"];
 const writers = ["weigher", "general_director"];
 const reviewers = ["grain_manager", "general_director"];
+const transportOperations = new Set(["receipt", "transfer", "drying", "cleaning"]);
 function roles(allowed: string[]): RequestHandler {
   return (_req, res, next) => {
     if (!allowed.includes(res.locals.access.role)) { res.status(403).json({ error: "Недостаточно прав для работы с балансом зерна." }); return; }
     next();
   };
 }
-router.use("/agro/grain", requireApprovedRole, roles(readers));
+router.use("/agro/grain", requireApprovedRole);
 const management = roles(["chief_agronomist", "general_director"]);
 const write = roles(writers);
 const review = roles(reviewers);
@@ -28,13 +30,42 @@ const validId = (id: unknown) => Number.isSafeInteger(Number(id)) && Number(id) 
 const cropJson = ({ id, name }: typeof grainCropsTable.$inferSelect) => ({ id, name });
 const locationJson = ({ id, name, unit, kind }: typeof grainLocationsTable.$inferSelect) => ({ id, name, unit, kind });
 const movementJson = (row: typeof grainMovementsTable.$inferSelect) => {
-  const { quantityKg, outputKg, deadWasteKg, grainWasteKg, moistureLossKg, createdByUserId: _user, ...rest } = row;
+  const { quantityKg, outputKg, deadWasteKg, grainWasteKg, moistureLossKg, transportRate, createdByUserId: _user, ...rest } = row;
   return CreateGrainMovementResponse.parse({
     ...rest, quantityTons: quantityKg / 1000, outputTons: outputKg / 1000, deadWasteTons: deadWasteKg / 1000,
     grainWasteTons: grainWasteKg / 1000, moistureLossTons: moistureLossKg / 1000,
+    transportRate: transportRate === null ? null : Number(transportRate),
+    transportRateSetAt: row.transportRateSetAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(), voidedAt: row.voidedAt?.toISOString() ?? null,
   });
 };
+async function transportTrips() {
+  const [movements, crops, locations] = await Promise.all([
+    db.select().from(grainMovementsTable).orderBy(desc(grainMovementsTable.occurredOn), desc(grainMovementsTable.id)),
+    db.select().from(grainCropsTable),
+    db.select().from(grainLocationsTable),
+  ]);
+  const cropById = new Map(crops.map((crop) => [crop.id, crop.name]));
+  const locationById = new Map(locations.map((location) => [location.id, location.name]));
+  return movements.filter((row) => transportOperations.has(row.operation) && !row.voidedAt).map((row) => ({
+    id: row.id,
+    unit: row.unit,
+    operation: row.operation as "receipt" | "transfer" | "drying" | "cleaning",
+    cropName: cropById.get(row.cropId) ?? "—",
+    occurredOn: row.occurredOn,
+    quantityTons: row.quantityKg / 1000,
+    fromLocationName: row.fromLocationId === null ? null : locationById.get(row.fromLocationId) ?? null,
+    toLocationName: row.toLocationId === null ? null : locationById.get(row.toLocationId) ?? null,
+    fieldName: row.fieldName,
+    truckNumber: row.truckNumber,
+    driverName: row.driverName,
+    approvalStatus: row.approvalStatus as "pending" | "approved" | "returned",
+    rateKzt: row.transportRate === null ? null : Number(row.transportRate),
+    rateSetBy: row.transportRateSetBy,
+    rateSetAt: row.transportRateSetAt?.toISOString() ?? null,
+    createdBy: row.createdBy,
+  }));
+}
 const safe = (handler: RequestHandler): RequestHandler => async (req, res, next) => {
   try { await handler(req, res, next); }
   catch (err) {
@@ -45,7 +76,7 @@ const safe = (handler: RequestHandler): RequestHandler => async (req, res, next)
     next(err);
   }
 };
-router.get("/agro/grain", safe(async (_req, res) => {
+router.get("/agro/grain", roles(readers), safe(async (_req, res) => {
   const access = res.locals.access as RoleAccess;
   // A repeatable snapshot prevents mixing balances and a concurrently changed journal.
   const snapshot = await db.transaction(async (tx) => {
@@ -74,6 +105,42 @@ router.get("/agro/grain", safe(async (_req, res) => {
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
   res.setHeader("Cache-Control", "no-store");
   res.json(GetGrainDashboardResponse.parse(snapshot));
+}));
+router.get("/agro/grain/transport-trips", roles(["dispatcher", "general_director"]), safe(async (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.json(GetGrainTransportTripsResponse.parse(await transportTrips()));
+}));
+router.patch("/agro/grain/transport-trips/:id/rate", roles(["dispatcher", "general_director"]), safe(async (req, res) => {
+  const params = UpdateGrainTransportRateParams.safeParse(req.params);
+  const input = UpdateGrainTransportRateBody.safeParse(req.body);
+  if (!params.success || !input.success || !validId(params.data.id)) {
+    res.status(400).json({ error: "Укажите корректную сумму оплаты за рейс." }); return;
+  }
+  const access = res.locals.access as RoleAccess;
+  const result = await db.transaction(async (tx) => {
+    const [row] = await tx.select().from(grainMovementsTable)
+      .where(eq(grainMovementsTable.id, params.data.id)).for("update");
+    if (!row) return { error: "Рейс не найден.", status: 404 } as const;
+    if (!transportOperations.has(row.operation) || row.voidedAt) {
+      return { error: "Расценку можно внести только для действующего рейса по зерну.", status: 409 } as const;
+    }
+    const rateSetAt = new Date();
+    const [updated] = await tx.update(grainMovementsTable).set({
+      transportRate: input.data.rateKzt.toFixed(2),
+      transportRateSetBy: `${access.displayName} · ${access.role}`,
+      transportRateSetAt: rateSetAt,
+    }).where(eq(grainMovementsTable.id, row.id)).returning();
+    await tx.insert(activityTable).values({
+      action: "Внесена расценка за перевозку зерна",
+      templateName: `Рейс №${row.id} · КамАЗ ${row.truckNumber} · ${input.data.rateKzt.toLocaleString("ru-RU")} ₸`,
+      userName: `${access.displayName} · ${access.role}`,
+    });
+    return { row: updated };
+  });
+  if ("error" in result) { res.status(result.status ?? 500).json({ error: result.error }); return; }
+  const trip = (await transportTrips()).find((item) => item.id === result.row.id);
+  if (!trip) { res.status(500).json({ error: "Расценка сохранена, но запись рейса не найдена." }); return; }
+  res.json(UpdateGrainTransportRateResponse.parse(trip));
 }));
 router.post("/agro/grain/crops", management, safe(async (req, res) => {
   const parsed = CreateGrainCropBody.safeParse(req.body);
@@ -105,6 +172,8 @@ function validateInput(input: GrainMovementInput): string | null {
   if (!validId(input.cropId) || [input.fromLocationId, input.toLocationId, input.wasteToLocationId].some((id) => id != null && !validId(id))) return "Выберите продукцию и корректные места хранения.";
   if (toGrainKg(input.quantityTons) === null) return "Укажите положительный вес в тоннах с точностью до 0,001 т, не более 1 000 000 т за операцию.";
   if (!validGrainDate(input.occurredOn) || input.occurredOn > grainBusinessDate()) return "Укажите корректную дату, не позднее сегодняшней.";
+  if (transportOperations.has(input.operation) && (!input.truckNumber?.trim() || !input.driverName?.trim())) return "Укажите номер КамАЗа и имя водителя для рейса.";
+  if ((input.truckNumber?.length ?? 0) > 40 || (input.driverName?.length ?? 0) > 200) return "Проверьте длину номера КамАЗа и имени водителя.";
   if (input.operation === "opening" || input.operation === "receipt") {
     if (input.fromLocationId !== null || input.toLocationId === null) return "Для прихода выберите только место размещения.";
     if (input.operation === "receipt" && !input.fieldName.trim()) return "Укажите поле, с которого поступило зерно.";
@@ -137,6 +206,7 @@ router.post("/agro/grain/movements", write, safe(async (req, res) => {
       wasteToLocationId: input.wasteToLocationId ?? null,
       fromLocationId: input.fromLocationId, toLocationId: input.toLocationId,
       fieldName: input.fieldName.trim(), counterparty: input.counterparty.trim(), notes: input.notes.trim(),
+      truckNumber: input.truckNumber?.trim() ?? "", driverName: input.driverName?.trim() ?? "",
     };
     if (existing) {
       const same = existing.createdByUserId === access.userId && Object.entries(values).every(([key, value]) => existing[key as keyof typeof existing] === value);

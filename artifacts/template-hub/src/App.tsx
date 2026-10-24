@@ -103,6 +103,7 @@ const roleLabels = {
   chief_agronomist: "Главный агроном",
   grain_manager: "Заведующий током",
   weigher: "Весовщица",
+  dispatcher: "Диспетчер",
   economist: "Экономист",
   farm_director: "Директор хозяйства",
   general_director: "Генеральный директор",
@@ -227,6 +228,7 @@ const demoRoleScenarios: Record<AppRole, { workspace: string; title: string; des
   chief_agronomist: { workspace: "Личный кабинет", title: "Очередь главного агронома", description: "Проверьте поступивший отчёт и направьте его дальше.", document: "Сводка по уборке · АПК Арыстан Grain", action: "Принять документ", result: "Демо: отчёт принят и готов к следующему этапу." },
   grain_manager: { workspace: "АгроБлок", title: "Согласование зерновых операций", description: "Проверьте поступившие от весовщицы операции и подтвердите или верните их.", document: "Приход зерна · АФ Веденовка", action: "Согласовать операцию", result: "Демо: операция передана в общий баланс." },
   weigher: { workspace: "АгроБлок", title: "Ввод зерновых операций", description: "Внесите взвешивание и отправьте запись заведующему током на согласование.", document: "Приход зерна с поля · АПК Арыстан Grain", action: "Отправить на согласование", result: "Демо: запись передана заведующему током." },
+  dispatcher: { workspace: "Диспетчерская", title: "Рейсы и фактические расценки", description: "Проверьте поездки по зерну и завершённые полевые работы, затем внесите фактические ставки.", document: "Рейс зерна · АФ Веденовка", action: "Сохранить расценку", result: "Демо: ставка сохранена и сумма рассчитана." },
   economist: { workspace: "Личный кабинет", title: "Ежедневный реестр", description: "Подайте финансовый реестр директору хозяйства.", document: "Реестр финансирования · АФ Веденовка", action: "Отправить директору", result: "Демо: реестр направлен директору хозяйства." },
   farm_director: { workspace: "Личный кабинет", title: "Очередь директора хозяйства", description: "Согласуйте финансовый реестр и направьте его генеральному директору.", document: "Реестр финансирования · АФ Веденовка", action: "Направить генеральному директору", result: "Демо: реестр направлен на финальное согласование." },
   general_director: { workspace: "Личный кабинет", title: "Финальное согласование", description: "Утвердите документ и разместите его в соответствующем архиве.", document: "Акт технического осмотра · Инженерная служба", action: "Одобрить и в архив", result: "Демо: документ утверждён и помещён в инженерский архив." },
@@ -368,14 +370,17 @@ function Shell({
   const [topNotice, setTopNotice] = useState("");
   const { signOut } = useClerk();
   const activeSidebarSection: SidebarSection = activeSection === "templates" ? "cabinet" : activeSection;
-  const isAgroVisible = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "general_director"].includes(role);
+  const isDispatcher = role === "dispatcher";
+  const isAgroVisible = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "dispatcher", "general_director"].includes(role);
   const isEngineeringVisible = ["engineer", "chief_engineer", "storekeeper", "general_director"].includes(role);
   const isEconomicVisible = ["economist", "farm_director", "general_director"].includes(role);
   const isLegalVisible = ["lawyer", "general_director"].includes(role);
   const navigation = [
-    { id: "cabinet" as const, label: "Личный кабинет", icon: ClipboardCheck },
-    { id: "archive" as const, label: "Архив", icon: Archive },
-    ...(isAgroVisible ? [{ id: "agro" as const, label: "АгроБлок", icon: Sprout }] : []),
+    ...(!isDispatcher ? [
+      { id: "cabinet" as const, label: "Личный кабинет", icon: ClipboardCheck },
+      { id: "archive" as const, label: "Архив", icon: Archive },
+    ] : []),
+    ...(isAgroVisible ? [{ id: "agro" as const, label: isDispatcher ? "Диспетчерская" : "АгроБлок", icon: Sprout }] : []),
     ...(isEngineeringVisible ? [{ id: "engineering" as const, label: "Инженерный блок", icon: Wrench }] : []),
     ...(isEconomicVisible ? [{ id: "economic" as const, label: "Экономический блок", icon: BarChart3 }] : []),
     ...(isLegalVisible ? [{ id: "legal" as const, label: "Юридический блок", icon: Scale }] : []),
@@ -1066,7 +1071,6 @@ function Workspace({ role, actualRole, demoRole, request, section, onSectionChan
 
 function AccessGate() {
   const requestQuery = useGetMyRoleRequest({ query: { queryKey: getGetMyRoleRequestQueryKey(), refetchInterval: 12000 } });
-  const [section, setSection] = useState<WorkspaceSection>("cabinet");
   const [demoRole, setDemoRole] = useState<AppRole | null>(null);
   useEffect(() => {
     window.localStorage.removeItem("agrolink-role-context");
@@ -1076,6 +1080,7 @@ function AccessGate() {
   if (requestQuery.isError) return <main className="access-page"><ErrorState onRetry={() => requestQuery.refetch()} /></main>;
   if (request?.status !== "approved") return <RoleRequestScreen request={request} />;
   const actualRole = request.requestedRole as AppRole;
+  const [section, setSection] = useState<WorkspaceSection>(actualRole === "dispatcher" ? "agro" : "cabinet");
   const canUseDemo = actualRole === "general_director";
   const role = canUseDemo && demoRole ? demoRole : actualRole;
   const changeDemoRole = (nextRole: AppRole | null) => {

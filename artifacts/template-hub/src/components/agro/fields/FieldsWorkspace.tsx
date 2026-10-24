@@ -17,6 +17,7 @@ type Modal =
 
 const READ_ROLES = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "general_director"];
 const byNum = (a: AgroField, b: AgroField) => a.unit.localeCompare(b.unit) || a.number.localeCompare(b.number, "ru", { numeric: true });
+const kzt = (value: number | null | undefined) => value == null ? "—" : `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(value)} ₸`;
 
 export default function FieldsWorkspace({ role }: { role: string }) {
   const allowed = READ_ROLES.includes(role);
@@ -176,8 +177,8 @@ export default function FieldsWorkspace({ role }: { role: string }) {
                           <td className="px-4 py-2.5"><p className="font-bold">{o.name}</p>{o.actualOperationName && o.actualOperationName !== o.name && <p className="text-[10.5px] text-muted-foreground">Факт: {o.actualOperationName}</p>}<p className="text-[10.5px] text-muted-foreground">№ {f?.number} · {s?.cropName} · {f?.unit}{o.responsible ? ` · ${o.responsible}` : ""}</p>
                           </td>
                           <td><StatusPill op={o} /></td>
-                          <td className="text-[10.5px] leading-5"><span className="font-mono">{dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)}<br />{ha(o.plannedAreaHa)}</span>{o.plannedEquipment && <p>Техника: {o.plannedEquipment}</p>}{o.plannedImplement && <p className="text-muted-foreground">Агрегат: {o.plannedImplement}</p>}</td>
-                          <td className="text-[10.5px] leading-5"><span className="font-mono">{dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)}<br />{ha(o.actualAreaHa)}</span>{o.actualStart && <><p>{o.actualMechanic}</p><p className="text-muted-foreground">{o.actualEquipment}{o.actualImplement ? ` · ${o.actualImplement}` : ""}</p></>}{o.progressReports.at(-1) && <p className="text-muted-foreground">Отчёт {dateFmt(o.progressReports.at(-1)!.reportDate)} · +{ha(o.progressReports.at(-1)!.dailyAreaHa)}</p>}</td>
+                          <td className="text-[10.5px] leading-5"><span className="font-mono">{dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)}<br />{ha(o.plannedAreaHa)}</span><p className="font-semibold">План: {kzt(o.plannedRatePerHa)}/га · {kzt(o.plannedPayAmount)}</p>{o.plannedEquipment && <p>Техника: {o.plannedEquipment}</p>}{o.plannedImplement && <p className="text-muted-foreground">Агрегат: {o.plannedImplement}</p>}</td>
+                          <td className="text-[10.5px] leading-5"><span className="font-mono">{dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)}<br />{ha(o.actualAreaHa)}</span>{o.actualEnd && <p className="font-semibold">{o.actualRatePerHa === null ? "Ожидает расценки диспетчера" : `Факт: ${kzt(o.actualRatePerHa)}/га · ${kzt(o.actualPayAmount)}`}</p>}{o.actualStart && <><p>{o.actualMechanic}</p><p className="text-muted-foreground">{o.actualEquipment}{o.actualImplement ? ` · ${o.actualImplement}` : ""}</p></>}{o.progressReports.at(-1) && <p className="text-muted-foreground">Отчёт {dateFmt(o.progressReports.at(-1)!.reportDate)} · +{ha(o.progressReports.at(-1)!.dailyAreaHa)}</p>}</td>
                           <td><Progress value={o.progressPercent} label={`Выполнено ${o.name}`} /></td>
                           <td className="px-4"><div className="flex justify-end gap-1.5">
                             {f && <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => setModal({ k: "history", fieldId: f.id })} data-testid={`button-open-history-op-${o.id}`}><History size={13} />История поля</button>}
@@ -254,6 +255,8 @@ function FieldHistory({ field, role, seasons, ops, onClose, onAddSeason, onAddOp
                   <li key={o.id} className="py-2 text-[11px]" data-testid={`history-op-${o.id}`}>
                     <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{o.name}</span><StatusPill op={o} /></div>
                     <p className="font-mono text-[10.5px] text-muted-foreground">план {dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)} · {ha(o.plannedAreaHa)} | факт {dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)} · {ha(o.actualAreaHa)}</p>
+                    <p className="text-[10.5px]">Плановая расценка: {kzt(o.plannedRatePerHa)}/га · сумма по плану {kzt(o.plannedPayAmount)}</p>
+                    {o.actualEnd && <p className="text-[10.5px]">{o.actualRatePerHa === null ? "Ожидает фактической расценки диспетчера" : `Факт: ${kzt(o.actualRatePerHa)}/га · к начислению ${kzt(o.actualPayAmount)}`}</p>}
                     {(o.plannedEquipment || o.plannedImplement) && <p className="text-muted-foreground">Плановая техника: {o.plannedEquipment || "не указана"} · агрегат: {o.plannedImplement || "не указан"}</p>}
                     {o.actualStart && <p>Факт: {o.actualOperationName || o.name} · механизатор {o.actualMechanic || "не указан"} · {o.actualEquipment || "техника не указана"} · {o.actualImplement || "агрегат не указан"}</p>}
                     {o.progressReports.length > 0 && <div className="mt-1 rounded-md bg-muted/30 px-2.5 py-2" data-testid={`history-progress-${o.id}`}><p className="font-semibold">Дневные отчёты</p><ul className="mt-1 space-y-1">{[...o.progressReports].reverse().map((report) => <li key={report.id}>{dateFmt(report.reportDate)} · +{ha(report.dailyAreaHa)} · итого {ha(report.cumulativeAreaHa)} · {report.actualMechanic} · {report.actualEquipment}{report.actualImplement ? ` · ${report.actualImplement}` : ""}</li>)}</ul></div>}

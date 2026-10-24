@@ -251,6 +251,7 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
   const [f, setF] = useState({
     seasonId: String(initSeason), name: op?.name ?? "", plannedStart: op?.plannedStart?.slice(0, 10) ?? "", plannedEnd: op?.plannedEnd?.slice(0, 10) ?? "",
      area: op ? haStr(op.plannedAreaHa) : (() => { const s = seasons.find((x) => x.id === initSeason); return s ? haStr(s.areaHa) : ""; })(),
+     plannedRate: op ? String(op.plannedRatePerHa) : "",
      responsible: op?.responsible ?? "", plannedEquipment: op?.plannedEquipment ?? "", plannedImplement: op?.plannedImplement ?? "", notes: op?.notes ?? "",
   });
   const [errs, setErrs] = useState<Record<string, string>>({});
@@ -273,12 +274,14 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
     if (area === null || area < 0.01) er.area = "Площадь от 0,01 га, до 2 знаков";
     else if (season && area > season.areaHa) er.area = `Не больше площади сезона (${ha(season.areaHa)})`;
     else if (op && area < op.actualAreaHa) er.area = `Не меньше уже выполненного (${ha(op.actualAreaHa)})`;
+    const plannedRate = f.plannedRate.trim() ? Number(f.plannedRate.trim().replace(",", ".")) : null;
+    if (plannedRate === null || !Number.isFinite(plannedRate) || plannedRate <= 0 || plannedRate > 1_000_000_000) er.plannedRate = "Укажите положительную расценку за гектар";
     if (f.responsible.length > 200) er.responsible = "Не более 200 символов";
     if (f.plannedEquipment.length > 200) er.plannedEquipment = "Не более 200 символов";
     if (f.plannedImplement.length > 200) er.plannedImplement = "Не более 200 символов";
     setErrs(er); e.clear();
     if (Object.keys(er).length) return;
-    const data = { seasonId: Number(f.seasonId), name, plannedStart: f.plannedStart, plannedEnd: f.plannedEnd, plannedAreaHa: area!, responsible: f.responsible.trim(), plannedEquipment: f.plannedEquipment.trim(), plannedImplement: f.plannedImplement.trim(), notes: f.notes };
+    const data = { seasonId: Number(f.seasonId), name, plannedStart: f.plannedStart, plannedEnd: f.plannedEnd, plannedAreaHa: area!, plannedRatePerHa: plannedRate!, responsible: f.responsible.trim(), plannedEquipment: f.plannedEquipment.trim(), plannedImplement: f.plannedImplement.trim(), notes: f.notes };
     try {
       if (op) await update.mutateAsync({ id: op.id, data: { ...data, version: op.version } });
       else await create.mutateAsync({ data });
@@ -307,6 +310,7 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
             <Field label="Плановое начало *" error={errs.plannedStart} htmlFor="op-ps"><input id="op-ps" type="date" className="text-input" value={f.plannedStart} onChange={(ev) => setF({ ...f, plannedStart: ev.target.value })} data-testid="input-operation-planned-start" /></Field>
             <Field label="Плановое окончание *" error={errs.plannedEnd} htmlFor="op-pe"><input id="op-pe" type="date" className="text-input" value={f.plannedEnd} onChange={(ev) => setF({ ...f, plannedEnd: ev.target.value })} data-testid="input-operation-planned-end" /></Field>
             <Field label="Плановая площадь, га *" error={errs.area} hint={season ? `Площадь сезона ${ha(season.areaHa)}` : undefined} htmlFor="op-area"><input id="op-area" className="text-input font-mono" inputMode="decimal" value={f.area} onChange={(ev) => setF({ ...f, area: ev.target.value })} data-testid="input-operation-area" /></Field>
+            <Field label="Плановая расценка, ₸/га *" error={errs.plannedRate} htmlFor="op-rate"><input id="op-rate" type="number" min="0.01" step="0.01" className="text-input font-mono" inputMode="decimal" value={f.plannedRate} onChange={(ev) => setF({ ...f, plannedRate: ev.target.value })} data-testid="input-operation-planned-rate" /></Field>
             <Field label="Ответственный" error={errs.responsible} htmlFor="op-resp"><input id="op-resp" className="text-input" maxLength={200} value={f.responsible} onChange={(ev) => setF({ ...f, responsible: ev.target.value })} data-testid="input-operation-responsible" /></Field>
             <Field label="Техника по плану" error={errs.plannedEquipment} hint="Выберите из общего справочника техники" htmlFor="op-equipment"><EquipmentSelect id="op-equipment" testId="select-operation-equipment" value={f.plannedEquipment} fleet={fleet} loading={fleetLoading} failed={fleetError} onRetry={onRetry} onChange={(plannedEquipment) => setF({ ...f, plannedEquipment })} /></Field>
             <Field label="Агрегат по плану" error={errs.plannedImplement} hint="Например, сеялка СЗС-2.1" htmlFor="op-implement"><input id="op-implement" className="text-input" maxLength={200} value={f.plannedImplement} onChange={(ev) => setF({ ...f, plannedImplement: ev.target.value })} data-testid="input-operation-implement" /></Field>
@@ -367,7 +371,7 @@ export function ActualForm({ op, title, today, fleet, fleetLoading, fleetError, 
         actualMechanic: f.mechanic.trim(), actualEquipment: f.equipment.trim(), actualImplement: f.implement.trim(), actualNotes: f.notes,
       } });
       await invalidate();
-      onDone(starting ? `Начало операции «${f.operationName.trim()}» зафиксировано.` : `Операция «${op.name}» завершена: ${ha(parsed ?? 0)}.`);
+      onDone(starting ? `Начало операции «${f.operationName.trim()}» зафиксировано.` : `Операция «${op.name}» завершена: ${ha(parsed ?? 0)}. Данные переданы диспетчеру для ввода фактической расценки.`);
     } catch (err) { handleSaveError(err, true, e.set); }
   };
 

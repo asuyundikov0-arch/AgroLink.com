@@ -36,6 +36,9 @@ export const getFieldDashboardResponseOperationsItemOneOneNameMax = 150;
 export const getFieldDashboardResponseOperationsItemOneOnePlannedAreaHaMin = 0.01;
 export const getFieldDashboardResponseOperationsItemOneOnePlannedAreaHaMax = 1000000;
 
+export const getFieldDashboardResponseOperationsItemOneOnePlannedRatePerHaMin = 0.01;
+export const getFieldDashboardResponseOperationsItemOneOnePlannedRatePerHaMax = 1000000000;
+
 export const getFieldDashboardResponseOperationsItemOneOneResponsibleMax = 200;
 
 export const getFieldDashboardResponseOperationsItemOneOnePlannedEquipmentMax = 200;
@@ -95,6 +98,7 @@ export const GetFieldDashboardResponse = zod.object({
   "plannedStart": zod.string(),
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(getFieldDashboardResponseOperationsItemOneOnePlannedAreaHaMin).max(getFieldDashboardResponseOperationsItemOneOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(getFieldDashboardResponseOperationsItemOneOnePlannedRatePerHaMin).max(getFieldDashboardResponseOperationsItemOneOnePlannedRatePerHaMax),
   "responsible": zod.string().max(getFieldDashboardResponseOperationsItemOneOneResponsibleMax),
   "plannedEquipment": zod.string().max(getFieldDashboardResponseOperationsItemOneOnePlannedEquipmentMax),
   "plannedImplement": zod.string().max(getFieldDashboardResponseOperationsItemOneOnePlannedImplementMax),
@@ -129,6 +133,11 @@ export const GetFieldDashboardResponse = zod.object({
   "updatedBy": zod.string(),
   "updatedAt": zod.string()
 })),
+  "plannedPayAmount": zod.number(),
+  "actualRatePerHa": zod.number().nullable(),
+  "actualPayAmount": zod.number().nullable(),
+  "actualRateSetBy": zod.string(),
+  "actualRateSetAt": zod.string().nullable(),
   "voidedAt": zod.string().nullable(),
   "voidReason": zod.string(),
   "voidedBy": zod.string(),
@@ -180,6 +189,30 @@ export const CreateAgroFieldResponse = zod.object({
   "updatedBy": zod.string(),
   "updatedAt": zod.string()
 }))
+
+
+export const GetFieldDispatchQueueResponseItem = zod.object({
+  "id": zod.number(),
+  "version": zod.number(),
+  "fieldNumber": zod.string(),
+  "year": zod.number(),
+  "cropName": zod.string(),
+  "operationName": zod.string(),
+  "plannedStart": zod.string(),
+  "plannedEnd": zod.string(),
+  "actualStart": zod.string().nullable(),
+  "actualEnd": zod.string().nullable(),
+  "actualAreaHa": zod.number(),
+  "actualMechanic": zod.string(),
+  "actualEquipment": zod.string(),
+  "actualImplement": zod.string(),
+  "plannedRatePerHa": zod.number(),
+  "actualRatePerHa": zod.number().nullable(),
+  "actualPayAmount": zod.number().nullable(),
+  "actualRateSetBy": zod.string(),
+  "actualRateSetAt": zod.string().nullable()
+})
+export const GetFieldDispatchQueueResponse = zod.array(GetFieldDispatchQueueResponseItem)
 
 
 export const UpdateAgroFieldParams = zod.object({
@@ -356,6 +389,9 @@ export const createFieldOperationBodyNameMax = 150;
 export const createFieldOperationBodyPlannedAreaHaMin = 0.01;
 export const createFieldOperationBodyPlannedAreaHaMax = 1000000;
 
+export const createFieldOperationBodyPlannedRatePerHaMin = 0.01;
+export const createFieldOperationBodyPlannedRatePerHaMax = 1000000000;
+
 export const createFieldOperationBodyResponsibleMax = 200;
 
 export const createFieldOperationBodyPlannedEquipmentMax = 200;
@@ -372,6 +408,7 @@ export const CreateFieldOperationBody = zod.object({
   "plannedStart": zod.string(),
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(createFieldOperationBodyPlannedAreaHaMin).max(createFieldOperationBodyPlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(createFieldOperationBodyPlannedRatePerHaMin).max(createFieldOperationBodyPlannedRatePerHaMax),
   "responsible": zod.string().max(createFieldOperationBodyResponsibleMax),
   "plannedEquipment": zod.string().max(createFieldOperationBodyPlannedEquipmentMax),
   "plannedImplement": zod.string().max(createFieldOperationBodyPlannedImplementMax),
@@ -383,6 +420,9 @@ export const createFieldOperationResponseOneOneNameMax = 150;
 
 export const createFieldOperationResponseOneOnePlannedAreaHaMin = 0.01;
 export const createFieldOperationResponseOneOnePlannedAreaHaMax = 1000000;
+
+export const createFieldOperationResponseOneOnePlannedRatePerHaMin = 0.01;
+export const createFieldOperationResponseOneOnePlannedRatePerHaMax = 1000000000;
 
 export const createFieldOperationResponseOneOneResponsibleMax = 200;
 
@@ -415,6 +455,7 @@ export const CreateFieldOperationResponse = zod.object({
   "plannedStart": zod.string(),
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(createFieldOperationResponseOneOnePlannedAreaHaMin).max(createFieldOperationResponseOneOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(createFieldOperationResponseOneOnePlannedRatePerHaMin).max(createFieldOperationResponseOneOnePlannedRatePerHaMax),
   "responsible": zod.string().max(createFieldOperationResponseOneOneResponsibleMax),
   "plannedEquipment": zod.string().max(createFieldOperationResponseOneOnePlannedEquipmentMax),
   "plannedImplement": zod.string().max(createFieldOperationResponseOneOnePlannedImplementMax),
@@ -449,6 +490,11 @@ export const CreateFieldOperationResponse = zod.object({
   "updatedBy": zod.string(),
   "updatedAt": zod.string()
 })),
+  "plannedPayAmount": zod.number(),
+  "actualRatePerHa": zod.number().nullable(),
+  "actualPayAmount": zod.number().nullable(),
+  "actualRateSetBy": zod.string(),
+  "actualRateSetAt": zod.string().nullable(),
   "voidedAt": zod.string().nullable(),
   "voidReason": zod.string(),
   "voidedBy": zod.string(),
@@ -467,6 +513,9 @@ export const updateFieldOperationBodyOneNameMax = 150;
 export const updateFieldOperationBodyOnePlannedAreaHaMin = 0.01;
 export const updateFieldOperationBodyOnePlannedAreaHaMax = 1000000;
 
+export const updateFieldOperationBodyOnePlannedRatePerHaMin = 0.01;
+export const updateFieldOperationBodyOnePlannedRatePerHaMax = 1000000000;
+
 export const updateFieldOperationBodyOneResponsibleMax = 200;
 
 export const updateFieldOperationBodyOnePlannedEquipmentMax = 200;
@@ -484,6 +533,7 @@ export const UpdateFieldOperationBody = zod.object({
   "plannedStart": zod.string(),
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(updateFieldOperationBodyOnePlannedAreaHaMin).max(updateFieldOperationBodyOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(updateFieldOperationBodyOnePlannedRatePerHaMin).max(updateFieldOperationBodyOnePlannedRatePerHaMax),
   "responsible": zod.string().max(updateFieldOperationBodyOneResponsibleMax),
   "plannedEquipment": zod.string().max(updateFieldOperationBodyOnePlannedEquipmentMax),
   "plannedImplement": zod.string().max(updateFieldOperationBodyOnePlannedImplementMax),
@@ -497,6 +547,9 @@ export const updateFieldOperationResponseOneOneNameMax = 150;
 
 export const updateFieldOperationResponseOneOnePlannedAreaHaMin = 0.01;
 export const updateFieldOperationResponseOneOnePlannedAreaHaMax = 1000000;
+
+export const updateFieldOperationResponseOneOnePlannedRatePerHaMin = 0.01;
+export const updateFieldOperationResponseOneOnePlannedRatePerHaMax = 1000000000;
 
 export const updateFieldOperationResponseOneOneResponsibleMax = 200;
 
@@ -529,6 +582,7 @@ export const UpdateFieldOperationResponse = zod.object({
   "plannedStart": zod.string(),
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(updateFieldOperationResponseOneOnePlannedAreaHaMin).max(updateFieldOperationResponseOneOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(updateFieldOperationResponseOneOnePlannedRatePerHaMin).max(updateFieldOperationResponseOneOnePlannedRatePerHaMax),
   "responsible": zod.string().max(updateFieldOperationResponseOneOneResponsibleMax),
   "plannedEquipment": zod.string().max(updateFieldOperationResponseOneOnePlannedEquipmentMax),
   "plannedImplement": zod.string().max(updateFieldOperationResponseOneOnePlannedImplementMax),
@@ -563,6 +617,11 @@ export const UpdateFieldOperationResponse = zod.object({
   "updatedBy": zod.string(),
   "updatedAt": zod.string()
 })),
+  "plannedPayAmount": zod.number(),
+  "actualRatePerHa": zod.number().nullable(),
+  "actualPayAmount": zod.number().nullable(),
+  "actualRateSetBy": zod.string(),
+  "actualRateSetAt": zod.string().nullable(),
   "voidedAt": zod.string().nullable(),
   "voidReason": zod.string(),
   "voidedBy": zod.string(),
@@ -609,6 +668,9 @@ export const updateFieldOperationActualResponseOneOneNameMax = 150;
 export const updateFieldOperationActualResponseOneOnePlannedAreaHaMin = 0.01;
 export const updateFieldOperationActualResponseOneOnePlannedAreaHaMax = 1000000;
 
+export const updateFieldOperationActualResponseOneOnePlannedRatePerHaMin = 0.01;
+export const updateFieldOperationActualResponseOneOnePlannedRatePerHaMax = 1000000000;
+
 export const updateFieldOperationActualResponseOneOneResponsibleMax = 200;
 
 export const updateFieldOperationActualResponseOneOnePlannedEquipmentMax = 200;
@@ -640,6 +702,7 @@ export const UpdateFieldOperationActualResponse = zod.object({
   "plannedStart": zod.string(),
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(updateFieldOperationActualResponseOneOnePlannedAreaHaMin).max(updateFieldOperationActualResponseOneOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(updateFieldOperationActualResponseOneOnePlannedRatePerHaMin).max(updateFieldOperationActualResponseOneOnePlannedRatePerHaMax),
   "responsible": zod.string().max(updateFieldOperationActualResponseOneOneResponsibleMax),
   "plannedEquipment": zod.string().max(updateFieldOperationActualResponseOneOnePlannedEquipmentMax),
   "plannedImplement": zod.string().max(updateFieldOperationActualResponseOneOnePlannedImplementMax),
@@ -674,12 +737,58 @@ export const UpdateFieldOperationActualResponse = zod.object({
   "updatedBy": zod.string(),
   "updatedAt": zod.string()
 })),
+  "plannedPayAmount": zod.number(),
+  "actualRatePerHa": zod.number().nullable(),
+  "actualPayAmount": zod.number().nullable(),
+  "actualRateSetBy": zod.string(),
+  "actualRateSetAt": zod.string().nullable(),
   "voidedAt": zod.string().nullable(),
   "voidReason": zod.string(),
   "voidedBy": zod.string(),
   "updatedAt": zod.string(),
   "updatedBy": zod.string()
 }))
+
+
+
+
+
+export const UpdateFieldDispatchRateParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+
+export const updateFieldDispatchRateBodyRatePerHaMin = 0.01;
+export const updateFieldDispatchRateBodyRatePerHaMax = 1000000000;
+
+
+
+export const UpdateFieldDispatchRateBody = zod.object({
+  "version": zod.number().min(1),
+  "ratePerHa": zod.number().min(updateFieldDispatchRateBodyRatePerHaMin).max(updateFieldDispatchRateBodyRatePerHaMax)
+})
+
+export const UpdateFieldDispatchRateResponse = zod.object({
+  "id": zod.number(),
+  "version": zod.number(),
+  "fieldNumber": zod.string(),
+  "year": zod.number(),
+  "cropName": zod.string(),
+  "operationName": zod.string(),
+  "plannedStart": zod.string(),
+  "plannedEnd": zod.string(),
+  "actualStart": zod.string().nullable(),
+  "actualEnd": zod.string().nullable(),
+  "actualAreaHa": zod.number(),
+  "actualMechanic": zod.string(),
+  "actualEquipment": zod.string(),
+  "actualImplement": zod.string(),
+  "plannedRatePerHa": zod.number(),
+  "actualRatePerHa": zod.number().nullable(),
+  "actualPayAmount": zod.number().nullable(),
+  "actualRateSetBy": zod.string(),
+  "actualRateSetAt": zod.string().nullable()
+})
 
 
 export const CreateFieldOperationProgressParams = zod.object({
@@ -716,6 +825,9 @@ export const createFieldOperationProgressResponseOneOneNameMax = 150;
 export const createFieldOperationProgressResponseOneOnePlannedAreaHaMin = 0.01;
 export const createFieldOperationProgressResponseOneOnePlannedAreaHaMax = 1000000;
 
+export const createFieldOperationProgressResponseOneOnePlannedRatePerHaMin = 0.01;
+export const createFieldOperationProgressResponseOneOnePlannedRatePerHaMax = 1000000000;
+
 export const createFieldOperationProgressResponseOneOneResponsibleMax = 200;
 
 export const createFieldOperationProgressResponseOneOnePlannedEquipmentMax = 200;
@@ -747,6 +859,7 @@ export const CreateFieldOperationProgressResponse = zod.object({
   "plannedStart": zod.string(),
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(createFieldOperationProgressResponseOneOnePlannedAreaHaMin).max(createFieldOperationProgressResponseOneOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(createFieldOperationProgressResponseOneOnePlannedRatePerHaMin).max(createFieldOperationProgressResponseOneOnePlannedRatePerHaMax),
   "responsible": zod.string().max(createFieldOperationProgressResponseOneOneResponsibleMax),
   "plannedEquipment": zod.string().max(createFieldOperationProgressResponseOneOnePlannedEquipmentMax),
   "plannedImplement": zod.string().max(createFieldOperationProgressResponseOneOnePlannedImplementMax),
@@ -781,6 +894,11 @@ export const CreateFieldOperationProgressResponse = zod.object({
   "updatedBy": zod.string(),
   "updatedAt": zod.string()
 })),
+  "plannedPayAmount": zod.number(),
+  "actualRatePerHa": zod.number().nullable(),
+  "actualPayAmount": zod.number().nullable(),
+  "actualRateSetBy": zod.string(),
+  "actualRateSetAt": zod.string().nullable(),
   "voidedAt": zod.string().nullable(),
   "voidReason": zod.string(),
   "voidedBy": zod.string(),
@@ -827,6 +945,9 @@ export const updateFieldOperationProgressResponseOneOneNameMax = 150;
 export const updateFieldOperationProgressResponseOneOnePlannedAreaHaMin = 0.01;
 export const updateFieldOperationProgressResponseOneOnePlannedAreaHaMax = 1000000;
 
+export const updateFieldOperationProgressResponseOneOnePlannedRatePerHaMin = 0.01;
+export const updateFieldOperationProgressResponseOneOnePlannedRatePerHaMax = 1000000000;
+
 export const updateFieldOperationProgressResponseOneOneResponsibleMax = 200;
 
 export const updateFieldOperationProgressResponseOneOnePlannedEquipmentMax = 200;
@@ -858,6 +979,7 @@ export const UpdateFieldOperationProgressResponse = zod.object({
   "plannedStart": zod.string(),
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(updateFieldOperationProgressResponseOneOnePlannedAreaHaMin).max(updateFieldOperationProgressResponseOneOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(updateFieldOperationProgressResponseOneOnePlannedRatePerHaMin).max(updateFieldOperationProgressResponseOneOnePlannedRatePerHaMax),
   "responsible": zod.string().max(updateFieldOperationProgressResponseOneOneResponsibleMax),
   "plannedEquipment": zod.string().max(updateFieldOperationProgressResponseOneOnePlannedEquipmentMax),
   "plannedImplement": zod.string().max(updateFieldOperationProgressResponseOneOnePlannedImplementMax),
@@ -892,6 +1014,11 @@ export const UpdateFieldOperationProgressResponse = zod.object({
   "updatedBy": zod.string(),
   "updatedAt": zod.string()
 })),
+  "plannedPayAmount": zod.number(),
+  "actualRatePerHa": zod.number().nullable(),
+  "actualPayAmount": zod.number().nullable(),
+  "actualRateSetBy": zod.string(),
+  "actualRateSetAt": zod.string().nullable(),
   "voidedAt": zod.string().nullable(),
   "voidReason": zod.string(),
   "voidedBy": zod.string(),
@@ -920,6 +1047,9 @@ export const voidFieldOperationResponseOneOneNameMax = 150;
 
 export const voidFieldOperationResponseOneOnePlannedAreaHaMin = 0.01;
 export const voidFieldOperationResponseOneOnePlannedAreaHaMax = 1000000;
+
+export const voidFieldOperationResponseOneOnePlannedRatePerHaMin = 0.01;
+export const voidFieldOperationResponseOneOnePlannedRatePerHaMax = 1000000000;
 
 export const voidFieldOperationResponseOneOneResponsibleMax = 200;
 
@@ -952,6 +1082,7 @@ export const VoidFieldOperationResponse = zod.object({
   "plannedStart": zod.string(),
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(voidFieldOperationResponseOneOnePlannedAreaHaMin).max(voidFieldOperationResponseOneOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(voidFieldOperationResponseOneOnePlannedRatePerHaMin).max(voidFieldOperationResponseOneOnePlannedRatePerHaMax),
   "responsible": zod.string().max(voidFieldOperationResponseOneOneResponsibleMax),
   "plannedEquipment": zod.string().max(voidFieldOperationResponseOneOnePlannedEquipmentMax),
   "plannedImplement": zod.string().max(voidFieldOperationResponseOneOnePlannedImplementMax),
@@ -986,6 +1117,11 @@ export const VoidFieldOperationResponse = zod.object({
   "updatedBy": zod.string(),
   "updatedAt": zod.string()
 })),
+  "plannedPayAmount": zod.number(),
+  "actualRatePerHa": zod.number().nullable(),
+  "actualPayAmount": zod.number().nullable(),
+  "actualRateSetBy": zod.string(),
+  "actualRateSetAt": zod.string().nullable(),
   "voidedAt": zod.string().nullable(),
   "voidReason": zod.string(),
   "voidedBy": zod.string(),
@@ -1024,6 +1160,12 @@ export const getGrainDashboardResponseMovementsItemOneQuantityTonsMax = 1000000;
 
 export const getGrainDashboardResponseMovementsItemOneFieldNameMax = 200;
 
+export const getGrainDashboardResponseMovementsItemOneTruckNumberDefault = ``;
+export const getGrainDashboardResponseMovementsItemOneTruckNumberMax = 40;
+
+export const getGrainDashboardResponseMovementsItemOneDriverNameDefault = ``;
+export const getGrainDashboardResponseMovementsItemOneDriverNameMax = 200;
+
 export const getGrainDashboardResponseMovementsItemOneCounterpartyMax = 200;
 
 export const getGrainDashboardResponseMovementsItemOneNotesMax = 3000;
@@ -1058,6 +1200,8 @@ export const GetGrainDashboardResponse = zod.object({
   "fromLocationId": zod.number().min(1).nullable(),
   "toLocationId": zod.number().min(1).nullable(),
   "fieldName": zod.string().max(getGrainDashboardResponseMovementsItemOneFieldNameMax),
+  "truckNumber": zod.string().max(getGrainDashboardResponseMovementsItemOneTruckNumberMax).default(getGrainDashboardResponseMovementsItemOneTruckNumberDefault),
+  "driverName": zod.string().max(getGrainDashboardResponseMovementsItemOneDriverNameMax).default(getGrainDashboardResponseMovementsItemOneDriverNameDefault),
   "counterparty": zod.string().max(getGrainDashboardResponseMovementsItemOneCounterpartyMax),
   "notes": zod.string().max(getGrainDashboardResponseMovementsItemOneNotesMax)
 }).and(zod.object({
@@ -1068,6 +1212,9 @@ export const GetGrainDashboardResponse = zod.object({
   "voidedBy": zod.string(),
   "voidReason": zod.string(),
   "moistureLossTons": zod.number(),
+  "transportRate": zod.number().nullable(),
+  "transportRateSetBy": zod.string(),
+  "transportRateSetAt": zod.string().nullable(),
   "approvalStatus": zod.enum(['pending', 'approved', 'returned']),
   "reviewComment": zod.string(),
   "reviewedBy": zod.string(),
@@ -1092,6 +1239,63 @@ export const GetGrainDashboardResponse = zod.object({
   "processedTons": zod.number()
 }),
   "asOfDate": zod.string()
+})
+
+
+export const GetGrainTransportTripsResponseItem = zod.object({
+  "id": zod.number(),
+  "unit": zod.string(),
+  "operation": zod.enum(['receipt', 'transfer', 'drying', 'cleaning']),
+  "cropName": zod.string(),
+  "occurredOn": zod.string(),
+  "quantityTons": zod.number(),
+  "fromLocationName": zod.string().nullable(),
+  "toLocationName": zod.string().nullable(),
+  "fieldName": zod.string(),
+  "truckNumber": zod.string(),
+  "driverName": zod.string(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'returned']),
+  "rateKzt": zod.number().nullable(),
+  "rateSetBy": zod.string(),
+  "rateSetAt": zod.string().nullable(),
+  "createdBy": zod.string()
+})
+export const GetGrainTransportTripsResponse = zod.array(GetGrainTransportTripsResponseItem)
+
+
+
+
+
+export const UpdateGrainTransportRateParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const updateGrainTransportRateBodyRateKztMin = 0.01;
+export const updateGrainTransportRateBodyRateKztMax = 1000000000000;
+
+
+
+export const UpdateGrainTransportRateBody = zod.object({
+  "rateKzt": zod.number().min(updateGrainTransportRateBodyRateKztMin).max(updateGrainTransportRateBodyRateKztMax)
+})
+
+export const UpdateGrainTransportRateResponse = zod.object({
+  "id": zod.number(),
+  "unit": zod.string(),
+  "operation": zod.enum(['receipt', 'transfer', 'drying', 'cleaning']),
+  "cropName": zod.string(),
+  "occurredOn": zod.string(),
+  "quantityTons": zod.number(),
+  "fromLocationName": zod.string().nullable(),
+  "toLocationName": zod.string().nullable(),
+  "fieldName": zod.string(),
+  "truckNumber": zod.string(),
+  "driverName": zod.string(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'returned']),
+  "rateKzt": zod.number().nullable(),
+  "rateSetBy": zod.string(),
+  "rateSetAt": zod.string().nullable(),
+  "createdBy": zod.string()
 })
 
 
@@ -1163,6 +1367,12 @@ export const createGrainMovementBodyQuantityTonsMax = 1000000;
 
 export const createGrainMovementBodyFieldNameMax = 200;
 
+export const createGrainMovementBodyTruckNumberDefault = ``;
+export const createGrainMovementBodyTruckNumberMax = 40;
+
+export const createGrainMovementBodyDriverNameDefault = ``;
+export const createGrainMovementBodyDriverNameMax = 200;
+
 export const createGrainMovementBodyCounterpartyMax = 200;
 
 export const createGrainMovementBodyNotesMax = 3000;
@@ -1184,6 +1394,8 @@ export const CreateGrainMovementBody = zod.object({
   "fromLocationId": zod.number().min(1).nullable(),
   "toLocationId": zod.number().min(1).nullable(),
   "fieldName": zod.string().max(createGrainMovementBodyFieldNameMax),
+  "truckNumber": zod.string().max(createGrainMovementBodyTruckNumberMax).default(createGrainMovementBodyTruckNumberDefault),
+  "driverName": zod.string().max(createGrainMovementBodyDriverNameMax).default(createGrainMovementBodyDriverNameDefault),
   "counterparty": zod.string().max(createGrainMovementBodyCounterpartyMax),
   "notes": zod.string().max(createGrainMovementBodyNotesMax)
 })
@@ -1214,6 +1426,12 @@ export const createGrainMovementResponseOneQuantityTonsMax = 1000000;
 
 export const createGrainMovementResponseOneFieldNameMax = 200;
 
+export const createGrainMovementResponseOneTruckNumberDefault = ``;
+export const createGrainMovementResponseOneTruckNumberMax = 40;
+
+export const createGrainMovementResponseOneDriverNameDefault = ``;
+export const createGrainMovementResponseOneDriverNameMax = 200;
+
 export const createGrainMovementResponseOneCounterpartyMax = 200;
 
 export const createGrainMovementResponseOneNotesMax = 3000;
@@ -1235,6 +1453,8 @@ export const CreateGrainMovementResponse = zod.object({
   "fromLocationId": zod.number().min(1).nullable(),
   "toLocationId": zod.number().min(1).nullable(),
   "fieldName": zod.string().max(createGrainMovementResponseOneFieldNameMax),
+  "truckNumber": zod.string().max(createGrainMovementResponseOneTruckNumberMax).default(createGrainMovementResponseOneTruckNumberDefault),
+  "driverName": zod.string().max(createGrainMovementResponseOneDriverNameMax).default(createGrainMovementResponseOneDriverNameDefault),
   "counterparty": zod.string().max(createGrainMovementResponseOneCounterpartyMax),
   "notes": zod.string().max(createGrainMovementResponseOneNotesMax)
 }).and(zod.object({
@@ -1245,6 +1465,9 @@ export const CreateGrainMovementResponse = zod.object({
   "voidedBy": zod.string(),
   "voidReason": zod.string(),
   "moistureLossTons": zod.number(),
+  "transportRate": zod.number().nullable(),
+  "transportRateSetBy": zod.string(),
+  "transportRateSetAt": zod.string().nullable(),
   "approvalStatus": zod.enum(['pending', 'approved', 'returned']),
   "reviewComment": zod.string(),
   "reviewedBy": zod.string(),
@@ -1291,6 +1514,12 @@ export const reviewGrainMovementResponseOneQuantityTonsMax = 1000000;
 
 export const reviewGrainMovementResponseOneFieldNameMax = 200;
 
+export const reviewGrainMovementResponseOneTruckNumberDefault = ``;
+export const reviewGrainMovementResponseOneTruckNumberMax = 40;
+
+export const reviewGrainMovementResponseOneDriverNameDefault = ``;
+export const reviewGrainMovementResponseOneDriverNameMax = 200;
+
 export const reviewGrainMovementResponseOneCounterpartyMax = 200;
 
 export const reviewGrainMovementResponseOneNotesMax = 3000;
@@ -1312,6 +1541,8 @@ export const ReviewGrainMovementResponse = zod.object({
   "fromLocationId": zod.number().min(1).nullable(),
   "toLocationId": zod.number().min(1).nullable(),
   "fieldName": zod.string().max(reviewGrainMovementResponseOneFieldNameMax),
+  "truckNumber": zod.string().max(reviewGrainMovementResponseOneTruckNumberMax).default(reviewGrainMovementResponseOneTruckNumberDefault),
+  "driverName": zod.string().max(reviewGrainMovementResponseOneDriverNameMax).default(reviewGrainMovementResponseOneDriverNameDefault),
   "counterparty": zod.string().max(reviewGrainMovementResponseOneCounterpartyMax),
   "notes": zod.string().max(reviewGrainMovementResponseOneNotesMax)
 }).and(zod.object({
@@ -1322,6 +1553,9 @@ export const ReviewGrainMovementResponse = zod.object({
   "voidedBy": zod.string(),
   "voidReason": zod.string(),
   "moistureLossTons": zod.number(),
+  "transportRate": zod.number().nullable(),
+  "transportRateSetBy": zod.string(),
+  "transportRateSetAt": zod.string().nullable(),
   "approvalStatus": zod.enum(['pending', 'approved', 'returned']),
   "reviewComment": zod.string(),
   "reviewedBy": zod.string(),
@@ -1368,6 +1602,12 @@ export const voidGrainMovementResponseOneQuantityTonsMax = 1000000;
 
 export const voidGrainMovementResponseOneFieldNameMax = 200;
 
+export const voidGrainMovementResponseOneTruckNumberDefault = ``;
+export const voidGrainMovementResponseOneTruckNumberMax = 40;
+
+export const voidGrainMovementResponseOneDriverNameDefault = ``;
+export const voidGrainMovementResponseOneDriverNameMax = 200;
+
 export const voidGrainMovementResponseOneCounterpartyMax = 200;
 
 export const voidGrainMovementResponseOneNotesMax = 3000;
@@ -1389,6 +1629,8 @@ export const VoidGrainMovementResponse = zod.object({
   "fromLocationId": zod.number().min(1).nullable(),
   "toLocationId": zod.number().min(1).nullable(),
   "fieldName": zod.string().max(voidGrainMovementResponseOneFieldNameMax),
+  "truckNumber": zod.string().max(voidGrainMovementResponseOneTruckNumberMax).default(voidGrainMovementResponseOneTruckNumberDefault),
+  "driverName": zod.string().max(voidGrainMovementResponseOneDriverNameMax).default(voidGrainMovementResponseOneDriverNameDefault),
   "counterparty": zod.string().max(voidGrainMovementResponseOneCounterpartyMax),
   "notes": zod.string().max(voidGrainMovementResponseOneNotesMax)
 }).and(zod.object({
@@ -1399,6 +1641,9 @@ export const VoidGrainMovementResponse = zod.object({
   "voidedBy": zod.string(),
   "voidReason": zod.string(),
   "moistureLossTons": zod.number(),
+  "transportRate": zod.number().nullable(),
+  "transportRateSetBy": zod.string(),
+  "transportRateSetAt": zod.string().nullable(),
   "approvalStatus": zod.enum(['pending', 'approved', 'returned']),
   "reviewComment": zod.string(),
   "reviewedBy": zod.string(),
@@ -2744,7 +2989,7 @@ export const ListRoleRequestsResponseItem = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -2761,7 +3006,7 @@ export const ListRoleRequestsResponse = zod.array(ListRoleRequestsResponseItem)
 
 
 export const CreateRoleRequestBody = zod.object({
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "department": zod.string().min(1)
 })
 
@@ -2771,7 +3016,7 @@ export const CreateRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -2798,7 +3043,7 @@ export const ReviewRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -2816,7 +3061,7 @@ export const ListUsersResponseItem = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),

@@ -1,4 +1,4 @@
-import { date, integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { date, integer, numeric, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { grainCropsTable } from "./grain-crops";
 import { grainLocationsTable } from "./grain-locations";
 
@@ -19,6 +19,11 @@ export const grainMovementsTable = pgTable("grain_movements", {
   fromLocationId: integer("from_location_id").references(() => grainLocationsTable.id, { onDelete: "restrict" }),
   toLocationId: integer("to_location_id").references(() => grainLocationsTable.id, { onDelete: "restrict" }),
   fieldName: text("field_name").notNull().default(""),
+  truckNumber: text("truck_number").notNull().default(""),
+  driverName: text("driver_name").notNull().default(""),
+  transportRate: numeric("transport_rate", { precision: 14, scale: 2 }),
+  transportRateSetBy: text("transport_rate_set_by").notNull().default(""),
+  transportRateSetAt: timestamp("transport_rate_set_at", { withTimezone: true }),
   counterparty: text("counterparty").notNull().default(""),
   notes: text("notes").notNull().default(""),
   createdBy: text("created_by").notNull(),

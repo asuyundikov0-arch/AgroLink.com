@@ -4,4 +4,5 @@
 - [Engineering repair register](engineering-repairs.md) — preserve repair accounting and line-by-line spare-part approval through warehouse receipt.
 - [Grain ownership at elevators](grain-ownership.md) — elevator grain remains company stock; movement to an elevator is not a sale.
 - [Processing waste categories](grain-processing-waste.md) — the user requires separate weights for dead impurities and grain waste after drying or cleaning.
+- [Agro rates and dispatcher scope](agro-rates-and-dispatch.md) — chief agronomist plans per-hectare rates; dispatcher records completed-work rates and per-trip transport fees.
 - [Partial index changes](partial-index-push.md) — Drizzle push may miss a changed WHERE predicate; verify the live index definition.

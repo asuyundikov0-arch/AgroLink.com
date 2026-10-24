@@ -16,6 +16,14 @@ export type FieldOperation = FieldOperationUpdate & FieldActualInput & ({
   isOverdue: boolean;
   progressPercent: number;
   progressReports: FieldProgressReport[];
+  plannedPayAmount: number;
+  /** @nullable */
+  actualRatePerHa: number | null;
+  /** @nullable */
+  actualPayAmount: number | null;
+  actualRateSetBy: string;
+  /** @nullable */
+  actualRateSetAt: string | null;
   /** @nullable */
   voidedAt: string | null;
   voidReason: string;

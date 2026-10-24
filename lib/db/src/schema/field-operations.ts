@@ -1,4 +1,4 @@
-import { date, integer, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { date, integer, numeric, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { fieldSeasonsTable } from "./field-seasons";
 
@@ -10,6 +10,7 @@ export const fieldOperationsTable = pgTable("field_operations", {
   plannedStart: date("planned_start", { mode: "string" }).notNull(),
   plannedEnd: date("planned_end", { mode: "string" }).notNull(),
   plannedAreaAres: integer("planned_area_ares").notNull(),
+  plannedRatePerHa: numeric("planned_rate_per_ha", { precision: 14, scale: 2 }).notNull().default("0"),
   responsible: text("responsible").notNull().default(""),
   plannedEquipment: text("planned_equipment").notNull().default(""),
   plannedImplement: text("planned_implement").notNull().default(""),
@@ -17,6 +18,9 @@ export const fieldOperationsTable = pgTable("field_operations", {
   actualStart: date("actual_start", { mode: "string" }),
   actualEnd: date("actual_end", { mode: "string" }),
   actualAreaAres: integer("actual_area_ares").notNull().default(0),
+  actualRatePerHa: numeric("actual_rate_per_ha", { precision: 14, scale: 2 }),
+  actualRateSetBy: text("actual_rate_set_by").notNull().default(""),
+  actualRateSetAt: timestamp("actual_rate_set_at", { withTimezone: true }),
   actualOperationName: text("actual_operation_name").notNull().default(""),
   actualMechanic: text("actual_mechanic").notNull().default(""),
   actualEquipment: text("actual_equipment").notNull().default(""),

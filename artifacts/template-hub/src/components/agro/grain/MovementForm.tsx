@@ -18,7 +18,7 @@ function parseKg(v: string, allowZero: boolean): { kg: number | null; err?: stri
 
 export default function MovementForm({ role, crops, locations, stock, asOfDate, defaultUnit, onClose, onDone }: { role: string; crops: GrainCrop[]; locations: GrainLocation[]; stock: (unit: string, crop: number, loc: number, kind: StockKind) => number; asOfDate: string; defaultUnit: Unit; onClose: () => void; onDone: (message: string) => void }) {
   const [requestId] = useState(uuid);
-  const [f, setF] = useState({ unit: defaultUnit as Unit, operation: "receipt" as Op, stockKind: "grain" as StockKind, cropId: "", occurredOn: asOfDate, qty: "", out: "", dead: "", gw: "", wasteTo: "", from: "", to: "", fieldName: "", counterparty: "", notes: "" });
+  const [f, setF] = useState({ unit: defaultUnit as Unit, operation: "receipt" as Op, stockKind: "grain" as StockKind, cropId: "", occurredOn: asOfDate, qty: "", out: "", dead: "", gw: "", wasteTo: "", from: "", to: "", fieldName: "", truckNumber: "", driverName: "", counterparty: "", notes: "" });
   const [errs, setErrs] = useState<Record<string, string>>({});
   const [srvErr, setSrvErr] = useState("");
   const create = useCreateGrainMovement();
@@ -42,6 +42,7 @@ export default function MovementForm({ role, crops, locations, stock, asOfDate, 
   const toOpts = isProc || sk === "grain_waste" ? ordinary : locs;
   const needFrom = f.operation === "transfer" || f.operation === "sale" || isProc;
   const needTo = f.operation !== "sale";
+  const needsTransport = ["receipt", "transfer", "drying", "cleaning"].includes(f.operation);
   const avail = needFrom && f.cropId && f.from ? stock(f.unit, Number(f.cropId), Number(f.from), sk) : null;
   const toLoc = locs.find((l) => String(l.id) === f.to);
   const sendingToProc = f.operation === "transfer" && toLoc && isProcessor(toLoc.kind);
@@ -59,6 +60,8 @@ export default function MovementForm({ role, crops, locations, stock, asOfDate, 
     if (f.operation === "transfer" && f.from && f.from === f.to) e.to = "Источник и получатель должны различаться";
     if (sendingToProc && sk !== "grain") e.to = "На сушку и очистку передаётся только зерно";
     if (f.operation === "receipt" && !f.fieldName.trim()) e.fieldName = "Укажите поле";
+    if (needsTransport && !f.truckNumber.trim()) e.truckNumber = "Укажите номер КамАЗа";
+    if (needsTransport && !f.driverName.trim()) e.driverName = "Укажите имя водителя";
     if (avail !== null && pin.kg !== null && pin.kg > avail) e.qty = `Больше доступного остатка (${tonsKg(avail)})`;
     if (isProc) {
       if (!f.out.trim()) e.out = "Укажите фактический выход зерна; 0 — только при полной потере";
@@ -79,12 +82,15 @@ export default function MovementForm({ role, crops, locations, stock, asOfDate, 
       outputTons: isProc ? (calc?.out ?? 0) / 1000 : 0, deadWasteTons: isProc ? (calc?.dead ?? 0) / 1000 : 0, grainWasteTons: gwKg / 1000,
       wasteToLocationId: gwKg > 0 ? Number(f.wasteTo) : null,
       fromLocationId: needFrom ? Number(f.from) : null, toLocationId: needTo ? Number(f.to) : null,
-      fieldName: f.operation === "receipt" ? f.fieldName.trim() : "", counterparty: f.operation === "sale" ? f.counterparty.trim() : "", notes: f.notes.trim(),
+      fieldName: f.operation === "receipt" ? f.fieldName.trim() : "",
+      truckNumber: needsTransport ? f.truckNumber.trim() : "",
+      driverName: needsTransport ? f.driverName.trim() : "",
+      counterparty: f.operation === "sale" ? f.counterparty.trim() : "", notes: f.notes.trim(),
     } }, { onSuccess: () => {
       invalidate();
       onDone(role === "weigher"
-        ? "Запись отправлена заведующему током. В баланс она попадёт после согласования."
-        : "Операция внесена в баланс зерна.");
+        ? "Запись отправлена заведующему током; рейс уже отображается диспетчеру."
+        : "Операция внесена в баланс зерна. Рейс и водитель появились в очереди диспетчера.");
       onClose();
     }, onError: (err) => setSrvErr(errorInfo(err).message) });
   };
@@ -142,6 +148,10 @@ export default function MovementForm({ role, crops, locations, stock, asOfDate, 
           </div>
         </>}
         {f.operation === "receipt" && <Field label="Поле" htmlFor="grain-field" error={errs.fieldName}><input id="grain-field" maxLength={200} className="text-input" value={f.fieldName} onChange={(e) => set("fieldName", e.target.value)} data-testid="input-movement-field" /></Field>}
+        {needsTransport && <>
+          <Field label="Номер КамАЗа *" htmlFor="grain-truck" error={errs.truckNumber}><input id="grain-truck" maxLength={40} className="text-input" value={f.truckNumber} onChange={(e) => set("truckNumber", e.target.value)} placeholder="Например, 123 ABC 01" data-testid="input-movement-truck" /></Field>
+          <Field label="Водитель *" htmlFor="grain-driver" error={errs.driverName}><input id="grain-driver" maxLength={200} className="text-input" value={f.driverName} onChange={(e) => set("driverName", e.target.value)} data-testid="input-movement-driver" /></Field>
+        </>}
         {f.operation === "sale" && <Field label="Покупатель (необязательно)" htmlFor="grain-cp"><input id="grain-cp" maxLength={200} className="text-input" value={f.counterparty} onChange={(e) => set("counterparty", e.target.value)} data-testid="input-movement-counterparty" /></Field>}
         <Field label="Примечание" htmlFor="grain-notes" wide><textarea id="grain-notes" maxLength={3000} rows={3} className="text-input" value={f.notes} onChange={(e) => set("notes", e.target.value)} data-testid="input-movement-notes" /></Field>
       </div>

@@ -41,6 +41,17 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AgroField" }
+  /agro/fields/dispatch:
+    get:
+      operationId: getFieldDispatchQueue
+      responses:
+        "200":
+          description: Completed field operations and dispatcher rates
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/FieldDispatchItem" }
   /agro/fields/{id}:
     patch:
       operationId: updateAgroField
@@ -133,6 +144,24 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/FieldOperation" }
+  /agro/fields/operations/{id}/dispatch-rate:
+    patch:
+      operationId: updateFieldDispatchRate
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FieldDispatchRateInput" }
+      responses:
+        "200":
+          description: Updated dispatcher rate
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FieldDispatchItem" }
+        "409":
+          description: The field-operation version is stale
   /agro/fields/operations/{id}/progress:
     post:
       operationId: createFieldOperationProgress
@@ -193,6 +222,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GrainDashboard"
+  /agro/grain/transport-trips:
+    get:
+      operationId: getGrainTransportTrips
+      responses:
+        "200":
+          description: Grain transport trips and per-trip rates
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GrainTransportTrip" }
+  /agro/grain/transport-trips/{id}/rate:
+    patch:
+      operationId: updateGrainTransportRate
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GrainTransportRateInput" }
+      responses:
+        "200":
+          description: Updated transport rate
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GrainTransportTrip" }
+        "409":
+          description: The trip is voided or no longer available
   /agro/grain/crops:
     post:
       operationId: createGrainCrop
@@ -1145,13 +1203,14 @@ components:
             updatedAt: { type: string }
     FieldOperationInput:
       type: object
-      required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, responsible, plannedEquipment, plannedImplement, notes]
+      required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, plannedRatePerHa, responsible, plannedEquipment, plannedImplement, notes]
       properties:
         seasonId: { type: number, minimum: 1 }
         name: { type: string, minLength: 1, maxLength: 150 }
         plannedStart: { type: string }
         plannedEnd: { type: string }
         plannedAreaHa: { type: number, minimum: 0.01, maximum: 1000000 }
+        plannedRatePerHa: { type: number, minimum: 0.01, maximum: 1000000000 }
         responsible: { type: string, maxLength: 200 }
         plannedEquipment: { type: string, maxLength: 200 }
         plannedImplement: { type: string, maxLength: 200 }
@@ -1220,7 +1279,7 @@ components:
         - $ref: "#/components/schemas/FieldOperationUpdate"
         - $ref: "#/components/schemas/FieldActualInput"
         - type: object
-          required: [id, status, isOverdue, progressPercent, progressReports, voidedAt, voidReason, voidedBy, updatedAt, updatedBy]
+          required: [id, status, isOverdue, progressPercent, progressReports, plannedPayAmount, actualRatePerHa, actualPayAmount, actualRateSetBy, actualRateSetAt, voidedAt, voidReason, voidedBy, updatedAt, updatedBy]
           properties:
             id: { type: number }
             status: { type: string, enum: [planned, in_progress, completed, cancelled] }
@@ -1229,11 +1288,45 @@ components:
             progressReports:
               type: array
               items: { $ref: "#/components/schemas/FieldProgressReport" }
+            plannedPayAmount: { type: number }
+            actualRatePerHa: { type: ["number", "null"] }
+            actualPayAmount: { type: ["number", "null"] }
+            actualRateSetBy: { type: string }
+            actualRateSetAt: { type: ["string", "null"] }
             voidedAt: { type: ["string", "null"] }
             voidReason: { type: string }
             voidedBy: { type: string }
             updatedAt: { type: string }
             updatedBy: { type: string }
+    FieldDispatchRateInput:
+      type: object
+      required: [version, ratePerHa]
+      properties:
+        version: { type: number, minimum: 1 }
+        ratePerHa: { type: number, minimum: 0.01, maximum: 1000000000 }
+    FieldDispatchItem:
+      type: object
+      required: [id, version, fieldNumber, year, cropName, operationName, plannedStart, plannedEnd, actualStart, actualEnd, actualAreaHa, actualMechanic, actualEquipment, actualImplement, plannedRatePerHa, actualRatePerHa, actualPayAmount, actualRateSetBy, actualRateSetAt]
+      properties:
+        id: { type: number }
+        version: { type: number }
+        fieldNumber: { type: string }
+        year: { type: number }
+        cropName: { type: string }
+        operationName: { type: string }
+        plannedStart: { type: string }
+        plannedEnd: { type: string }
+        actualStart: { type: ["string", "null"] }
+        actualEnd: { type: ["string", "null"] }
+        actualAreaHa: { type: number }
+        actualMechanic: { type: string }
+        actualEquipment: { type: string }
+        actualImplement: { type: string }
+        plannedRatePerHa: { type: number }
+        actualRatePerHa: { type: ["number", "null"] }
+        actualPayAmount: { type: ["number", "null"] }
+        actualRateSetBy: { type: string }
+        actualRateSetAt: { type: ["string", "null"] }
     FieldDashboard:
       type: object
       required: [fields, seasons, operations, cropSuggestions, asOfDate]
@@ -1691,13 +1784,15 @@ components:
         fromLocationId: { type: ["number", "null"], minimum: 1 }
         toLocationId: { type: ["number", "null"], minimum: 1 }
         fieldName: { type: string, maxLength: 200 }
+        truckNumber: { type: string, maxLength: 40, default: "" }
+        driverName: { type: string, maxLength: 200, default: "" }
         counterparty: { type: string, maxLength: 200 }
         notes: { type: string, maxLength: 3000 }
     GrainMovement:
       allOf:
         - $ref: "#/components/schemas/GrainMovementInput"
         - type: object
-          required: [id, createdBy, createdAt, voidedAt, voidedBy, voidReason, moistureLossTons, approvalStatus, reviewComment, reviewedBy, reviewedAt]
+          required: [id, createdBy, createdAt, truckNumber, driverName, voidedAt, voidedBy, voidReason, moistureLossTons, transportRate, transportRateSetBy, transportRateSetAt, approvalStatus, reviewComment, reviewedBy, reviewedAt]
           properties:
             id: { type: number }
             createdBy: { type: string }
@@ -1706,10 +1801,38 @@ components:
             voidedBy: { type: string }
             voidReason: { type: string }
             moistureLossTons: { type: number }
+            transportRate: { type: ["number", "null"] }
+            transportRateSetBy: { type: string }
+            transportRateSetAt: { type: ["string", "null"] }
             approvalStatus: { type: string, enum: [pending, approved, returned] }
             reviewComment: { type: string }
             reviewedBy: { type: string }
             reviewedAt: { type: ["string", "null"] }
+    GrainTransportRateInput:
+      type: object
+      required: [rateKzt]
+      properties:
+        rateKzt: { type: number, minimum: 0.01, maximum: 1000000000000 }
+    GrainTransportTrip:
+      type: object
+      required: [id, unit, operation, cropName, occurredOn, quantityTons, fromLocationName, toLocationName, fieldName, truckNumber, driverName, approvalStatus, rateKzt, rateSetBy, rateSetAt, createdBy]
+      properties:
+        id: { type: number }
+        unit: { type: string }
+        operation: { type: string, enum: [receipt, transfer, drying, cleaning] }
+        cropName: { type: string }
+        occurredOn: { type: string }
+        quantityTons: { type: number }
+        fromLocationName: { type: ["string", "null"] }
+        toLocationName: { type: ["string", "null"] }
+        fieldName: { type: string }
+        truckNumber: { type: string }
+        driverName: { type: string }
+        approvalStatus: { type: string, enum: [pending, approved, returned] }
+        rateKzt: { type: ["number", "null"] }
+        rateSetBy: { type: string }
+        rateSetAt: { type: ["string", "null"] }
+        createdBy: { type: string }
     GrainMovementReviewInput:
       type: object
       required: [decision, reviewComment]
@@ -2049,7 +2172,7 @@ components:
           type: string
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, grain_manager, weigher, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
         status:
           type: string
           enum: [pending, approved, rejected]
@@ -2078,7 +2201,7 @@ components:
       properties:
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, grain_manager, weigher, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
         department:
           type: string
           minLength: 1
