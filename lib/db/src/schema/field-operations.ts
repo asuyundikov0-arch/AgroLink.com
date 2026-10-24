@@ -1,6 +1,7 @@
 import { date, integer, numeric, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { fieldSeasonsTable } from "./field-seasons";
+import { employeesTable } from "./employees";
 
 export const fieldOperationsTable = pgTable("field_operations", {
   id: serial("id").primaryKey(),
@@ -23,6 +24,7 @@ export const fieldOperationsTable = pgTable("field_operations", {
   actualRateSetAt: timestamp("actual_rate_set_at", { withTimezone: true }),
   actualOperationName: text("actual_operation_name").notNull().default(""),
   actualMechanic: text("actual_mechanic").notNull().default(""),
+  actualMechanicEmployeeId: integer("actual_mechanic_employee_id").references(() => employeesTable.id, { onDelete: "set null" }),
   actualEquipment: text("actual_equipment").notNull().default(""),
   actualImplement: text("actual_implement").notNull().default(""),
   actualNotes: text("actual_notes").notNull().default(""),

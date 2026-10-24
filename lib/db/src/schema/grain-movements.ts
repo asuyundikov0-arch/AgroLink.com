@@ -1,6 +1,7 @@
 import { date, integer, numeric, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { grainCropsTable } from "./grain-crops";
 import { grainLocationsTable } from "./grain-locations";
+import { employeesTable } from "./employees";
 
 export const grainMovementsTable = pgTable("grain_movements", {
   id: serial("id").primaryKey(),
@@ -21,6 +22,7 @@ export const grainMovementsTable = pgTable("grain_movements", {
   fieldName: text("field_name").notNull().default(""),
   truckNumber: text("truck_number").notNull().default(""),
   driverName: text("driver_name").notNull().default(""),
+  driverEmployeeId: integer("driver_employee_id").references(() => employeesTable.id, { onDelete: "set null" }),
   transportRate: numeric("transport_rate", { precision: 14, scale: 2 }),
   transportRateSetBy: text("transport_rate_set_by").notNull().default(""),
   transportRateSetAt: timestamp("transport_rate_set_at", { withTimezone: true }),

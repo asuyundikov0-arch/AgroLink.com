@@ -665,6 +665,66 @@ paths:
                 $ref: "#/components/schemas/SparePartPaymentRegisterItem"
         "409":
           description: Item is not awaiting payment
+  /economic/employees:
+    get:
+      operationId: listEmployees
+      tags: [economy]
+      responses:
+        "200":
+          description: Employee directory for work assignment and payroll
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Employee" }
+    post:
+      operationId: createEmployee
+      tags: [economy]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EmployeeCreateInput" }
+      responses:
+        "201":
+          description: Employee created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Employee" }
+  /economic/employees/{id}:
+    patch:
+      operationId: updateEmployee
+      tags: [economy]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EmployeeUpdateInput" }
+      responses:
+        "200":
+          description: Employee updated or deactivated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Employee" }
+        "404":
+          description: Employee not found
+  /economic/payroll-accruals:
+    get:
+      operationId: listPayrollAccruals
+      tags: [economy]
+      responses:
+        "200":
+          description: Unsubmitted daily accruals calculated from field work and approved grain trips
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PayrollAccrualDay" }
   /economic/payroll-registers:
     get:
       operationId: listPayrollRegisters
@@ -696,6 +756,23 @@ paths:
                 $ref: "#/components/schemas/PayrollRegister"
         "409":
           description: A register already exists for this unit and date
+  /economic/payroll-registers/send-daily:
+    post:
+      operationId: sendDailyPayrollRegister
+      tags: [economy]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PayrollDailySubmitInput" }
+      responses:
+        "201":
+          description: Automatically calculated daily payroll register sent to the economist
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PayrollRegister" }
+        "409":
+          description: Source data changed or the daily register was already sent
   /economic/payroll-registers/{id}:
     patch:
       operationId: updatePayrollRegister
@@ -1307,7 +1384,7 @@ components:
             version: { type: number, minimum: 1 }
     FieldActualInput:
       type: object
-      required: [version, actualStart, actualEnd, actualAreaHa, actualOperationName, actualMechanic, actualEquipment, actualImplement, actualNotes]
+      required: [version, actualStart, actualEnd, actualAreaHa, actualOperationName, actualMechanic, actualMechanicEmployeeId, actualEquipment, actualImplement, actualNotes]
       properties:
         version: { type: number, minimum: 1 }
         actualStart: { type: ["string", "null"] }
@@ -1315,6 +1392,7 @@ components:
         actualAreaHa: { type: number, minimum: 0, maximum: 1000000 }
         actualOperationName: { type: string, maxLength: 150 }
         actualMechanic: { type: string, maxLength: 200 }
+        actualMechanicEmployeeId: { type: ["number", "null"], minimum: 1 }
         actualEquipment: { type: string, maxLength: 200 }
         actualImplement: { type: string, maxLength: 200 }
         actualNotes: { type: string, maxLength: 3000 }
@@ -1326,12 +1404,13 @@ components:
         reason: { type: string, minLength: 3, maxLength: 500 }
     FieldProgressInput:
       type: object
-      required: [operationVersion, reportDate, cumulativeAreaHa, actualMechanic, actualEquipment, actualImplement, notes]
+      required: [operationVersion, reportDate, cumulativeAreaHa, actualMechanic, actualMechanicEmployeeId, actualEquipment, actualImplement, notes]
       properties:
         operationVersion: { type: number, minimum: 1 }
         reportDate: { type: string }
         cumulativeAreaHa: { type: number, minimum: 0, maximum: 1000000 }
         actualMechanic: { type: string, maxLength: 200 }
+        actualMechanicEmployeeId: { type: number, minimum: 1 }
         actualEquipment: { type: string, maxLength: 200 }
         actualImplement: { type: string, maxLength: 200 }
         notes: { type: string, maxLength: 3000 }
@@ -1344,13 +1423,14 @@ components:
             version: { type: number, minimum: 1 }
     FieldProgressReport:
       type: object
-      required: [id, reportDate, cumulativeAreaHa, dailyAreaHa, actualMechanic, actualEquipment, actualImplement, notes, version, updatedBy, updatedAt]
+      required: [id, reportDate, cumulativeAreaHa, dailyAreaHa, actualMechanic, actualMechanicEmployeeId, actualEquipment, actualImplement, notes, version, updatedBy, updatedAt]
       properties:
         id: { type: number }
         reportDate: { type: string }
         cumulativeAreaHa: { type: number }
         dailyAreaHa: { type: number }
         actualMechanic: { type: string }
+        actualMechanicEmployeeId: { type: ["number", "null"] }
         actualEquipment: { type: string }
         actualImplement: { type: string }
         notes: { type: string }
@@ -1389,7 +1469,7 @@ components:
         ratePerHa: { type: number, minimum: 0.01, maximum: 1000000000 }
     FieldDispatchItem:
       type: object
-      required: [id, version, fieldNumber, year, cropName, operationName, plannedStart, plannedEnd, actualStart, actualEnd, actualAreaHa, actualMechanic, actualEquipment, actualImplement, plannedRatePerHa, actualRatePerHa, actualPayAmount, actualRateSetBy, actualRateSetAt]
+      required: [id, version, fieldNumber, year, cropName, operationName, plannedStart, plannedEnd, actualStart, actualEnd, actualAreaHa, actualMechanic, actualMechanicEmployeeId, actualEquipment, actualImplement, plannedRatePerHa, actualRatePerHa, actualPayAmount, actualRateSetBy, actualRateSetAt]
       properties:
         id: { type: number }
         version: { type: number }
@@ -1403,6 +1483,7 @@ components:
         actualEnd: { type: ["string", "null"] }
         actualAreaHa: { type: number }
         actualMechanic: { type: string }
+        actualMechanicEmployeeId: { type: ["number", "null"] }
         actualEquipment: { type: string }
         actualImplement: { type: string }
         plannedRatePerHa: { type: number }
@@ -1789,15 +1870,88 @@ components:
       required: [version]
       properties:
         version: { type: number, minimum: 1 }
-    PayrollRegisterEntry:
+    EmployeeCreateInput:
       type: object
-      required: [id, employeeName, workType, details, amountKzt]
+      required: [fullName, department, position]
+      properties:
+        fullName: { type: string, minLength: 2, maxLength: 200 }
+        department: { type: string, maxLength: 160 }
+        position: { type: string, maxLength: 160 }
+    EmployeeUpdateInput:
+      type: object
+      required: [fullName, department, position, isActive]
+      properties:
+        fullName: { type: string, minLength: 2, maxLength: 200 }
+        department: { type: string, maxLength: 160 }
+        position: { type: string, maxLength: 160 }
+        isActive: { type: boolean }
+    Employee:
+      type: object
+      required: [id, fullName, department, position, isActive, createdBy, updatedBy, createdAt, updatedAt]
       properties:
         id: { type: number }
+        fullName: { type: string }
+        department: { type: string }
+        position: { type: string }
+        isActive: { type: boolean }
+        createdBy: { type: string }
+        updatedBy: { type: string }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    PayrollAccrualEntry:
+      type: object
+      required: [sourceType, sourceId, employeeId, employeeName, workType, details, amountKzt]
+      properties:
+        sourceType: { type: string, enum: [grain_trip, field_progress, field_operation] }
+        sourceId: { type: number }
+        employeeId: { type: number }
         employeeName: { type: string }
         workType: { type: string }
         details: { type: string }
         amountKzt: { type: number }
+    PayrollUnassignedSource:
+      type: object
+      required: [sourceType, sourceId, employeeName, workType, details]
+      properties:
+        sourceType: { type: string, enum: [grain_trip, field_progress, field_operation] }
+        sourceId: { type: number }
+        employeeName: { type: string }
+        workType: { type: string }
+        details: { type: string }
+    PayrollAccrualDay:
+      type: object
+      required: [workDate, unit, totalAmount, sourceHash, entries, unassignedCount, unassignedSources]
+      properties:
+        workDate: { type: string }
+        unit: { type: string }
+        totalAmount: { type: number }
+        sourceHash: { type: string }
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/PayrollAccrualEntry" }
+        unassignedCount: { type: number }
+        unassignedSources:
+          type: array
+          items: { $ref: "#/components/schemas/PayrollUnassignedSource" }
+    PayrollDailySubmitInput:
+      type: object
+      required: [workDate, unit, sourceHash]
+      properties:
+        workDate: { type: string }
+        unit: { type: string, minLength: 1, maxLength: 200 }
+        sourceHash: { type: string, minLength: 64, maxLength: 64 }
+    PayrollRegisterEntry:
+      type: object
+      required: [id, employeeId, employeeName, workType, details, amountKzt, sourceType, sourceId]
+      properties:
+        id: { type: number }
+        employeeId: { type: ["number", "null"] }
+        employeeName: { type: string }
+        workType: { type: string }
+        details: { type: string }
+        amountKzt: { type: number }
+        sourceType: { type: string }
+        sourceId: { type: ["number", "null"] }
     PayrollRegister:
       type: object
       required: [id, workDate, unit, status, totalAmount, version, createdByName, submittedByName, createdAt, submittedAt, entries]
@@ -1934,17 +2088,19 @@ components:
         fieldName: { type: string, maxLength: 200 }
         truckNumber: { type: string, maxLength: 40, default: "" }
         driverName: { type: string, maxLength: 200, default: "" }
+        driverEmployeeId: { type: ["number", "null"], minimum: 1 }
         counterparty: { type: string, maxLength: 200 }
         notes: { type: string, maxLength: 3000 }
     GrainMovement:
       allOf:
         - $ref: "#/components/schemas/GrainMovementInput"
         - type: object
-          required: [id, createdBy, createdAt, truckNumber, driverName, voidedAt, voidedBy, voidReason, moistureLossTons, transportRate, transportRateSetBy, transportRateSetAt, approvalStatus, reviewComment, reviewedBy, reviewedAt]
+          required: [id, createdBy, createdAt, truckNumber, driverName, driverEmployeeId, voidedAt, voidedBy, voidReason, moistureLossTons, transportRate, transportRateSetBy, transportRateSetAt, approvalStatus, reviewComment, reviewedBy, reviewedAt]
           properties:
             id: { type: number }
             createdBy: { type: string }
             createdAt: { type: string }
+            driverEmployeeId: { type: ["number", "null"] }
             voidedAt: { type: ["string", "null"] }
             voidedBy: { type: string }
             voidReason: { type: string }
@@ -1963,7 +2119,7 @@ components:
         rateKzt: { type: number, minimum: 0.01, maximum: 1000000000000 }
     GrainTransportTrip:
       type: object
-      required: [id, unit, operation, cropName, occurredOn, quantityTons, fromLocationName, toLocationName, fieldName, truckNumber, driverName, approvalStatus, rateKzt, rateSetBy, rateSetAt, createdBy]
+      required: [id, unit, operation, cropName, occurredOn, quantityTons, fromLocationName, toLocationName, fieldName, truckNumber, driverName, driverEmployeeId, approvalStatus, rateKzt, rateSetBy, rateSetAt, createdBy]
       properties:
         id: { type: number }
         unit: { type: string }
@@ -1976,6 +2132,7 @@ components:
         fieldName: { type: string }
         truckNumber: { type: string }
         driverName: { type: string }
+        driverEmployeeId: { type: ["number", "null"] }
         approvalStatus: { type: string, enum: [pending, approved, returned] }
         rateKzt: { type: ["number", "null"] }
         rateSetBy: { type: string }

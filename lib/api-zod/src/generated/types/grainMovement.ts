@@ -13,6 +13,8 @@ export type GrainMovement = GrainMovementInput & ({
   createdBy: string;
   createdAt: string;
   /** @nullable */
+  driverEmployeeId: number | null;
+  /** @nullable */
   voidedAt: string | null;
   voidedBy: string;
   voidReason: string;
@@ -31,6 +33,8 @@ export type GrainMovement = GrainMovementInput & ({
   id: number;
   createdBy: string;
   createdAt: string;
+  /** @nullable */
+  driverEmployeeId: number | null;
   /** @nullable */
   voidedAt: string | null;
   voidedBy: string;

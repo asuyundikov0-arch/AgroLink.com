@@ -21,6 +21,8 @@ export interface FieldDispatchItem {
   actualEnd: string | null;
   actualAreaHa: number;
   actualMechanic: string;
+  /** @nullable */
+  actualMechanicEmployeeId: number | null;
   actualEquipment: string;
   actualImplement: string;
   plannedRatePerHa: number;

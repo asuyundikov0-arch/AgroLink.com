@@ -22,6 +22,8 @@ export interface GrainTransportTrip {
   fieldName: string;
   truckNumber: string;
   driverName: string;
+  /** @nullable */
+  driverEmployeeId: number | null;
   approvalStatus: GrainTransportTripApprovalStatus;
   /** @nullable */
   rateKzt: number | null;

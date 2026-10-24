@@ -62,6 +62,11 @@ export interface GrainMovementInput {
   truckNumber?: string;
   /** @maxLength 200 */
   driverName?: string;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  driverEmployeeId?: number | null;
   /** @maxLength 200 */
   counterparty: string;
   /** @maxLength 3000 */

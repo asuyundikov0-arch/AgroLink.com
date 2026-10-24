@@ -9,6 +9,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { employeesTable } from "./employees";
 
 export const payrollRegistersTable = pgTable("payroll_registers", {
   id: serial("id").primaryKey(),
@@ -31,14 +32,18 @@ export const payrollRegistersTable = pgTable("payroll_registers", {
 export const payrollRegisterItemsTable = pgTable("payroll_register_items", {
   id: serial("id").primaryKey(),
   registerId: integer("register_id").notNull().references(() => payrollRegistersTable.id, { onDelete: "cascade" }),
+  employeeId: integer("employee_id").references(() => employeesTable.id, { onDelete: "set null" }),
   employeeName: text("employee_name").notNull(),
   workType: text("work_type").notNull(),
   details: text("details").notNull().default(""),
   amountKzt: numeric("amount_kzt", { precision: 14, scale: 2 }).notNull(),
+  sourceType: text("source_type").notNull().default("manual"),
+  sourceId: integer("source_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index("payroll_register_items_register_idx").on(table.registerId, table.id),
-  index("payroll_register_items_employee_idx").on(table.employeeName),
+  index("payroll_register_items_employee_idx").on(table.employeeId, table.employeeName),
+  uniqueIndex("payroll_register_items_source_unique").on(table.sourceType, table.sourceId),
 ]);
 
 export type PayrollRegister = typeof payrollRegistersTable.$inferSelect;

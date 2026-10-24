@@ -22,6 +22,11 @@ export interface FieldActualInput {
   actualOperationName: string;
   /** @maxLength 200 */
   actualMechanic: string;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  actualMechanicEmployeeId: number | null;
   /** @maxLength 200 */
   actualEquipment: string;
   /** @maxLength 200 */

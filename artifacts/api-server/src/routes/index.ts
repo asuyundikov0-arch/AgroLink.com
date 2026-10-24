@@ -9,6 +9,7 @@ import grainRouter from "./grain";
 import agroFieldsRouter from "./agro-fields";
 import sparePartRequestsRouter from "./spare-part-requests";
 import payrollRegistersRouter from "./payroll-registers";
+import employeesRouter from "./employees";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(grainRouter);
 router.use(agroFieldsRouter);
 router.use(sparePartRequestsRouter);
 router.use(payrollRegistersRouter);
+router.use(employeesRouter);
 
 export default router;

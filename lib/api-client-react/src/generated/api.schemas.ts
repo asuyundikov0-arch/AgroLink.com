@@ -127,6 +127,11 @@ export interface FieldActualInput {
   actualOperationName: string;
   /** @maxLength 200 */
   actualMechanic: string;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  actualMechanicEmployeeId: number | null;
   /** @maxLength 200 */
   actualEquipment: string;
   /** @maxLength 200 */
@@ -156,6 +161,8 @@ export interface FieldProgressInput {
   cumulativeAreaHa: number;
   /** @maxLength 200 */
   actualMechanic: string;
+  /** @minimum 1 */
+  actualMechanicEmployeeId: number;
   /** @maxLength 200 */
   actualEquipment: string;
   /** @maxLength 200 */
@@ -175,6 +182,8 @@ export interface FieldProgressReport {
   cumulativeAreaHa: number;
   dailyAreaHa: number;
   actualMechanic: string;
+  /** @nullable */
+  actualMechanicEmployeeId: number | null;
   actualEquipment: string;
   actualImplement: string;
   notes: string;
@@ -240,6 +249,8 @@ export interface FieldDispatchItem {
   actualEnd: string | null;
   actualAreaHa: number;
   actualMechanic: string;
+  /** @nullable */
+  actualMechanicEmployeeId: number | null;
   actualEquipment: string;
   actualImplement: string;
   plannedRatePerHa: number;
@@ -796,12 +807,114 @@ export interface PayrollRegisterSubmitInput {
   version: number;
 }
 
-export interface PayrollRegisterEntry {
+export interface EmployeeCreateInput {
+  /**
+     * @minLength 2
+     * @maxLength 200
+     */
+  fullName: string;
+  /** @maxLength 160 */
+  department: string;
+  /** @maxLength 160 */
+  position: string;
+}
+
+export interface EmployeeUpdateInput {
+  /**
+     * @minLength 2
+     * @maxLength 200
+     */
+  fullName: string;
+  /** @maxLength 160 */
+  department: string;
+  /** @maxLength 160 */
+  position: string;
+  isActive: boolean;
+}
+
+export interface Employee {
   id: number;
+  fullName: string;
+  department: string;
+  position: string;
+  isActive: boolean;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PayrollAccrualEntrySourceType = typeof PayrollAccrualEntrySourceType[keyof typeof PayrollAccrualEntrySourceType];
+
+
+export const PayrollAccrualEntrySourceType = {
+  grain_trip: 'grain_trip',
+  field_progress: 'field_progress',
+  field_operation: 'field_operation',
+} as const;
+
+export interface PayrollAccrualEntry {
+  sourceType: PayrollAccrualEntrySourceType;
+  sourceId: number;
+  employeeId: number;
   employeeName: string;
   workType: string;
   details: string;
   amountKzt: number;
+}
+
+export type PayrollUnassignedSourceSourceType = typeof PayrollUnassignedSourceSourceType[keyof typeof PayrollUnassignedSourceSourceType];
+
+
+export const PayrollUnassignedSourceSourceType = {
+  grain_trip: 'grain_trip',
+  field_progress: 'field_progress',
+  field_operation: 'field_operation',
+} as const;
+
+export interface PayrollUnassignedSource {
+  sourceType: PayrollUnassignedSourceSourceType;
+  sourceId: number;
+  employeeName: string;
+  workType: string;
+  details: string;
+}
+
+export interface PayrollAccrualDay {
+  workDate: string;
+  unit: string;
+  totalAmount: number;
+  sourceHash: string;
+  entries: PayrollAccrualEntry[];
+  unassignedCount: number;
+  unassignedSources: PayrollUnassignedSource[];
+}
+
+export interface PayrollDailySubmitInput {
+  workDate: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  unit: string;
+  /**
+     * @minLength 64
+     * @maxLength 64
+     */
+  sourceHash: string;
+}
+
+export interface PayrollRegisterEntry {
+  id: number;
+  /** @nullable */
+  employeeId: number | null;
+  employeeName: string;
+  workType: string;
+  details: string;
+  amountKzt: number;
+  sourceType: string;
+  /** @nullable */
+  sourceId: number | null;
 }
 
 export type PayrollRegisterStatus = typeof PayrollRegisterStatus[keyof typeof PayrollRegisterStatus];
@@ -1081,6 +1194,11 @@ export interface GrainMovementInput {
   truckNumber?: string;
   /** @maxLength 200 */
   driverName?: string;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  driverEmployeeId?: number | null;
   /** @maxLength 200 */
   counterparty: string;
   /** @maxLength 3000 */
@@ -1101,6 +1219,8 @@ export type GrainMovement = GrainMovementInput & ({
   createdBy: string;
   createdAt: string;
   /** @nullable */
+  driverEmployeeId: number | null;
+  /** @nullable */
   voidedAt: string | null;
   voidedBy: string;
   voidReason: string;
@@ -1119,6 +1239,8 @@ export type GrainMovement = GrainMovementInput & ({
   id: number;
   createdBy: string;
   createdAt: string;
+  /** @nullable */
+  driverEmployeeId: number | null;
   /** @nullable */
   voidedAt: string | null;
   voidedBy: string;
@@ -1177,6 +1299,8 @@ export interface GrainTransportTrip {
   fieldName: string;
   truckNumber: string;
   driverName: string;
+  /** @nullable */
+  driverEmployeeId: number | null;
   approvalStatus: GrainTransportTripApprovalStatus;
   /** @nullable */
   rateKzt: number | null;

@@ -17,6 +17,8 @@ export interface FieldProgressInput {
   cumulativeAreaHa: number;
   /** @maxLength 200 */
   actualMechanic: string;
+  /** @minimum 1 */
+  actualMechanicEmployeeId: number;
   /** @maxLength 200 */
   actualEquipment: string;
   /** @maxLength 200 */

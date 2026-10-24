@@ -8,8 +8,13 @@
 
 export interface PayrollRegisterEntry {
   id: number;
+  /** @nullable */
+  employeeId: number | null;
   employeeName: string;
   workType: string;
   details: string;
   amountKzt: number;
+  sourceType: string;
+  /** @nullable */
+  sourceId: number | null;
 }

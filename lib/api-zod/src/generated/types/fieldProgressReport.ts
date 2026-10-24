@@ -12,6 +12,8 @@ export interface FieldProgressReport {
   cumulativeAreaHa: number;
   dailyAreaHa: number;
   actualMechanic: string;
+  /** @nullable */
+  actualMechanicEmployeeId: number | null;
   actualEquipment: string;
   actualImplement: string;
   notes: string;
