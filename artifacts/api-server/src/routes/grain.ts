@@ -36,6 +36,7 @@ const movementJson = (row: typeof grainMovementsTable.$inferSelect) => {
     grainWasteTons: grainWasteKg / 1000, moistureLossTons: moistureLossKg / 1000,
     transportRate: transportRate === null ? null : Number(transportRate),
     transportRateSetAt: row.transportRateSetAt?.toISOString() ?? null,
+    reviewedAt: row.reviewedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(), voidedAt: row.voidedAt?.toISOString() ?? null,
   });
 };

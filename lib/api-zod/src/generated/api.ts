@@ -36,7 +36,7 @@ export const getFieldDashboardResponseOperationsItemOneOneNameMax = 150;
 export const getFieldDashboardResponseOperationsItemOneOnePlannedAreaHaMin = 0.01;
 export const getFieldDashboardResponseOperationsItemOneOnePlannedAreaHaMax = 1000000;
 
-export const getFieldDashboardResponseOperationsItemOneOnePlannedRatePerHaMin = 0.01;
+export const getFieldDashboardResponseOperationsItemOneOnePlannedRatePerHaMin = 0;
 export const getFieldDashboardResponseOperationsItemOneOnePlannedRatePerHaMax = 1000000000;
 
 export const getFieldDashboardResponseOperationsItemOneOneResponsibleMax = 200;
@@ -389,7 +389,7 @@ export const createFieldOperationBodyNameMax = 150;
 export const createFieldOperationBodyPlannedAreaHaMin = 0.01;
 export const createFieldOperationBodyPlannedAreaHaMax = 1000000;
 
-export const createFieldOperationBodyPlannedRatePerHaMin = 0.01;
+export const createFieldOperationBodyPlannedRatePerHaMin = 0;
 export const createFieldOperationBodyPlannedRatePerHaMax = 1000000000;
 
 export const createFieldOperationBodyResponsibleMax = 200;
@@ -421,7 +421,7 @@ export const createFieldOperationResponseOneOneNameMax = 150;
 export const createFieldOperationResponseOneOnePlannedAreaHaMin = 0.01;
 export const createFieldOperationResponseOneOnePlannedAreaHaMax = 1000000;
 
-export const createFieldOperationResponseOneOnePlannedRatePerHaMin = 0.01;
+export const createFieldOperationResponseOneOnePlannedRatePerHaMin = 0;
 export const createFieldOperationResponseOneOnePlannedRatePerHaMax = 1000000000;
 
 export const createFieldOperationResponseOneOneResponsibleMax = 200;
@@ -513,7 +513,7 @@ export const updateFieldOperationBodyOneNameMax = 150;
 export const updateFieldOperationBodyOnePlannedAreaHaMin = 0.01;
 export const updateFieldOperationBodyOnePlannedAreaHaMax = 1000000;
 
-export const updateFieldOperationBodyOnePlannedRatePerHaMin = 0.01;
+export const updateFieldOperationBodyOnePlannedRatePerHaMin = 0;
 export const updateFieldOperationBodyOnePlannedRatePerHaMax = 1000000000;
 
 export const updateFieldOperationBodyOneResponsibleMax = 200;
@@ -548,7 +548,7 @@ export const updateFieldOperationResponseOneOneNameMax = 150;
 export const updateFieldOperationResponseOneOnePlannedAreaHaMin = 0.01;
 export const updateFieldOperationResponseOneOnePlannedAreaHaMax = 1000000;
 
-export const updateFieldOperationResponseOneOnePlannedRatePerHaMin = 0.01;
+export const updateFieldOperationResponseOneOnePlannedRatePerHaMin = 0;
 export const updateFieldOperationResponseOneOnePlannedRatePerHaMax = 1000000000;
 
 export const updateFieldOperationResponseOneOneResponsibleMax = 200;
@@ -668,7 +668,7 @@ export const updateFieldOperationActualResponseOneOneNameMax = 150;
 export const updateFieldOperationActualResponseOneOnePlannedAreaHaMin = 0.01;
 export const updateFieldOperationActualResponseOneOnePlannedAreaHaMax = 1000000;
 
-export const updateFieldOperationActualResponseOneOnePlannedRatePerHaMin = 0.01;
+export const updateFieldOperationActualResponseOneOnePlannedRatePerHaMin = 0;
 export const updateFieldOperationActualResponseOneOnePlannedRatePerHaMax = 1000000000;
 
 export const updateFieldOperationActualResponseOneOneResponsibleMax = 200;
@@ -825,7 +825,7 @@ export const createFieldOperationProgressResponseOneOneNameMax = 150;
 export const createFieldOperationProgressResponseOneOnePlannedAreaHaMin = 0.01;
 export const createFieldOperationProgressResponseOneOnePlannedAreaHaMax = 1000000;
 
-export const createFieldOperationProgressResponseOneOnePlannedRatePerHaMin = 0.01;
+export const createFieldOperationProgressResponseOneOnePlannedRatePerHaMin = 0;
 export const createFieldOperationProgressResponseOneOnePlannedRatePerHaMax = 1000000000;
 
 export const createFieldOperationProgressResponseOneOneResponsibleMax = 200;
@@ -945,7 +945,7 @@ export const updateFieldOperationProgressResponseOneOneNameMax = 150;
 export const updateFieldOperationProgressResponseOneOnePlannedAreaHaMin = 0.01;
 export const updateFieldOperationProgressResponseOneOnePlannedAreaHaMax = 1000000;
 
-export const updateFieldOperationProgressResponseOneOnePlannedRatePerHaMin = 0.01;
+export const updateFieldOperationProgressResponseOneOnePlannedRatePerHaMin = 0;
 export const updateFieldOperationProgressResponseOneOnePlannedRatePerHaMax = 1000000000;
 
 export const updateFieldOperationProgressResponseOneOneResponsibleMax = 200;
@@ -1048,7 +1048,7 @@ export const voidFieldOperationResponseOneOneNameMax = 150;
 export const voidFieldOperationResponseOneOnePlannedAreaHaMin = 0.01;
 export const voidFieldOperationResponseOneOnePlannedAreaHaMax = 1000000;
 
-export const voidFieldOperationResponseOneOnePlannedRatePerHaMin = 0.01;
+export const voidFieldOperationResponseOneOnePlannedRatePerHaMin = 0;
 export const voidFieldOperationResponseOneOnePlannedRatePerHaMax = 1000000000;
 
 export const voidFieldOperationResponseOneOneResponsibleMax = 200;

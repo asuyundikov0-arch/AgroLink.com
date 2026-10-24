@@ -22,7 +22,7 @@ export interface FieldOperationInput {
      */
   plannedAreaHa: number;
   /**
-     * @minimum 0.01
+     * @minimum 0
      * @maximum 1000000000
      */
   plannedRatePerHa: number;

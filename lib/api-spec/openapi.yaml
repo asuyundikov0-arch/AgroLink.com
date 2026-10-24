@@ -1210,7 +1210,7 @@ components:
         plannedStart: { type: string }
         plannedEnd: { type: string }
         plannedAreaHa: { type: number, minimum: 0.01, maximum: 1000000 }
-        plannedRatePerHa: { type: number, minimum: 0.01, maximum: 1000000000 }
+        plannedRatePerHa: { type: number, minimum: 0, maximum: 1000000000 }
         responsible: { type: string, maxLength: 200 }
         plannedEquipment: { type: string, maxLength: 200 }
         plannedImplement: { type: string, maxLength: 200 }
