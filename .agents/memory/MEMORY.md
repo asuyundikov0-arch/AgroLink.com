@@ -5,4 +5,5 @@
 - [Grain ownership at elevators](grain-ownership.md) — elevator grain remains company stock; movement to an elevator is not a sale.
 - [Processing waste categories](grain-processing-waste.md) — the user requires separate weights for dead impurities and grain waste after drying or cleaning.
 - [Agro rates and dispatcher scope](agro-rates-and-dispatch.md) — chief agronomist plans per-hectare rates; dispatcher records completed-work rates and per-trip transport fees.
+- [Salary accrual handoff](salary-accrual-handoff.md) — dispatcher compiles daily employee accruals; economist receives a read-only register, separate from actual payment.
 - [Partial index changes](partial-index-push.md) — Drizzle push may miss a changed WHERE predicate; verify the live index definition.

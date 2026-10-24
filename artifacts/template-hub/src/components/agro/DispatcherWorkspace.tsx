@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Banknote, Check, Route, Tractor } from "lucide-react";
+import { Banknote, Check, Route, Tractor, Wallet } from "lucide-react";
 import {
   getGetFieldDispatchQueueQueryKey,
   getGetFieldDashboardQueryKey,
@@ -14,8 +14,9 @@ import {
 } from "@workspace/api-client-react";
 import { dateFmt, errorInfo, POLL_MS } from "./grain/shared";
 import { money } from "../engineering/repairs/shared";
+import PayrollRegisterWorkspace from "../economic/PayrollRegisterWorkspace";
 
-type View = "grain" | "fields";
+type View = "grain" | "fields" | "payroll";
 const operationLabel: Record<GrainTransportTrip["operation"], string> = {
   receipt: "Приход с поля",
   transfer: "Перемещение",
@@ -47,7 +48,7 @@ export default function DispatcherWorkspace() {
       <header>
         <p className="eyebrow">Рабочее пространство</p>
         <h1 className="mt-1.5 font-display text-2xl font-bold tracking-[-0.045em] sm:text-3xl">Диспетчерская</h1>
-        <p className="mt-1 max-w-3xl text-xs leading-5 text-muted-foreground">Здесь отображаются только рейсы по зерну и завершённые полевые операции, для которых нужно указать фактическую расценку.</p>
+        <p className="mt-1 max-w-3xl text-xs leading-5 text-muted-foreground">Управляйте фактическими расценками по рейсам и полевым работам, а также собирайте дневные начисления сотрудникам для экономиста.</p>
       </header>
 
       <section className="grid gap-3 sm:grid-cols-2" aria-label="Очередь диспетчера">
@@ -65,9 +66,10 @@ export default function DispatcherWorkspace() {
       <div className="inline-flex flex-wrap rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Работа диспетчера">
         <button type="button" role="tab" aria-selected={view === "grain"} onClick={() => setView("grain")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "grain" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-grain">Перевозка зерна ({grainTrips.length})</button>
         <button type="button" role="tab" aria-selected={view === "fields"} onClick={() => setView("fields")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "fields" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-fields">Полевые расценки ({fieldOperations.length})</button>
+        <button type="button" role="tab" aria-selected={view === "payroll"} onClick={() => setView("payroll")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "payroll" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-payroll"><Wallet size={13} /> Зарплатный реестр</button>
       </div>
 
-      {view === "grain" ? (
+      {view === "payroll" ? <PayrollRegisterWorkspace canManage /> : view === "grain" ? (
         <section className="surface-card p-4 sm:p-5" data-testid="section-dispatch-grain">
           <header className="flex flex-wrap items-end justify-between gap-3">
             <div><p className="eyebrow">Транспортные рейсы</p><h2 className="mt-1 text-lg font-bold">Оплата за каждый рейс</h2></div>

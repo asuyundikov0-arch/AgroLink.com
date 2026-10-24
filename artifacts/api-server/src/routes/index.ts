@@ -8,6 +8,7 @@ import equipmentRepairsRouter from "./equipment-repairs";
 import grainRouter from "./grain";
 import agroFieldsRouter from "./agro-fields";
 import sparePartRequestsRouter from "./spare-part-requests";
+import payrollRegistersRouter from "./payroll-registers";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(equipmentRepairsRouter);
 router.use(grainRouter);
 router.use(agroFieldsRouter);
 router.use(sparePartRequestsRouter);
+router.use(payrollRegistersRouter);
 
 export default router;

@@ -665,6 +665,89 @@ paths:
                 $ref: "#/components/schemas/SparePartPaymentRegisterItem"
         "409":
           description: Item is not awaiting payment
+  /economic/payroll-registers:
+    get:
+      operationId: listPayrollRegisters
+      tags: [economy]
+      responses:
+        "200":
+          description: Daily payroll registers visible to the current role
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PayrollRegister"
+    post:
+      operationId: createPayrollRegister
+      tags: [economy]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PayrollRegisterCreateInput"
+      responses:
+        "201":
+          description: Draft daily payroll register created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollRegister"
+        "409":
+          description: A register already exists for this unit and date
+  /economic/payroll-registers/{id}:
+    patch:
+      operationId: updatePayrollRegister
+      tags: [economy]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PayrollRegisterUpdateInput"
+      responses:
+        "200":
+          description: Draft payroll register updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollRegister"
+        "404":
+          description: Register not found
+        "409":
+          description: Register has already been sent or was changed by another user
+  /economic/payroll-registers/{id}/send:
+    post:
+      operationId: sendPayrollRegister
+      tags: [economy]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PayrollRegisterSubmitInput"
+      responses:
+        "200":
+          description: Payroll register sent to the economist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollRegister"
+        "404":
+          description: Register not found
+        "409":
+          description: Register has already been sent or was changed by another user
   /engineering/repairs:
     get:
       operationId: listEngineeringRepairs
@@ -1668,6 +1751,71 @@ components:
         paymentStatus: { type: string, enum: [pending, paid] }
         paidAt: { type: ["string", "null"] }
         paidByName: { type: string }
+    PayrollRegisterEntryInput:
+      type: object
+      required: [employeeName, workType, details, amountKzt]
+      properties:
+        employeeName: { type: string, minLength: 1, maxLength: 200 }
+        workType: { type: string, minLength: 1, maxLength: 160 }
+        details: { type: string, maxLength: 500 }
+        amountKzt: { type: number, minimum: 0.01, maximum: 999999999999.99 }
+    PayrollRegisterCreateInput:
+      type: object
+      required: [workDate, unit, entries]
+      properties:
+        workDate: { type: string }
+        unit: { type: string, minLength: 1, maxLength: 200 }
+        entries:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items:
+            $ref: "#/components/schemas/PayrollRegisterEntryInput"
+    PayrollRegisterUpdateInput:
+      type: object
+      required: [version, workDate, unit, entries]
+      properties:
+        version: { type: number, minimum: 1 }
+        workDate: { type: string }
+        unit: { type: string, minLength: 1, maxLength: 200 }
+        entries:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items:
+            $ref: "#/components/schemas/PayrollRegisterEntryInput"
+    PayrollRegisterSubmitInput:
+      type: object
+      required: [version]
+      properties:
+        version: { type: number, minimum: 1 }
+    PayrollRegisterEntry:
+      type: object
+      required: [id, employeeName, workType, details, amountKzt]
+      properties:
+        id: { type: number }
+        employeeName: { type: string }
+        workType: { type: string }
+        details: { type: string }
+        amountKzt: { type: number }
+    PayrollRegister:
+      type: object
+      required: [id, workDate, unit, status, totalAmount, version, createdByName, submittedByName, createdAt, submittedAt, entries]
+      properties:
+        id: { type: number }
+        workDate: { type: string }
+        unit: { type: string }
+        status: { type: string, enum: [draft, sent_to_economist] }
+        totalAmount: { type: number }
+        version: { type: number }
+        createdByName: { type: string }
+        submittedByName: { type: string }
+        createdAt: { type: string }
+        submittedAt: { type: ["string", "null"] }
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayrollRegisterEntry"
     SparePartRequestItemInput:
       type: object
       required: [name, articleNumber, unit, quantity, fleetId]

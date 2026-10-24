@@ -741,6 +741,92 @@ export interface SparePartPaymentRegisterItem {
   paidByName: string;
 }
 
+export interface PayrollRegisterEntryInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  employeeName: string;
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  workType: string;
+  /** @maxLength 500 */
+  details: string;
+  /**
+     * @minimum 0.01
+     * @maximum 999999999999.99
+     */
+  amountKzt: number;
+}
+
+export interface PayrollRegisterCreateInput {
+  workDate: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  unit: string;
+  /**
+     * @minItems 1
+     * @maxItems 1000
+     */
+  entries: PayrollRegisterEntryInput[];
+}
+
+export interface PayrollRegisterUpdateInput {
+  /** @minimum 1 */
+  version: number;
+  workDate: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  unit: string;
+  /**
+     * @minItems 1
+     * @maxItems 1000
+     */
+  entries: PayrollRegisterEntryInput[];
+}
+
+export interface PayrollRegisterSubmitInput {
+  /** @minimum 1 */
+  version: number;
+}
+
+export interface PayrollRegisterEntry {
+  id: number;
+  employeeName: string;
+  workType: string;
+  details: string;
+  amountKzt: number;
+}
+
+export type PayrollRegisterStatus = typeof PayrollRegisterStatus[keyof typeof PayrollRegisterStatus];
+
+
+export const PayrollRegisterStatus = {
+  draft: 'draft',
+  sent_to_economist: 'sent_to_economist',
+} as const;
+
+export interface PayrollRegister {
+  id: number;
+  workDate: string;
+  unit: string;
+  status: PayrollRegisterStatus;
+  totalAmount: number;
+  version: number;
+  createdByName: string;
+  submittedByName: string;
+  createdAt: string;
+  /** @nullable */
+  submittedAt: string | null;
+  entries: PayrollRegisterEntry[];
+}
+
 export interface SparePartRequestItemInput {
   /**
      * @minLength 1

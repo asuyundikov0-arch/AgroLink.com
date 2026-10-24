@@ -2391,6 +2391,166 @@ export const MarkSparePartPaymentPaidResponse = zod.object({
 })
 
 
+export const ListPayrollRegistersResponseItem = zod.object({
+  "id": zod.number(),
+  "workDate": zod.string(),
+  "unit": zod.string(),
+  "status": zod.enum(['draft', 'sent_to_economist']),
+  "totalAmount": zod.number(),
+  "version": zod.number(),
+  "createdByName": zod.string(),
+  "submittedByName": zod.string(),
+  "createdAt": zod.string(),
+  "submittedAt": zod.string().nullable(),
+  "entries": zod.array(zod.object({
+  "id": zod.number(),
+  "employeeName": zod.string(),
+  "workType": zod.string(),
+  "details": zod.string(),
+  "amountKzt": zod.number()
+}))
+})
+export const ListPayrollRegistersResponse = zod.array(ListPayrollRegistersResponseItem)
+
+
+export const createPayrollRegisterBodyUnitMax = 200;
+
+export const createPayrollRegisterBodyEntriesItemEmployeeNameMax = 200;
+
+export const createPayrollRegisterBodyEntriesItemWorkTypeMax = 160;
+
+export const createPayrollRegisterBodyEntriesItemDetailsMax = 500;
+
+export const createPayrollRegisterBodyEntriesItemAmountKztMin = 0.01;
+export const createPayrollRegisterBodyEntriesItemAmountKztMax = 999999999999.99;
+
+export const createPayrollRegisterBodyEntriesMax = 1000;
+
+
+
+export const CreatePayrollRegisterBody = zod.object({
+  "workDate": zod.string(),
+  "unit": zod.string().min(1).max(createPayrollRegisterBodyUnitMax),
+  "entries": zod.array(zod.object({
+  "employeeName": zod.string().min(1).max(createPayrollRegisterBodyEntriesItemEmployeeNameMax),
+  "workType": zod.string().min(1).max(createPayrollRegisterBodyEntriesItemWorkTypeMax),
+  "details": zod.string().max(createPayrollRegisterBodyEntriesItemDetailsMax),
+  "amountKzt": zod.number().min(createPayrollRegisterBodyEntriesItemAmountKztMin).max(createPayrollRegisterBodyEntriesItemAmountKztMax)
+})).min(1).max(createPayrollRegisterBodyEntriesMax)
+})
+
+export const CreatePayrollRegisterResponse = zod.object({
+  "id": zod.number(),
+  "workDate": zod.string(),
+  "unit": zod.string(),
+  "status": zod.enum(['draft', 'sent_to_economist']),
+  "totalAmount": zod.number(),
+  "version": zod.number(),
+  "createdByName": zod.string(),
+  "submittedByName": zod.string(),
+  "createdAt": zod.string(),
+  "submittedAt": zod.string().nullable(),
+  "entries": zod.array(zod.object({
+  "id": zod.number(),
+  "employeeName": zod.string(),
+  "workType": zod.string(),
+  "details": zod.string(),
+  "amountKzt": zod.number()
+}))
+})
+
+
+
+
+
+export const UpdatePayrollRegisterParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+
+export const updatePayrollRegisterBodyUnitMax = 200;
+
+export const updatePayrollRegisterBodyEntriesItemEmployeeNameMax = 200;
+
+export const updatePayrollRegisterBodyEntriesItemWorkTypeMax = 160;
+
+export const updatePayrollRegisterBodyEntriesItemDetailsMax = 500;
+
+export const updatePayrollRegisterBodyEntriesItemAmountKztMin = 0.01;
+export const updatePayrollRegisterBodyEntriesItemAmountKztMax = 999999999999.99;
+
+export const updatePayrollRegisterBodyEntriesMax = 1000;
+
+
+
+export const UpdatePayrollRegisterBody = zod.object({
+  "version": zod.number().min(1),
+  "workDate": zod.string(),
+  "unit": zod.string().min(1).max(updatePayrollRegisterBodyUnitMax),
+  "entries": zod.array(zod.object({
+  "employeeName": zod.string().min(1).max(updatePayrollRegisterBodyEntriesItemEmployeeNameMax),
+  "workType": zod.string().min(1).max(updatePayrollRegisterBodyEntriesItemWorkTypeMax),
+  "details": zod.string().max(updatePayrollRegisterBodyEntriesItemDetailsMax),
+  "amountKzt": zod.number().min(updatePayrollRegisterBodyEntriesItemAmountKztMin).max(updatePayrollRegisterBodyEntriesItemAmountKztMax)
+})).min(1).max(updatePayrollRegisterBodyEntriesMax)
+})
+
+export const UpdatePayrollRegisterResponse = zod.object({
+  "id": zod.number(),
+  "workDate": zod.string(),
+  "unit": zod.string(),
+  "status": zod.enum(['draft', 'sent_to_economist']),
+  "totalAmount": zod.number(),
+  "version": zod.number(),
+  "createdByName": zod.string(),
+  "submittedByName": zod.string(),
+  "createdAt": zod.string(),
+  "submittedAt": zod.string().nullable(),
+  "entries": zod.array(zod.object({
+  "id": zod.number(),
+  "employeeName": zod.string(),
+  "workType": zod.string(),
+  "details": zod.string(),
+  "amountKzt": zod.number()
+}))
+})
+
+
+
+
+
+export const SendPayrollRegisterParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+
+
+
+export const SendPayrollRegisterBody = zod.object({
+  "version": zod.number().min(1)
+})
+
+export const SendPayrollRegisterResponse = zod.object({
+  "id": zod.number(),
+  "workDate": zod.string(),
+  "unit": zod.string(),
+  "status": zod.enum(['draft', 'sent_to_economist']),
+  "totalAmount": zod.number(),
+  "version": zod.number(),
+  "createdByName": zod.string(),
+  "submittedByName": zod.string(),
+  "createdAt": zod.string(),
+  "submittedAt": zod.string().nullable(),
+  "entries": zod.array(zod.object({
+  "id": zod.number(),
+  "employeeName": zod.string(),
+  "workType": zod.string(),
+  "details": zod.string(),
+  "amountKzt": zod.number()
+}))
+})
+
+
 /**
  * @summary Current equipment repair register and totals
  */

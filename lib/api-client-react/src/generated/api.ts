@@ -63,6 +63,10 @@ import type {
   ListRepairExpensesParams,
   ListReportsParams,
   ListTemplatesParams,
+  PayrollRegister,
+  PayrollRegisterCreateInput,
+  PayrollRegisterSubmitInput,
+  PayrollRegisterUpdateInput,
   PlanBatchInput,
   PlanInput,
   PlanUpdate,
@@ -2866,6 +2870,274 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getMarkSparePartPaymentPaidMutationOptions(options));
+    }
+
+export const getListPayrollRegistersUrl = () => {
+
+
+
+
+  return `/api/economic/payroll-registers`
+}
+
+export const listPayrollRegisters = async ( options?: Parameters<typeof customFetch>[1]): Promise<PayrollRegister[]> => {
+
+  return customFetch<PayrollRegister[]>(getListPayrollRegistersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPayrollRegistersQueryKey = () => {
+    return [
+    `/api/economic/payroll-registers`
+    ] as const;
+    }
+
+
+export const getListPayrollRegistersQueryOptions = <TData = Awaited<ReturnType<typeof listPayrollRegisters>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPayrollRegisters>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPayrollRegistersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPayrollRegisters>>> = ({ signal }) => listPayrollRegisters({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPayrollRegisters>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPayrollRegistersQueryResult = NonNullable<Awaited<ReturnType<typeof listPayrollRegisters>>>
+export type ListPayrollRegistersQueryError = ErrorType<unknown>
+
+
+
+export function useListPayrollRegisters<TData = Awaited<ReturnType<typeof listPayrollRegisters>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPayrollRegisters>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPayrollRegistersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreatePayrollRegisterUrl = () => {
+
+
+
+
+  return `/api/economic/payroll-registers`
+}
+
+export const createPayrollRegister = async (payrollRegisterCreateInput: PayrollRegisterCreateInput, options?: Parameters<typeof customFetch>[1]): Promise<PayrollRegister> => {
+
+  return customFetch<PayrollRegister>(getCreatePayrollRegisterUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(payrollRegisterCreateInput)
+  }
+);}
+
+
+
+
+
+export const getCreatePayrollRegisterMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPayrollRegister>>, TError,{data: BodyType<PayrollRegisterCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPayrollRegister>>, TError,{data: BodyType<PayrollRegisterCreateInput>}, TContext> => {
+
+const mutationKey = ['createPayrollRegister'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPayrollRegister>>, {data: BodyType<PayrollRegisterCreateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPayrollRegister(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePayrollRegisterMutationResult = NonNullable<Awaited<ReturnType<typeof createPayrollRegister>>>
+    export type CreatePayrollRegisterMutationBody = BodyType<PayrollRegisterCreateInput>
+    export type CreatePayrollRegisterMutationError = ErrorType<void>
+
+    export const useCreatePayrollRegister = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPayrollRegister>>, TError,{data: BodyType<PayrollRegisterCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPayrollRegister>>,
+        TError,
+        {data: BodyType<PayrollRegisterCreateInput>},
+        TContext
+      > => {
+      return useMutation(getCreatePayrollRegisterMutationOptions(options));
+    }
+
+export const getUpdatePayrollRegisterUrl = (id: number,) => {
+
+
+
+
+  return `/api/economic/payroll-registers/${id}`
+}
+
+export const updatePayrollRegister = async (id: number,
+    payrollRegisterUpdateInput: PayrollRegisterUpdateInput, options?: Parameters<typeof customFetch>[1]): Promise<PayrollRegister> => {
+
+  return customFetch<PayrollRegister>(getUpdatePayrollRegisterUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(payrollRegisterUpdateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdatePayrollRegisterMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePayrollRegister>>, TError,{id: number;data: BodyType<PayrollRegisterUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePayrollRegister>>, TError,{id: number;data: BodyType<PayrollRegisterUpdateInput>}, TContext> => {
+
+const mutationKey = ['updatePayrollRegister'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePayrollRegister>>, {id: number;data: BodyType<PayrollRegisterUpdateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updatePayrollRegister(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePayrollRegisterMutationResult = NonNullable<Awaited<ReturnType<typeof updatePayrollRegister>>>
+    export type UpdatePayrollRegisterMutationBody = BodyType<PayrollRegisterUpdateInput>
+    export type UpdatePayrollRegisterMutationError = ErrorType<void>
+
+    export const useUpdatePayrollRegister = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePayrollRegister>>, TError,{id: number;data: BodyType<PayrollRegisterUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePayrollRegister>>,
+        TError,
+        {id: number;data: BodyType<PayrollRegisterUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdatePayrollRegisterMutationOptions(options));
+    }
+
+export const getSendPayrollRegisterUrl = (id: number,) => {
+
+
+
+
+  return `/api/economic/payroll-registers/${id}/send`
+}
+
+export const sendPayrollRegister = async (id: number,
+    payrollRegisterSubmitInput: PayrollRegisterSubmitInput, options?: Parameters<typeof customFetch>[1]): Promise<PayrollRegister> => {
+
+  return customFetch<PayrollRegister>(getSendPayrollRegisterUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(payrollRegisterSubmitInput)
+  }
+);}
+
+
+
+
+
+export const getSendPayrollRegisterMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendPayrollRegister>>, TError,{id: number;data: BodyType<PayrollRegisterSubmitInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendPayrollRegister>>, TError,{id: number;data: BodyType<PayrollRegisterSubmitInput>}, TContext> => {
+
+const mutationKey = ['sendPayrollRegister'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendPayrollRegister>>, {id: number;data: BodyType<PayrollRegisterSubmitInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  sendPayrollRegister(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendPayrollRegisterMutationResult = NonNullable<Awaited<ReturnType<typeof sendPayrollRegister>>>
+    export type SendPayrollRegisterMutationBody = BodyType<PayrollRegisterSubmitInput>
+    export type SendPayrollRegisterMutationError = ErrorType<void>
+
+    export const useSendPayrollRegister = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendPayrollRegister>>, TError,{id: number;data: BodyType<PayrollRegisterSubmitInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendPayrollRegister>>,
+        TError,
+        {id: number;data: BodyType<PayrollRegisterSubmitInput>},
+        TContext
+      > => {
+      return useMutation(getSendPayrollRegisterMutationOptions(options));
     }
 
 export const getListEngineeringRepairsUrl = (params?: ListEngineeringRepairsParams,) => {
