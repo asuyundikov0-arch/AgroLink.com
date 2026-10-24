@@ -70,6 +70,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import EngineeringWorkspace from "@/components/engineering/EngineeringWorkspace";
 import AgroWorkspace from "@/components/agro/AgroWorkspace";
 import PaymentRegister from "@/components/economic/PaymentRegister";
+import EmployeeDirectory from "@/components/employees/EmployeeDirectory";
 import PayrollRegisterWorkspace from "@/components/economic/PayrollRegisterWorkspace";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -181,7 +182,7 @@ function BrandEmblem({ size = "md" }: { size?: "md" | "lg" }) {
   return <img src={companyEmblem} alt="AgroLink operation" className={cn("brand-emblem", size === "lg" ? "brand-emblem-lg" : "brand-emblem-md")} />;
 }
 
-type WorkspaceSection = "cabinet" | "templates" | "archive" | "agro" | "engineering" | "economic" | "legal" | "settings";
+type WorkspaceSection = "cabinet" | "templates" | "archive" | "agro" | "engineering" | "economic" | "legal" | "employees" | "settings";
 
 type SidebarSection = Exclude<WorkspaceSection, "templates">;
 
@@ -376,6 +377,7 @@ function Shell({
   const isEngineeringVisible = ["engineer", "chief_engineer", "storekeeper", "general_director"].includes(role);
   const isEconomicVisible = ["economist", "farm_director", "general_director"].includes(role);
   const isLegalVisible = ["lawyer", "general_director"].includes(role);
+  const isEmployeesVisible = ["general_director", "chief_agronomist", "chief_engineer", "dispatcher"].includes(role);
   const navigation = [
     ...(!isDispatcher ? [
       { id: "cabinet" as const, label: "Личный кабинет", icon: ClipboardCheck },
@@ -385,6 +387,7 @@ function Shell({
     ...(isEngineeringVisible ? [{ id: "engineering" as const, label: "Инженерный блок", icon: Wrench }] : []),
     ...(isEconomicVisible ? [{ id: "economic" as const, label: "Экономический блок", icon: BarChart3 }] : []),
     ...(isLegalVisible ? [{ id: "legal" as const, label: "Юридический блок", icon: Scale }] : []),
+    ...(isEmployeesVisible ? [{ id: "employees" as const, label: "Сотрудники", icon: Users }] : []),
     { id: "settings" as const, label: "Настройки", icon: SettingsIcon },
   ];
   const navigateFromSidebar = (section: SidebarSection) => {
@@ -1069,6 +1072,7 @@ function Workspace({ role, actualRole, demoRole, request, section, onSectionChan
     {section === "engineering" && <EngineeringWorkspace role={role}><EngineeringBlock role={role} onOpenTemplate={openTemplate} isDemoPreview={Boolean(demoRole)} /></EngineeringWorkspace>}
     {section === "economic" && <EconomicBlock role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />}
     {section === "legal" && <LegalBlock role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />}
+    {section === "employees" && <EmployeeDirectory canManage={["general_director", "chief_agronomist", "chief_engineer", "dispatcher"].includes(role) && !demoRole} />}
     {section === "settings" && <SettingsPage role={role} request={request} />}
   </>;
 }

@@ -16,6 +16,7 @@ import {
   useUpdateFieldSeason,
   useVoidFieldOperation,
 } from "@workspace/api-client-react";
+import EmployeeSelect from "../../employees/EmployeeSelect";
 import { Drawer, Field, OP_SUGGESTIONS, SaveError, UNITS, type Unit, dateFmt, errorInfo, ha, handleSaveError, haStr, isGD, parseHa, useInvalidateFields } from "./shared";
 
 type Done = (msg: string) => void;
@@ -331,7 +332,7 @@ export function ActualForm({ op, title, today, fleet, fleetLoading, fleetError, 
   const [f, setF] = useState({
     start: op.actualStart?.slice(0, 10) ?? "", end: op.actualEnd?.slice(0, 10) ?? "",
     area: op.actualAreaHa > 0 ? haStr(op.actualAreaHa) : "", notes: op.actualNotes ?? "",
-    operationName: op.actualOperationName || op.name, mechanic: op.actualMechanic ?? "",
+    operationName: op.actualOperationName || op.name, mechanic: op.actualMechanic ?? "", mechanicId: op.actualMechanicEmployeeId ?? null as number | null,
     equipment: op.actualEquipment || op.plannedEquipment, implement: op.actualImplement || op.plannedImplement,
   });
   const [errs, setErrs] = useState<Record<string, string>>({});
@@ -346,7 +347,7 @@ export function ActualForm({ op, title, today, fleet, fleetLoading, fleetError, 
     if (starting) {
       if (!f.operationName.trim()) er.operationName = "Укажите вид операции";
       if (f.operationName.trim().length > 150) er.operationName = "Не более 150 символов";
-      if (!f.mechanic.trim()) er.mechanic = "Укажите механизатора";
+      if (!f.mechanicId) er.mechanic = "Выберите механизатора из справочника";
       if (!f.equipment.trim()) er.equipment = "Укажите технику";
       if (!f.implement.trim()) er.implement = "Укажите агрегат";
     } else {
@@ -354,7 +355,7 @@ export function ActualForm({ op, title, today, fleet, fleetLoading, fleetError, 
       else if (parsed > op.plannedAreaHa) er.area = `Не больше плана (${ha(op.plannedAreaHa)})`;
       else if (!(parsed > 0)) er.area = "Укажите фактическую площадь";
       if (!f.end) er.end = "Укажите дату завершения";
-      if (!f.mechanic.trim()) er.mechanic = "Укажите механизатора";
+      if (!f.mechanicId) er.mechanic = "Выберите механизатора из справочника";
       if (!f.equipment.trim()) er.equipment = "Укажите технику";
       if (!f.implement.trim()) er.implement = "Укажите агрегат";
     }
@@ -368,7 +369,7 @@ export function ActualForm({ op, title, today, fleet, fleetLoading, fleetError, 
       await mut.mutateAsync({ id: op.id, data: {
         version: op.version, actualStart: f.start || null, actualEnd: starting ? null : f.end || null,
         actualAreaHa: starting ? 0 : parsed ?? 0, actualOperationName: f.operationName.trim(),
-        actualMechanic: f.mechanic.trim(), actualEquipment: f.equipment.trim(), actualImplement: f.implement.trim(), actualNotes: f.notes,
+        actualMechanic: f.mechanic.trim(), actualMechanicEmployeeId: f.mechanicId, actualEquipment: f.equipment.trim(), actualImplement: f.implement.trim(), actualNotes: f.notes,
       } });
       await invalidate();
       onDone(starting ? `Начало операции «${f.operationName.trim()}» зафиксировано.` : `Операция «${op.name}» завершена: ${ha(parsed ?? 0)}. Данные переданы диспетчеру для ввода фактической расценки.`);
@@ -396,7 +397,7 @@ export function ActualForm({ op, title, today, fleet, fleetLoading, fleetError, 
               <input id="ac-area" className="text-input font-mono" inputMode="decimal" value={f.area} onChange={(ev) => setF({ ...f, area: ev.target.value })} data-testid="input-actual-area" />
             </Field>
           </>}
-          <Field label="Механизатор *" error={errs.mechanic} htmlFor="ac-mechanic"><input id="ac-mechanic" className="text-input" maxLength={200} value={f.mechanic} onChange={(ev) => setF({ ...f, mechanic: ev.target.value })} data-testid="input-actual-mechanic" /></Field>
+          <Field label="Механизатор *" error={errs.mechanic} htmlFor="ac-mechanic"><EmployeeSelect id="ac-mechanic" value={{ id: f.mechanicId, name: f.mechanic }} onChange={(v) => setF({ ...f, mechanicId: v.id, mechanic: v.name })} invalid={Boolean(errs.mechanic)} testId="input-actual-mechanic" /></Field>
           <Field label="Фактическая техника *" error={errs.equipment} hint="Выберите из справочника; можно изменить относительно плана" htmlFor="ac-equipment"><EquipmentSelect id="ac-equipment" testId="select-actual-equipment" value={f.equipment} fleet={fleet} loading={fleetLoading} failed={fleetError} onRetry={onRetry} onChange={(equipment) => setF({ ...f, equipment })} /></Field>
           <Field label="Фактический агрегат *" error={errs.implement} hint="Можно изменить относительно плана" htmlFor="ac-implement"><input id="ac-implement" className="text-input" maxLength={200} value={f.implement} onChange={(ev) => setF({ ...f, implement: ev.target.value })} data-testid="input-actual-implement" /></Field>
           <Field label="Примечание к факту" htmlFor="ac-notes" wide><textarea id="ac-notes" className="text-input min-h-[72px]" maxLength={3000} value={f.notes} onChange={(ev) => setF({ ...f, notes: ev.target.value })} data-testid="input-actual-notes" /></Field>
@@ -423,6 +424,7 @@ export function ProgressForm({ op, title, today, fleet, fleetLoading, fleetError
   const [f, setF] = useState({
     area: haStr(initialExisting?.cumulativeAreaHa ?? initialPrevious?.cumulativeAreaHa ?? op.actualAreaHa),
     mechanic: initialExisting?.actualMechanic ?? op.actualMechanic,
+    mechanicId: (initialExisting ? initialExisting.actualMechanicEmployeeId : op.actualMechanicEmployeeId) ?? null as number | null,
     equipment: initialExisting?.actualEquipment ?? op.actualEquipment,
     implement: initialExisting?.actualImplement ?? op.actualImplement,
     notes: initialExisting?.notes ?? "",
@@ -443,6 +445,7 @@ export function ProgressForm({ op, title, today, fleet, fleetLoading, fleetError
     setF({
       area: haStr(saved?.cumulativeAreaHa ?? prior?.cumulativeAreaHa ?? 0),
       mechanic: saved?.actualMechanic ?? op.actualMechanic,
+      mechanicId: (saved ? saved.actualMechanicEmployeeId : op.actualMechanicEmployeeId) ?? null,
       equipment: saved?.actualEquipment ?? op.actualEquipment,
       implement: saved?.actualImplement ?? op.actualImplement,
       notes: saved?.notes ?? "",
@@ -460,14 +463,14 @@ export function ProgressForm({ op, title, today, fleet, fleetLoading, fleetError
     else if (parsed > op.plannedAreaHa) er.area = `Не больше плана (${ha(op.plannedAreaHa)}).`;
     else if (previous && parsed < previous.cumulativeAreaHa) er.area = `Не меньше предыдущего отчёта (${ha(previous.cumulativeAreaHa)}).`;
     else if (next && parsed > next.cumulativeAreaHa) er.area = `Не больше следующего отчёта (${ha(next.cumulativeAreaHa)}).`;
-    if (!f.mechanic.trim()) er.mechanic = "Укажите механизатора.";
+    if (!f.mechanicId) er.mechanic = "Выберите механизатора из справочника.";
     if (!f.equipment.trim()) er.equipment = "Выберите технику из справочника.";
     if (!f.implement.trim()) er.implement = "Укажите агрегат.";
     setErrs(er); e.clear();
     if (Object.keys(er).length || parsed === null) return;
     const data = {
       operationVersion: op.version, reportDate, cumulativeAreaHa: parsed,
-      actualMechanic: f.mechanic.trim(), actualEquipment: f.equipment.trim(),
+      actualMechanic: f.mechanic.trim(), actualMechanicEmployeeId: f.mechanicId as number, actualEquipment: f.equipment.trim(),
       actualImplement: f.implement.trim(), notes: f.notes.trim(),
     };
     try {
@@ -495,7 +498,7 @@ export function ProgressForm({ op, title, today, fleet, fleetLoading, fleetError
             <input id="pr-area" className="text-input font-mono" inputMode="decimal" value={f.area} onChange={(event) => setF({ ...f, area: event.target.value })} data-testid="input-progress-cumulative-area" />
           </Field>
           <Field label="Механизатор *" error={errs.mechanic} htmlFor="pr-mechanic">
-            <input id="pr-mechanic" className="text-input" maxLength={200} value={f.mechanic} onChange={(event) => setF({ ...f, mechanic: event.target.value })} data-testid="input-progress-mechanic" />
+            <EmployeeSelect id="pr-mechanic" value={{ id: f.mechanicId, name: f.mechanic }} onChange={(v) => setF({ ...f, mechanicId: v.id, mechanic: v.name })} invalid={Boolean(errs.mechanic)} testId="input-progress-mechanic" />
           </Field>
           <Field label="Техника *" error={errs.equipment} htmlFor="pr-equipment">
             <EquipmentSelect id="pr-equipment" testId="select-progress-equipment" value={f.equipment} fleet={fleet} loading={fleetLoading} failed={fleetError} onRetry={onRetry} onChange={(equipment) => setF({ ...f, equipment })} />

@@ -30,6 +30,7 @@ import {
   payrollRegistersTable,
 } from "@workspace/db";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
+import { lockPayrollSources } from "../lib/payroll-source-guard";
 
 const router: IRouter = Router();
 const readerRoles = new Set(["dispatcher", "economist", "general_director"]);
@@ -82,8 +83,10 @@ const validDate = (value: string) => {
 const cents = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 const totalFor = (entries: LineInput[]) =>
   cents(entries.reduce((sum, entry) => sum + Math.round(cents(entry.amountKzt) * 100), 0) / 100);
-const isUniqueViolation = (error: unknown) =>
-  typeof error === "object" && error !== null && "code" in error && error.code === "23505";
+const isUniqueViolation = (error: unknown) => {
+  const candidate = error as { code?: string; cause?: { code?: string } } | null;
+  return (candidate?.code ?? candidate?.cause?.code) === "23505";
+};
 const lineValues = (entries: LineInput[], registerId: number) => entries.map((entry) => ({
   registerId,
   employeeId: null,
@@ -103,7 +106,7 @@ const payrollOperationLabels: Record<string, string> = {
   cleaning: "Доставка на зерноочистку",
 };
 
-async function calculateAutomaticAccruals(tx: Tx) {
+export async function calculateAutomaticAccruals(tx: Tx) {
   const [movements, crops, locations, employees, fieldRows, progressRows] = await Promise.all([
     tx.select().from(grainMovementsTable).where(and(
       eq(grainMovementsTable.approvalStatus, "approved"),
@@ -204,6 +207,7 @@ async function calculateAutomaticAccruals(tx: Tx) {
       crop,
       movement.fieldName ? `Поле ${movement.fieldName}` : "",
       route,
+      `1 рейс × ${Number(movement.transportRate).toLocaleString("ru-RU")} ₸`,
     ].filter(Boolean).join(" · ").slice(0, 500);
     addSource({
       workDate: movement.occurredOn,
@@ -228,7 +232,7 @@ async function calculateAutomaticAccruals(tx: Tx) {
     const detailsFor = (areaAres: number, equipment: string) => [
       `Поле №${row.field.number}`,
       row.season.cropName,
-      `${(areaAres / 100).toLocaleString("ru-RU")} га`,
+      `${(areaAres / 100).toLocaleString("ru-RU")} га × ${rate.toLocaleString("ru-RU")} ₸/га`,
       equipment ? `Техника ${equipment}` : "",
     ].filter(Boolean).join(" · ").slice(0, 500);
     if (reports.length > 0) {
@@ -242,7 +246,7 @@ async function calculateAutomaticAccruals(tx: Tx) {
           unit: row.field.unit,
           sourceType: "field_progress",
           sourceId: report.id,
-          employeeId: report.actualMechanicEmployeeId ?? operation.actualMechanicEmployeeId,
+          employeeId: report.actualMechanicEmployeeId ?? (report.actualMechanic.trim() ? null : operation.actualMechanicEmployeeId),
           employeeName: report.actualMechanic || operation.actualMechanic,
           workType,
           details: detailsFor(dailyAreaAres, report.actualEquipment || operation.actualEquipment),
@@ -264,22 +268,14 @@ async function calculateAutomaticAccruals(tx: Tx) {
     }
   }
 
-  const [sentRegisters, savedItems] = await Promise.all([
-    tx.select({ id: payrollRegistersTable.id, workDate: payrollRegistersTable.workDate, unit: payrollRegistersTable.unit })
-      .from(payrollRegistersTable)
-      .where(eq(payrollRegistersTable.status, "sent_to_economist")),
-    tx.select({
-      registerId: payrollRegisterItemsTable.registerId,
+  const savedItems = await tx.select({
       sourceType: payrollRegisterItemsTable.sourceType,
       sourceId: payrollRegisterItemsTable.sourceId,
-    }).from(payrollRegisterItemsTable),
-  ]);
-  const sentKeys = new Set(sentRegisters.map((register) => `${register.workDate}\u0000${register.unit}`));
+    }).from(payrollRegisterItemsTable);
   const existingSources = new Set(savedItems
     .filter((item) => item.sourceId !== null)
     .map((item) => `${item.sourceType}\u0000${item.sourceId}`));
   return [...groups.values()]
-    .filter((group) => !sentKeys.has(`${group.workDate}\u0000${group.unit}`))
     .map((group) => {
       const entries = group.entries
         .filter((entry) => !existingSources.has(`${entry.sourceType}\u0000${entry.sourceId}`))
@@ -403,9 +399,10 @@ router.post("/economic/payroll-registers/send-daily", async (req, res, next): Pr
       return;
     }
     const result = await db.transaction(async (tx: Tx) => {
+      await lockPayrollSources(tx);
       const day = (await calculateAutomaticAccruals(tx))
         .find((candidate) => candidate.workDate === input.workDate && candidate.unit === input.unit.trim());
-      if (!day || day.entries.length === 0) {
+      if (!day) {
         return { error: "За этот день нет начислений для отправки.", status: 409 as const };
       }
       if (day.unassignedCount > 0) {
@@ -416,15 +413,6 @@ router.post("/economic/payroll-registers/send-daily", async (req, res, next): Pr
       }
       if (day.totalAmount > maxRegisterAmount) {
         return { error: "Общая сумма реестра превышает допустимый предел.", status: 400 as const };
-      }
-      const [existing] = await tx.select({ id: payrollRegistersTable.id, status: payrollRegistersTable.status })
-        .from(payrollRegistersTable)
-        .where(and(
-          eq(payrollRegistersTable.workDate, day.workDate),
-          eq(payrollRegistersTable.unit, day.unit),
-        )).for("update");
-      if (existing) {
-        return { error: "Реестр за эту дату и подразделение уже существует.", status: 409 as const };
       }
       const submittedAt = new Date();
       const [register] = await tx.insert(payrollRegistersTable).values({
@@ -454,7 +442,7 @@ router.post("/economic/payroll-registers/send-daily", async (req, res, next): Pr
         userName: actor(access),
       });
       return { id: register.id };
-    }, { isolationLevel: "repeatable read" });
+    });
     if ("error" in result) {
       res.status(result.status ?? 500).json({ error: result.error });
       return;
@@ -467,7 +455,7 @@ router.post("/economic/payroll-registers/send-daily", async (req, res, next): Pr
     res.status(201).json(SendDailyPayrollRegisterResponse.parse(register));
   } catch (error) {
     if (isUniqueViolation(error)) {
-      res.status(409).json({ error: "Реестр за эту дату и подразделение уже существует." });
+      res.status(409).json({ error: "Эти начисления уже отправлены. Обновите реестр." });
       return;
     }
     next(error);

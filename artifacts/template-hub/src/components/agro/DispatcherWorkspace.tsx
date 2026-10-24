@@ -5,6 +5,7 @@ import {
   getGetFieldDispatchQueueQueryKey,
   getGetFieldDashboardQueryKey,
   getGetGrainTransportTripsQueryKey,
+  getListPayrollAccrualsQueryKey,
   type FieldDispatchItem,
   type GrainTransportTrip,
   useGetFieldDispatchQueue,
@@ -108,7 +109,7 @@ function TransportTripRow({ trip, onSaved }: { trip: GrainTransportTrip; onSaved
     setError("");
     try {
       await mutation.mutateAsync({ id: trip.id, data: { rateKzt: parsed } });
-      await queryClient.invalidateQueries({ queryKey: getGetGrainTransportTripsQueryKey() });
+      await Promise.all([queryClient.invalidateQueries({ queryKey: getGetGrainTransportTripsQueryKey() }), queryClient.invalidateQueries({ queryKey: getListPayrollAccrualsQueryKey() })]);
       onSaved();
     } catch (err) { setError(errorInfo(err).message); }
   };
@@ -151,6 +152,7 @@ function FieldOperationRow({ operation, onSaved }: { operation: FieldDispatchIte
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getGetFieldDispatchQueueQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getGetFieldDashboardQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getListPayrollAccrualsQueryKey() }),
       ]);
       onSaved();
     } catch (err) { setError(errorInfo(err).message); }

@@ -5,10 +5,11 @@ import {
   CreateGrainMovementResponse, GetGrainDashboardResponse, GetGrainTransportTripsResponse,
   UpdateGrainTransportRateBody, UpdateGrainTransportRateParams, UpdateGrainTransportRateResponse, type GrainMovementInput,
 } from "@workspace/api-zod";
-import { activityTable, db, grainCropsTable, grainLocationsTable, grainMovementsTable } from "@workspace/db";
+import { activityTable, db, employeesTable, grainCropsTable, grainLocationsTable, grainMovementsTable } from "@workspace/db";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { calculateGrainLedger, grainBusinessDate, grainNameKey, toGrainKg, validGrainDate } from "../lib/grain-ledger";
 import { processingWeights } from "../lib/grain-processing";
+import { grainTripWasSubmitted, lockPayrollSources } from "../lib/payroll-source-guard";
 
 const router: IRouter = Router();
 const readers = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "general_director"];
@@ -60,6 +61,7 @@ async function transportTrips() {
     fieldName: row.fieldName,
     truckNumber: row.truckNumber,
     driverName: row.driverName,
+    driverEmployeeId: row.driverEmployeeId,
     approvalStatus: row.approvalStatus as "pending" | "approved" | "returned",
     rateKzt: row.transportRate === null ? null : Number(row.transportRate),
     rateSetBy: row.transportRateSetBy,
@@ -119,11 +121,15 @@ router.patch("/agro/grain/transport-trips/:id/rate", roles(["dispatcher", "gener
   }
   const access = res.locals.access as RoleAccess;
   const result = await db.transaction(async (tx) => {
+    await lockPayrollSources(tx);
     const [row] = await tx.select().from(grainMovementsTable)
       .where(eq(grainMovementsTable.id, params.data.id)).for("update");
     if (!row) return { error: "Рейс не найден.", status: 404 } as const;
     if (!transportOperations.has(row.operation) || row.voidedAt) {
       return { error: "Расценку можно внести только для действующего рейса по зерну.", status: 409 } as const;
+    }
+    if (await grainTripWasSubmitted(tx, row.id)) {
+      return { error: "Начисление за рейс уже отправлено экономисту. Изменять расценку нельзя.", status: 409 } as const;
     }
     const rateSetAt = new Date();
     const [updated] = await tx.update(grainMovementsTable).set({
@@ -173,7 +179,7 @@ function validateInput(input: GrainMovementInput): string | null {
   if (!validId(input.cropId) || [input.fromLocationId, input.toLocationId, input.wasteToLocationId].some((id) => id != null && !validId(id))) return "Выберите продукцию и корректные места хранения.";
   if (toGrainKg(input.quantityTons) === null) return "Укажите положительный вес в тоннах с точностью до 0,001 т, не более 1 000 000 т за операцию.";
   if (!validGrainDate(input.occurredOn) || input.occurredOn > grainBusinessDate()) return "Укажите корректную дату, не позднее сегодняшней.";
-  if (transportOperations.has(input.operation) && (!input.truckNumber?.trim() || !input.driverName?.trim())) return "Укажите номер КамАЗа и имя водителя для рейса.";
+  if (transportOperations.has(input.operation) && (!input.truckNumber?.trim() || !validId(input.driverEmployeeId ?? 0))) return "Укажите номер КамАЗа и выберите водителя из справочника сотрудников.";
   if ((input.truckNumber?.length ?? 0) > 40 || (input.driverName?.length ?? 0) > 200) return "Проверьте длину номера КамАЗа и имени водителя.";
   if (input.operation === "opening" || input.operation === "receipt") {
     if (input.fromLocationId !== null || input.toLocationId === null) return "Для прихода выберите только место размещения.";
@@ -199,6 +205,12 @@ router.post("/agro/grain/movements", write, safe(async (req, res) => {
     // One lock serializes balance-sensitive writes including backdated entries/cancellations.
     await tx.execute(sql`select pg_advisory_xact_lock(718392005)`);
     const [existing] = await tx.select().from(grainMovementsTable).where(eq(grainMovementsTable.requestId, input.requestId));
+    const [driver] = transportOperations.has(input.operation)
+      ? await tx.select().from(employeesTable).where(eq(employeesTable.id, input.driverEmployeeId!))
+      : [];
+    if (transportOperations.has(input.operation) && (!driver || (!driver.isActive && !existing))) {
+      return { status: 400, error: "Выберите действующего водителя из справочника сотрудников." };
+    }
     const values = {
       requestId: input.requestId, unit: input.unit, operation: input.operation, cropId: input.cropId,
       occurredOn: input.occurredOn, quantityKg: toGrainKg(input.quantityTons)!,
@@ -207,7 +219,8 @@ router.post("/agro/grain/movements", write, safe(async (req, res) => {
       wasteToLocationId: input.wasteToLocationId ?? null,
       fromLocationId: input.fromLocationId, toLocationId: input.toLocationId,
       fieldName: input.fieldName.trim(), counterparty: input.counterparty.trim(), notes: input.notes.trim(),
-      truckNumber: input.truckNumber?.trim() ?? "", driverName: input.driverName?.trim() ?? "",
+      truckNumber: input.truckNumber?.trim() ?? "", driverName: driver?.fullName ?? "",
+      driverEmployeeId: driver?.id ?? null,
     };
     if (existing) {
       const same = existing.createdByUserId === access.userId && Object.entries(values).every(([key, value]) => existing[key as keyof typeof existing] === value);
@@ -306,6 +319,8 @@ router.post("/agro/grain/movements/:id/void", roles(["general_director"]), safe(
     const [row] = await tx.select().from(grainMovementsTable).where(eq(grainMovementsTable.id, id));
     if (!row) return { status: 404, error: "Операция не найдена." };
     if (row.voidedAt) return { row };
+    await lockPayrollSources(tx);
+    if (await grainTripWasSubmitted(tx, row.id)) return { status: 409, error: "Начисление за рейс уже отправлено экономисту. Отмена недоступна." };
     const rows = await tx.select().from(grainMovementsTable).where(and(eq(grainMovementsTable.unit, row.unit), eq(grainMovementsTable.cropId, row.cropId)));
     const stock = calculateGrainLedger(rows.filter((item) => item.id !== row.id));
     if (stock.issue) return { status: 409, error: "Отмена создаст отрицательный остаток. Сначала отмените зависимые продажи или перемещения." };

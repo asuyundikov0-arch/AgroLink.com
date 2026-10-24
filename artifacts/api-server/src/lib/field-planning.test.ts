@@ -8,7 +8,7 @@ const plan = (extra: Partial<FieldOperationInput> = {}): FieldOperationInput => 
   plannedAreaHa: 120.25, plannedRatePerHa: 1100, responsible: "", plannedEquipment: "МТЗ-1221", plannedImplement: "СЗС-2.1", notes: "", ...extra,
 });
 const fact = (extra: Partial<FieldActualInput> = {}): FieldActualInput => ({
-  version: 1, actualStart: "2026-05-03", actualEnd: null, actualAreaHa: 25.75,
+  version: 1, actualStart: "2026-05-03", actualEnd: null, actualAreaHa: 25.75, actualMechanicEmployeeId: null,
   actualOperationName: "Посев", actualMechanic: "Иванов", actualEquipment: "МТЗ-1221", actualImplement: "СЗС-2.1", actualNotes: "", ...extra,
 });
 const state = (extra = {}) => ({

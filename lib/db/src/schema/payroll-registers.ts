@@ -25,7 +25,7 @@ export const payrollRegistersTable = pgTable("payroll_registers", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (table) => [
-  uniqueIndex("payroll_registers_work_date_unit_unique").on(table.workDate, table.unit),
+  index("payroll_registers_work_date_unit_idx").on(table.workDate, table.unit),
   index("payroll_registers_status_date_idx").on(table.status, table.workDate),
 ]);
 
