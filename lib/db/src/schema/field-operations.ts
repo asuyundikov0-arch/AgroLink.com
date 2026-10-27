@@ -1,4 +1,4 @@
-import { date, integer, numeric, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, date, integer, numeric, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { fieldSeasonsTable } from "./field-seasons";
 import { employeesTable } from "./employees";
@@ -9,6 +9,8 @@ export const fieldOperationsTable = pgTable("field_operations", {
   seasonId: integer("season_id").notNull().references(() => fieldSeasonsTable.id, { onDelete: "restrict" }),
   name: text("name").notNull(),
   nameKey: text("name_key").notNull(),
+  isUnplanned: boolean("is_unplanned").notNull().default(false),
+  actualAreaLimitAres: integer("actual_area_limit_ares"),
   plannedStart: date("planned_start", { mode: "string" }).notNull(),
   plannedEnd: date("planned_end", { mode: "string" }).notNull(),
   plannedAreaAres: integer("planned_area_ares").notNull(),
@@ -37,4 +39,4 @@ export const fieldOperationsTable = pgTable("field_operations", {
   version: integer("version").notNull().default(1),
   updatedBy: text("updated_by").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [uniqueIndex("field_operation_active_pass_unique").on(table.seasonId, table.nameKey, table.plannedStart, table.plannedEnd).where(sql`${table.voidedAt} is null`)]);
+}, (table) => [uniqueIndex("field_operation_planned_pass_unique").on(table.seasonId, table.nameKey, table.plannedStart, table.plannedEnd).where(sql`${table.voidedAt} is null and ${table.isUnplanned} = false`)]);

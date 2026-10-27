@@ -21,6 +21,7 @@ import { Drawer, Field, SaveError, UNITS, type Unit, dateFmt, errorInfo, ha, han
 
 type Done = (msg: string) => void;
 const MAX_AREA = 1_000_000;
+const limitOf = (op: FieldOperation) => op.actualAreaLimitHa > 0 ? op.actualAreaLimitHa : op.plannedAreaHa;
 
 function Footer({ pending, conflict, onCancel, prefix, label = "Сохранить" }: { pending: boolean; conflict: boolean; onCancel: () => void; prefix: string; label?: string }) {
   return <>
@@ -380,7 +381,7 @@ export function ActualForm({ op, title, today, fleet, fleetLoading, fleetError, 
       if (!f.implement.trim()) er.implement = "Укажите агрегат";
     } else {
       if (parsed === null) er.area = "Число с точностью до 0,01 га";
-      else if (parsed > op.plannedAreaHa) er.area = `Не больше плана (${ha(op.plannedAreaHa)})`;
+      else if (parsed > limitOf(op)) er.area = `Не больше допустимой площади (${ha(limitOf(op))})`;
       else if (!(parsed > 0)) er.area = "Укажите фактическую площадь";
       if (!f.end) er.end = "Укажите дату завершения";
       if (!f.mechanicId) er.mechanic = "Выберите механизатора из справочника";
@@ -404,14 +405,14 @@ export function ActualForm({ op, title, today, fleet, fleetLoading, fleetError, 
     } catch (err) { handleSaveError(err, true, e.set); }
   };
 
-  const cov = parsed && op.plannedAreaHa > 0 ? (parsed / op.plannedAreaHa) * 100 : 0;
+  const cov = parsed && !op.isUnplanned && op.plannedAreaHa > 0 ? (parsed / op.plannedAreaHa) * 100 : 0;
   return (
     <form onSubmit={submit} noValidate>
       <Drawer title={starting ? "Начать операцию" : op.actualEnd ? "Изменить факт завершения" : "Завершить операцию"} eyebrow={`${title} · версия ${op.version}`} onClose={close} testId="form-actual"
         footer={<Footer pending={pending} conflict={e.conflict} onCancel={close} prefix="actual" label={starting ? "Зафиксировать начало" : "Завершить операцию"} />}>
         <SaveError message={e.saveError} conflict={e.conflict} testId="text-actual-error" />
         <div className="rounded-lg border border-border bg-muted/40 p-3 font-mono text-[11px] leading-5" data-testid="text-actual-plan">
-          План: {dateFmt(op.plannedStart)} – {dateFmt(op.plannedEnd)} · {ha(op.plannedAreaHa)}{op.responsible ? ` · ${op.responsible}` : ""}
+          {op.isUnplanned ? <>Вне плана · допустимо до {ha(limitOf(op))}</> : <>План: {dateFmt(op.plannedStart)} – {dateFmt(op.plannedEnd)} · {ha(op.plannedAreaHa)}{op.responsible ? ` · ${op.responsible}` : ""}</>}
           {op.plannedEquipment && <><br />Техника: {op.plannedEquipment}</>}{op.plannedImplement && <> · агрегат: {op.plannedImplement}</>}
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -488,7 +489,7 @@ export function ProgressForm({ op, title, today, fleet, fleetLoading, fleetError
     const er: Record<string, string> = {};
     if (!reportDate || reportDate < (op.actualStart ?? "") || reportDate > today) er.reportDate = "Дата должна быть между началом операции и сегодняшним днём.";
     if (parsed === null) er.area = "Укажите число с точностью до 0,01 га.";
-    else if (parsed > op.plannedAreaHa) er.area = `Не больше плана (${ha(op.plannedAreaHa)}).`;
+    else if (parsed > limitOf(op)) er.area = `Не больше допустимой площади (${ha(limitOf(op))}).`;
     else if (previous && parsed < previous.cumulativeAreaHa) er.area = `Не меньше предыдущего отчёта (${ha(previous.cumulativeAreaHa)}).`;
     else if (next && parsed > next.cumulativeAreaHa) er.area = `Не больше следующего отчёта (${ha(next.cumulativeAreaHa)}).`;
     if (!f.mechanicId) er.mechanic = "Выберите механизатора из справочника.";
@@ -512,7 +513,7 @@ export function ProgressForm({ op, title, today, fleet, fleetLoading, fleetError
 
   return (
     <form onSubmit={submit} noValidate>
-      <Drawer title={existing ? "Изменить дневной отчёт" : "Отчёт о ходе операции"} eyebrow={`${title} · план ${ha(op.plannedAreaHa)}`} onClose={close} testId="form-operation-progress"
+      <Drawer title={existing ? "Изменить дневной отчёт" : "Отчёт о ходе операции"} eyebrow={`${title} · ${op.isUnplanned ? "вне плана, до" : "план"} ${ha(limitOf(op))}`} onClose={close} testId="form-operation-progress"
         footer={<Footer pending={pending} conflict={e.conflict} onCancel={close} prefix="operation-progress" label={existing ? "Сохранить отчёт" : "Добавить отчёт"} />}>
         <SaveError message={e.saveError} conflict={e.conflict} testId="text-operation-progress-error" />
         <p className="rounded-lg border border-border bg-muted/40 p-3 text-[11px] leading-5 text-muted-foreground">
@@ -522,7 +523,7 @@ export function ProgressForm({ op, title, today, fleet, fleetLoading, fleetError
           <Field label="Дата отчёта *" error={errs.reportDate} htmlFor="pr-date">
             <input id="pr-date" type="date" min={op.actualStart ?? undefined} max={today} className="text-input" value={reportDate} onChange={(event) => chooseDate(event.target.value)} data-testid="input-progress-date" />
           </Field>
-          <Field label="Итого выполнено на дату, га *" error={errs.area} hint={dailyChange !== null ? `Прирост: ${ha(Math.max(0, dailyChange))} · осталось: ${ha(Math.max(0, op.plannedAreaHa - (parsed ?? 0)))}` : undefined} htmlFor="pr-area">
+          <Field label="Итого выполнено на дату, га *" error={errs.area} hint={dailyChange !== null ? `Прирост: ${ha(Math.max(0, dailyChange))} · осталось: ${ha(Math.max(0, limitOf(op) - (parsed ?? 0)))}` : undefined} htmlFor="pr-area">
             <input id="pr-area" className="text-input font-mono" inputMode="decimal" value={f.area} onChange={(event) => setF({ ...f, area: event.target.value })} data-testid="input-progress-cumulative-area" />
           </Field>
           <Field label="Механизатор *" error={errs.mechanic} htmlFor="pr-mechanic">

@@ -202,6 +202,95 @@ export interface FieldProgressReport {
   updatedAt: string;
 }
 
+export interface UnplannedFieldOperationInput {
+  /** @minimum 1 */
+  seasonId: number;
+  /**
+     * @minLength 1
+     * @maxLength 150
+     */
+  name: string;
+  occurredOn: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  areaHa: number;
+  completed: boolean;
+  /** @minimum 1 */
+  employeeId: number;
+  /** @minimum 1 */
+  equipmentId: number;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  implement: string;
+  /** @maxLength 3000 */
+  notes: string;
+}
+
+export interface DailySeedingCrop {
+  cropName: string;
+  dailyAreaHa: number;
+  totalAreaHa: number;
+}
+
+export interface DailySeedingReport {
+  year: number;
+  date: string;
+  /** @nullable */
+  unit: string | null;
+  crops: DailySeedingCrop[];
+  dailyAreaHa: number;
+  totalAreaHa: number;
+}
+
+/**
+ * Stored plan metadata; unplanned actual work has zero planned hectares.
+ */
+export interface FieldOperationRecordPlan {
+  /** @minimum 1 */
+  seasonId: number;
+  /**
+     * @minLength 1
+     * @maxLength 150
+     */
+  name: string;
+  plannedStart: string;
+  plannedEnd: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  plannedAreaHa: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  plannedRatePerHa: number;
+  /** @maxLength 200 */
+  responsible: string;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  plannedMechanicEmployeeId?: number | null;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  plannedEquipmentId?: number | null;
+  /** @maxLength 200 */
+  plannedEquipment: string;
+  /** @maxLength 200 */
+  plannedImplement: string;
+  /** @maxLength 3000 */
+  notes: string;
+  /** @minimum 1 */
+  version: number;
+}
+
 export type FieldOperationStatus = typeof FieldOperationStatus[keyof typeof FieldOperationStatus];
 
 
@@ -212,7 +301,9 @@ export const FieldOperationStatus = {
   cancelled: 'cancelled',
 } as const;
 
-export type FieldOperation = FieldOperationUpdate & FieldActualInput & ({
+export type FieldOperation = FieldOperationRecordPlan & FieldActualInput & ({
+  isUnplanned: boolean;
+  actualAreaLimitHa: number;
   id: number;
   status: FieldOperationStatus;
   isOverdue: boolean;
@@ -1720,6 +1811,12 @@ export interface RoleRequestDecision {
   decision: RoleRequestDecisionDecision;
   reviewComment: string;
 }
+
+export type GetDailySeedingReportParams = {
+year: number;
+date: string;
+unit?: string;
+};
 
 export type ListRepairExpensesParams = {
 fleetId?: number;

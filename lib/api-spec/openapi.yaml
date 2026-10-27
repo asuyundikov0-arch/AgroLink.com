@@ -19,6 +19,35 @@ tags:
   - name: uploads
     description: Protected document upload workflow
 paths:
+  /agro/fields/unplanned-operations:
+    post:
+      operationId: createUnplannedFieldOperation
+      tags: [agro]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UnplannedFieldOperationInput" }
+      responses:
+        "201":
+          description: Unplanned actual field work recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FieldOperation" }
+  /agro/fields/seeding-report:
+    get:
+      operationId: getDailySeedingReport
+      tags: [agro]
+      parameters:
+        - { name: year, in: query, required: true, schema: { type: number } }
+        - { name: date, in: query, required: true, schema: { type: string } }
+        - { name: unit, in: query, required: false, schema: { type: string } }
+      responses:
+        "200":
+          description: Automatic seeding summary by crop, without field numbers
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DailySeedingReport" }
   /agro/fields:
     get:
       operationId: getFieldDashboard
@@ -1439,13 +1468,65 @@ components:
         version: { type: number }
         updatedBy: { type: string }
         updatedAt: { type: string }
+    UnplannedFieldOperationInput:
+      type: object
+      required: [seasonId, name, occurredOn, areaHa, completed, employeeId, equipmentId, implement, notes]
+      properties:
+        seasonId: { type: number, minimum: 1 }
+        name: { type: string, minLength: 1, maxLength: 150 }
+        occurredOn: { type: string }
+        areaHa: { type: number, minimum: 0, maximum: 1000000 }
+        completed: { type: boolean }
+        employeeId: { type: number, minimum: 1 }
+        equipmentId: { type: number, minimum: 1 }
+        implement: { type: string, minLength: 1, maxLength: 200 }
+        notes: { type: string, maxLength: 3000 }
+    DailySeedingCrop:
+      type: object
+      required: [cropName, dailyAreaHa, totalAreaHa]
+      properties:
+        cropName: { type: string }
+        dailyAreaHa: { type: number }
+        totalAreaHa: { type: number }
+    DailySeedingReport:
+      type: object
+      required: [year, date, unit, crops, dailyAreaHa, totalAreaHa]
+      properties:
+        year: { type: number }
+        date: { type: string }
+        unit: { type: ["string", "null"] }
+        crops:
+          type: array
+          items: { $ref: "#/components/schemas/DailySeedingCrop" }
+        dailyAreaHa: { type: number }
+        totalAreaHa: { type: number }
+    FieldOperationRecordPlan:
+      type: object
+      description: Stored plan metadata; unplanned actual work has zero planned hectares.
+      required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, plannedRatePerHa, responsible, plannedEquipment, plannedImplement, notes, version]
+      properties:
+        seasonId: { type: number, minimum: 1 }
+        name: { type: string, minLength: 1, maxLength: 150 }
+        plannedStart: { type: string }
+        plannedEnd: { type: string }
+        plannedAreaHa: { type: number, minimum: 0, maximum: 1000000 }
+        plannedRatePerHa: { type: number, minimum: 0, maximum: 1000000000 }
+        responsible: { type: string, maxLength: 200 }
+        plannedMechanicEmployeeId: { type: ["number", "null"], minimum: 1 }
+        plannedEquipmentId: { type: ["number", "null"], minimum: 1 }
+        plannedEquipment: { type: string, maxLength: 200 }
+        plannedImplement: { type: string, maxLength: 200 }
+        notes: { type: string, maxLength: 3000 }
+        version: { type: number, minimum: 1 }
     FieldOperation:
       allOf:
-        - $ref: "#/components/schemas/FieldOperationUpdate"
+        - $ref: "#/components/schemas/FieldOperationRecordPlan"
         - $ref: "#/components/schemas/FieldActualInput"
         - type: object
-          required: [id, status, isOverdue, progressPercent, progressReports, plannedPayAmount, actualRatePerHa, actualPayAmount, actualRateSetBy, actualRateSetAt, voidedAt, voidReason, voidedBy, updatedAt, updatedBy]
+          required: [id, status, isOverdue, isUnplanned, actualAreaLimitHa, progressPercent, progressReports, plannedPayAmount, actualRatePerHa, actualPayAmount, actualRateSetBy, actualRateSetAt, voidedAt, voidReason, voidedBy, updatedAt, updatedBy]
           properties:
+            isUnplanned: { type: boolean }
+            actualAreaLimitHa: { type: number }
             id: { type: number }
             status: { type: string, enum: [planned, in_progress, completed, cancelled] }
             isOverdue: { type: boolean }

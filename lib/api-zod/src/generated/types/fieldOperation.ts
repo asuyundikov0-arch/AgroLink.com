@@ -6,11 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { FieldActualInput } from './fieldActualInput';
+import type { FieldOperationRecordPlan } from './fieldOperationRecordPlan';
 import type { FieldOperationStatus } from './fieldOperationStatus';
-import type { FieldOperationUpdate } from './fieldOperationUpdate';
 import type { FieldProgressReport } from './fieldProgressReport';
 
-export type FieldOperation = FieldOperationUpdate & FieldActualInput & ({
+export type FieldOperation = FieldOperationRecordPlan & FieldActualInput & ({
+  isUnplanned: boolean;
+  actualAreaLimitHa: number;
   id: number;
   status: FieldOperationStatus;
   isOverdue: boolean;

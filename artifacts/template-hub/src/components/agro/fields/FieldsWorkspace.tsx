@@ -1,11 +1,13 @@
 import { type ReactNode, useMemo, useState } from "react";
-import { Activity, ArrowLeft, Ban, CalendarRange, History, LandPlot, Layers, Pencil, Plus, RefreshCw, Sprout, TriangleAlert } from "lucide-react";
+import { Activity, ArrowLeft, Ban, ClipboardCheck, CalendarRange, History, LandPlot, Layers, Pencil, Plus, RefreshCw, Sprout, TriangleAlert } from "lucide-react";
 import { type AgroField, type FieldOperation, type FieldSeason, getGetFieldDashboardQueryKey, getListFleetEquipmentQueryKey, useGetFieldDashboard, useListFleetEquipment } from "@workspace/api-client-react";
+import { UnplannedForm } from "./UnplannedForm";
+import { type PlanFact, planFactBySeason, planFactSummary } from "./planFact";
 import { ActualForm, FieldForm, OperationForm, ProgressForm, SeasonForm, VoidDialog } from "./Forms";
 import { CropAreaChart } from "./Charts";
-import { Drawer, POLL_MS, Progress, StatusPill, UNITS, type Unit, canActual, canManage, cx, dateFmt, errorInfo, ha, isGD, sumHa } from "./shared";
+import { Drawer, POLL_MS, Progress, StatusPill, UNITS, type Unit, canActual, canManage, cx, dateFmt, errorInfo, ha, haNum, isGD, pctFmt, sumHa } from "./shared";
 
-type View = "history" | "plan" | "inProgress" | "completed";
+type View = "history" | "plan" | "facts" | "inProgress" | "completed";
 type Modal =
   | { k: "field"; field: AgroField | null }
   | { k: "season"; season: FieldSeason | null; fieldId?: number }
@@ -13,7 +15,8 @@ type Modal =
   | { k: "actual"; op: FieldOperation }
   | { k: "progress"; op: FieldOperation }
   | { k: "void"; op: FieldOperation }
-  | { k: "history"; fieldId: number };
+  | { k: "history"; fieldId: number }
+  | { k: "unplanned"; fieldId: number; seasonId: number };
 
 const READ_ROLES = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "general_director"];
 const byNum = (a: AgroField, b: AgroField) => a.unit.localeCompare(b.unit) || a.number.localeCompare(b.number, "ru", { numeric: true });
@@ -33,6 +36,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
   const [view, setView] = useState<View>("history");
   const [modal, setModal] = useState<Modal | null>(null);
   const [planFieldId, setPlanFieldId] = useState<number | null>(null);
+  const [factFieldId, setFactFieldId] = useState<number | null>(null);
   const [notice, setNotice] = useState("");
   const manage = canManage(role);
   const actual = canActual(role);
@@ -55,6 +59,10 @@ export default function FieldsWorkspace({ role }: { role: string }) {
   const yearSeasonIds = useMemo(() => new Set(yearSeasons.map((s) => s.id)), [yearSeasons]);
   const yearOps = useMemo(() => ops.filter((o) => yearSeasonIds.has(o.seasonId)), [ops, yearSeasonIds]);
   const visibleOps = useMemo(() => yearOps.filter((o) => o.status === (view === "plan" ? "planned" : view === "inProgress" ? "in_progress" : "completed")), [yearOps, view]);
+
+  const pfBySeason = useMemo(() => planFactBySeason(yearOps), [yearOps]);
+  const pfTotal = useMemo(() => planFactSummary(yearOps), [yearOps]);
+  const openFacts = (fieldId: number) => { setModal(null); setFactFieldId(fieldId); setView("facts"); };
 
   const prevOf = useMemo(() => {
     const m = new Map<number, FieldSeason | undefined>();
@@ -101,22 +109,35 @@ export default function FieldsWorkspace({ role }: { role: string }) {
       ) : (
         <>
           <div className="flex flex-wrap gap-2" aria-label="Фильтры">
-            <select aria-label="Год" className="text-input !w-auto font-mono" value={year} onChange={(e) => { setYearSel(Number(e.target.value)); setPlanFieldId(null); }} data-testid="select-fields-year">{years.map((y) => <option key={y} value={y}>{y}</option>)}</select>
-            <select aria-label="Хозяйство" className="text-input !w-auto" value={unit} onChange={(e) => { setUnit(e.target.value as Unit | "all"); setPlanFieldId(null); }} data-testid="select-fields-unit"><option value="all">Все хозяйства</option>{UNITS.map((u) => <option key={u}>{u}</option>)}</select>
+            <select aria-label="Год" className="text-input !w-auto font-mono" value={year} onChange={(e) => { setYearSel(Number(e.target.value)); setPlanFieldId(null); setFactFieldId(null); }} data-testid="select-fields-year">{years.map((y) => <option key={y} value={y}>{y}</option>)}</select>
+            <select aria-label="Хозяйство" className="text-input !w-auto" value={unit} onChange={(e) => { setUnit(e.target.value as Unit | "all"); setPlanFieldId(null); setFactFieldId(null); }} data-testid="select-fields-unit"><option value="all">Все хозяйства</option>{UNITS.map((u) => <option key={u}>{u}</option>)}</select>
           </div>
 
           <section className="grid gap-3 lg:grid-cols-[minmax(230px,0.8fr)_minmax(0,1.6fr)]" aria-label="Сводка по площадям">
-            <Kpi icon={<LandPlot size={16} />} label="Общая площадь в обработке" value={ha(rot.seasonArea)} sub="Площадь полей по сезонному плану, без двойного счёта" testId="text-kpi-season-area" />
+            <div className="grid content-start gap-3"><Kpi icon={<LandPlot size={16} />} label="Общая площадь в обработке" value={ha(rot.seasonArea)} sub="Площадь полей по сезонному плану, без двойного счёта" testId="text-kpi-season-area" />
+              <PlanFactBox pf={pfTotal} testId="kpi-plan-fact" /></div>
             <section className="surface-card min-w-0 p-4 sm:p-5" data-testid="section-crop-area">
               <div className="flex items-baseline justify-between gap-2"><h2 className="text-sm font-bold">Площадь по культурам</h2><span className="text-[10.5px] text-muted-foreground">{year}</span></div>
               {rot.crops.length === 0 ? <Empty icon={<Sprout size={18} />} title={`На ${year} год культур нет`} text="Добавьте севооборот в истории поля." testId="status-crop-empty" /> : <div className="mt-2"><CropAreaChart data={rot.crops} /></div>}
             </section>
           </section>
-          {!manage && <p className="text-[11px] text-muted-foreground" data-testid="text-fields-readonly">{actual ? "Вы можете вносить факт в истории поля. Сезоны и планы ведут главный агроном и директора." : "Режим просмотра: ваша роль не вносит изменения."}</p>}
+          <section className="surface-card overflow-hidden" aria-label="План-факт по полям" data-testid="section-field-planfact">
+            <div className="flex items-baseline justify-between gap-2 border-b border-border bg-muted/25 px-4 py-2"><h2 className="text-xs font-bold">План-факт по полям · {year}</h2><span className="text-[10px] text-muted-foreground">% выполненной площади плановых работ; вне плана отдельно</span></div>
+            {scopeFields.length === 0 ? <p className="px-4 py-2.5 text-[11px] text-muted-foreground" data-testid="status-field-planfact-empty">Полей нет.</p> : (
+              <div className="flex max-h-[148px] flex-wrap gap-1.5 overflow-y-auto p-3">
+                {scopeFields.map((f) => { const s = yearSeasons.find((x) => x.fieldId === f.id); return (
+                  <button key={f.id} type="button" onClick={() => { setFactFieldId(f.id); setView("facts"); }} className="min-w-[128px] rounded-md border border-border bg-card px-2 py-1.5 text-left hover:border-[hsl(203_87%_33%)]" data-testid={`card-field-planfact-${f.id}`}>
+                    <p className="font-mono text-[11px] font-bold">№ {f.number}{unit === "all" ? <span className="ml-1 font-sans text-[9.5px] font-normal text-muted-foreground">{f.unit}</span> : null}</p>
+                    {s ? <PlanFactMini pf={pfBySeason.get(s.id)} testId={`text-field-planfact-${f.id}`} /> : <span className="text-[10.5px] text-muted-foreground">нет сезона</span>}
+                  </button>); })}
+              </div>
+            )}
+          </section>
+          {!manage && <p className="text-[11px] text-muted-foreground" data-testid="text-fields-readonly">{actual ? "Факт вносится во вкладке «Фактические работы». Сезоны и планы ведут главный агроном и директора." : "Режим просмотра: ваша роль не вносит изменения."}</p>}
           {notice && <div className="notice-banner" role="status" data-testid="text-fields-notice">{notice}<button type="button" aria-label="Скрыть" onClick={() => setNotice("")} data-testid="button-dismiss-fields-notice">×</button></div>}
 
           <div className="inline-flex max-w-full flex-wrap rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Раздел">
-            {([["history", "История полей"], ["plan", "План агроопераций на сезон"], ["inProgress", "Операции в процессе"], ["completed", "Завершённые операции"]] as const).map(([k, l]) => (
+            {([["history", "История полей"], ["plan", "План агроопераций на сезон"], ["facts", "Фактические работы"], ["inProgress", "Операции в процессе"], ["completed", "Завершённые операции"]] as const).map(([k, l]) => (
               <button key={k} type="button" role="tab" aria-selected={view === k} onClick={() => setView(k)} data-testid={`tab-fields-${k}`}
                 className={cx("rounded-md px-3 py-1.5 text-[11px] font-bold", view === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>{l}</button>
             ))}
@@ -127,11 +148,11 @@ export default function FieldsWorkspace({ role }: { role: string }) {
               <SectionHead title={`История полей · ${year}`} text="План севооборота и операции добавляются в истории конкретного поля." action={manage && <div className="flex flex-wrap gap-2"><button type="button" className="button button-secondary" onClick={() => setModal({ k: "field", field: null })} data-testid="button-new-agro-field"><Plus size={14} />Новое поле</button><button type="button" className="button button-primary" onClick={() => setModal({ k: "season", season: null, fieldId: scopeFields.find((f) => f.isActive)?.id })} disabled={!scopeFields.some((f) => f.isActive)} data-testid="button-new-season-rotation"><Plus size={14} />Севооборот</button></div>} />
               {yearSeasons.length === 0 ? <Empty icon={<Layers size={18} />} title="Сезонов нет" text={fields.length === 0 ? manage ? "Добавьте поля прямо в истории полей." : "Поля пока не внесены." : `На ${year} год по выбранным фильтрам сезонов нет.`} testId="status-rotation-empty" /> : (
                 <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-xs">
-                  <thead className="border-b border-border bg-muted/20 text-left text-[10.5px] text-muted-foreground"><tr><th className="px-4 py-2 font-semibold">Поле</th><th className="font-semibold">Предшественник</th><th className="font-semibold">Культура · сорт</th><th className="text-right font-semibold">Площадь</th><th className="pl-4 font-semibold">Работы</th><th className="px-4" /></tr></thead>
+                  <thead className="border-b border-border bg-muted/20 text-left text-[10.5px] text-muted-foreground"><tr><th className="px-4 py-2 font-semibold">Поле</th><th className="font-semibold">Предшественник</th><th className="font-semibold">Культура · сорт</th><th className="text-right font-semibold">Площадь</th><th className="pl-4 font-semibold">Работы</th><th className="pl-3 font-semibold">План-факт</th><th className="px-4" /></tr></thead>
                   <tbody className="divide-y divide-border/70">
                     {[...yearSeasons].sort((a, b) => byNum(fieldById.get(a.fieldId)!, fieldById.get(b.fieldId)!)).map((s) => {
                       const f = fieldById.get(s.fieldId); const p = prevOf.get(s.id);
-                      const so = ops.filter((o) => o.seasonId === s.id && o.status !== "cancelled");
+                      const so = ops.filter((o) => o.seasonId === s.id && o.status !== "cancelled" && !o.isUnplanned);
                       return (
                         <tr key={s.id} data-testid={`row-season-${s.id}`}>
                           <td className="px-4 py-2.5"><p className="font-mono font-bold">№ {f?.number}</p><p className="text-[10.5px] text-muted-foreground">{f?.unit}{f && !f.isActive ? " · архив" : ""}</p></td>
@@ -139,6 +160,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
                           <td><p className="font-semibold">{s.cropName}</p>{s.variety && <p className="text-[10.5px] text-muted-foreground">{s.variety}</p>}</td>
                           <td className="text-right font-mono">{ha(s.areaHa)}{f && s.areaHa < f.areaHa && <p className="text-[10px] text-muted-foreground">из {ha(f.areaHa)}</p>}</td>
                           <td className="pl-4 text-[11px] text-muted-foreground">{so.length ? `${so.filter((o) => o.status === "completed").length}/${so.length} заверш.` : "нет"}</td>
+                          <td className="pl-3"><PlanFactMini pf={pfBySeason.get(s.id)} testId={`text-season-planfact-${s.id}`} /></td>
                           <td className="px-4"><div className="flex justify-end gap-1.5">
                             <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => setModal({ k: "history", fieldId: s.fieldId })} aria-label="История поля" data-testid={`button-history-season-${s.id}`}><History size={13} />История</button>
                             {manage && f?.isActive && <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => setModal({ k: "op", op: null, seasonId: s.id })} data-testid={`button-add-op-season-${s.id}`}><Plus size={13} />План операции</button>}
@@ -170,7 +192,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-2 p-4 sm:p-5">
                     {scopeFields.map((f) => {
                       const s = yearSeasons.find((x) => x.fieldId === f.id);
-                      const n = s ? ops.filter((o) => o.seasonId === s.id && o.status !== "cancelled").length : 0;
+                      const n = s ? ops.filter((o) => o.seasonId === s.id && o.status !== "cancelled" && !o.isUnplanned).length : 0;
                       return <button key={f.id} type="button" onClick={() => setPlanFieldId(f.id)} data-testid={`button-plan-open-field-${f.id}`}
                         className={cx("rounded-lg border p-2.5 text-left transition-colors hover:border-[hsl(203_87%_33%)]", s ? "border-border bg-card" : "border-dashed border-border bg-muted/20")}>
                         <p className="font-mono text-sm font-bold">№ {f.number}</p>
@@ -183,7 +205,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
               </section>
             );
             const s = yearSeasons.find((x) => x.fieldId === pf.id);
-            const so = s ? ops.filter((o) => o.seasonId === s.id && o.status !== "cancelled").sort((a, b) => a.plannedStart.localeCompare(b.plannedStart) || a.id - b.id) : [];
+            const so = s ? ops.filter((o) => o.seasonId === s.id && o.status !== "cancelled" && !o.isUnplanned).sort((a, b) => a.plannedStart.localeCompare(b.plannedStart) || a.id - b.id) : [];
             return (
               <section className="surface-card overflow-hidden" data-testid="section-plan-field-schedule">
                 <div className="flex flex-col gap-2 border-b border-border bg-muted/25 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
@@ -215,28 +237,37 @@ export default function FieldsWorkspace({ role }: { role: string }) {
             );
           })()}
 
+          {view === "facts" && <FactsView
+            year={year} unitAll={unit === "all"} scopeFields={scopeFields} yearSeasons={yearSeasons} ops={ops} pfBySeason={pfBySeason} role={role}
+            fieldId={factFieldId !== null && scopeIds.has(factFieldId) ? factFieldId : null} onPick={setFactFieldId}
+            onHistory={(fieldId) => setModal({ k: "history", fieldId })}
+            onActual={(op) => setModal({ k: "actual", op })} onProgress={(op) => setModal({ k: "progress", op })} onVoid={(op) => setModal({ k: "void", op })}
+            onUnplanned={(fieldId, seasonId) => setModal({ k: "unplanned", fieldId, seasonId })}
+          />}
+
           {(view === "inProgress" || view === "completed") && (
             <section className="surface-card overflow-hidden" data-testid="section-operations">
               <SectionHead
                 title={(view as View) === "plan" ? `План агроопераций на сезон · ${year}` : view === "inProgress" ? `Операции в процессе · ${year}` : `Завершённые операции · ${year}`}
-                text={(view as View) === "plan" ? "Создание и изменение планов доступно только в истории поля." : "Откройте историю поля, чтобы внести или исправить факт."}
+                text="Только просмотр. Факт вносится и исправляется во вкладке «Фактические работы»."
               />
               {visibleOps.length === 0 ? <Empty icon={<CalendarRange size={18} />} title={(view as View) === "plan" ? "Плановых операций нет" : view === "inProgress" ? "Операций в процессе нет" : "Завершённых операций нет"} text={(view as View) === "plan" ? "Добавьте план из истории соответствующего поля." : "Операции появятся здесь после обновления их статуса в истории поля."} testId="status-operations-empty" /> : (
                 <div className="overflow-x-auto"><table className="w-full min-w-[1080px] text-xs">
                   <thead className="border-b border-border bg-muted/20 text-left text-[10.5px] text-muted-foreground"><tr><th className="px-4 py-2 font-semibold">Операция · поле</th><th className="font-semibold">Статус</th><th className="font-semibold">План · техника</th><th className="font-semibold">Факт · исполнитель</th><th className="font-semibold">Выполнено</th><th className="px-4" /></tr></thead>
                   <tbody className="divide-y divide-border/70">
-                    {[...visibleOps].sort((a, b) => a.plannedStart.localeCompare(b.plannedStart) || a.id - b.id).map((o) => {
+                    {[...visibleOps].sort((a, b) => sortKey(a).localeCompare(sortKey(b)) || a.id - b.id).map((o) => {
                       const s = seasonById.get(o.seasonId); const f = s && fieldById.get(s.fieldId);
                       return (
                         <tr key={o.id} data-testid={`row-operation-${o.id}`}>
                           <td className="px-4 py-2.5"><p className="font-bold">{o.name}</p>{o.actualOperationName && o.actualOperationName !== o.name && <p className="text-[10.5px] text-muted-foreground">Факт: {o.actualOperationName}</p>}<p className="text-[10.5px] text-muted-foreground">№ {f?.number} · {s?.cropName} · {f?.unit}{o.responsible ? ` · ${o.responsible}` : ""}</p>
                           </td>
                           <td><StatusPill op={o} /></td>
-                          <td className="text-[10.5px] leading-5"><span className="font-mono">{dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)}<br />{ha(o.plannedAreaHa)}</span><p className="font-semibold">План: {o.plannedRatePerHa > 0 ? `${kzt(o.plannedRatePerHa)}/га · ${kzt(o.plannedPayAmount)}` : "расценка не задана"}</p>{o.plannedEquipment && <p>Техника: {o.plannedEquipment}</p>}{o.plannedImplement && <p className="text-muted-foreground">Агрегат: {o.plannedImplement}</p>}</td>
+                          <td className="text-[10.5px] leading-5">{o.isUnplanned ? <UnplannedTag /> : <><span className="font-mono">{dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)}<br />{ha(o.plannedAreaHa)}</span><p className="font-semibold">План: {o.plannedRatePerHa > 0 ? `${kzt(o.plannedRatePerHa)}/га · ${kzt(o.plannedPayAmount)}` : "расценка не задана"}</p>{o.plannedEquipment && <p>Техника: {o.plannedEquipment}</p>}{o.plannedImplement && <p className="text-muted-foreground">Агрегат: {o.plannedImplement}</p>}</>}</td>
                           <td className="text-[10.5px] leading-5"><span className="font-mono">{dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)}<br />{ha(o.actualAreaHa)}</span>{o.actualEnd && <p className="font-semibold">{o.actualRatePerHa === null ? "Ожидает расценки диспетчера" : `Факт: ${kzt(o.actualRatePerHa)}/га · ${kzt(o.actualPayAmount)}`}</p>}{o.actualStart && <><p>{o.actualMechanic}</p><p className="text-muted-foreground">{o.actualEquipment}{o.actualImplement ? ` · ${o.actualImplement}` : ""}</p></>}{o.progressReports.at(-1) && <p className="text-muted-foreground">Отчёт {dateFmt(o.progressReports.at(-1)!.reportDate)} · +{ha(o.progressReports.at(-1)!.dailyAreaHa)}</p>}</td>
-                          <td><Progress value={o.progressPercent} label={`Выполнено ${o.name}`} /></td>
+                          <td>{o.isUnplanned ? <span className="font-mono text-[11px] font-bold">{ha(o.actualAreaHa)}</span> : <Progress value={o.progressPercent} label={`Выполнено ${o.name}`} />}</td>
                           <td className="px-4"><div className="flex justify-end gap-1.5">
                             {f && <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => setModal({ k: "history", fieldId: f.id })} data-testid={`button-open-history-op-${o.id}`}><History size={13} />История поля</button>}
+                            {f && <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => openFacts(f.id)} data-testid={`button-open-facts-op-${o.id}`}><ClipboardCheck size={13} />К факту</button>}
                           </div></td>
                         </tr>
                       );
@@ -252,6 +283,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
           {modal?.k === "actual" && <ActualForm op={modal.op} title={opTitle(modal.op)} today={today} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "progress" && <ProgressForm op={modal.op} title={opTitle(modal.op)} today={today} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "void" && <VoidDialog op={modal.op} title={opTitle(modal.op)} onClose={() => setModal(null)} onDone={done} />}
+          {modal?.k === "unplanned" && fieldById.get(modal.fieldId) && seasonById.get(modal.seasonId) && <UnplannedForm field={fieldById.get(modal.fieldId)!} season={seasonById.get(modal.seasonId)!} today={today} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} operationSuggestions={d.operationSuggestions} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "history" && fieldById.get(modal.fieldId) && <FieldHistory
             field={fieldById.get(modal.fieldId)!} role={role} seasons={seasons} ops={ops} onClose={() => setModal(null)}
             onAddSeason={(fieldId) => setModal({ k: "season", season: null, fieldId })}
@@ -259,9 +291,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
             onEditSeason={(season) => setModal({ k: "season", season, fieldId: season.fieldId })}
             onEditField={(field) => setModal({ k: "field", field })}
             onEditOperation={(op) => setModal({ k: "op", op })}
-            onActual={(op) => setModal({ k: "actual", op })}
-            onProgress={(op) => setModal({ k: "progress", op })}
-            onVoid={(op) => setModal({ k: "void", op })}
+            onOpenFacts={openFacts}
           />}
         </>
       )}
@@ -269,7 +299,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
   );
 }
 
-function FieldHistory({ field, role, seasons, ops, onClose, onAddSeason, onAddOperation, onEditSeason, onEditField, onEditOperation, onActual, onProgress, onVoid }: {
+function FieldHistory({ field, role, seasons, ops, onClose, onAddSeason, onAddOperation, onEditSeason, onEditField, onEditOperation, onOpenFacts }: {
   field: AgroField;
   role: string;
   seasons: FieldSeason[];
@@ -280,21 +310,18 @@ function FieldHistory({ field, role, seasons, ops, onClose, onAddSeason, onAddOp
   onEditSeason: (season: FieldSeason) => void;
   onEditField: (field: AgroField) => void;
   onEditOperation: (op: FieldOperation) => void;
-  onActual: (op: FieldOperation) => void;
-  onProgress: (op: FieldOperation) => void;
-  onVoid: (op: FieldOperation) => void;
+  onOpenFacts: (fieldId: number) => void;
 }) {
   const list = seasons.filter((s) => s.fieldId === field.id).sort((a, b) => b.year - a.year);
   const manage = canManage(role);
   const actual = canActual(role);
-  const gd = isGD(role);
   return (
     <Drawer title={`История поля № ${field.number}`} eyebrow={`${field.unit} · ${ha(field.areaHa)}${field.isActive ? "" : " · архив"}`} onClose={onClose} testId="drawer-field-history"
       footer={<div className="flex w-full flex-wrap justify-between gap-2">{manage && <div className="flex flex-wrap gap-2"><button type="button" className="button button-secondary" onClick={() => onEditField(field)} data-testid={`button-edit-field-history-${field.id}`}><Pencil size={13} />Изменить поле</button>{field.isActive && <button type="button" className="button button-primary" onClick={() => onAddSeason(field.id)} data-testid={`button-add-season-history-${field.id}`}><Plus size={14} />Добавить сезон</button>}</div>}<button type="button" className="button button-secondary" onClick={onClose} data-testid="button-close-history">Закрыть</button></div>}>
       {field.notes && <p className="text-xs text-muted-foreground">{field.notes}</p>}
       {list.length === 0 ? <Empty icon={<History size={18} />} title="Истории пока нет" text={manage && field.isActive ? "Добавьте сезон, чтобы записать культуру и плановые операции." : "По полю ещё не внесено ни одного сезона."} testId="status-history-empty" /> : (
         <ol className="space-y-4">{list.map((s, i) => {
-          const so = ops.filter((o) => o.seasonId === s.id).sort((a, b) => a.plannedStart.localeCompare(b.plannedStart));
+          const so = ops.filter((o) => o.seasonId === s.id).sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
           const prev = list[i + 1];
           return (
             <li key={s.id} className="rounded-xl border border-border p-3.5" data-testid={`history-season-${s.id}`}>
@@ -309,8 +336,8 @@ function FieldHistory({ field, role, seasons, ops, onClose, onAddSeason, onAddOp
                 <ul className="mt-2 divide-y divide-border/60 border-t border-border/60">{so.map((o) => (
                   <li key={o.id} className="py-2 text-[11px]" data-testid={`history-op-${o.id}`}>
                     <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{o.name}</span><StatusPill op={o} /></div>
-                    <p className="font-mono text-[10.5px] text-muted-foreground">план {dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)} · {ha(o.plannedAreaHa)} | факт {dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)} · {ha(o.actualAreaHa)}</p>
-                    <p className="text-[10.5px]">Плановая расценка: {o.plannedRatePerHa > 0 ? `${kzt(o.plannedRatePerHa)}/га · сумма по плану ${kzt(o.plannedPayAmount)}` : "не задана"}</p>
+                    {o.isUnplanned && <UnplannedTag />}<p className="font-mono text-[10.5px] text-muted-foreground">{o.isUnplanned ? "вне плана" : `план ${dateFmt(o.plannedStart)} – ${dateFmt(o.plannedEnd)} · ${ha(o.plannedAreaHa)}`} | факт {dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)} · {ha(o.actualAreaHa)}</p>
+                    {!o.isUnplanned && <p className="text-[10.5px]">Плановая расценка: {o.plannedRatePerHa > 0 ? `${kzt(o.plannedRatePerHa)}/га · сумма по плану ${kzt(o.plannedPayAmount)}` : "не задана"}</p>}
                     {o.actualEnd && <p className="text-[10.5px]">{o.actualRatePerHa === null ? "Ожидает фактической расценки диспетчера" : `Факт: ${kzt(o.actualRatePerHa)}/га · к начислению ${kzt(o.actualPayAmount)}`}</p>}
                     {(o.plannedEquipment || o.plannedImplement) && <p className="text-muted-foreground">Плановая техника: {o.plannedEquipment || "не указана"} · агрегат: {o.plannedImplement || "не указан"}</p>}
                     {o.actualStart && <p>Факт: {o.actualOperationName || o.name} · механизатор {o.actualMechanic || "не указан"} · {o.actualEquipment || "техника не указана"} · {o.actualImplement || "агрегат не указан"}</p>}
@@ -320,14 +347,8 @@ function FieldHistory({ field, role, seasons, ops, onClose, onAddSeason, onAddOp
                     {o.actualNotes && <p>Факт: {o.actualNotes}</p>}
                     {o.voidedAt && <p className="text-destructive">Отменена {dateFmt(o.voidedAt)} · {o.voidedBy}: {o.voidReason}</p>}
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {manage && o.status !== "cancelled" && <button type="button" className="button button-secondary !min-h-[28px] !px-2 text-[10px]" onClick={() => onEditOperation(o)} data-testid={`button-edit-operation-history-${o.id}`}><Pencil size={12} />Изменить план</button>}
-                      {actual && o.status !== "cancelled" && !o.actualStart && <button type="button" className="button button-secondary !min-h-[28px] !px-2 text-[10px]" onClick={() => onActual(o)} data-testid={`button-start-operation-history-${o.id}`}><Activity size={12} />Начать</button>}
-                      {actual && o.status !== "cancelled" && !!o.actualStart && !o.actualEnd && <>
-                        <button type="button" className="button button-secondary !min-h-[28px] !px-2 text-[10px]" onClick={() => onProgress(o)} data-testid={`button-progress-operation-history-${o.id}`}><Activity size={12} />Отчёт</button>
-                        <button type="button" className="button button-secondary !min-h-[28px] !px-2 text-[10px]" onClick={() => onActual(o)} data-testid={`button-finish-operation-history-${o.id}`}>Завершить</button>
-                      </>}
-                      {actual && o.status !== "cancelled" && !!o.actualEnd && <button type="button" className="button button-secondary !min-h-[28px] !px-2 text-[10px]" onClick={() => onActual(o)} data-testid={`button-edit-actual-history-${o.id}`}><Activity size={12} />Изменить факт</button>}
-                      {gd && o.status !== "cancelled" && <button type="button" className="button button-danger border !min-h-[28px] !px-2 text-[10px]" onClick={() => onVoid(o)} data-testid={`button-cancel-operation-history-${o.id}`}><Ban size={12} />Отменить</button>}
+                      {manage && o.status !== "cancelled" && !o.isUnplanned && <button type="button" className="button button-secondary !min-h-[28px] !px-2 text-[10px]" onClick={() => onEditOperation(o)} data-testid={`button-edit-operation-history-${o.id}`}><Pencil size={12} />Изменить план</button>}
+                      {actual && o.status !== "cancelled" && field.isActive && <button type="button" className="button button-secondary !min-h-[28px] !px-2 text-[10px]" onClick={() => onOpenFacts(field.id)} data-testid={`button-facts-operation-history-${o.id}`}><ClipboardCheck size={12} />В фактические работы</button>}
                     </div>
                   </li>
                 ))}</ul>
@@ -359,5 +380,112 @@ function Kpi({ icon, label, value, sub, testId }: { icon: ReactNode; label: stri
       <p className="mt-2 truncate font-mono text-lg font-bold" title={value} data-testid={testId}>{value}</p>
       <p className="mt-0.5 truncate text-[10.5px] text-muted-foreground" title={sub}>{sub}</p>
     </div>
+  );
+}
+
+const sortKey = (o: FieldOperation) => (o.isUnplanned ? o.actualStart ?? "" : o.plannedStart) ?? "";
+
+function UnplannedTag() {
+  return <span className="inline-flex whitespace-nowrap rounded-full bg-[hsl(38_92%_50%/.14)] px-2 py-0.5 text-[10px] font-bold text-[hsl(30_80%_30%)]">Вне плана</span>;
+}
+
+function PlanFactMini({ pf, testId }: { pf?: PlanFact; testId: string }) {
+  if (!pf) return <span className="text-[10.5px] text-muted-foreground" data-testid={testId}>Нет плана</span>;
+  return (
+    <div className="text-[10.5px] leading-4" data-testid={testId}>
+      {pf.percent === null ? <span className="text-muted-foreground">Нет плана</span> : <span className="font-mono font-bold">{pctFmt(pf.percent)}</span>}
+      {pf.percent !== null && <span className="text-muted-foreground"> · {haNum(pf.doneHa)}/{ha(pf.plannedHa)}</span>}
+      {pf.unplannedHa > 0 && <p className="text-[hsl(30_80%_30%)]">вне плана {ha(pf.unplannedHa)}</p>}
+    </div>
+  );
+}
+
+function PlanFactBox({ pf, testId }: { pf: PlanFact; testId: string }) {
+  return (
+    <div className="surface-card min-w-0 p-3.5 sm:p-4" data-testid={testId}>
+      <div className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground"><ClipboardCheck size={16} /><span className="truncate">Выполнено площади по плановым работам</span></div>
+      <p className="mt-2 font-mono text-lg font-bold" data-testid={`${testId}-percent`}>{pf.percent === null ? "Нет плана" : pctFmt(pf.percent)}</p>
+      <p className="mt-0.5 text-[10.5px] text-muted-foreground">{pf.percent === null ? "Плановых операций нет" : `${ha(pf.doneHa)} из ${ha(pf.plannedHa)} по плану`}</p>
+      <p className="text-[10.5px] text-[hsl(30_80%_30%)]" data-testid={`${testId}-unplanned`}>Вне плана: {ha(pf.unplannedHa)} (не входит в процент)</p>
+    </div>
+  );
+}
+
+function FactsView({ year, unitAll, scopeFields, yearSeasons, ops, pfBySeason, role, fieldId, onPick, onHistory, onActual, onProgress, onVoid, onUnplanned }: {
+  year: number; unitAll: boolean; scopeFields: AgroField[]; yearSeasons: FieldSeason[]; ops: FieldOperation[]; pfBySeason: Map<number, PlanFact>; role: string;
+  fieldId: number | null; onPick: (id: number | null) => void; onHistory: (fieldId: number) => void;
+  onActual: (op: FieldOperation) => void; onProgress: (op: FieldOperation) => void; onVoid: (op: FieldOperation) => void; onUnplanned: (fieldId: number, seasonId: number) => void;
+}) {
+  const actual = canActual(role);
+  const gd = isGD(role);
+  const f = fieldId !== null ? scopeFields.find((x) => x.id === fieldId) : undefined;
+  if (!f) return (
+    <section className="surface-card overflow-hidden" data-testid="section-facts-fields">
+      <SectionHead title={`Фактические работы · ${year}`} text="Выберите поле, чтобы внести выполненные операции — по плану или вне плана." />
+      {scopeFields.length === 0 ? <Empty icon={<LandPlot size={18} />} title="Полей нет" text="По выбранному хозяйству поля не внесены." testId="status-facts-fields-empty" /> : (
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2 p-4 sm:p-5">
+          {scopeFields.map((x) => {
+            const s = yearSeasons.find((y) => y.fieldId === x.id);
+            return <button key={x.id} type="button" onClick={() => onPick(x.id)} data-testid={`button-facts-open-field-${x.id}`}
+              className={cx("rounded-lg border p-2.5 text-left transition-colors hover:border-[hsl(203_87%_33%)]", s ? "border-border bg-card" : "border-dashed border-border bg-muted/20")}>
+              <p className="font-mono text-sm font-bold">№ {x.number}</p>
+              <p className="truncate text-[10.5px] text-muted-foreground">{s ? s.cropName : "нет сезона"}{unitAll ? ` · ${x.unit}` : ""}{x.isActive ? "" : " · архив"}</p>
+              {s && <div className="mt-1"><PlanFactMini pf={pfBySeason.get(s.id)} testId={`text-facts-planfact-${x.id}`} /></div>}
+            </button>;
+          })}
+        </div>
+      )}
+    </section>
+  );
+  const s = yearSeasons.find((y) => y.fieldId === f.id);
+  const so = s ? ops.filter((o) => o.seasonId === s.id && o.status !== "cancelled") : [];
+  const started = so.filter((o) => !!o.actualStart).sort((a, b) => (b.actualStart ?? "").localeCompare(a.actualStart ?? "") || b.id - a.id);
+  const notStarted = so.filter((o) => !o.actualStart && !o.isUnplanned).sort((a, b) => a.plannedStart.localeCompare(b.plannedStart) || a.id - b.id);
+  const canWrite = actual && f.isActive && !!s;
+  const btn = "button button-secondary !min-h-[28px] !px-2 text-[10px]";
+  return (
+    <section className="surface-card overflow-hidden" data-testid="section-facts-field">
+      <div className="flex flex-col gap-2 border-b border-border bg-muted/25 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="flex items-center gap-3">
+          <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => onPick(null)} data-testid="button-facts-back-fields"><ArrowLeft size={13} />К полям</button>
+          <div><h2 className="text-sm font-bold">Факт · поле № {f.number} · {year}</h2><p className="text-[11px] text-muted-foreground">{f.unit}{s ? ` · ${s.cropName} · ${ha(s.areaHa)}` : ""}</p></div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {s && <PlanFactMini pf={pfBySeason.get(s.id)} testId={`text-facts-field-planfact-${f.id}`} />}
+          <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => onHistory(f.id)} data-testid={`button-facts-history-${f.id}`}><History size={13} />История</button>
+          {canWrite && <button type="button" className="button button-primary !min-h-[30px] !px-2 text-[11px]" onClick={() => onUnplanned(f.id, s!.id)} data-testid={`button-facts-unplanned-${f.id}`}><Plus size={13} />Внеплановая операция</button>}
+        </div>
+      </div>
+      {!actual && <p className="border-b border-border px-4 py-2 text-[11px] text-muted-foreground sm:px-5" data-testid="text-facts-readonly">Режим просмотра: факт вносят агроном и генеральный директор.</p>}
+      {!s ? <Empty icon={<Layers size={18} />} title={`На ${year} год сезона нет`} text="Без сезона поля факт внести нельзя. Сезон добавляет главный агроном." testId="status-facts-no-season" /> : <>
+        <div className="px-4 pt-4 sm:px-5"><h3 className="text-xs font-bold">Выполняемые и выполненные</h3></div>
+        {started.length === 0 ? <p className="px-4 py-3 text-[11px] text-muted-foreground sm:px-5" data-testid="status-facts-started-empty">Фактических работ пока нет.</p> : (
+          <div className="overflow-x-auto"><table className="mt-2 w-full min-w-[760px] text-xs">
+            <thead className="border-y border-border bg-muted/20 text-left text-[10.5px] text-muted-foreground"><tr><th className="px-4 py-2 font-semibold">Операция</th><th className="font-semibold">Факт · исполнитель</th><th className="font-semibold">Выполнено</th><th className="px-4" /></tr></thead>
+            <tbody className="divide-y divide-border/70">{started.map((o) => (
+              <tr key={o.id} data-testid={`row-fact-op-${o.id}`}>
+                <td className="px-4 py-2.5"><p className="font-bold">{o.actualOperationName || o.name}</p><div className="mt-0.5 flex flex-wrap gap-1">{o.isUnplanned ? <UnplannedTag /> : null}<StatusPill op={o} /></div></td>
+                <td className="text-[10.5px] leading-5"><span className="font-mono">{dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)}</span><p>{o.actualMechanic || "механизатор не указан"}</p><p className="text-muted-foreground">{o.actualEquipment}{o.actualImplement ? ` · ${o.actualImplement}` : ""}</p>
+                  {o.progressReports.at(-1) && <p className="text-muted-foreground">Отчёт {dateFmt(o.progressReports.at(-1)!.reportDate)} · +{ha(o.progressReports.at(-1)!.dailyAreaHa)}</p>}</td>
+                <td>{o.isUnplanned ? <span className="font-mono text-[11px] font-bold">{ha(o.actualAreaHa)}</span> : <><Progress value={o.progressPercent} label={`Выполнено ${o.name}`} /><p className="font-mono text-[10px] text-muted-foreground">{ha(o.actualAreaHa)} из {ha(o.plannedAreaHa)}</p></>}</td>
+                <td className="px-4"><div className="flex flex-wrap justify-end gap-1.5">
+                  {canWrite && !o.actualEnd && <><button type="button" className={btn} onClick={() => onProgress(o)} data-testid={`button-fact-progress-${o.id}`}><Activity size={12} />Отчёт за день</button><button type="button" className={btn} onClick={() => onActual(o)} data-testid={`button-fact-finish-${o.id}`}>Завершить</button></>}
+                  {canWrite && !!o.actualEnd && <button type="button" className={btn} onClick={() => onActual(o)} data-testid={`button-fact-edit-${o.id}`}><Pencil size={12} />Изменить факт</button>}
+                  {gd && <button type="button" className="button button-danger border !min-h-[28px] !px-2 text-[10px]" onClick={() => onVoid(o)} data-testid={`button-fact-void-${o.id}`}><Ban size={12} />Отменить</button>}
+                </div></td>
+              </tr>
+            ))}</tbody></table></div>
+        )}
+        <div className="border-t border-border px-4 pt-4 sm:px-5"><h3 className="text-xs font-bold">Плановые, ещё не начатые</h3></div>
+        {notStarted.length === 0 ? <p className="px-4 py-3 text-[11px] text-muted-foreground sm:px-5" data-testid="status-facts-notstarted-empty">Все плановые операции начаты или план пуст.</p> : (
+          <ul className="divide-y divide-border/70 px-4 pb-3 sm:px-5">{notStarted.map((o) => (
+            <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-xs" data-testid={`row-fact-planned-${o.id}`}>
+              <div><p className="font-semibold">{o.name} <StatusPill op={o} /></p><p className="font-mono text-[10.5px] text-muted-foreground">план {dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)} · {ha(o.plannedAreaHa)}{o.responsible ? ` · ${o.responsible}` : ""}</p></div>
+              {canWrite && <button type="button" className={btn} onClick={() => onActual(o)} data-testid={`button-fact-start-${o.id}`}><Activity size={12} />Начать по плану</button>}
+            </li>
+          ))}</ul>
+        )}
+      </>}
+    </section>
   );
 }

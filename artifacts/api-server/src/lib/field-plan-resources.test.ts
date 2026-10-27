@@ -2,11 +2,43 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, test } from "node:test";
 import { eq } from "drizzle-orm";
-import { db, pool, employeesTable, fleetEquipmentTable } from "@workspace/db";
+import { agroFieldsTable, db, pool, employeesTable, fieldOperationsTable, fieldSeasonsTable, fleetEquipmentTable } from "@workspace/db";
+import { CreateFieldOperationBody } from "@workspace/api-zod";
 import type { FieldOperationInput } from "@workspace/api-zod";
-import { plannedResources } from "../routes/agro-fields";
+import { operationJson, plannedResources } from "../routes/agro-fields";
 
 after(() => pool.end());
+test("unplanned fact responses allow zero plan hectares without relaxing plan-creation constraints", async () => {
+  const rollback = new Error("rollback-response-fixtures");
+  await assert.rejects(db.transaction(async (tx) => {
+    const key = randomUUID();
+    const [field] = await tx.insert(agroFieldsTable).values({
+      unit: "test", number: key, numberKey: key, areaAres: 10000, updatedBy: "test",
+    }).returning();
+    const [season] = await tx.insert(fieldSeasonsTable).values({
+      fieldId: field.id, year: 2026, cropName: "Пшеница", areaAres: 10000, updatedBy: "test",
+    }).returning();
+    const [row] = await tx.insert(fieldOperationsTable).values({
+      seasonId: season.id, name: "Посев", nameKey: "посев", isUnplanned: true,
+      plannedStart: "2026-05-01", plannedEnd: "2026-05-01", plannedAreaAres: 0,
+      actualAreaLimitAres: 10000, actualStart: "2026-05-01", actualEnd: "2026-05-01",
+      actualAreaAres: 500, actualOperationName: "Посев", updatedBy: "test",
+    }).returning();
+    const response = operationJson(row, "2026-05-02");
+    assert.equal(response.plannedAreaHa, 0);
+    assert.equal(response.actualAreaHa, 5);
+    assert.equal(response.actualAreaLimitHa, 100);
+    assert.equal(response.isUnplanned, true);
+    assert.equal(response.status, "completed");
+    assert.equal(response.isOverdue, false);
+    assert.equal(CreateFieldOperationBody.safeParse({
+      seasonId: season.id, name: "Посев", plannedStart: "2026-05-01", plannedEnd: "2026-05-01",
+      plannedAreaHa: 0, plannedRatePerHa: 1100, responsible: "Механизатор",
+      plannedEquipment: "Трактор", plannedImplement: "Сеялка", notes: "",
+    }).success, false);
+    throw rollback;
+  }), (error) => error === rollback);
+});
 test("season plans resolve real directory identities and reject missing or wrong-farm resources", async () => {
   const rollback = new Error("rollback-test-fixtures");
   await assert.rejects(db.transaction(async (tx) => {

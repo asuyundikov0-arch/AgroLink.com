@@ -6,5 +6,5 @@
 - [Processing waste categories](grain-processing-waste.md) — the user requires separate weights for dead impurities and grain waste after drying or cleaning.
 - [Agro rates and dispatcher scope](agro-rates-and-dispatch.md) — chief agronomist plans per-hectare rates; dispatcher records completed-work rates and per-trip transport fees.
 - [Salary accrual handoff](salary-accrual-handoff.md) — automatic employee-linked daily accruals; chiefs and dispatcher manage staff; economist receives immutable snapshots, not payments.
-- [Field-first seasonal planning](field-plan-navigation.md) — select a field to see its seasonal schedule; use existing employee, equipment and operation lists.
+- [Field plans, facts and sowing](field-plan-navigation.md) — separate field-first plan/fact entry, unplanned work, per-field progress and automatic crop-level daily sowing reports.
 - [Partial index changes](partial-index-push.md) — Drizzle push may miss a changed WHERE predicate; verify the live index definition.

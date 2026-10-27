@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
-import { type FieldOperation, getGetFieldDashboardQueryKey } from "@workspace/api-client-react";
+import { type FieldOperation, getGetDailySeedingReportQueryKey, getGetFieldDashboardQueryKey } from "@workspace/api-client-react";
 import { cx } from "../grain/shared";
 
 export { UNITS, type Unit, cx, dateFmt, Field, Drawer } from "../grain/shared";
@@ -70,7 +70,10 @@ export const isStale = (status?: number, msg = "") => status === 409 && /вер�
 
 export function useInvalidateFields() {
   const qc = useQueryClient();
-  return () => qc.invalidateQueries({ queryKey: getGetFieldDashboardQueryKey() });
+  return () => Promise.all([
+    qc.invalidateQueries({ queryKey: getGetFieldDashboardQueryKey() }),
+    qc.invalidateQueries({ queryKey: getGetDailySeedingReportQueryKey() }),
+  ]);
 }
 
 export function SaveError({ message, conflict, testId }: { message: string; conflict: boolean; testId: string }) {

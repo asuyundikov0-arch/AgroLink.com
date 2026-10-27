@@ -5,6 +5,7 @@ import {
   CreateFieldOperationBody, UpdateFieldOperationBody, UpdateFieldOperationActualBody, CreateFieldOperationProgressBody, UpdateFieldOperationProgressBody, VoidFieldOperationBody,
   GetFieldDashboardResponse, GetFieldDispatchQueueResponse, UpdateFieldDispatchRateBody, UpdateFieldDispatchRateParams, UpdateFieldDispatchRateResponse,
   CreateAgroFieldResponse, CreateFieldSeasonResponse, CreateFieldOperationResponse,
+  CreateUnplannedFieldOperationBody, CreateUnplannedFieldOperationResponse, GetDailySeedingReportResponse,
   type FieldProgressReport, type FieldOperationInput,
 } from "@workspace/api-zod";
 import { activityTable, agroFieldsTable, employeesTable, fleetEquipmentTable, fieldSeasonsTable, fieldOperationsTable, fieldOperationProgressTable, grainCropsTable, db } from "@workspace/db";
@@ -13,6 +14,7 @@ import { grainBusinessDate, validGrainDate } from "../lib/grain-ledger";
 import { fieldNumberKey, fieldOperationState, progressDeltaAres, toAreaAres, validateFieldActual, validateFieldPlan, validateFieldProgress } from "../lib/field-planning";
 import { fieldPayrollWasSubmitted, lockPayrollSources } from "../lib/payroll-source-guard";
 import { fieldOperationSuggestions } from "../lib/field-operation-catalog";
+import { summarizeDailySeeding } from "../lib/daily-seeding";
 
 const router: IRouter = Router();
 const managers = ["chief_agronomist", "general_director"];
@@ -81,7 +83,7 @@ function progressReportsJson(rows: (typeof fieldOperationProgressTable.$inferSel
     };
   });
 }
-function operationJson(row: typeof fieldOperationsTable.$inferSelect, today = grainBusinessDate(), progressReports: FieldProgressReport[] = []) {
+export function operationJson(row: typeof fieldOperationsTable.$inferSelect, today = grainBusinessDate(), progressReports: FieldProgressReport[] = []) {
   const { nameKey: _key, plannedAreaAres, actualAreaAres, plannedRatePerHa, actualRatePerHa, actualRateSetAt, ...rest } = row;
   const plannedAreaHa = plannedAreaAres / 100;
   const actualAreaHa = actualAreaAres / 100;
@@ -89,6 +91,8 @@ function operationJson(row: typeof fieldOperationsTable.$inferSelect, today = gr
   const actualRate = actualRatePerHa === null ? null : Number(actualRatePerHa);
   return CreateFieldOperationResponse.parse({
     ...rest, ...fieldOperationState(row, today), plannedAreaHa, actualAreaHa,
+    actualAreaLimitHa: (row.actualAreaLimitAres ?? row.plannedAreaAres) / 100,
+    isOverdue: !row.isUnplanned && fieldOperationState(row, today).isOverdue,
     plannedRatePerHa: plannedRate,
     plannedPayAmount: Math.round((plannedAreaHa * plannedRate + Number.EPSILON) * 100) / 100,
     actualRatePerHa: actualRate,
@@ -188,6 +192,31 @@ router.get("/agro/fields/dispatch", roles(["dispatcher", "general_director"]), s
   res.setHeader("Cache-Control", "no-store");
   res.json(await fieldDispatchRows());
 }));
+router.get("/agro/fields/seeding-report", roles(readers), safe(async (req, res) => {
+  const year = Number(req.query.year);
+  const date = String(req.query.date ?? "");
+  const unit = typeof req.query.unit === "string" && req.query.unit !== "all" ? req.query.unit : null;
+  requireValue(Number.isInteger(year) && year >= 1900 && year <= 2200, "Выберите корректный сезон.");
+  requireValue(validGrainDate(date) && date <= grainBusinessDate(), "Выберите дату отчёта, не позднее сегодняшней.");
+  requireValue(unit === null || ["АПК Арыстан Grain", "АФ Веденовка"].includes(unit), "Выберите хозяйство из списка.");
+  const report = await db.transaction(async (tx) => {
+    const rows = await tx.select({ operation: fieldOperationsTable, cropName: fieldSeasonsTable.cropName })
+      .from(fieldOperationsTable)
+      .innerJoin(fieldSeasonsTable, eq(fieldOperationsTable.seasonId, fieldSeasonsTable.id))
+      .innerJoin(agroFieldsTable, eq(fieldSeasonsTable.fieldId, agroFieldsTable.id))
+      .where(and(eq(fieldSeasonsTable.year, year), isNull(fieldOperationsTable.voidedAt),
+        unit ? eq(agroFieldsTable.unit, unit) : undefined));
+    const progress = await tx.select().from(fieldOperationProgressTable)
+      .where(sql`${fieldOperationProgressTable.operationId} in (
+        select ${fieldOperationsTable.id} from ${fieldOperationsTable}
+        inner join ${fieldSeasonsTable} on ${fieldOperationsTable.seasonId} = ${fieldSeasonsTable.id}
+        where ${fieldSeasonsTable.year} = ${year}
+      )`);
+    return summarizeDailySeeding(rows.map(({ operation, cropName }) => ({ ...operation, cropName })), progress, date);
+  }, { isolationLevel: "repeatable read", accessMode: "read only" });
+  res.setHeader("Cache-Control", "no-store");
+  res.json(GetDailySeedingReportResponse.parse({ year, date, unit, ...report }));
+}));
 router.get("/agro/fields", roles(readers), safe(async (_req, res) => {
   const today = grainBusinessDate();
   const snapshot = await db.transaction(async (tx) => {
@@ -281,6 +310,45 @@ router.patch("/agro/fields/seasons/:id", manage, safe(async (req, res) => {
   });
   res.json(seasonJson(row));
 }));
+router.post("/agro/fields/unplanned-operations", roles(actualWriters), safe(async (req, res) => {
+  const input = body(CreateUnplannedFieldOperationBody, req.body);
+  const today = grainBusinessDate();
+  const by = actor(res.locals.access);
+  const row = await mutate("Внесена внеплановая фактическая операция", by, async (tx) => {
+    const season = await getSeason(tx, input.seasonId);
+    const field = await getField(tx, season.fieldId);
+    requireValue(field.isActive, "Для архивного поля новые фактические работы недоступны.", 409);
+    requireValue(validGrainDate(input.occurredOn) && input.occurredOn <= today, "Укажите дату работы, не позднее сегодняшней.");
+    const areaAres = toAreaAres(input.areaHa, true);
+    requireValue(areaAres !== null && areaAres <= season.areaAres, "Фактическая площадь должна быть от 0 до площади сезона, с точностью до 0,01 га.");
+    requireValue(!input.completed || areaAres > 0, "Для завершённой работы укажите положительную площадь.");
+    requireValue(input.implement.trim(), "Укажите агрегат.");
+    requireValue(positiveId(input.equipmentId), "Выберите корректную технику из справочника.");
+    const mechanic = await selectedMechanic(tx, input.employeeId);
+    const [equipment] = await tx.select().from(fleetEquipmentTable).where(eq(fleetEquipmentTable.id, input.equipmentId));
+    requireValue(equipment && equipment.unit === field.unit, "Выберите технику нужного хозяйства из справочника.");
+    const names = await tx.select({ name: fieldOperationsTable.name }).from(fieldOperationsTable);
+    const name = fieldOperationSuggestions(names).find((candidate) => fieldNumberKey(candidate) === fieldNumberKey(input.name));
+    requireValue(name, "Выберите вид операции из подготовленного списка.");
+    const actualEquipment = `${equipment.kind} · ${equipment.registrationNumber || "без госномера"}`;
+    const [created] = await tx.insert(fieldOperationsTable).values({
+      seasonId: season.id, name, nameKey: fieldNumberKey(name), isUnplanned: true,
+      plannedStart: input.occurredOn, plannedEnd: input.occurredOn, plannedAreaAres: 0,
+      actualAreaLimitAres: season.areaAres, actualStart: input.occurredOn,
+      actualEnd: input.completed ? input.occurredOn : null, actualAreaAres: areaAres,
+      actualOperationName: name, actualMechanic: mechanic.fullName, actualMechanicEmployeeId: mechanic.id,
+      actualEquipment, actualImplement: input.implement.trim(), actualNotes: input.notes.trim(), updatedBy: by,
+    }).returning();
+    if (areaAres > 0) await tx.insert(fieldOperationProgressTable).values({
+      operationId: created.id, reportDate: input.occurredOn, cumulativeAreaAres: areaAres,
+      actualMechanic: mechanic.fullName, actualMechanicEmployeeId: mechanic.id,
+      actualEquipment, actualImplement: input.implement.trim(), notes: input.notes.trim(), updatedBy: by,
+    });
+    const progress = await tx.select().from(fieldOperationProgressTable).where(eq(fieldOperationProgressTable.operationId, created.id));
+    return CreateUnplannedFieldOperationResponse.parse(operationJson(created, today, progressReportsJson(progress)));
+  });
+  res.status(201).json(row);
+}));
 router.post("/agro/fields/operations", manage, safe(async (req, res) => {
   const input = body(CreateFieldOperationBody, req.body);
   const by = actor(res.locals.access);
@@ -307,6 +375,7 @@ router.patch("/agro/fields/operations/:id", manage, safe(async (req, res) => {
   const row = await mutate("Изменён план полевой операции", by, async (tx) => {
     const old = await getOperation(tx, Number(req.params.id)); revision(old, input.version);
     requireValue(!old.voidedAt, "Отменённую операцию нельзя редактировать.", 409);
+    requireValue(!old.isUnplanned, "Внеплановая работа не является планом. Изменяйте её в фактических работах.", 409);
     const season = await getSeason(tx, input.seasonId);
     requireValue(input.plannedRatePerHa > 0 && input.plannedRatePerHa <= 1_000_000_000, "Укажите положительную плановую расценку за гектар.");
     const error = validateFieldPlan(input, season.areaAres); requireValue(!error, error ?? "");
@@ -360,13 +429,15 @@ router.patch("/agro/fields/operations/:id/actual", roles(actualWriters), safe(as
     const progressRows = await tx.select().from(fieldOperationProgressTable)
       .where(eq(fieldOperationProgressTable.operationId, old.id)).orderBy(asc(fieldOperationProgressTable.reportDate));
     const latestProgress = progressRows.at(-1);
-    const error = validateFieldActual(input, old.plannedAreaAres, today, old.actualStart !== null); requireValue(!error, error ?? "");
+    const areaLimit = old.actualAreaLimitAres ?? old.plannedAreaAres;
+    const error = validateFieldActual(input, areaLimit, today, old.actualStart !== null); requireValue(!error, error ?? "");
+    requireValue(!old.isUnplanned || input.actualStart !== null, "Внеплановую работу нельзя превратить в план. Для отмены используйте отмену операции.", 409);
     requireValue(!old.actualStart || input.actualStart !== null || res.locals.access.role === "general_director", "Сбросить уже внесённый факт может только генеральный директор.", 403);
     if (input.actualEnd) {
       const areaAres = toAreaAres(input.actualAreaHa, true)!;
       requireValue(!latestProgress || input.actualEnd >= latestProgress.reportDate, "Дата завершения не может быть раньше последнего дневного отчёта.", 409);
       const previous = progressRows.filter((item) => item.reportDate < input.actualEnd!).at(-1);
-      const progressError = validateFieldProgress(areaAres, old.plannedAreaAres, previous?.cumulativeAreaAres ?? null, null);
+      const progressError = validateFieldProgress(areaAres, areaLimit, previous?.cumulativeAreaAres ?? null, null);
       requireValue(!progressError, progressError ?? "");
     }
     const [updated] = await tx.update(fieldOperationsTable).set({
@@ -430,7 +501,7 @@ router.post("/agro/fields/operations/:id/progress", roles(actualWriters), safe(a
     )).orderBy(asc(fieldOperationProgressTable.reportDate)).limit(1);
     const areaAres = toAreaAres(input.cumulativeAreaHa, true);
     requireValue(areaAres !== null, "Укажите площадь с точностью до 0,01 га.");
-    const progressError = validateFieldProgress(areaAres!, old.plannedAreaAres, previous?.cumulativeAreaAres ?? null, next?.cumulativeAreaAres ?? null);
+    const progressError = validateFieldProgress(areaAres!, old.actualAreaLimitAres ?? old.plannedAreaAres, previous?.cumulativeAreaAres ?? null, next?.cumulativeAreaAres ?? null);
     requireValue(!progressError, progressError ?? "");
     await tx.insert(fieldOperationProgressTable).values({
       operationId: old.id, reportDate: input.reportDate, cumulativeAreaAres: areaAres!,
@@ -484,7 +555,7 @@ router.patch("/agro/fields/operations/:id/progress/:progressId", roles(actualWri
     )).orderBy(asc(fieldOperationProgressTable.reportDate)).limit(1);
     const areaAres = toAreaAres(input.cumulativeAreaHa, true);
     requireValue(areaAres !== null, "Укажите площадь с точностью до 0,01 га.");
-    const progressError = validateFieldProgress(areaAres!, old.plannedAreaAres, previous?.cumulativeAreaAres ?? null, next?.cumulativeAreaAres ?? null);
+    const progressError = validateFieldProgress(areaAres!, old.actualAreaLimitAres ?? old.plannedAreaAres, previous?.cumulativeAreaAres ?? null, next?.cumulativeAreaAres ?? null);
     requireValue(!progressError, progressError ?? "");
     await tx.update(fieldOperationProgressTable).set({
       cumulativeAreaAres: areaAres!, actualMechanic: mechanic.fullName, actualMechanicEmployeeId: mechanic.id,

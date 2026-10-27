@@ -8,6 +8,148 @@
 import * as zod from 'zod';
 
 
+
+export const createUnplannedFieldOperationBodyNameMax = 150;
+
+export const createUnplannedFieldOperationBodyAreaHaMin = 0;
+export const createUnplannedFieldOperationBodyAreaHaMax = 1000000;
+
+
+
+export const createUnplannedFieldOperationBodyImplementMax = 200;
+
+export const createUnplannedFieldOperationBodyNotesMax = 3000;
+
+
+
+export const CreateUnplannedFieldOperationBody = zod.object({
+  "seasonId": zod.number().min(1),
+  "name": zod.string().min(1).max(createUnplannedFieldOperationBodyNameMax),
+  "occurredOn": zod.string(),
+  "areaHa": zod.number().min(createUnplannedFieldOperationBodyAreaHaMin).max(createUnplannedFieldOperationBodyAreaHaMax),
+  "completed": zod.boolean(),
+  "employeeId": zod.number().min(1),
+  "equipmentId": zod.number().min(1),
+  "implement": zod.string().min(1).max(createUnplannedFieldOperationBodyImplementMax),
+  "notes": zod.string().max(createUnplannedFieldOperationBodyNotesMax)
+})
+
+
+export const createUnplannedFieldOperationResponseOneNameMax = 150;
+
+export const createUnplannedFieldOperationResponseOnePlannedAreaHaMin = 0;
+export const createUnplannedFieldOperationResponseOnePlannedAreaHaMax = 1000000;
+
+export const createUnplannedFieldOperationResponseOnePlannedRatePerHaMin = 0;
+export const createUnplannedFieldOperationResponseOnePlannedRatePerHaMax = 1000000000;
+
+export const createUnplannedFieldOperationResponseOneResponsibleMax = 200;
+
+
+
+export const createUnplannedFieldOperationResponseOnePlannedEquipmentMax = 200;
+
+export const createUnplannedFieldOperationResponseOnePlannedImplementMax = 200;
+
+export const createUnplannedFieldOperationResponseOneNotesMax = 3000;
+
+
+
+export const createUnplannedFieldOperationResponseTwoActualAreaHaMin = 0;
+export const createUnplannedFieldOperationResponseTwoActualAreaHaMax = 1000000;
+
+export const createUnplannedFieldOperationResponseTwoActualOperationNameMax = 150;
+
+export const createUnplannedFieldOperationResponseTwoActualMechanicMax = 200;
+
+
+export const createUnplannedFieldOperationResponseTwoActualEquipmentMax = 200;
+
+export const createUnplannedFieldOperationResponseTwoActualImplementMax = 200;
+
+export const createUnplannedFieldOperationResponseTwoActualNotesMax = 3000;
+
+
+
+export const CreateUnplannedFieldOperationResponse = zod.object({
+  "seasonId": zod.number().min(1),
+  "name": zod.string().min(1).max(createUnplannedFieldOperationResponseOneNameMax),
+  "plannedStart": zod.string(),
+  "plannedEnd": zod.string(),
+  "plannedAreaHa": zod.number().min(createUnplannedFieldOperationResponseOnePlannedAreaHaMin).max(createUnplannedFieldOperationResponseOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(createUnplannedFieldOperationResponseOnePlannedRatePerHaMin).max(createUnplannedFieldOperationResponseOnePlannedRatePerHaMax),
+  "responsible": zod.string().max(createUnplannedFieldOperationResponseOneResponsibleMax),
+  "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
+  "plannedEquipmentId": zod.number().min(1).nullish(),
+  "plannedEquipment": zod.string().max(createUnplannedFieldOperationResponseOnePlannedEquipmentMax),
+  "plannedImplement": zod.string().max(createUnplannedFieldOperationResponseOnePlannedImplementMax),
+  "notes": zod.string().max(createUnplannedFieldOperationResponseOneNotesMax),
+  "version": zod.number().min(1)
+}).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
+  "version": zod.number().min(1),
+  "actualStart": zod.string().nullable(),
+  "actualEnd": zod.string().nullable(),
+  "actualAreaHa": zod.number().min(createUnplannedFieldOperationResponseTwoActualAreaHaMin).max(createUnplannedFieldOperationResponseTwoActualAreaHaMax),
+  "actualOperationName": zod.string().max(createUnplannedFieldOperationResponseTwoActualOperationNameMax),
+  "actualMechanic": zod.string().max(createUnplannedFieldOperationResponseTwoActualMechanicMax),
+  "actualMechanicEmployeeId": zod.number().min(1).nullable(),
+  "actualEquipment": zod.string().max(createUnplannedFieldOperationResponseTwoActualEquipmentMax),
+  "actualImplement": zod.string().max(createUnplannedFieldOperationResponseTwoActualImplementMax),
+  "actualNotes": zod.string().max(createUnplannedFieldOperationResponseTwoActualNotesMax)
+})).and(zod.object({
+  "isUnplanned": zod.boolean(),
+  "actualAreaLimitHa": zod.number(),
+  "id": zod.number(),
+  "status": zod.enum(['planned', 'in_progress', 'completed', 'cancelled']),
+  "isOverdue": zod.boolean(),
+  "progressPercent": zod.number(),
+  "progressReports": zod.array(zod.object({
+  "id": zod.number(),
+  "reportDate": zod.string(),
+  "cumulativeAreaHa": zod.number(),
+  "dailyAreaHa": zod.number(),
+  "actualMechanic": zod.string(),
+  "actualMechanicEmployeeId": zod.number().nullable(),
+  "actualEquipment": zod.string(),
+  "actualImplement": zod.string(),
+  "notes": zod.string(),
+  "version": zod.number(),
+  "updatedBy": zod.string(),
+  "updatedAt": zod.string()
+})),
+  "plannedPayAmount": zod.number(),
+  "actualRatePerHa": zod.number().nullable(),
+  "actualPayAmount": zod.number().nullable(),
+  "actualRateSetBy": zod.string(),
+  "actualRateSetAt": zod.string().nullable(),
+  "voidedAt": zod.string().nullable(),
+  "voidReason": zod.string(),
+  "voidedBy": zod.string(),
+  "updatedAt": zod.string(),
+  "updatedBy": zod.string()
+}))
+
+
+export const GetDailySeedingReportQueryParams = zod.object({
+  "year": zod.coerce.number(),
+  "date": zod.coerce.string(),
+  "unit": zod.coerce.string().optional()
+})
+
+export const GetDailySeedingReportResponse = zod.object({
+  "year": zod.number(),
+  "date": zod.string(),
+  "unit": zod.string().nullable(),
+  "crops": zod.array(zod.object({
+  "cropName": zod.string(),
+  "dailyAreaHa": zod.number(),
+  "totalAreaHa": zod.number()
+})),
+  "dailyAreaHa": zod.number(),
+  "totalAreaHa": zod.number()
+})
+
+
 export const getFieldDashboardResponseFieldsItemOneOneNumberMax = 80;
 
 export const getFieldDashboardResponseFieldsItemOneOneAreaHaMin = 0.01;
@@ -31,23 +173,23 @@ export const getFieldDashboardResponseSeasonsItemOneOneNotesMax = 3000;
 
 
 
-export const getFieldDashboardResponseOperationsItemOneOneNameMax = 150;
+export const getFieldDashboardResponseOperationsItemOneNameMax = 150;
 
-export const getFieldDashboardResponseOperationsItemOneOnePlannedAreaHaMin = 0.01;
-export const getFieldDashboardResponseOperationsItemOneOnePlannedAreaHaMax = 1000000;
+export const getFieldDashboardResponseOperationsItemOnePlannedAreaHaMin = 0;
+export const getFieldDashboardResponseOperationsItemOnePlannedAreaHaMax = 1000000;
 
-export const getFieldDashboardResponseOperationsItemOneOnePlannedRatePerHaMin = 0;
-export const getFieldDashboardResponseOperationsItemOneOnePlannedRatePerHaMax = 1000000000;
+export const getFieldDashboardResponseOperationsItemOnePlannedRatePerHaMin = 0;
+export const getFieldDashboardResponseOperationsItemOnePlannedRatePerHaMax = 1000000000;
 
-export const getFieldDashboardResponseOperationsItemOneOneResponsibleMax = 200;
+export const getFieldDashboardResponseOperationsItemOneResponsibleMax = 200;
 
 
 
-export const getFieldDashboardResponseOperationsItemOneOnePlannedEquipmentMax = 200;
+export const getFieldDashboardResponseOperationsItemOnePlannedEquipmentMax = 200;
 
-export const getFieldDashboardResponseOperationsItemOneOnePlannedImplementMax = 200;
+export const getFieldDashboardResponseOperationsItemOnePlannedImplementMax = 200;
 
-export const getFieldDashboardResponseOperationsItemOneOneNotesMax = 3000;
+export const getFieldDashboardResponseOperationsItemOneNotesMax = 3000;
 
 
 
@@ -97,20 +239,19 @@ export const GetFieldDashboardResponse = zod.object({
 }))),
   "operations": zod.array(zod.object({
   "seasonId": zod.number().min(1),
-  "name": zod.string().min(1).max(getFieldDashboardResponseOperationsItemOneOneNameMax),
+  "name": zod.string().min(1).max(getFieldDashboardResponseOperationsItemOneNameMax),
   "plannedStart": zod.string(),
   "plannedEnd": zod.string(),
-  "plannedAreaHa": zod.number().min(getFieldDashboardResponseOperationsItemOneOnePlannedAreaHaMin).max(getFieldDashboardResponseOperationsItemOneOnePlannedAreaHaMax),
-  "plannedRatePerHa": zod.number().min(getFieldDashboardResponseOperationsItemOneOnePlannedRatePerHaMin).max(getFieldDashboardResponseOperationsItemOneOnePlannedRatePerHaMax),
-  "responsible": zod.string().max(getFieldDashboardResponseOperationsItemOneOneResponsibleMax),
+  "plannedAreaHa": zod.number().min(getFieldDashboardResponseOperationsItemOnePlannedAreaHaMin).max(getFieldDashboardResponseOperationsItemOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(getFieldDashboardResponseOperationsItemOnePlannedRatePerHaMin).max(getFieldDashboardResponseOperationsItemOnePlannedRatePerHaMax),
+  "responsible": zod.string().max(getFieldDashboardResponseOperationsItemOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
-  "plannedEquipment": zod.string().max(getFieldDashboardResponseOperationsItemOneOnePlannedEquipmentMax),
-  "plannedImplement": zod.string().max(getFieldDashboardResponseOperationsItemOneOnePlannedImplementMax),
-  "notes": zod.string().max(getFieldDashboardResponseOperationsItemOneOneNotesMax)
-}).and(zod.object({
+  "plannedEquipment": zod.string().max(getFieldDashboardResponseOperationsItemOnePlannedEquipmentMax),
+  "plannedImplement": zod.string().max(getFieldDashboardResponseOperationsItemOnePlannedImplementMax),
+  "notes": zod.string().max(getFieldDashboardResponseOperationsItemOneNotesMax),
   "version": zod.number().min(1)
-})).and(zod.object({
+}).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -122,6 +263,8 @@ export const GetFieldDashboardResponse = zod.object({
   "actualImplement": zod.string().max(getFieldDashboardResponseOperationsItemTwoActualImplementMax),
   "actualNotes": zod.string().max(getFieldDashboardResponseOperationsItemTwoActualNotesMax)
 })).and(zod.object({
+  "isUnplanned": zod.boolean(),
+  "actualAreaLimitHa": zod.number(),
   "id": zod.number(),
   "status": zod.enum(['planned', 'in_progress', 'completed', 'cancelled']),
   "isOverdue": zod.boolean(),
@@ -429,23 +572,23 @@ export const CreateFieldOperationBody = zod.object({
 })
 
 
-export const createFieldOperationResponseOneOneNameMax = 150;
+export const createFieldOperationResponseOneNameMax = 150;
 
-export const createFieldOperationResponseOneOnePlannedAreaHaMin = 0.01;
-export const createFieldOperationResponseOneOnePlannedAreaHaMax = 1000000;
+export const createFieldOperationResponseOnePlannedAreaHaMin = 0;
+export const createFieldOperationResponseOnePlannedAreaHaMax = 1000000;
 
-export const createFieldOperationResponseOneOnePlannedRatePerHaMin = 0;
-export const createFieldOperationResponseOneOnePlannedRatePerHaMax = 1000000000;
+export const createFieldOperationResponseOnePlannedRatePerHaMin = 0;
+export const createFieldOperationResponseOnePlannedRatePerHaMax = 1000000000;
 
-export const createFieldOperationResponseOneOneResponsibleMax = 200;
+export const createFieldOperationResponseOneResponsibleMax = 200;
 
 
 
-export const createFieldOperationResponseOneOnePlannedEquipmentMax = 200;
+export const createFieldOperationResponseOnePlannedEquipmentMax = 200;
 
-export const createFieldOperationResponseOneOnePlannedImplementMax = 200;
+export const createFieldOperationResponseOnePlannedImplementMax = 200;
 
-export const createFieldOperationResponseOneOneNotesMax = 3000;
+export const createFieldOperationResponseOneNotesMax = 3000;
 
 
 
@@ -467,20 +610,19 @@ export const createFieldOperationResponseTwoActualNotesMax = 3000;
 
 export const CreateFieldOperationResponse = zod.object({
   "seasonId": zod.number().min(1),
-  "name": zod.string().min(1).max(createFieldOperationResponseOneOneNameMax),
+  "name": zod.string().min(1).max(createFieldOperationResponseOneNameMax),
   "plannedStart": zod.string(),
   "plannedEnd": zod.string(),
-  "plannedAreaHa": zod.number().min(createFieldOperationResponseOneOnePlannedAreaHaMin).max(createFieldOperationResponseOneOnePlannedAreaHaMax),
-  "plannedRatePerHa": zod.number().min(createFieldOperationResponseOneOnePlannedRatePerHaMin).max(createFieldOperationResponseOneOnePlannedRatePerHaMax),
-  "responsible": zod.string().max(createFieldOperationResponseOneOneResponsibleMax),
+  "plannedAreaHa": zod.number().min(createFieldOperationResponseOnePlannedAreaHaMin).max(createFieldOperationResponseOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(createFieldOperationResponseOnePlannedRatePerHaMin).max(createFieldOperationResponseOnePlannedRatePerHaMax),
+  "responsible": zod.string().max(createFieldOperationResponseOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
-  "plannedEquipment": zod.string().max(createFieldOperationResponseOneOnePlannedEquipmentMax),
-  "plannedImplement": zod.string().max(createFieldOperationResponseOneOnePlannedImplementMax),
-  "notes": zod.string().max(createFieldOperationResponseOneOneNotesMax)
-}).and(zod.object({
+  "plannedEquipment": zod.string().max(createFieldOperationResponseOnePlannedEquipmentMax),
+  "plannedImplement": zod.string().max(createFieldOperationResponseOnePlannedImplementMax),
+  "notes": zod.string().max(createFieldOperationResponseOneNotesMax),
   "version": zod.number().min(1)
-})).and(zod.object({
+}).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -492,6 +634,8 @@ export const CreateFieldOperationResponse = zod.object({
   "actualImplement": zod.string().max(createFieldOperationResponseTwoActualImplementMax),
   "actualNotes": zod.string().max(createFieldOperationResponseTwoActualNotesMax)
 })).and(zod.object({
+  "isUnplanned": zod.boolean(),
+  "actualAreaLimitHa": zod.number(),
   "id": zod.number(),
   "status": zod.enum(['planned', 'in_progress', 'completed', 'cancelled']),
   "isOverdue": zod.boolean(),
@@ -567,23 +711,23 @@ export const UpdateFieldOperationBody = zod.object({
 }))
 
 
-export const updateFieldOperationResponseOneOneNameMax = 150;
+export const updateFieldOperationResponseOneNameMax = 150;
 
-export const updateFieldOperationResponseOneOnePlannedAreaHaMin = 0.01;
-export const updateFieldOperationResponseOneOnePlannedAreaHaMax = 1000000;
+export const updateFieldOperationResponseOnePlannedAreaHaMin = 0;
+export const updateFieldOperationResponseOnePlannedAreaHaMax = 1000000;
 
-export const updateFieldOperationResponseOneOnePlannedRatePerHaMin = 0;
-export const updateFieldOperationResponseOneOnePlannedRatePerHaMax = 1000000000;
+export const updateFieldOperationResponseOnePlannedRatePerHaMin = 0;
+export const updateFieldOperationResponseOnePlannedRatePerHaMax = 1000000000;
 
-export const updateFieldOperationResponseOneOneResponsibleMax = 200;
+export const updateFieldOperationResponseOneResponsibleMax = 200;
 
 
 
-export const updateFieldOperationResponseOneOnePlannedEquipmentMax = 200;
+export const updateFieldOperationResponseOnePlannedEquipmentMax = 200;
 
-export const updateFieldOperationResponseOneOnePlannedImplementMax = 200;
+export const updateFieldOperationResponseOnePlannedImplementMax = 200;
 
-export const updateFieldOperationResponseOneOneNotesMax = 3000;
+export const updateFieldOperationResponseOneNotesMax = 3000;
 
 
 
@@ -605,20 +749,19 @@ export const updateFieldOperationResponseTwoActualNotesMax = 3000;
 
 export const UpdateFieldOperationResponse = zod.object({
   "seasonId": zod.number().min(1),
-  "name": zod.string().min(1).max(updateFieldOperationResponseOneOneNameMax),
+  "name": zod.string().min(1).max(updateFieldOperationResponseOneNameMax),
   "plannedStart": zod.string(),
   "plannedEnd": zod.string(),
-  "plannedAreaHa": zod.number().min(updateFieldOperationResponseOneOnePlannedAreaHaMin).max(updateFieldOperationResponseOneOnePlannedAreaHaMax),
-  "plannedRatePerHa": zod.number().min(updateFieldOperationResponseOneOnePlannedRatePerHaMin).max(updateFieldOperationResponseOneOnePlannedRatePerHaMax),
-  "responsible": zod.string().max(updateFieldOperationResponseOneOneResponsibleMax),
+  "plannedAreaHa": zod.number().min(updateFieldOperationResponseOnePlannedAreaHaMin).max(updateFieldOperationResponseOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(updateFieldOperationResponseOnePlannedRatePerHaMin).max(updateFieldOperationResponseOnePlannedRatePerHaMax),
+  "responsible": zod.string().max(updateFieldOperationResponseOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
-  "plannedEquipment": zod.string().max(updateFieldOperationResponseOneOnePlannedEquipmentMax),
-  "plannedImplement": zod.string().max(updateFieldOperationResponseOneOnePlannedImplementMax),
-  "notes": zod.string().max(updateFieldOperationResponseOneOneNotesMax)
-}).and(zod.object({
+  "plannedEquipment": zod.string().max(updateFieldOperationResponseOnePlannedEquipmentMax),
+  "plannedImplement": zod.string().max(updateFieldOperationResponseOnePlannedImplementMax),
+  "notes": zod.string().max(updateFieldOperationResponseOneNotesMax),
   "version": zod.number().min(1)
-})).and(zod.object({
+}).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -630,6 +773,8 @@ export const UpdateFieldOperationResponse = zod.object({
   "actualImplement": zod.string().max(updateFieldOperationResponseTwoActualImplementMax),
   "actualNotes": zod.string().max(updateFieldOperationResponseTwoActualNotesMax)
 })).and(zod.object({
+  "isUnplanned": zod.boolean(),
+  "actualAreaLimitHa": zod.number(),
   "id": zod.number(),
   "status": zod.enum(['planned', 'in_progress', 'completed', 'cancelled']),
   "isOverdue": zod.boolean(),
@@ -696,23 +841,23 @@ export const UpdateFieldOperationActualBody = zod.object({
 })
 
 
-export const updateFieldOperationActualResponseOneOneNameMax = 150;
+export const updateFieldOperationActualResponseOneNameMax = 150;
 
-export const updateFieldOperationActualResponseOneOnePlannedAreaHaMin = 0.01;
-export const updateFieldOperationActualResponseOneOnePlannedAreaHaMax = 1000000;
+export const updateFieldOperationActualResponseOnePlannedAreaHaMin = 0;
+export const updateFieldOperationActualResponseOnePlannedAreaHaMax = 1000000;
 
-export const updateFieldOperationActualResponseOneOnePlannedRatePerHaMin = 0;
-export const updateFieldOperationActualResponseOneOnePlannedRatePerHaMax = 1000000000;
+export const updateFieldOperationActualResponseOnePlannedRatePerHaMin = 0;
+export const updateFieldOperationActualResponseOnePlannedRatePerHaMax = 1000000000;
 
-export const updateFieldOperationActualResponseOneOneResponsibleMax = 200;
+export const updateFieldOperationActualResponseOneResponsibleMax = 200;
 
 
 
-export const updateFieldOperationActualResponseOneOnePlannedEquipmentMax = 200;
+export const updateFieldOperationActualResponseOnePlannedEquipmentMax = 200;
 
-export const updateFieldOperationActualResponseOneOnePlannedImplementMax = 200;
+export const updateFieldOperationActualResponseOnePlannedImplementMax = 200;
 
-export const updateFieldOperationActualResponseOneOneNotesMax = 3000;
+export const updateFieldOperationActualResponseOneNotesMax = 3000;
 
 
 
@@ -734,20 +879,19 @@ export const updateFieldOperationActualResponseTwoActualNotesMax = 3000;
 
 export const UpdateFieldOperationActualResponse = zod.object({
   "seasonId": zod.number().min(1),
-  "name": zod.string().min(1).max(updateFieldOperationActualResponseOneOneNameMax),
+  "name": zod.string().min(1).max(updateFieldOperationActualResponseOneNameMax),
   "plannedStart": zod.string(),
   "plannedEnd": zod.string(),
-  "plannedAreaHa": zod.number().min(updateFieldOperationActualResponseOneOnePlannedAreaHaMin).max(updateFieldOperationActualResponseOneOnePlannedAreaHaMax),
-  "plannedRatePerHa": zod.number().min(updateFieldOperationActualResponseOneOnePlannedRatePerHaMin).max(updateFieldOperationActualResponseOneOnePlannedRatePerHaMax),
-  "responsible": zod.string().max(updateFieldOperationActualResponseOneOneResponsibleMax),
+  "plannedAreaHa": zod.number().min(updateFieldOperationActualResponseOnePlannedAreaHaMin).max(updateFieldOperationActualResponseOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(updateFieldOperationActualResponseOnePlannedRatePerHaMin).max(updateFieldOperationActualResponseOnePlannedRatePerHaMax),
+  "responsible": zod.string().max(updateFieldOperationActualResponseOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
-  "plannedEquipment": zod.string().max(updateFieldOperationActualResponseOneOnePlannedEquipmentMax),
-  "plannedImplement": zod.string().max(updateFieldOperationActualResponseOneOnePlannedImplementMax),
-  "notes": zod.string().max(updateFieldOperationActualResponseOneOneNotesMax)
-}).and(zod.object({
+  "plannedEquipment": zod.string().max(updateFieldOperationActualResponseOnePlannedEquipmentMax),
+  "plannedImplement": zod.string().max(updateFieldOperationActualResponseOnePlannedImplementMax),
+  "notes": zod.string().max(updateFieldOperationActualResponseOneNotesMax),
   "version": zod.number().min(1)
-})).and(zod.object({
+}).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -759,6 +903,8 @@ export const UpdateFieldOperationActualResponse = zod.object({
   "actualImplement": zod.string().max(updateFieldOperationActualResponseTwoActualImplementMax),
   "actualNotes": zod.string().max(updateFieldOperationActualResponseTwoActualNotesMax)
 })).and(zod.object({
+  "isUnplanned": zod.boolean(),
+  "actualAreaLimitHa": zod.number(),
   "id": zod.number(),
   "status": zod.enum(['planned', 'in_progress', 'completed', 'cancelled']),
   "isOverdue": zod.boolean(),
@@ -863,23 +1009,23 @@ export const CreateFieldOperationProgressBody = zod.object({
 })
 
 
-export const createFieldOperationProgressResponseOneOneNameMax = 150;
+export const createFieldOperationProgressResponseOneNameMax = 150;
 
-export const createFieldOperationProgressResponseOneOnePlannedAreaHaMin = 0.01;
-export const createFieldOperationProgressResponseOneOnePlannedAreaHaMax = 1000000;
+export const createFieldOperationProgressResponseOnePlannedAreaHaMin = 0;
+export const createFieldOperationProgressResponseOnePlannedAreaHaMax = 1000000;
 
-export const createFieldOperationProgressResponseOneOnePlannedRatePerHaMin = 0;
-export const createFieldOperationProgressResponseOneOnePlannedRatePerHaMax = 1000000000;
+export const createFieldOperationProgressResponseOnePlannedRatePerHaMin = 0;
+export const createFieldOperationProgressResponseOnePlannedRatePerHaMax = 1000000000;
 
-export const createFieldOperationProgressResponseOneOneResponsibleMax = 200;
+export const createFieldOperationProgressResponseOneResponsibleMax = 200;
 
 
 
-export const createFieldOperationProgressResponseOneOnePlannedEquipmentMax = 200;
+export const createFieldOperationProgressResponseOnePlannedEquipmentMax = 200;
 
-export const createFieldOperationProgressResponseOneOnePlannedImplementMax = 200;
+export const createFieldOperationProgressResponseOnePlannedImplementMax = 200;
 
-export const createFieldOperationProgressResponseOneOneNotesMax = 3000;
+export const createFieldOperationProgressResponseOneNotesMax = 3000;
 
 
 
@@ -901,20 +1047,19 @@ export const createFieldOperationProgressResponseTwoActualNotesMax = 3000;
 
 export const CreateFieldOperationProgressResponse = zod.object({
   "seasonId": zod.number().min(1),
-  "name": zod.string().min(1).max(createFieldOperationProgressResponseOneOneNameMax),
+  "name": zod.string().min(1).max(createFieldOperationProgressResponseOneNameMax),
   "plannedStart": zod.string(),
   "plannedEnd": zod.string(),
-  "plannedAreaHa": zod.number().min(createFieldOperationProgressResponseOneOnePlannedAreaHaMin).max(createFieldOperationProgressResponseOneOnePlannedAreaHaMax),
-  "plannedRatePerHa": zod.number().min(createFieldOperationProgressResponseOneOnePlannedRatePerHaMin).max(createFieldOperationProgressResponseOneOnePlannedRatePerHaMax),
-  "responsible": zod.string().max(createFieldOperationProgressResponseOneOneResponsibleMax),
+  "plannedAreaHa": zod.number().min(createFieldOperationProgressResponseOnePlannedAreaHaMin).max(createFieldOperationProgressResponseOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(createFieldOperationProgressResponseOnePlannedRatePerHaMin).max(createFieldOperationProgressResponseOnePlannedRatePerHaMax),
+  "responsible": zod.string().max(createFieldOperationProgressResponseOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
-  "plannedEquipment": zod.string().max(createFieldOperationProgressResponseOneOnePlannedEquipmentMax),
-  "plannedImplement": zod.string().max(createFieldOperationProgressResponseOneOnePlannedImplementMax),
-  "notes": zod.string().max(createFieldOperationProgressResponseOneOneNotesMax)
-}).and(zod.object({
+  "plannedEquipment": zod.string().max(createFieldOperationProgressResponseOnePlannedEquipmentMax),
+  "plannedImplement": zod.string().max(createFieldOperationProgressResponseOnePlannedImplementMax),
+  "notes": zod.string().max(createFieldOperationProgressResponseOneNotesMax),
   "version": zod.number().min(1)
-})).and(zod.object({
+}).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -926,6 +1071,8 @@ export const CreateFieldOperationProgressResponse = zod.object({
   "actualImplement": zod.string().max(createFieldOperationProgressResponseTwoActualImplementMax),
   "actualNotes": zod.string().max(createFieldOperationProgressResponseTwoActualNotesMax)
 })).and(zod.object({
+  "isUnplanned": zod.boolean(),
+  "actualAreaLimitHa": zod.number(),
   "id": zod.number(),
   "status": zod.enum(['planned', 'in_progress', 'completed', 'cancelled']),
   "isOverdue": zod.boolean(),
@@ -992,23 +1139,23 @@ export const UpdateFieldOperationProgressBody = zod.object({
 }))
 
 
-export const updateFieldOperationProgressResponseOneOneNameMax = 150;
+export const updateFieldOperationProgressResponseOneNameMax = 150;
 
-export const updateFieldOperationProgressResponseOneOnePlannedAreaHaMin = 0.01;
-export const updateFieldOperationProgressResponseOneOnePlannedAreaHaMax = 1000000;
+export const updateFieldOperationProgressResponseOnePlannedAreaHaMin = 0;
+export const updateFieldOperationProgressResponseOnePlannedAreaHaMax = 1000000;
 
-export const updateFieldOperationProgressResponseOneOnePlannedRatePerHaMin = 0;
-export const updateFieldOperationProgressResponseOneOnePlannedRatePerHaMax = 1000000000;
+export const updateFieldOperationProgressResponseOnePlannedRatePerHaMin = 0;
+export const updateFieldOperationProgressResponseOnePlannedRatePerHaMax = 1000000000;
 
-export const updateFieldOperationProgressResponseOneOneResponsibleMax = 200;
+export const updateFieldOperationProgressResponseOneResponsibleMax = 200;
 
 
 
-export const updateFieldOperationProgressResponseOneOnePlannedEquipmentMax = 200;
+export const updateFieldOperationProgressResponseOnePlannedEquipmentMax = 200;
 
-export const updateFieldOperationProgressResponseOneOnePlannedImplementMax = 200;
+export const updateFieldOperationProgressResponseOnePlannedImplementMax = 200;
 
-export const updateFieldOperationProgressResponseOneOneNotesMax = 3000;
+export const updateFieldOperationProgressResponseOneNotesMax = 3000;
 
 
 
@@ -1030,20 +1177,19 @@ export const updateFieldOperationProgressResponseTwoActualNotesMax = 3000;
 
 export const UpdateFieldOperationProgressResponse = zod.object({
   "seasonId": zod.number().min(1),
-  "name": zod.string().min(1).max(updateFieldOperationProgressResponseOneOneNameMax),
+  "name": zod.string().min(1).max(updateFieldOperationProgressResponseOneNameMax),
   "plannedStart": zod.string(),
   "plannedEnd": zod.string(),
-  "plannedAreaHa": zod.number().min(updateFieldOperationProgressResponseOneOnePlannedAreaHaMin).max(updateFieldOperationProgressResponseOneOnePlannedAreaHaMax),
-  "plannedRatePerHa": zod.number().min(updateFieldOperationProgressResponseOneOnePlannedRatePerHaMin).max(updateFieldOperationProgressResponseOneOnePlannedRatePerHaMax),
-  "responsible": zod.string().max(updateFieldOperationProgressResponseOneOneResponsibleMax),
+  "plannedAreaHa": zod.number().min(updateFieldOperationProgressResponseOnePlannedAreaHaMin).max(updateFieldOperationProgressResponseOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(updateFieldOperationProgressResponseOnePlannedRatePerHaMin).max(updateFieldOperationProgressResponseOnePlannedRatePerHaMax),
+  "responsible": zod.string().max(updateFieldOperationProgressResponseOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
-  "plannedEquipment": zod.string().max(updateFieldOperationProgressResponseOneOnePlannedEquipmentMax),
-  "plannedImplement": zod.string().max(updateFieldOperationProgressResponseOneOnePlannedImplementMax),
-  "notes": zod.string().max(updateFieldOperationProgressResponseOneOneNotesMax)
-}).and(zod.object({
+  "plannedEquipment": zod.string().max(updateFieldOperationProgressResponseOnePlannedEquipmentMax),
+  "plannedImplement": zod.string().max(updateFieldOperationProgressResponseOnePlannedImplementMax),
+  "notes": zod.string().max(updateFieldOperationProgressResponseOneNotesMax),
   "version": zod.number().min(1)
-})).and(zod.object({
+}).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -1055,6 +1201,8 @@ export const UpdateFieldOperationProgressResponse = zod.object({
   "actualImplement": zod.string().max(updateFieldOperationProgressResponseTwoActualImplementMax),
   "actualNotes": zod.string().max(updateFieldOperationProgressResponseTwoActualNotesMax)
 })).and(zod.object({
+  "isUnplanned": zod.boolean(),
+  "actualAreaLimitHa": zod.number(),
   "id": zod.number(),
   "status": zod.enum(['planned', 'in_progress', 'completed', 'cancelled']),
   "isOverdue": zod.boolean(),
@@ -1102,23 +1250,23 @@ export const VoidFieldOperationBody = zod.object({
 })
 
 
-export const voidFieldOperationResponseOneOneNameMax = 150;
+export const voidFieldOperationResponseOneNameMax = 150;
 
-export const voidFieldOperationResponseOneOnePlannedAreaHaMin = 0.01;
-export const voidFieldOperationResponseOneOnePlannedAreaHaMax = 1000000;
+export const voidFieldOperationResponseOnePlannedAreaHaMin = 0;
+export const voidFieldOperationResponseOnePlannedAreaHaMax = 1000000;
 
-export const voidFieldOperationResponseOneOnePlannedRatePerHaMin = 0;
-export const voidFieldOperationResponseOneOnePlannedRatePerHaMax = 1000000000;
+export const voidFieldOperationResponseOnePlannedRatePerHaMin = 0;
+export const voidFieldOperationResponseOnePlannedRatePerHaMax = 1000000000;
 
-export const voidFieldOperationResponseOneOneResponsibleMax = 200;
+export const voidFieldOperationResponseOneResponsibleMax = 200;
 
 
 
-export const voidFieldOperationResponseOneOnePlannedEquipmentMax = 200;
+export const voidFieldOperationResponseOnePlannedEquipmentMax = 200;
 
-export const voidFieldOperationResponseOneOnePlannedImplementMax = 200;
+export const voidFieldOperationResponseOnePlannedImplementMax = 200;
 
-export const voidFieldOperationResponseOneOneNotesMax = 3000;
+export const voidFieldOperationResponseOneNotesMax = 3000;
 
 
 
@@ -1140,20 +1288,19 @@ export const voidFieldOperationResponseTwoActualNotesMax = 3000;
 
 export const VoidFieldOperationResponse = zod.object({
   "seasonId": zod.number().min(1),
-  "name": zod.string().min(1).max(voidFieldOperationResponseOneOneNameMax),
+  "name": zod.string().min(1).max(voidFieldOperationResponseOneNameMax),
   "plannedStart": zod.string(),
   "plannedEnd": zod.string(),
-  "plannedAreaHa": zod.number().min(voidFieldOperationResponseOneOnePlannedAreaHaMin).max(voidFieldOperationResponseOneOnePlannedAreaHaMax),
-  "plannedRatePerHa": zod.number().min(voidFieldOperationResponseOneOnePlannedRatePerHaMin).max(voidFieldOperationResponseOneOnePlannedRatePerHaMax),
-  "responsible": zod.string().max(voidFieldOperationResponseOneOneResponsibleMax),
+  "plannedAreaHa": zod.number().min(voidFieldOperationResponseOnePlannedAreaHaMin).max(voidFieldOperationResponseOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(voidFieldOperationResponseOnePlannedRatePerHaMin).max(voidFieldOperationResponseOnePlannedRatePerHaMax),
+  "responsible": zod.string().max(voidFieldOperationResponseOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
-  "plannedEquipment": zod.string().max(voidFieldOperationResponseOneOnePlannedEquipmentMax),
-  "plannedImplement": zod.string().max(voidFieldOperationResponseOneOnePlannedImplementMax),
-  "notes": zod.string().max(voidFieldOperationResponseOneOneNotesMax)
-}).and(zod.object({
+  "plannedEquipment": zod.string().max(voidFieldOperationResponseOnePlannedEquipmentMax),
+  "plannedImplement": zod.string().max(voidFieldOperationResponseOnePlannedImplementMax),
+  "notes": zod.string().max(voidFieldOperationResponseOneNotesMax),
   "version": zod.number().min(1)
-})).and(zod.object({
+}).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -1165,6 +1312,8 @@ export const VoidFieldOperationResponse = zod.object({
   "actualImplement": zod.string().max(voidFieldOperationResponseTwoActualImplementMax),
   "actualNotes": zod.string().max(voidFieldOperationResponseTwoActualNotesMax)
 })).and(zod.object({
+  "isUnplanned": zod.boolean(),
+  "actualAreaLimitHa": zod.number(),
   "id": zod.number(),
   "status": zod.enum(['planned', 'in_progress', 'completed', 'cancelled']),
   "isOverdue": zod.boolean(),

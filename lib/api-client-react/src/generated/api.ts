@@ -25,6 +25,7 @@ import type {
   AgroFieldInput,
   AgroFieldUpdate,
   ArchiveCell,
+  DailySeedingReport,
   DashboardSummary,
   DocumentUploadInput,
   DocumentUploadTarget,
@@ -49,6 +50,7 @@ import type {
   FleetEquipment,
   FleetInput,
   FleetUpdate,
+  GetDailySeedingReportParams,
   GetMyRoleRequest200,
   GrainCrop,
   GrainCropInput,
@@ -95,7 +97,8 @@ import type {
   SparePartRequestInput,
   SparePartRequestItemInput,
   Template,
-  TemplateInput
+  TemplateInput,
+  UnplannedFieldOperationInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -124,6 +127,149 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getCreateUnplannedFieldOperationUrl = () => {
+
+
+
+
+  return `/api/agro/fields/unplanned-operations`
+}
+
+export const createUnplannedFieldOperation = async (unplannedFieldOperationInput: UnplannedFieldOperationInput, options?: Parameters<typeof customFetch>[1]): Promise<FieldOperation> => {
+
+  return customFetch<FieldOperation>(getCreateUnplannedFieldOperationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(unplannedFieldOperationInput)
+  }
+);}
+
+
+
+
+
+export const getCreateUnplannedFieldOperationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createUnplannedFieldOperation>>, TError,{data: BodyType<UnplannedFieldOperationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createUnplannedFieldOperation>>, TError,{data: BodyType<UnplannedFieldOperationInput>}, TContext> => {
+
+const mutationKey = ['createUnplannedFieldOperation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createUnplannedFieldOperation>>, {data: BodyType<UnplannedFieldOperationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createUnplannedFieldOperation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateUnplannedFieldOperationMutationResult = NonNullable<Awaited<ReturnType<typeof createUnplannedFieldOperation>>>
+    export type CreateUnplannedFieldOperationMutationBody = BodyType<UnplannedFieldOperationInput>
+    export type CreateUnplannedFieldOperationMutationError = ErrorType<unknown>
+
+    export const useCreateUnplannedFieldOperation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createUnplannedFieldOperation>>, TError,{data: BodyType<UnplannedFieldOperationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createUnplannedFieldOperation>>,
+        TError,
+        {data: BodyType<UnplannedFieldOperationInput>},
+        TContext
+      > => {
+      return useMutation(getCreateUnplannedFieldOperationMutationOptions(options));
+    }
+
+export const getGetDailySeedingReportUrl = (params: GetDailySeedingReportParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/agro/fields/seeding-report?${stringifiedParams}` : `/api/agro/fields/seeding-report`
+}
+
+export const getDailySeedingReport = async (params: GetDailySeedingReportParams, options?: Parameters<typeof customFetch>[1]): Promise<DailySeedingReport> => {
+
+  return customFetch<DailySeedingReport>(getGetDailySeedingReportUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDailySeedingReportQueryKey = (params?: GetDailySeedingReportParams,) => {
+    return [
+    `/api/agro/fields/seeding-report`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetDailySeedingReportQueryOptions = <TData = Awaited<ReturnType<typeof getDailySeedingReport>>, TError = ErrorType<unknown>>(params: GetDailySeedingReportParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDailySeedingReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDailySeedingReportQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDailySeedingReport>>> = ({ signal }) => getDailySeedingReport(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDailySeedingReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDailySeedingReportQueryResult = NonNullable<Awaited<ReturnType<typeof getDailySeedingReport>>>
+export type GetDailySeedingReportQueryError = ErrorType<unknown>
+
+
+
+export function useGetDailySeedingReport<TData = Awaited<ReturnType<typeof getDailySeedingReport>>, TError = ErrorType<unknown>>(
+ params: GetDailySeedingReportParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDailySeedingReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDailySeedingReportQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetFieldDashboardUrl = () => {
 
