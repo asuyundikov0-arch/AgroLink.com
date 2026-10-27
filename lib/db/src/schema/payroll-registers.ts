@@ -22,6 +22,9 @@ export const payrollRegistersTable = pgTable("payroll_registers", {
   createdByName: text("created_by_name").notNull(),
   submittedByName: text("submitted_by_name").notNull().default(""),
   submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  hrApprovedByUserId: text("hr_approved_by_user_id").notNull().default(""),
+  hrApprovedByName: text("hr_approved_by_name").notNull().default(""),
+  hrApprovedAt: timestamp("hr_approved_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (table) => [

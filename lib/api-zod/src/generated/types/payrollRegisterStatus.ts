@@ -11,5 +11,6 @@ export type PayrollRegisterStatus = typeof PayrollRegisterStatus[keyof typeof Pa
 
 export const PayrollRegisterStatus = {
   draft: 'draft',
+  pending_hr: 'pending_hr',
   sent_to_economist: 'sent_to_economist',
 } as const;

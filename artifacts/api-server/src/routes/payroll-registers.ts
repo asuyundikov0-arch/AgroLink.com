@@ -3,6 +3,9 @@ import { and, asc, desc, eq, ne, inArray, isNull } from "drizzle-orm";
 import { Router, type IRouter, type RequestHandler } from "express";
 import {
   CreatePayrollRegisterBody,
+  ApproveHrPayrollRegisterBody,
+  ApproveHrPayrollRegisterParams,
+  ApproveHrPayrollRegisterResponse,
   CreatePayrollRegisterResponse,
   ListPayrollAccrualsResponse,
   ListPayrollRegistersResponse,
@@ -31,16 +34,17 @@ import {
 } from "@workspace/db";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { lockPayrollSources } from "../lib/payroll-source-guard";
+import { approveDailyOrder } from "../lib/payroll-hr";
 
 const router: IRouter = Router();
-const readerRoles = new Set(["dispatcher", "economist", "general_director"]);
+const readerRoles = new Set(["dispatcher", "hr", "economist", "general_director"]);
 const editorRoles = new Set(["dispatcher", "general_director"]);
 const accrualReaderRoles = new Set(["dispatcher", "general_director"]);
 const maxRegisterAmount = 999999999999.99;
 const allowed: RequestHandler = (_req, res, next) => {
   const role = (res.locals.access as RoleAccess).role;
   if (!role || !readerRoles.has(role)) {
-    res.status(403).json({ error: "Зарплатный реестр доступен диспетчеру, экономисту и генеральному директору." });
+    res.status(403).json({ error: "Наряды и зарплатный реестр доступны диспетчеру, отделу кадров, экономисту и генеральному директору." });
     return;
   }
   next();
@@ -308,13 +312,15 @@ function normalizeRegister(register: typeof payrollRegistersTable.$inferSelect, 
     id: register.id,
     workDate: register.workDate,
     unit: register.unit,
-    status: register.status as "draft" | "sent_to_economist",
+    status: register.status as "draft" | "pending_hr" | "sent_to_economist",
     totalAmount: Number(register.totalAmount),
     version: register.version,
     createdByName: register.createdByName,
     submittedByName: register.submittedByName,
     createdAt: register.createdAt.toISOString(),
     submittedAt: register.submittedAt?.toISOString() ?? null,
+    hrApprovedByName: register.hrApprovedByName,
+    hrApprovedAt: register.hrApprovedAt?.toISOString() ?? null,
     entries: items.map((item) => ({
       id: item.id,
       employeeId: item.employeeId,
@@ -339,7 +345,8 @@ async function loadRegister(id: number) {
 
 async function loadRegisters(role: string) {
   const rows = await db.select().from(payrollRegistersTable)
-    .where(role === "economist" ? eq(payrollRegistersTable.status, "sent_to_economist") : undefined)
+    .where(role === "economist" ? eq(payrollRegistersTable.status, "sent_to_economist")
+      : role === "hr" ? inArray(payrollRegistersTable.status, ["pending_hr", "sent_to_economist"]) : undefined)
     .orderBy(desc(payrollRegistersTable.workDate), desc(payrollRegistersTable.id));
   if (rows.length === 0) return [];
   const ids = rows.map((row) => row.id);
@@ -418,7 +425,7 @@ router.post("/economic/payroll-registers/send-daily", async (req, res, next): Pr
       const [register] = await tx.insert(payrollRegistersTable).values({
         workDate: day.workDate,
         unit: day.unit,
-        status: "sent_to_economist",
+        status: "pending_hr",
         totalAmount: day.totalAmount.toFixed(2),
         version: 1,
         createdByUserId: access.userId,
@@ -437,7 +444,7 @@ router.post("/economic/payroll-registers/send-daily", async (req, res, next): Pr
         sourceId: entry.sourceId,
       })));
       await tx.insert(activityTable).values({
-        action: "Автоматический зарплатный реестр отправлен экономисту",
+        action: "Ежедневный наряд отправлен в отдел кадров",
         templateName: `${day.unit} · ${day.workDate} · ${day.totalAmount.toLocaleString("ru-RU")} ₸`,
         userName: actor(access),
       });
@@ -604,6 +611,28 @@ router.patch("/economic/payroll-registers/:id", async (req, res, next): Promise<
   }
 });
 
+router.post("/economic/payroll-registers/:id/approve-hr", async (req, res, next): Promise<void> => {
+  try {
+    const access = res.locals.access as RoleAccess;
+    if (!access.role || !["hr", "general_director"].includes(access.role)) {
+      res.status(403).json({ error: "Подтверждать начисления может только отдел кадров или генеральный директор." });
+      return;
+    }
+    const params = ApproveHrPayrollRegisterParams.safeParse(req.params);
+    const parsed = ApproveHrPayrollRegisterBody.safeParse(req.body);
+    if (!params.success || !Number.isSafeInteger(params.data.id) || !parsed.success || !Number.isSafeInteger(parsed.data.version)) {
+      res.status(400).json({ error: "Укажите корректные номер и версию наряда." });
+      return;
+    }
+    const result = await db.transaction(async (tx) => {
+      const approval = await approveDailyOrder(tx, params.data.id, parsed.data.version, access);
+      if ("error" in approval) return approval;
+      return { register: ApproveHrPayrollRegisterResponse.parse(normalizeRegister(approval.register, approval.items)) };
+    });
+    if ("error" in result) { res.status(result.status ?? 500).json({ error: result.error }); return; }
+    res.json(result.register);
+  } catch (error) { next(error); }
+});
 router.post("/economic/payroll-registers/:id/send", async (req, res, next): Promise<void> => {
   try {
     const access = res.locals.access as RoleAccess;
@@ -626,7 +655,7 @@ router.post("/economic/payroll-registers/:id/send", async (req, res, next): Prom
       const [current] = await tx.select().from(payrollRegistersTable)
         .where(eq(payrollRegistersTable.id, params.data.id)).for("update");
       if (!current) return { error: "Реестр не найден.", status: 404 as const };
-      if (current.status !== "draft") return { error: "Реестр уже отправлен экономисту.", status: 409 as const };
+      if (current.status !== "draft") return { error: "Наряд уже отправлен в отдел кадров.", status: 409 as const };
       if (current.version !== parsed.data.version) return { error: "Реестр изменился. Обновите список перед отправкой.", status: 409 as const };
       const [firstItem] = await tx.select({ id: payrollRegisterItemsTable.id })
         .from(payrollRegisterItemsTable)
@@ -635,14 +664,14 @@ router.post("/economic/payroll-registers/:id/send", async (req, res, next): Prom
       if (!firstItem) return { error: "Добавьте начисления перед отправкой.", status: 409 as const };
       const submittedAt = new Date();
       await tx.update(payrollRegistersTable).set({
-        status: "sent_to_economist",
+        status: "pending_hr",
         submittedByName: actor(access),
         submittedAt,
         version: current.version + 1,
         updatedAt: submittedAt,
       }).where(eq(payrollRegistersTable.id, current.id));
       await tx.insert(activityTable).values({
-        action: "Зарплатный реестр отправлен экономисту",
+        action: "Ежедневный наряд отправлен в отдел кадров",
         templateName: `${current.unit} · ${current.workDate} · ${Number(current.totalAmount).toLocaleString("ru-RU")} ₸`,
         userName: actor(access),
       });

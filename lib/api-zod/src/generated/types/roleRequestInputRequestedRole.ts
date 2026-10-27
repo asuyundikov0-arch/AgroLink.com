@@ -15,6 +15,7 @@ export const RoleRequestInputRequestedRole = {
   grain_manager: 'grain_manager',
   weigher: 'weigher',
   dispatcher: 'dispatcher',
+  hr: 'hr',
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
   storekeeper: 'storekeeper',

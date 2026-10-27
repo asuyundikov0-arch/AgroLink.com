@@ -129,7 +129,7 @@ router.patch("/agro/grain/transport-trips/:id/rate", roles(["dispatcher", "gener
       return { error: "Расценку можно внести только для действующего рейса по зерну.", status: 409 } as const;
     }
     if (await grainTripWasSubmitted(tx, row.id)) {
-      return { error: "Начисление за рейс уже отправлено экономисту. Изменять расценку нельзя.", status: 409 } as const;
+      return { error: "Начисление за рейс уже включено в отправленный наряд. Изменять расценку нельзя.", status: 409 } as const;
     }
     const rateSetAt = new Date();
     const [updated] = await tx.update(grainMovementsTable).set({
@@ -320,7 +320,7 @@ router.post("/agro/grain/movements/:id/void", roles(["general_director"]), safe(
     if (!row) return { status: 404, error: "Операция не найдена." };
     if (row.voidedAt) return { row };
     await lockPayrollSources(tx);
-    if (await grainTripWasSubmitted(tx, row.id)) return { status: 409, error: "Начисление за рейс уже отправлено экономисту. Отмена недоступна." };
+    if (await grainTripWasSubmitted(tx, row.id)) return { status: 409, error: "Начисление за рейс уже включено в отправленный наряд. Отмена недоступна." };
     const rows = await tx.select().from(grainMovementsTable).where(and(eq(grainMovementsTable.unit, row.unit), eq(grainMovementsTable.cropId, row.cropId)));
     const stock = calculateGrainLedger(rows.filter((item) => item.id !== row.id));
     if (stock.issue) return { status: 409, error: "Отмена создаст отрицательный остаток. Сначала отмените зависимые продажи или перемещения." };

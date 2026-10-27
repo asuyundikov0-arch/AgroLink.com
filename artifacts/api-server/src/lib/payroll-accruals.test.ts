@@ -73,7 +73,7 @@ test("automatic payroll uses daily deltas, employee IDs, snapshots and late accr
     assert.notEqual(changed.sourceHash, second.sourceHash);
     await tx.update(grainMovementsTable).set({ transportRate: "3500.00" }).where(eq(grainMovementsTable.id, trip.id));
     const [register] = await tx.insert(payrollRegistersTable).values({
-      unit, workDate: second.workDate, status: "sent_to_economist", totalAmount: "20000.00",
+      unit, workDate: second.workDate, status: "pending_hr", totalAmount: "20000.00",
       createdByUserId: "test", createdByName: "test",
     }).returning();
     await tx.insert(payrollRegisterItemsTable).values(second.entries.map((entry) => ({

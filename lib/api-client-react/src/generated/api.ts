@@ -51,7 +51,6 @@ import type {
   FleetInput,
   FleetUpdate,
   GetDailySeedingReportParams,
-  GetMyRoleRequest200,
   GrainCrop,
   GrainCropInput,
   GrainDashboard,
@@ -64,6 +63,7 @@ import type {
   GrainTransportTrip,
   GrainVoidInput,
   HealthStatus,
+  HrPayrollApprovalInput,
   ListEngineeringRepairsParams,
   ListRepairExpensesParams,
   ListReportsParams,
@@ -3563,6 +3563,78 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getUpdatePayrollRegisterMutationOptions(options));
     }
 
+export const getApproveHrPayrollRegisterUrl = (id: number,) => {
+
+
+
+
+  return `/api/economic/payroll-registers/${id}/approve-hr`
+}
+
+/**
+ * @summary HR confirms a daily work order and releases its accruals to payroll
+ */
+export const approveHrPayrollRegister = async (id: number,
+    hrPayrollApprovalInput: HrPayrollApprovalInput, options?: Parameters<typeof customFetch>[1]): Promise<PayrollRegister> => {
+
+  return customFetch<PayrollRegister>(getApproveHrPayrollRegisterUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(hrPayrollApprovalInput)
+  }
+);}
+
+
+
+
+
+export const getApproveHrPayrollRegisterMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveHrPayrollRegister>>, TError,{id: number;data: BodyType<HrPayrollApprovalInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approveHrPayrollRegister>>, TError,{id: number;data: BodyType<HrPayrollApprovalInput>}, TContext> => {
+
+const mutationKey = ['approveHrPayrollRegister'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveHrPayrollRegister>>, {id: number;data: BodyType<HrPayrollApprovalInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  approveHrPayrollRegister(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApproveHrPayrollRegisterMutationResult = NonNullable<Awaited<ReturnType<typeof approveHrPayrollRegister>>>
+    export type ApproveHrPayrollRegisterMutationBody = BodyType<HrPayrollApprovalInput>
+    export type ApproveHrPayrollRegisterMutationError = ErrorType<void>
+
+    /**
+ * @summary HR confirms a daily work order and releases its accruals to payroll
+ */
+export const useApproveHrPayrollRegister = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveHrPayrollRegister>>, TError,{id: number;data: BodyType<HrPayrollApprovalInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof approveHrPayrollRegister>>,
+        TError,
+        {id: number;data: BodyType<HrPayrollApprovalInput>},
+        TContext
+      > => {
+      return useMutation(getApproveHrPayrollRegisterMutationOptions(options));
+    }
+
 export const getSendPayrollRegisterUrl = (id: number,) => {
 
 
@@ -5073,9 +5145,9 @@ export const getGetMyRoleRequestUrl = () => {
 /**
  * @summary Get current user's role request
  */
-export const getMyRoleRequest = async ( options?: Parameters<typeof customFetch>[1]): Promise<GetMyRoleRequest200> => {
+export const getMyRoleRequest = async ( options?: Parameters<typeof customFetch>[1]): Promise<RoleRequest | null> => {
 
-  return customFetch<GetMyRoleRequest200>(getGetMyRoleRequestUrl(),
+  return customFetch<RoleRequest | null>(getGetMyRoleRequestUrl(),
   {
     ...options,
     method: 'GET'

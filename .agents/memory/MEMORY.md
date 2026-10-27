@@ -1,10 +1,11 @@
 - [OpenAPI Zod compatibility](api-integer-zod-compat.md) — generated Zod schemas may emit unsupported integer and URL helpers with this workspace's Zod version.
 - [Secure role bootstrap](secure-role-bootstrap.md) — the first general director is configured server-side; no browser user may self-assign it.
+- [Role API consistency](role-api-contract.md) — registration, approval and current-user responses must accept the same canonical roles or valid staff cannot enter the workspace.
 - [Protected document downloads](protected-document-downloads.md) — original files must stream through role-checked API routes, never public URLs.
 - [Engineering repair register](engineering-repairs.md) — preserve repair accounting and line-by-line spare-part approval through warehouse receipt.
 - [Grain ownership at elevators](grain-ownership.md) — elevator grain remains company stock; movement to an elevator is not a sale.
 - [Processing waste categories](grain-processing-waste.md) — the user requires separate weights for dead impurities and grain waste after drying or cleaning.
 - [Agro rates and dispatcher scope](agro-rates-and-dispatch.md) — chief agronomist plans per-hectare rates; dispatcher records completed-work rates and per-trip transport fees.
-- [Salary accrual handoff](salary-accrual-handoff.md) — automatic employee-linked daily accruals; chiefs and dispatcher manage staff; economist receives immutable snapshots, not payments.
+- [Salary accrual handoff](salary-accrual-handoff.md) — dispatcher sends daily work orders to HR; only HR-confirmed field and transport accruals enter employee payroll and reach the economist.
 - [Field plans, facts and sowing](field-plan-navigation.md) — separate field-first plan/fact entry, unplanned work, per-field progress and automatic crop-level daily sowing reports.
 - [Partial index changes](partial-index-push.md) — Drizzle push may miss a changed WHERE predicate; verify the live index definition.

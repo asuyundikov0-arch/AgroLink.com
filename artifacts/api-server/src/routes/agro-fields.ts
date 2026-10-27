@@ -403,7 +403,7 @@ router.patch("/agro/fields/operations/:id/dispatch-rate", roles(["dispatcher", "
     const old = await getOperation(tx, params.data.id);
     revision(old, input.version);
     requireValue(!old.voidedAt && old.actualEnd !== null, "Расценку можно внести только по завершённой полевой операции.", 409);
-    requireValue(!await fieldPayrollWasSubmitted(tx, old.id), "Начисления по операции уже отправлены экономисту. Изменять их исходные данные нельзя.", 409);
+    requireValue(!await fieldPayrollWasSubmitted(tx, old.id), "Начисления по операции уже включены в отправленный наряд. Изменять их исходные данные нельзя.", 409);
     const ratedAt = new Date();
     const [updated] = await tx.update(fieldOperationsTable).set({
       actualRatePerHa: input.ratePerHa.toFixed(2),
@@ -424,7 +424,7 @@ router.patch("/agro/fields/operations/:id/actual", roles(actualWriters), safe(as
   const row = await mutate("Внесён факт полевой операции", by, async (tx) => {
     const old = await getOperation(tx, Number(req.params.id)); revision(old, input.version);
     requireValue(!old.voidedAt, "Отменённая операция недоступна для внесения факта.", 409);
-    requireValue(!await fieldPayrollWasSubmitted(tx, old.id), "Начисления по операции уже отправлены экономисту. Изменять факт нельзя.", 409);
+    requireValue(!await fieldPayrollWasSubmitted(tx, old.id), "Начисления по операции уже включены в отправленный наряд. Изменять факт нельзя.", 409);
     const mechanic = input.actualStart ? await selectedMechanic(tx, input.actualMechanicEmployeeId) : null;
     const progressRows = await tx.select().from(fieldOperationProgressTable)
       .where(eq(fieldOperationProgressTable.operationId, old.id)).orderBy(asc(fieldOperationProgressTable.reportDate));
@@ -481,7 +481,7 @@ router.post("/agro/fields/operations/:id/progress", roles(actualWriters), safe(a
     const old = await getOperation(tx, operationId);
     revision(old, input.operationVersion);
     requireValue(!old.voidedAt && !old.actualEnd, "Отчёт недоступен для отменённой или завершённой операции.", 409);
-    requireValue(!await fieldPayrollWasSubmitted(tx, old.id), "Начисления по операции уже отправлены экономисту. Изменять дневные отчёты нельзя.", 409);
+    requireValue(!await fieldPayrollWasSubmitted(tx, old.id), "Начисления по операции уже включены в отправленный наряд. Изменять дневные отчёты нельзя.", 409);
     requireValue(old.actualStart !== null, "Сначала зафиксируйте начало операции.", 409);
     requireValue(validGrainDate(input.reportDate) && input.reportDate >= old.actualStart && input.reportDate <= today, "Дата отчёта должна быть между началом операции и сегодняшним днём.");
     requireValue(input.actualMechanic.trim() && input.actualEquipment.trim() && input.actualImplement.trim(), "Укажите механизатора, технику и агрегат.");
@@ -534,7 +534,7 @@ router.patch("/agro/fields/operations/:id/progress/:progressId", roles(actualWri
     const old = await getOperation(tx, operationId);
     revision(old, input.operationVersion);
     requireValue(!old.voidedAt && !old.actualEnd, "Отчёт недоступен для отменённой или завершённой операции.", 409);
-    requireValue(!await fieldPayrollWasSubmitted(tx, old.id), "Начисления по операции уже отправлены экономисту. Изменять дневные отчёты нельзя.", 409);
+    requireValue(!await fieldPayrollWasSubmitted(tx, old.id), "Начисления по операции уже включены в отправленный наряд. Изменять дневные отчёты нельзя.", 409);
     const [report] = await tx.select().from(fieldOperationProgressTable).where(and(
       eq(fieldOperationProgressTable.id, progressId),
       eq(fieldOperationProgressTable.operationId, old.id),
@@ -584,7 +584,7 @@ router.post("/agro/fields/operations/:id/void", roles(["general_director"]), saf
   const row = await mutate("Отменена полевая операция", by, async (tx) => {
     const old = await getOperation(tx, Number(req.params.id)); revision(old, input.version);
     requireValue(!old.voidedAt, "Операция уже отменена.", 409);
-    requireValue(!await fieldPayrollWasSubmitted(tx, old.id), "Начисления по операции уже отправлены экономисту. Отмена недоступна.", 409);
+    requireValue(!await fieldPayrollWasSubmitted(tx, old.id), "Начисления по операции уже включены в отправленный наряд. Отмена недоступна.", 409);
     const [updated] = await tx.update(fieldOperationsTable).set({
       voidedAt: new Date(), voidReason: input.reason.trim(), voidedBy: by, ...stamp(by, old.version),
     }).where(and(eq(fieldOperationsTable.id, old.id), eq(fieldOperationsTable.version, old.version))).returning();

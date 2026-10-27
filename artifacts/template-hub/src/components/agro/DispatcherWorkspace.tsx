@@ -49,7 +49,7 @@ export default function DispatcherWorkspace() {
       <header>
         <p className="eyebrow">Рабочее пространство</p>
         <h1 className="mt-1.5 font-display text-2xl font-bold tracking-[-0.045em] sm:text-3xl">Диспетчерская</h1>
-        <p className="mt-1 max-w-3xl text-xs leading-5 text-muted-foreground">Управляйте фактическими расценками по рейсам и полевым работам, а также собирайте дневные начисления сотрудникам для экономиста.</p>
+        <p className="mt-1 max-w-3xl text-xs leading-5 text-muted-foreground">Управляйте фактическими расценками по рейсам и полевым работам, а также отправляйте ежедневные наряды в отдел кадров на подтверждение.</p>
       </header>
 
       <section className="grid gap-3 sm:grid-cols-2" aria-label="Очередь диспетчера">
@@ -67,7 +67,7 @@ export default function DispatcherWorkspace() {
       <div className="inline-flex flex-wrap rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Работа диспетчера">
         <button type="button" role="tab" aria-selected={view === "grain"} onClick={() => setView("grain")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "grain" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-grain">Перевозка зерна ({grainTrips.length})</button>
         <button type="button" role="tab" aria-selected={view === "fields"} onClick={() => setView("fields")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "fields" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-fields">Полевые расценки ({fieldOperations.length})</button>
-        <button type="button" role="tab" aria-selected={view === "payroll"} onClick={() => setView("payroll")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "payroll" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-payroll"><Wallet size={13} /> Зарплатный реестр</button>
+        <button type="button" role="tab" aria-selected={view === "payroll"} onClick={() => setView("payroll")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "payroll" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-payroll"><Wallet size={13} /> Ежедневные наряды</button>
       </div>
 
       {view === "payroll" ? <PayrollRegisterWorkspace canManage /> : view === "grain" ? (

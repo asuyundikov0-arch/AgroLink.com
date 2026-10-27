@@ -6,6 +6,7 @@ export const appRoles = [
   "grain_manager",
   "weigher",
   "dispatcher",
+  "hr",
   "engineer",
   "chief_engineer",
   "storekeeper",

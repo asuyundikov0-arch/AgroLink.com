@@ -4,6 +4,7 @@ import {
   Archive,
   ArrowLeft,
   BarChart3,
+  BadgeCheck,
   Check,
   ChevronDown,
   CircleHelp,
@@ -72,6 +73,7 @@ import AgroWorkspace from "@/components/agro/AgroWorkspace";
 import PaymentRegister from "@/components/economic/PaymentRegister";
 import EmployeeDirectory from "@/components/employees/EmployeeDirectory";
 import PayrollRegisterWorkspace from "@/components/economic/PayrollRegisterWorkspace";
+import HRWorkspace from "@/components/hr/HRWorkspace";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import companyEmblem from "@assets/IMG_0731_1787404427367.jpeg";
@@ -113,6 +115,7 @@ const roleLabels = {
   chief_engineer: "Главный инженер",
   storekeeper: "Заведующий складом",
   lawyer: "Юрист",
+  hr: "Отдел кадров",
 } as const;
 type AppRole = keyof typeof roleLabels;
 
@@ -182,7 +185,7 @@ function BrandEmblem({ size = "md" }: { size?: "md" | "lg" }) {
   return <img src={companyEmblem} alt="AgroLink operation" className={cn("brand-emblem", size === "lg" ? "brand-emblem-lg" : "brand-emblem-md")} />;
 }
 
-type WorkspaceSection = "cabinet" | "templates" | "archive" | "agro" | "engineering" | "economic" | "legal" | "employees" | "settings";
+type WorkspaceSection = "cabinet" | "templates" | "archive" | "agro" | "engineering" | "economic" | "legal" | "employees" | "hr" | "settings";
 
 type SidebarSection = Exclude<WorkspaceSection, "templates">;
 
@@ -237,6 +240,7 @@ const demoRoleScenarios: Record<AppRole, { workspace: string; title: string; des
   engineer: { workspace: "Инженерный блок", title: "Отправка инженерного документа", description: "Откройте шаблон, подготовьте Excel или PDF и передайте его главному инженеру.", document: "Акт технического осмотра · Инженерная служба", action: "Отправить главному инженеру", result: "Демо: инженерный документ направлен главному инженеру." },
   chief_engineer: { workspace: "Личный кабинет", title: "Очередь главного инженера", description: "Проверьте инженерный документ, верните его на доработку или направьте генеральному директору.", document: "Акт технического осмотра · Инженерная служба", action: "Принять и направить директору", result: "Демо: документ согласован главным инженером и направлен генеральному директору." },
   storekeeper: { workspace: "Инженерный блок", title: "Приёмка запчастей", description: "Проверьте одобренные заявки, внесите фактическое поступление по накладной и пополните склад.", document: "Заявка на покупку запчастей · Инженерная служба", action: "Оприходовать накладную", result: "Демо: поступление по заявке оприходовано на складе." },
+  hr: { workspace: "Отдел кадров", title: "Подтверждение ежедневных нарядов", description: "Проверьте дневной наряд диспетчера по всем сотрудникам и подтвердите начисления.", document: "Ежедневный наряд · АФ Веденовка", action: "Подтвердить начисления", result: "Демо: наряд подтверждён и передан в накопительный реестр экономиста." },
   lawyer: { workspace: "Юридический блок", title: "Отправка юридического документа", description: "Подготовьте документ и направьте его на финальное согласование генеральному директору.", document: "Юридическое заключение · Юридический отдел", action: "Отправить генеральному директору", result: "Демо: юридический документ направлен генеральному директору." },
 };
 
@@ -373,13 +377,15 @@ function Shell({
   const { signOut } = useClerk();
   const activeSidebarSection: SidebarSection = activeSection === "templates" ? "cabinet" : activeSection;
   const isDispatcher = role === "dispatcher";
+  const isHr = role === "hr";
+  const isHrVisible = isHr || role === "general_director";
   const isAgroVisible = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "dispatcher", "general_director"].includes(role);
   const isEngineeringVisible = ["engineer", "chief_engineer", "storekeeper", "general_director"].includes(role);
   const isEconomicVisible = ["economist", "farm_director", "general_director"].includes(role);
   const isLegalVisible = ["lawyer", "general_director"].includes(role);
   const isEmployeesVisible = ["general_director", "chief_agronomist", "chief_engineer", "dispatcher"].includes(role);
   const navigation = [
-    ...(!isDispatcher ? [
+    ...(!isDispatcher && !isHr ? [
       { id: "cabinet" as const, label: "Личный кабинет", icon: ClipboardCheck },
       { id: "archive" as const, label: "Архив", icon: Archive },
     ] : []),
@@ -388,6 +394,7 @@ function Shell({
     ...(isEconomicVisible ? [{ id: "economic" as const, label: "Экономический блок", icon: BarChart3 }] : []),
     ...(isLegalVisible ? [{ id: "legal" as const, label: "Юридический блок", icon: Scale }] : []),
     ...(isEmployeesVisible ? [{ id: "employees" as const, label: "Сотрудники", icon: Users }] : []),
+    ...(isHrVisible ? [{ id: "hr" as const, label: "Отдел кадров", icon: BadgeCheck }] : []),
     { id: "settings" as const, label: "Настройки", icon: SettingsIcon },
   ];
   const navigateFromSidebar = (section: SidebarSection) => {
@@ -1073,6 +1080,7 @@ function Workspace({ role, actualRole, demoRole, request, section, onSectionChan
     {section === "economic" && <EconomicBlock role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />}
     {section === "legal" && <LegalBlock role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />}
     {section === "employees" && <EmployeeDirectory canManage={["general_director", "chief_agronomist", "chief_engineer", "dispatcher"].includes(role) && !demoRole} />}
+    {section === "hr" && (role === "hr" || role === "general_director") && <HRWorkspace demoActive={Boolean(demoRole)} onExitDemo={() => onDemoRoleChange(null)} />}
     {section === "settings" && <SettingsPage role={role} request={request} />}
   </>;
 }
@@ -1087,6 +1095,7 @@ function AccessGate() {
   const request = (requestQuery.data as RoleRequest | null | undefined) ?? null;
   useEffect(() => {
     if (request?.status === "approved" && request.requestedRole === "dispatcher") setSection("agro");
+    if (request?.status === "approved" && request.requestedRole === "hr") setSection("hr");
   }, [request?.requestedRole, request?.status]);
   if (requestQuery.isLoading) return <main className="access-page"><LoadingRows count={2} /></main>;
   if (requestQuery.isError) return <main className="access-page"><ErrorState onRetry={() => requestQuery.refetch()} /></main>;
@@ -1096,7 +1105,7 @@ function AccessGate() {
   const role = canUseDemo && demoRole ? demoRole : actualRole;
   const changeDemoRole = (nextRole: AppRole | null) => {
     setDemoRole(nextRole);
-    setSection(nextRole === "dispatcher" ? "agro" : "cabinet");
+    setSection(nextRole === "dispatcher" ? "agro" : nextRole === "hr" ? "hr" : "cabinet");
     if (nextRole) window.localStorage.setItem("agrolink-role-context", nextRole);
     else window.localStorage.removeItem("agrolink-role-context");
     queryClient.clear();

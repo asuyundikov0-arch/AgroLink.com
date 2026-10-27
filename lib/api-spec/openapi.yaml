@@ -828,6 +828,26 @@ paths:
           description: Register not found
         "409":
           description: Register has already been sent or was changed by another user
+  /economic/payroll-registers/{id}/approve-hr:
+    post:
+      operationId: approveHrPayrollRegister
+      tags: [economic]
+      summary: HR confirms a daily work order and releases its accruals to payroll
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HrPayrollApprovalInput" }
+      responses:
+        "200":
+          description: Confirmed accrual snapshot
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PayrollRegister" }
+        "403": { description: Only HR or general director may approve }
+        "409": { description: Already approved or changed version }
   /economic/payroll-registers/{id}/send:
     post:
       operationId: sendPayrollRegister
@@ -1221,33 +1241,9 @@ paths:
           content:
             application/json:
               schema:
-                type: [object, "null"]
-                properties:
-                  id:
-                    type: number
-                  userId:
-                    type: string
-                  email:
-                    type: string
-                  displayName:
-                    type: string
-                  department:
-                    type: string
-                  requestedRole:
-                    type: string
-                    enum: [agronomist, chief_agronomist, grain_manager, weigher, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
-                  status:
-                    type: string
-                    enum: [pending, approved, rejected]
-                  reviewComment:
-                    type: string
-                  reviewedByName:
-                    type: string
-                  requestedAt:
-                    type: string
-                  reviewedAt:
-                    type: [string, "null"]
-                required: [id, userId, email, displayName, department, requestedRole, status, reviewComment, reviewedByName, requestedAt, reviewedAt]
+                anyOf:
+                  - $ref: "#/components/schemas/RoleRequest"
+                  - type: "null"
   /role-requests:
     get:
       operationId: listRoleRequests
@@ -2038,6 +2034,11 @@ components:
         amountKzt: { type: number }
         sourceType: { type: string }
         sourceId: { type: ["number", "null"] }
+    HrPayrollApprovalInput:
+      type: object
+      required: [version]
+      properties:
+        version: { type: number, minimum: 1 }
     PayrollRegister:
       type: object
       required: [id, workDate, unit, status, totalAmount, version, createdByName, submittedByName, createdAt, submittedAt, entries]
@@ -2045,13 +2046,15 @@ components:
         id: { type: number }
         workDate: { type: string }
         unit: { type: string }
-        status: { type: string, enum: [draft, sent_to_economist] }
+        status: { type: string, enum: [draft, pending_hr, sent_to_economist] }
         totalAmount: { type: number }
         version: { type: number }
         createdByName: { type: string }
         submittedByName: { type: string }
         createdAt: { type: string }
         submittedAt: { type: ["string", "null"] }
+        hrApprovedByName: { type: string }
+        hrApprovedAt: { type: ["string", "null"] }
         entries:
           type: array
           items:
@@ -2563,7 +2566,7 @@ components:
           type: string
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
         status:
           type: string
           enum: [pending, approved, rejected]
@@ -2592,7 +2595,7 @@ components:
       properties:
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
         department:
           type: string
           minLength: 1

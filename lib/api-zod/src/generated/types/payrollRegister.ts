@@ -20,5 +20,8 @@ export interface PayrollRegister {
   createdAt: string;
   /** @nullable */
   submittedAt: string | null;
+  hrApprovedByName?: string;
+  /** @nullable */
+  hrApprovedAt?: string | null;
   entries: PayrollRegisterEntry[];
 }

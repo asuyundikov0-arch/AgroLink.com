@@ -1019,11 +1019,17 @@ export interface PayrollRegisterEntry {
   sourceId: number | null;
 }
 
+export interface HrPayrollApprovalInput {
+  /** @minimum 1 */
+  version: number;
+}
+
 export type PayrollRegisterStatus = typeof PayrollRegisterStatus[keyof typeof PayrollRegisterStatus];
 
 
 export const PayrollRegisterStatus = {
   draft: 'draft',
+  pending_hr: 'pending_hr',
   sent_to_economist: 'sent_to_economist',
 } as const;
 
@@ -1039,6 +1045,9 @@ export interface PayrollRegister {
   createdAt: string;
   /** @nullable */
   submittedAt: string | null;
+  hrApprovedByName?: string;
+  /** @nullable */
+  hrApprovedAt?: string | null;
   entries: PayrollRegisterEntry[];
 }
 
@@ -1742,6 +1751,7 @@ export const RoleRequestRequestedRole = {
   grain_manager: 'grain_manager',
   weigher: 'weigher',
   dispatcher: 'dispatcher',
+  hr: 'hr',
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
   storekeeper: 'storekeeper',
@@ -1784,6 +1794,7 @@ export const RoleRequestInputRequestedRole = {
   grain_manager: 'grain_manager',
   weigher: 'weigher',
   dispatcher: 'dispatcher',
+  hr: 'hr',
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
   storekeeper: 'storekeeper',
@@ -1881,48 +1892,4 @@ export const ListReportsArchiveSubarchive = {
   tech_maps: 'tech_maps',
   general: 'general',
 } as const;
-
-export type GetMyRoleRequest200RequestedRole = typeof GetMyRoleRequest200RequestedRole[keyof typeof GetMyRoleRequest200RequestedRole];
-
-
-export const GetMyRoleRequest200RequestedRole = {
-  agronomist: 'agronomist',
-  chief_agronomist: 'chief_agronomist',
-  grain_manager: 'grain_manager',
-  weigher: 'weigher',
-  engineer: 'engineer',
-  chief_engineer: 'chief_engineer',
-  storekeeper: 'storekeeper',
-  economist: 'economist',
-  lawyer: 'lawyer',
-  farm_director: 'farm_director',
-  general_director: 'general_director',
-} as const;
-
-export type GetMyRoleRequest200Status = typeof GetMyRoleRequest200Status[keyof typeof GetMyRoleRequest200Status];
-
-
-export const GetMyRoleRequest200Status = {
-  pending: 'pending',
-  approved: 'approved',
-  rejected: 'rejected',
-} as const;
-
-/**
- * @nullable
- */
-export type GetMyRoleRequest200 = {
-  id: number;
-  userId: string;
-  email: string;
-  displayName: string;
-  department: string;
-  requestedRole: GetMyRoleRequest200RequestedRole;
-  status: GetMyRoleRequest200Status;
-  reviewComment: string;
-  reviewedByName: string;
-  requestedAt: string;
-  /** @nullable */
-  reviewedAt: string | null;
-} | null;
 

@@ -19,6 +19,7 @@ test("economist accumulates every confirmed line with work-type and date details
     sheet(1, "2026-09-01", [entry(1, 7, "Иванов", 11000)]),
     sheet(2, "2026-09-02", [entry(2, 7, "Иванов", 16500), entry(3, 7, "Иванов", 3500, "Перевозка")]),
     sheet(3, "2026-09-02", [entry(4, 7, "Иванов", 500, "Перевозка")]),
+    sheet(30, "2026-09-03", [entry(30, 7, "Иванов", 45000)], "pending_hr"),
     sheet(4, "2026-09-02", [entry(5, 7, "Иванов", 99999)], "draft"),
   ];
   const [employee] = aggregatePayrollByEmployee(records);

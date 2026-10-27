@@ -2730,13 +2730,15 @@ export const ListPayrollRegistersResponseItem = zod.object({
   "id": zod.number(),
   "workDate": zod.string(),
   "unit": zod.string(),
-  "status": zod.enum(['draft', 'sent_to_economist']),
+  "status": zod.enum(['draft', 'pending_hr', 'sent_to_economist']),
   "totalAmount": zod.number(),
   "version": zod.number(),
   "createdByName": zod.string(),
   "submittedByName": zod.string(),
   "createdAt": zod.string(),
   "submittedAt": zod.string().nullable(),
+  "hrApprovedByName": zod.string().optional(),
+  "hrApprovedAt": zod.string().nullish(),
   "entries": zod.array(zod.object({
   "id": zod.number(),
   "employeeId": zod.number().nullable(),
@@ -2781,13 +2783,15 @@ export const CreatePayrollRegisterResponse = zod.object({
   "id": zod.number(),
   "workDate": zod.string(),
   "unit": zod.string(),
-  "status": zod.enum(['draft', 'sent_to_economist']),
+  "status": zod.enum(['draft', 'pending_hr', 'sent_to_economist']),
   "totalAmount": zod.number(),
   "version": zod.number(),
   "createdByName": zod.string(),
   "submittedByName": zod.string(),
   "createdAt": zod.string(),
   "submittedAt": zod.string().nullable(),
+  "hrApprovedByName": zod.string().optional(),
+  "hrApprovedAt": zod.string().nullish(),
   "entries": zod.array(zod.object({
   "id": zod.number(),
   "employeeId": zod.number().nullable(),
@@ -2818,13 +2822,15 @@ export const SendDailyPayrollRegisterResponse = zod.object({
   "id": zod.number(),
   "workDate": zod.string(),
   "unit": zod.string(),
-  "status": zod.enum(['draft', 'sent_to_economist']),
+  "status": zod.enum(['draft', 'pending_hr', 'sent_to_economist']),
   "totalAmount": zod.number(),
   "version": zod.number(),
   "createdByName": zod.string(),
   "submittedByName": zod.string(),
   "createdAt": zod.string(),
   "submittedAt": zod.string().nullable(),
+  "hrApprovedByName": zod.string().optional(),
+  "hrApprovedAt": zod.string().nullish(),
   "entries": zod.array(zod.object({
   "id": zod.number(),
   "employeeId": zod.number().nullable(),
@@ -2877,13 +2883,55 @@ export const UpdatePayrollRegisterResponse = zod.object({
   "id": zod.number(),
   "workDate": zod.string(),
   "unit": zod.string(),
-  "status": zod.enum(['draft', 'sent_to_economist']),
+  "status": zod.enum(['draft', 'pending_hr', 'sent_to_economist']),
   "totalAmount": zod.number(),
   "version": zod.number(),
   "createdByName": zod.string(),
   "submittedByName": zod.string(),
   "createdAt": zod.string(),
   "submittedAt": zod.string().nullable(),
+  "hrApprovedByName": zod.string().optional(),
+  "hrApprovedAt": zod.string().nullish(),
+  "entries": zod.array(zod.object({
+  "id": zod.number(),
+  "employeeId": zod.number().nullable(),
+  "employeeName": zod.string(),
+  "workType": zod.string(),
+  "details": zod.string(),
+  "amountKzt": zod.number(),
+  "sourceType": zod.string(),
+  "sourceId": zod.number().nullable()
+}))
+})
+
+
+/**
+ * @summary HR confirms a daily work order and releases its accruals to payroll
+ */
+export const ApproveHrPayrollRegisterParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+export const ApproveHrPayrollRegisterBody = zod.object({
+  "version": zod.number().min(1)
+})
+
+export const ApproveHrPayrollRegisterResponse = zod.object({
+  "id": zod.number(),
+  "workDate": zod.string(),
+  "unit": zod.string(),
+  "status": zod.enum(['draft', 'pending_hr', 'sent_to_economist']),
+  "totalAmount": zod.number(),
+  "version": zod.number(),
+  "createdByName": zod.string(),
+  "submittedByName": zod.string(),
+  "createdAt": zod.string(),
+  "submittedAt": zod.string().nullable(),
+  "hrApprovedByName": zod.string().optional(),
+  "hrApprovedAt": zod.string().nullish(),
   "entries": zod.array(zod.object({
   "id": zod.number(),
   "employeeId": zod.number().nullable(),
@@ -2915,13 +2963,15 @@ export const SendPayrollRegisterResponse = zod.object({
   "id": zod.number(),
   "workDate": zod.string(),
   "unit": zod.string(),
-  "status": zod.enum(['draft', 'sent_to_economist']),
+  "status": zod.enum(['draft', 'pending_hr', 'sent_to_economist']),
   "totalAmount": zod.number(),
   "version": zod.number(),
   "createdByName": zod.string(),
   "submittedByName": zod.string(),
   "createdAt": zod.string(),
   "submittedAt": zod.string().nullable(),
+  "hrApprovedByName": zod.string().optional(),
+  "hrApprovedAt": zod.string().nullish(),
   "entries": zod.array(zod.object({
   "id": zod.number(),
   "employeeId": zod.number().nullable(),
@@ -3509,19 +3559,19 @@ export const DownloadReportResponse = zod.unknown()
 /**
  * @summary Get current user's role request
  */
-export const GetMyRoleRequestResponse = zod.object({
+export const GetMyRoleRequestResponse = zod.union([zod.object({
   "id": zod.number(),
   "userId": zod.string(),
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
   "requestedAt": zod.string(),
   "reviewedAt": zod.string().nullable()
-}).nullable()
+}),zod.null()])
 
 
 /**
@@ -3533,7 +3583,7 @@ export const ListRoleRequestsResponseItem = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -3550,7 +3600,7 @@ export const ListRoleRequestsResponse = zod.array(ListRoleRequestsResponseItem)
 
 
 export const CreateRoleRequestBody = zod.object({
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "department": zod.string().min(1)
 })
 
@@ -3560,7 +3610,7 @@ export const CreateRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -3587,7 +3637,7 @@ export const ReviewRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -3605,7 +3655,7 @@ export const ListUsersResponseItem = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
