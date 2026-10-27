@@ -2,6 +2,7 @@ import { type ReactNode, useMemo, useState } from "react";
 import { Activity, ArrowLeft, Ban, ClipboardCheck, CalendarRange, History, LandPlot, Layers, Pencil, Plus, RefreshCw, Sprout, TriangleAlert } from "lucide-react";
 import { type AgroField, type FieldOperation, type FieldSeason, getGetFieldDashboardQueryKey, getListFleetEquipmentQueryKey, useGetFieldDashboard, useListFleetEquipment } from "@workspace/api-client-react";
 import { UnplannedForm } from "./UnplannedForm";
+import { FactEntryChooser } from "./FactEntryChooser";
 import { type PlanFact, planFactBySeason, planFactSummary } from "./planFact";
 import { ActualForm, FieldForm, OperationForm, ProgressForm, SeasonForm, VoidDialog } from "./Forms";
 import { CropAreaChart } from "./Charts";
@@ -17,6 +18,7 @@ type Modal =
   | { k: "progress"; op: FieldOperation }
   | { k: "void"; op: FieldOperation }
   | { k: "history"; fieldId: number }
+  | { k: "fact-entry"; fieldId: number; seasonId: number }
   | { k: "unplanned"; fieldId: number; seasonId: number };
 
 const READ_ROLES = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "general_director"];
@@ -64,6 +66,12 @@ export default function FieldsWorkspace({ role }: { role: string }) {
   const pfBySeason = useMemo(() => planFactBySeason(yearOps), [yearOps]);
   const pfTotal = useMemo(() => planFactSummary(yearOps), [yearOps]);
   const openFacts = (fieldId: number) => { setModal(null); setFactFieldId(fieldId); setView("facts"); };
+  const pickFactField = (fieldId: number | null) => {
+    setFactFieldId(fieldId);
+    const field = fields.find((f) => f.id === fieldId);
+    const season = yearSeasons.find((s) => s.fieldId === fieldId);
+    if (actual && field?.isActive && season) setModal({ k: "fact-entry", fieldId: field.id, seasonId: season.id });
+  };
 
   const prevOf = useMemo(() => {
     const m = new Map<number, FieldSeason | undefined>();
@@ -241,10 +249,11 @@ export default function FieldsWorkspace({ role }: { role: string }) {
 
           {view === "facts" && <FactsView
             year={year} unitAll={unit === "all"} scopeFields={scopeFields} yearSeasons={yearSeasons} ops={ops} pfBySeason={pfBySeason} role={role}
-            fieldId={factFieldId !== null && scopeIds.has(factFieldId) ? factFieldId : null} onPick={setFactFieldId}
+            fieldId={factFieldId !== null && scopeIds.has(factFieldId) ? factFieldId : null} onPick={pickFactField}
             onHistory={(fieldId) => setModal({ k: "history", fieldId })}
             onActual={(op) => setModal({ k: "actual", op })} onProgress={(op) => setModal({ k: "progress", op })} onVoid={(op) => setModal({ k: "void", op })}
             onUnplanned={(fieldId, seasonId) => setModal({ k: "unplanned", fieldId, seasonId })}
+            onAddFact={(fieldId, seasonId) => setModal({ k: "fact-entry", fieldId, seasonId })}
           />}
 
           {(view === "inProgress" || view === "completed") && (
@@ -279,6 +288,13 @@ export default function FieldsWorkspace({ role }: { role: string }) {
             </section>
           )}
 
+          {modal?.k === "fact-entry" && actual && fieldById.get(modal.fieldId)?.isActive && seasonById.get(modal.seasonId) && <FactEntryChooser
+            field={fieldById.get(modal.fieldId)!} season={seasonById.get(modal.seasonId)!} operations={ops}
+            onActual={(op) => setModal({ k: "actual", op })}
+            onProgress={(op) => setModal({ k: "progress", op })}
+            onUnplanned={() => setModal({ k: "unplanned", fieldId: modal.fieldId, seasonId: modal.seasonId })}
+            onClose={() => setModal(null)}
+          />}
           {modal?.k === "field" && <FieldForm role={role} field={modal.field} fields={fields} defaultUnit={unit === "all" ? UNITS[0] : unit} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "season" && <SeasonForm season={modal.season} fields={fields} seasons={seasons} cropSuggestions={d.cropSuggestions} defaultYear={year} defaultFieldId={modal.fieldId} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "op" && <OperationForm op={modal.op} seasons={seasons} fields={fields} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} defaultSeasonId={modal.seasonId ?? yearSeasons[0]?.id} operationSuggestions={d.operationSuggestions} onClose={() => setModal(null)} onDone={done} />}
@@ -414,10 +430,11 @@ function PlanFactBox({ pf, testId }: { pf: PlanFact; testId: string }) {
   );
 }
 
-function FactsView({ year, unitAll, scopeFields, yearSeasons, ops, pfBySeason, role, fieldId, onPick, onHistory, onActual, onProgress, onVoid, onUnplanned }: {
+function FactsView({ year, unitAll, scopeFields, yearSeasons, ops, pfBySeason, role, fieldId, onPick, onHistory, onActual, onProgress, onVoid, onUnplanned, onAddFact }: {
   year: number; unitAll: boolean; scopeFields: AgroField[]; yearSeasons: FieldSeason[]; ops: FieldOperation[]; pfBySeason: Map<number, PlanFact>; role: string;
   fieldId: number | null; onPick: (id: number | null) => void; onHistory: (fieldId: number) => void;
   onActual: (op: FieldOperation) => void; onProgress: (op: FieldOperation) => void; onVoid: (op: FieldOperation) => void; onUnplanned: (fieldId: number, seasonId: number) => void;
+  onAddFact: (fieldId: number, seasonId: number) => void;
 }) {
   const actual = canActual(role);
   const gd = isGD(role);
@@ -434,6 +451,7 @@ function FactsView({ year, unitAll, scopeFields, yearSeasons, ops, pfBySeason, r
               <p className="font-mono text-sm font-bold">№ {x.number}</p>
               <p className="truncate text-[10.5px] text-muted-foreground">{s ? s.cropName : "нет сезона"}{unitAll ? ` · ${x.unit}` : ""}{x.isActive ? "" : " · архив"}</p>
               {s && <div className="mt-1"><PlanFactMini pf={pfBySeason.get(s.id)} testId={`text-facts-planfact-${x.id}`} /></div>}
+              {actual && x.isActive && s && <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-primary"><Plus size={12} />Добавить факт</span>}
             </button>;
           })}
         </div>
@@ -456,7 +474,8 @@ function FactsView({ year, unitAll, scopeFields, yearSeasons, ops, pfBySeason, r
         <div className="flex flex-wrap items-center gap-2">
           {s && <PlanFactMini pf={pfBySeason.get(s.id)} testId={`text-facts-field-planfact-${f.id}`} />}
           <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => onHistory(f.id)} data-testid={`button-facts-history-${f.id}`}><History size={13} />История</button>
-          {canWrite && <button type="button" className="button button-primary !min-h-[30px] !px-2 text-[11px]" onClick={() => onUnplanned(f.id, s!.id)} data-testid={`button-facts-unplanned-${f.id}`}><Plus size={13} />Внеплановая операция</button>}
+          {canWrite && <button type="button" className="button button-primary !min-h-[30px] !px-2 text-[11px]" onClick={() => onAddFact(f.id, s!.id)} data-testid={`button-facts-add-${f.id}`}><Plus size={13} />Добавить факт</button>}
+          {canWrite && <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => onUnplanned(f.id, s!.id)} data-testid={`button-facts-unplanned-${f.id}`}><Plus size={13} />Внеплановая операция</button>}
         </div>
       </div>
       {!actual && <p className="border-b border-border px-4 py-2 text-[11px] text-muted-foreground sm:px-5" data-testid="text-facts-readonly">Режим просмотра: факт вносят агроном и генеральный директор.</p>}
