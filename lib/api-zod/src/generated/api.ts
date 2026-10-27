@@ -8,6 +8,121 @@
 import * as zod from 'zod';
 
 
+export const GetChemicalWarehouseResponse = zod.object({
+  "batches": zod.array(zod.object({
+  "id": zod.number(),
+  "invoiceId": zod.number(),
+  "invoiceNumber": zod.string(),
+  "occurredOn": zod.string(),
+  "supplier": zod.string(),
+  "farm": zod.string(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "quantity": zod.number(),
+  "remaining": zod.number(),
+  "unitPrice": zod.number(),
+  "remainingAmount": zod.number()
+})),
+  "issues": zod.array(zod.object({
+  "id": zod.number(),
+  "batchId": zod.number(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "farm": zod.string(),
+  "invoiceNumber": zod.string(),
+  "seasonId": zod.number(),
+  "fieldNumber": zod.string(),
+  "year": zod.number(),
+  "employeeId": zod.number(),
+  "employeeName": zod.string(),
+  "quantity": zod.number(),
+  "amount": zod.number(),
+  "occurredOn": zod.string(),
+  "notes": zod.string(),
+  "createdBy": zod.string()
+})),
+  "fields": zod.array(zod.object({
+  "seasonId": zod.number(),
+  "fieldId": zod.number(),
+  "fieldNumber": zod.string(),
+  "farm": zod.string(),
+  "year": zod.number(),
+  "cropName": zod.string(),
+  "sownAreaHa": zod.number(),
+  "chemicalAmount": zod.number(),
+  "costPerHa": zod.number().nullable()
+}))
+})
+
+
+export const createChemicalInvoiceBodyRequestIdMin = 16;
+export const createChemicalInvoiceBodyRequestIdMax = 100;
+
+export const createChemicalInvoiceBodyNumberMax = 100;
+
+export const createChemicalInvoiceBodySupplierMax = 200;
+
+export const createChemicalInvoiceBodyFarmMax = 200;
+
+export const createChemicalInvoiceBodyLinesItemNameMax = 200;
+
+export const createChemicalInvoiceBodyLinesItemQuantityExclusiveMin = 0;
+export const createChemicalInvoiceBodyLinesItemQuantityMax = 1000000;
+
+export const createChemicalInvoiceBodyLinesItemUnitPriceMin = 0;
+export const createChemicalInvoiceBodyLinesItemUnitPriceMax = 10000000;
+
+export const createChemicalInvoiceBodyLinesMax = 100;
+
+
+
+export const CreateChemicalInvoiceBody = zod.object({
+  "requestId": zod.string().min(createChemicalInvoiceBodyRequestIdMin).max(createChemicalInvoiceBodyRequestIdMax),
+  "number": zod.string().min(1).max(createChemicalInvoiceBodyNumberMax),
+  "occurredOn": zod.string(),
+  "supplier": zod.string().min(1).max(createChemicalInvoiceBodySupplierMax),
+  "farm": zod.string().min(1).max(createChemicalInvoiceBodyFarmMax),
+  "lines": zod.array(zod.object({
+  "name": zod.string().min(1).max(createChemicalInvoiceBodyLinesItemNameMax),
+  "unit": zod.enum(['л', 'кг', 'шт']),
+  "quantity": zod.number().gt(createChemicalInvoiceBodyLinesItemQuantityExclusiveMin).max(createChemicalInvoiceBodyLinesItemQuantityMax),
+  "unitPrice": zod.number().min(createChemicalInvoiceBodyLinesItemUnitPriceMin).max(createChemicalInvoiceBodyLinesItemUnitPriceMax)
+})).min(1).max(createChemicalInvoiceBodyLinesMax)
+})
+
+export const CreateChemicalInvoiceResponse = zod.object({
+  "id": zod.number()
+})
+
+
+export const createChemicalIssueBodyRequestIdMin = 16;
+export const createChemicalIssueBodyRequestIdMax = 100;
+
+
+
+
+export const createChemicalIssueBodyQuantityExclusiveMin = 0;
+export const createChemicalIssueBodyQuantityMax = 1000000;
+
+export const createChemicalIssueBodyNotesMax = 1000;
+
+
+
+export const CreateChemicalIssueBody = zod.object({
+  "requestId": zod.string().min(createChemicalIssueBodyRequestIdMin).max(createChemicalIssueBodyRequestIdMax),
+  "batchId": zod.number().min(1),
+  "seasonId": zod.number().min(1),
+  "employeeId": zod.number().min(1),
+  "quantity": zod.number().gt(createChemicalIssueBodyQuantityExclusiveMin).max(createChemicalIssueBodyQuantityMax),
+  "occurredOn": zod.string(),
+  "notes": zod.string().max(createChemicalIssueBodyNotesMax)
+})
+
+export const CreateChemicalIssueResponse = zod.object({
+  "id": zod.number()
+})
+
+
 
 export const createUnplannedFieldOperationBodyNameMax = 150;
 

@@ -5,6 +5,7 @@ import { UnplannedForm } from "./UnplannedForm";
 import { type PlanFact, planFactBySeason, planFactSummary } from "./planFact";
 import { ActualForm, FieldForm, OperationForm, ProgressForm, SeasonForm, VoidDialog } from "./Forms";
 import { CropAreaChart } from "./Charts";
+import { ChemicalSeasonCost } from "../ChemicalWarehouse";
 import { Drawer, POLL_MS, Progress, StatusPill, UNITS, type Unit, canActual, canManage, cx, dateFmt, errorInfo, ha, haNum, isGD, pctFmt, sumHa } from "./shared";
 
 type View = "history" | "plan" | "facts" | "inProgress" | "completed";
@@ -219,6 +220,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
                     {manage && !s && pf.isActive && <button type="button" className="button button-primary !min-h-[30px] !px-2 text-[11px]" onClick={() => setModal({ k: "season", season: null, fieldId: pf.id })} data-testid={`button-plan-add-season-${pf.id}`}><Plus size={13} />Севооборот</button>}
                   </div>
                 </div>
+                {s && <div className="border-b border-border px-4 py-2.5 sm:px-5"><ChemicalSeasonCost seasonId={s.id} /></div>}
                 {!s ? <Empty icon={<Layers size={18} />} title={`На ${year} год сезона нет`} text={manage ? "Добавьте севооборот, затем планируйте операции." : "Сезонный план по этому полю не составлен."} testId="status-plan-no-season" />
                 : so.length === 0 ? <Empty icon={<CalendarRange size={18} />} title="Операций в графике нет" text={manage ? "Добавьте первую плановую операцию." : "Плановые операции ещё не внесены."} testId="status-plan-schedule-empty" /> : (
                   <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-xs">
@@ -331,6 +333,7 @@ function FieldHistory({ field, role, seasons, ops, onClose, onAddSeason, onAddOp
               </div>
               <p className="text-[10.5px] text-muted-foreground">Предшественник: {prev ? `${prev.cropName} (${prev.year})` : "нет записи"} · изм. {dateFmt(s.updatedAt)} · {s.updatedBy}</p>
               {s.notes && <p className="mt-1 text-[11px]">{s.notes}</p>}
+              <div className="mt-2"><ChemicalSeasonCost seasonId={s.id} /></div>
               {manage && field.isActive && <button type="button" className="button button-secondary mt-2 !min-h-[30px] !px-2 text-[11px]" onClick={() => onAddOperation(s.id)} data-testid={`button-add-operation-history-${s.id}`}><Plus size={13} />План операции</button>}
               {so.length === 0 ? <p className="mt-2 text-[11px] text-muted-foreground">Операций нет.</p> : (
                 <ul className="mt-2 divide-y divide-border/60 border-t border-border/60">{so.map((o) => (

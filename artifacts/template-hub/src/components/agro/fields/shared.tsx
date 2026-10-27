@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
-import { type FieldOperation, getGetDailySeedingReportQueryKey, getGetFieldDashboardQueryKey } from "@workspace/api-client-react";
+import { type FieldOperation, getGetChemicalWarehouseQueryKey, getGetDailySeedingReportQueryKey, getGetFieldDashboardQueryKey } from "@workspace/api-client-react";
 import { cx } from "../grain/shared";
 
 export { UNITS, type Unit, cx, dateFmt, Field, Drawer } from "../grain/shared";
@@ -73,6 +73,7 @@ export function useInvalidateFields() {
   return () => Promise.all([
     qc.invalidateQueries({ queryKey: getGetFieldDashboardQueryKey() }),
     qc.invalidateQueries({ queryKey: getGetDailySeedingReportQueryKey() }),
+    qc.invalidateQueries({ queryKey: getGetChemicalWarehouseQueryKey() }),
   ]);
 }
 

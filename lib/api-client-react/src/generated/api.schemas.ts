@@ -5,6 +5,142 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface ChemicalMutationResult {
+  id: number;
+}
+
+export type ChemicalInvoiceLineUnit = typeof ChemicalInvoiceLineUnit[keyof typeof ChemicalInvoiceLineUnit];
+
+
+export const ChemicalInvoiceLineUnit = {
+  л: 'л',
+  кг: 'кг',
+  шт: 'шт',
+} as const;
+
+export interface ChemicalInvoiceLine {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  name: string;
+  unit: ChemicalInvoiceLineUnit;
+  /**
+     * @maximum 1000000
+     * @exclusiveMinimum 0
+     */
+  quantity: number;
+  /**
+     * @minimum 0
+     * @maximum 10000000
+     */
+  unitPrice: number;
+}
+
+export interface ChemicalInvoiceInput {
+  /**
+     * @minLength 16
+     * @maxLength 100
+     */
+  requestId: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  number: string;
+  occurredOn: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  supplier: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  farm: string;
+  /**
+     * @minItems 1
+     * @maxItems 100
+     */
+  lines: ChemicalInvoiceLine[];
+}
+
+export interface ChemicalIssueInput {
+  /**
+     * @minLength 16
+     * @maxLength 100
+     */
+  requestId: string;
+  /** @minimum 1 */
+  batchId: number;
+  /** @minimum 1 */
+  seasonId: number;
+  /** @minimum 1 */
+  employeeId: number;
+  /**
+     * @maximum 1000000
+     * @exclusiveMinimum 0
+     */
+  quantity: number;
+  occurredOn: string;
+  /** @maxLength 1000 */
+  notes: string;
+}
+
+export interface ChemicalBatch {
+  id: number;
+  invoiceId: number;
+  invoiceNumber: string;
+  occurredOn: string;
+  supplier: string;
+  farm: string;
+  name: string;
+  unit: string;
+  quantity: number;
+  remaining: number;
+  unitPrice: number;
+  remainingAmount: number;
+}
+
+export interface ChemicalFieldCost {
+  seasonId: number;
+  fieldId: number;
+  fieldNumber: string;
+  farm: string;
+  year: number;
+  cropName: string;
+  sownAreaHa: number;
+  chemicalAmount: number;
+  /** @nullable */
+  costPerHa: number | null;
+}
+
+export interface ChemicalIssue {
+  id: number;
+  batchId: number;
+  name: string;
+  unit: string;
+  farm: string;
+  invoiceNumber: string;
+  seasonId: number;
+  fieldNumber: string;
+  year: number;
+  employeeId: number;
+  employeeName: string;
+  quantity: number;
+  amount: number;
+  occurredOn: string;
+  notes: string;
+  createdBy: string;
+}
+
+export interface ChemicalWarehouse {
+  batches: ChemicalBatch[];
+  issues: ChemicalIssue[];
+  fields: ChemicalFieldCost[];
+}
+
 export type AgroFieldInputUnit = typeof AgroFieldInputUnit[keyof typeof AgroFieldInputUnit];
 
 
