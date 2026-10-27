@@ -52,6 +52,7 @@ export default function ChemicalWarehouse({ role, onOpenFields }: { role: string
   const fields = useMemo(() => (data?.fields ?? []).filter((f) => (farm === "all" || f.farm === farm) && (year === "all" || String(f.year) === year) && (!s || `${f.fieldNumber} ${f.cropName}`.toLowerCase().includes(s))).sort((a, b) => b.year - a.year || a.farm.localeCompare(b.farm) || a.fieldNumber.localeCompare(b.fieldNumber, "ru", { numeric: true })), [data, farm, year, s]);
 
   const stockTotal = batches.reduce((a, b) => a + b.remainingAmount, 0);
+  const stockLitres = batches.reduce((total, batch) => total + (batch.unit === "л" ? Math.round(batch.remaining * 1000) : 0), 0) / 1000;
   const issuedTotal = issues.reduce((a, b) => a + b.amount, 0);
   const costTotal = fields.reduce((a, f) => a + f.chemicalAmount, 0);
   const sownTotal = fields.reduce((a, f) => a + (f.costPerHa === null ? 0 : f.sownAreaHa), 0);
@@ -83,8 +84,9 @@ export default function ChemicalWarehouse({ role, onOpenFields }: { role: string
     </div>
     {notice && <div className="rounded-lg border border-[hsl(157_45%_70%)] bg-[hsl(157_45%_94%)] px-3 py-2 text-xs font-semibold text-[hsl(161_45%_26%)]" role="status" data-testid="status-chem-notice">{notice}</div>}
 
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <Kpi label="Остаток на складе" value={money(stockTotal)} sub={`${batches.filter((b) => b.remaining > 0).length} партий в выборке`} testId="kpi-chem-stock" />
+      <Kpi label="Остаток в литрах" value={`${qty(stockLitres)} л`} sub="По выбранным партиям · без кг и шт" testId="kpi-chem-stock-litres" />
       <Kpi label="Выдано по журналу" value={money(issuedTotal)} sub={`${issues.length} выдач`} testId="kpi-chem-issued" />
       <Kpi label="Химия на 1 га посева" value={sownTotal > 0 ? money(costWithSowing / sownTotal) : "—"} sub={`${qty(sownTotal)} га фактического сева`} testId="kpi-chem-perha" />
     </div>
