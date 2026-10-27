@@ -5,13 +5,14 @@ import {
   CreateFieldOperationBody, UpdateFieldOperationBody, UpdateFieldOperationActualBody, CreateFieldOperationProgressBody, UpdateFieldOperationProgressBody, VoidFieldOperationBody,
   GetFieldDashboardResponse, GetFieldDispatchQueueResponse, UpdateFieldDispatchRateBody, UpdateFieldDispatchRateParams, UpdateFieldDispatchRateResponse,
   CreateAgroFieldResponse, CreateFieldSeasonResponse, CreateFieldOperationResponse,
-  type FieldProgressReport,
+  type FieldProgressReport, type FieldOperationInput,
 } from "@workspace/api-zod";
-import { activityTable, agroFieldsTable, employeesTable, fieldSeasonsTable, fieldOperationsTable, fieldOperationProgressTable, grainCropsTable, db } from "@workspace/db";
+import { activityTable, agroFieldsTable, employeesTable, fleetEquipmentTable, fieldSeasonsTable, fieldOperationsTable, fieldOperationProgressTable, grainCropsTable, db } from "@workspace/db";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { grainBusinessDate, validGrainDate } from "../lib/grain-ledger";
 import { fieldNumberKey, fieldOperationState, progressDeltaAres, toAreaAres, validateFieldActual, validateFieldPlan, validateFieldProgress } from "../lib/field-planning";
 import { fieldPayrollWasSubmitted, lockPayrollSources } from "../lib/payroll-source-guard";
+import { fieldOperationSuggestions } from "../lib/field-operation-catalog";
 
 const router: IRouter = Router();
 const managers = ["chief_agronomist", "general_director"];
@@ -143,6 +144,34 @@ async function selectedMechanic(tx: Tx, id: number | null | undefined) {
   requireValue(employee?.isActive, "Выберите действующего сотрудника из справочника.");
   return employee;
 }
+export async function plannedResources(tx: Tx, input: FieldOperationInput, unit: string, old?: typeof fieldOperationsTable.$inferSelect) {
+  const existingNames = await tx.select({ name: fieldOperationsTable.name }).from(fieldOperationsTable);
+  const name = fieldOperationSuggestions(existingNames).find((candidate) => fieldNumberKey(candidate) === fieldNumberKey(input.name));
+  requireValue(name, "Выберите вид операции из подготовленного списка.");
+  const employeeId = input.plannedMechanicEmployeeId
+    ?? (old && input.responsible.trim() === old.responsible ? old.plannedMechanicEmployeeId : null);
+  const equipmentId = input.plannedEquipmentId
+    ?? (old && input.plannedEquipment.trim() === old.plannedEquipment ? old.plannedEquipmentId : null);
+  let responsible = old?.responsible ?? "";
+  let plannedEquipment = old?.plannedEquipment ?? "";
+  if (employeeId !== null) {
+    requireValue(positiveId(employeeId), "Выберите механизатора из справочника.");
+    const [employee] = await tx.select().from(employeesTable).where(eq(employeesTable.id, employeeId));
+    requireValue(employee && (employee.isActive || old?.plannedMechanicEmployeeId === employee.id), "Выберите действующего сотрудника из справочника.");
+    responsible = employee.fullName;
+  } else {
+    requireValue(old && input.responsible.trim() === old.responsible, "Выберите механизатора из справочника сотрудников.");
+  }
+  if (equipmentId !== null) {
+    requireValue(positiveId(equipmentId), "Выберите технику из справочника.");
+    const [equipment] = await tx.select().from(fleetEquipmentTable).where(eq(fleetEquipmentTable.id, equipmentId));
+    requireValue(equipment && equipment.unit === unit, "Выберите технику нужного хозяйства из общего справочника.");
+    plannedEquipment = `${equipment.kind} · ${equipment.registrationNumber || "без госномера"}`;
+  } else {
+    requireValue(old && input.plannedEquipment.trim() === old.plannedEquipment, "Выберите технику из общего справочника.");
+  }
+  return { name, nameKey: fieldNumberKey(name), responsible, plannedEquipment, plannedMechanicEmployeeId: employeeId, plannedEquipmentId: equipmentId };
+}
 async function getSeason(tx: Tx, id: number) {
   requireValue(positiveId(id), "Выберите корректный сезон поля.");
   const [row] = await tx.select().from(fieldSeasonsTable).where(eq(fieldSeasonsTable.id, id));
@@ -177,6 +206,7 @@ router.get("/agro/fields", roles(readers), safe(async (_req, res) => {
       fields: fields.map(fieldJson), seasons: seasons.map(seasonJson),
       operations: operations.map((row) => operationJson(row, today, progressReportsJson(progressByOperation.get(row.id) ?? []))),
       cropSuggestions: [...new Set([...crops.map((crop) => crop.name), ...seasons.map((season) => season.cropName), "Пар"])],
+      operationSuggestions: fieldOperationSuggestions(operations),
       asOfDate: today,
     };
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
@@ -257,12 +287,14 @@ router.post("/agro/fields/operations", manage, safe(async (req, res) => {
   const row = await mutate("Запланирована полевая операция", by, async (tx) => {
     const season = await getSeason(tx, input.seasonId);
     requireValue(input.plannedRatePerHa > 0 && input.plannedRatePerHa <= 1_000_000_000, "Укажите положительную плановую расценку за гектар.");
-    requireValue((await getField(tx, season.fieldId)).isActive, "Поле в архиве. Новые работы недоступны.", 409);
+    const field = await getField(tx, season.fieldId);
+    requireValue(field.isActive, "Поле в архиве. Новые работы недоступны.", 409);
     const error = validateFieldPlan(input, season.areaAres); requireValue(!error, error ?? "");
+    const resources = await plannedResources(tx, input, field.unit);
     const [created] = await tx.insert(fieldOperationsTable).values({
-      seasonId: season.id, name: input.name.trim(), nameKey: fieldNumberKey(input.name), plannedStart: input.plannedStart,
-      plannedEnd: input.plannedEnd, plannedAreaAres: toAreaAres(input.plannedAreaHa)!, plannedRatePerHa: input.plannedRatePerHa.toFixed(2), responsible: input.responsible.trim(),
-      plannedEquipment: input.plannedEquipment.trim(), plannedImplement: input.plannedImplement.trim(),
+      seasonId: season.id, ...resources, plannedStart: input.plannedStart,
+      plannedEnd: input.plannedEnd, plannedAreaAres: toAreaAres(input.plannedAreaHa)!, plannedRatePerHa: input.plannedRatePerHa.toFixed(2),
+      plannedImplement: input.plannedImplement.trim(),
       notes: input.notes.trim(), updatedBy: by,
     }).returning();
     return created;
@@ -281,11 +313,12 @@ router.patch("/agro/fields/operations/:id", manage, safe(async (req, res) => {
     requireValue(!old.actualStart || (old.seasonId === input.seasonId && old.nameKey === fieldNumberKey(input.name)), "После начала работ нельзя переносить операцию на другое поле или менять её вид.", 409);
     if (input.seasonId !== old.seasonId) requireValue((await getField(tx, season.fieldId)).isActive, "Нельзя переносить работу на архивное поле.", 409);
     requireValue(toAreaAres(input.plannedAreaHa)! >= old.actualAreaAres, "Плановая площадь меньше уже выполненной.", 409);
+    const resources = await plannedResources(tx, input, (await getField(tx, season.fieldId)).unit, old);
     const [updated] = await tx.update(fieldOperationsTable).set({
-      seasonId: season.id, name: input.name.trim(), nameKey: fieldNumberKey(input.name), plannedStart: input.plannedStart, plannedEnd: input.plannedEnd,
-      plannedAreaAres: toAreaAres(input.plannedAreaHa)!, responsible: input.responsible.trim(),
+      seasonId: season.id, ...resources, plannedStart: input.plannedStart, plannedEnd: input.plannedEnd,
+      plannedAreaAres: toAreaAres(input.plannedAreaHa)!,
       plannedRatePerHa: input.plannedRatePerHa.toFixed(2),
-      plannedEquipment: input.plannedEquipment.trim(), plannedImplement: input.plannedImplement.trim(),
+      plannedImplement: input.plannedImplement.trim(),
       notes: input.notes.trim(), ...stamp(by, old.version),
     }).where(eq(fieldOperationsTable.id, old.id)).returning();
     return updated;

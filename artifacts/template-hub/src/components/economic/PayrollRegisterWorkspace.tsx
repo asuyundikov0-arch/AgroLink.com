@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check, ClipboardList, Clock3, Lock, Send, Users, Wallet } from "lucide-react";
 import {
@@ -12,6 +12,7 @@ import {
   useSendDailyPayrollRegister,
 } from "@workspace/api-client-react";
 import { errorInfo, money } from "../engineering/repairs/shared";
+import { aggregatePayrollByEmployee, type CumulativeEmployee } from "./payrollCumulative";
 
 const sourceLabel: Record<string, string> = {
   grain_trip: "Рейс зерна",
@@ -68,6 +69,7 @@ export default function PayrollRegisterWorkspace({ canManage }: { canManage: boo
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [sendingKey, setSendingKey] = useState<string | null>(null);
+  const [tab, setTab] = useState<"cumulative" | "history">("cumulative");
 
   const sent = (registersQuery.data ?? []).filter((register) => register.status === "sent_to_economist");
   const days = canManage ? accrualsQuery.data ?? [] : [];
@@ -139,13 +141,18 @@ export default function PayrollRegisterWorkspace({ canManage }: { canManage: boo
         })}</div>}
     </section>}
 
-    <section className="surface-card p-4 sm:p-5" data-testid="payroll-register-list-section">
+    <div className="inline-flex max-w-full flex-wrap rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Вид реестра">
+      {([["cumulative", "Накопительно по сотрудникам"], ["history", "История реестров"]] as const).map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)} data-testid={`tab-payroll-${k}`} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${tab === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}>{l}</button>)}
+    </div>
+
+    {tab === "cumulative" ? <CumulativeSection registers={registersQuery.data ?? []} loading={registersQuery.isLoading} error={registersQuery.isError ? errorInfo(registersQuery.error).message : ""} onRetry={() => void registersQuery.refetch()} />
+    : <section className="surface-card p-4 sm:p-5" data-testid="payroll-register-list-section">
       <header><p className="eyebrow">{canManage ? "Отправленные" : "Полученные реестры"}</p><h2 className="mt-1 text-lg font-bold">Зафиксированные реестры</h2></header>
       {registersQuery.isLoading ? <div className="mt-4 space-y-3"><div className="skeleton h-20 rounded-lg" /></div>
         : registersQuery.isError ? <div className="mt-4" role="alert"><p className="text-sm font-semibold text-destructive">{errorInfo(registersQuery.error).message}</p><button type="button" className="button button-secondary mt-3 text-xs" onClick={() => void registersQuery.refetch()} data-testid="button-retry-payroll-register">Повторить</button></div>
         : sent.length === 0 ? <div className="flex flex-col items-center py-10 text-center" data-testid="payroll-register-empty"><div className="empty-icon"><ClipboardList size={20} /></div><p className="mt-3 text-sm font-semibold">Переданных реестров пока нет</p><p className="mt-1 max-w-md text-xs leading-5 text-muted-foreground">{canManage ? "Отправьте день из списка выше — он зафиксируется здесь." : "Когда диспетчер направит дневной реестр, он появится здесь."}</p></div>
         : <div className="mt-3 divide-y divide-border" data-testid="payroll-register-list">{sent.map((register) => <SentRegister key={register.id} register={register} />)}</div>}
-    </section>
+    </section>}
   </section>;
 }
 
@@ -161,4 +168,51 @@ function SentRegister({ register }: { register: PayrollRegister }) {
       <div className="xl:min-w-[180px] xl:text-right"><p className="eyebrow">Всего</p><p className="mt-1 font-mono text-lg font-bold" data-testid={`payroll-register-total-${register.id}`}>{money(register.totalAmount)}</p></div>
     </div>
   </article>;
+}
+
+function CumulativeSection({ registers, loading, error, onRetry }: { registers: PayrollRegister[]; loading: boolean; error: string; onRetry: () => void }) {
+  const [search, setSearch] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const employees = useMemo(() => aggregatePayrollByEmployee(registers, { search, from, to }), [registers, search, from, to]);
+  const total = employees.reduce((sum, e) => Math.round((sum + e.total) * 100) / 100, 0);
+  const filtered = Boolean(search || from || to);
+  return <section className="surface-card p-4 sm:p-5" data-testid="payroll-cumulative-section">
+    <header className="flex flex-wrap items-end justify-between gap-3">
+      <div><p className="eyebrow">Только переданные экономисту · {from || to ? `${from ? formatDate(from) : "начало"} – ${to ? formatDate(to) : "сегодня"}` : "все даты"}</p><h2 className="mt-1 text-lg font-bold">Накопительный реестр по сотрудникам</h2></div>
+      <div className="xl:text-right"><p className="eyebrow">{employees.length} сотр.</p><p className="mt-1 font-mono text-lg font-bold" data-testid="payroll-cumulative-total">{loading ? "…" : money(total)}</p></div>
+    </header>
+    <div className="mt-3 flex flex-wrap gap-2">
+      <input className="text-input !w-auto min-w-[220px] flex-1" placeholder="Поиск сотрудника" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Поиск сотрудника" data-testid="input-payroll-cumulative-search" />
+      <input type="date" className="text-input !w-auto" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="С даты" data-testid="input-payroll-cumulative-from" />
+      <input type="date" className="text-input !w-auto" value={to} onChange={(e) => setTo(e.target.value)} aria-label="По дату" data-testid="input-payroll-cumulative-to" />
+      {filtered && <button type="button" className="button button-secondary text-xs" onClick={() => { setSearch(""); setFrom(""); setTo(""); }} data-testid="button-payroll-cumulative-reset">Сбросить</button>}
+    </div>
+    {loading ? <div className="mt-4 space-y-3"><div className="skeleton h-16 rounded-lg" /><div className="skeleton h-16 rounded-lg" /></div>
+      : error ? <div className="mt-4" role="alert"><p className="text-sm font-semibold text-destructive">{error}</p><button type="button" className="button button-secondary mt-3 text-xs" onClick={onRetry} data-testid="button-retry-payroll-cumulative">Повторить</button></div>
+      : employees.length === 0 ? <div className="flex flex-col items-center py-10 text-center" data-testid="payroll-cumulative-empty"><div className="empty-icon"><Users size={20} /></div><p className="mt-3 text-sm font-semibold">{filtered ? "По фильтру начислений нет" : "Подтверждённых начислений пока нет"}</p><p className="mt-1 max-w-md text-xs leading-5 text-muted-foreground">Здесь суммируются строки всех реестров, переданных экономисту. Неотправленные дни не учитываются.</p></div>
+      : <div className="mt-3 overflow-hidden rounded-lg border border-border/80" data-testid="payroll-cumulative-list">{employees.map((e) => <CumulativeRow key={e.key} employee={e} />)}</div>}
+  </section>;
+}
+
+function CumulativeRow({ employee }: { employee: CumulativeEmployee }) {
+  return <details className="group border-t border-border/70 first:border-t-0" data-testid={`payroll-cumulative-employee-${employee.key}`}>
+    <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-3 py-2.5 hover:bg-muted/30">
+      <span className="min-w-0"><span className="block text-xs font-bold">{employee.name}{employee.employeeId === null && <span className="ml-2 text-[10px] font-semibold text-amber-700">без ID справочника</span>}</span>
+        <span className="block text-[10.5px] text-muted-foreground">{employee.lineCount} строк · реестров {employee.registerIds.length} · {formatDate(employee.firstDate)}{employee.firstDate !== employee.lastDate ? ` – ${formatDate(employee.lastDate)}` : ""}</span></span>
+      <span className="font-mono text-sm font-bold" data-testid={`payroll-cumulative-employee-total-${employee.key}`}>{money(employee.total)}</span>
+    </summary>
+    <div className="space-y-2 bg-muted/20 px-3 py-3">
+      {employee.workTypes.map((t) => <details key={t.workType} className="rounded-md border border-border/70 bg-card" data-testid={`payroll-cumulative-worktype-${employee.key}-${t.workType}`}>
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-[11px]"><span className="font-semibold">{t.workType} <span className="font-normal text-muted-foreground">· {t.count} строк</span></span><span className="font-mono font-bold">{money(t.total)}</span></summary>
+        <div className="divide-y divide-border/60 border-t border-border/60">{t.lines.map((line) => <div key={line.key} className="grid gap-1 px-3 py-1.5 text-[10.5px] sm:grid-cols-[110px_minmax(120px,1fr)_minmax(140px,1.6fr)_80px_110px] sm:gap-3">
+          <span className="font-mono">{formatDate(line.workDate)}</span>
+          <span className="text-muted-foreground">{line.unit} · {sourceLabel[line.sourceType] ?? line.sourceType}</span>
+          <span className="text-muted-foreground">{line.details || "—"}</span>
+          <span className="text-muted-foreground">реестр № {line.registerId}</span>
+          <span className="font-mono sm:text-right">{money(line.amountKzt)}</span>
+        </div>)}</div>
+      </details>)}
+    </div>
+  </details>;
 }

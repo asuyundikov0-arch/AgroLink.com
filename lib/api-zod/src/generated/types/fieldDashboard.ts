@@ -14,5 +14,6 @@ export interface FieldDashboard {
   seasons: FieldSeason[];
   operations: FieldOperation[];
   cropSuggestions: string[];
+  operationSuggestions: string[];
   asOfDate: string;
 }

@@ -1,5 +1,5 @@
 import { type ReactNode, useMemo, useState } from "react";
-import { Activity, Ban, CalendarRange, History, LandPlot, Layers, Pencil, Plus, RefreshCw, Sprout, TriangleAlert } from "lucide-react";
+import { Activity, ArrowLeft, Ban, CalendarRange, History, LandPlot, Layers, Pencil, Plus, RefreshCw, Sprout, TriangleAlert } from "lucide-react";
 import { type AgroField, type FieldOperation, type FieldSeason, getGetFieldDashboardQueryKey, getListFleetEquipmentQueryKey, useGetFieldDashboard, useListFleetEquipment } from "@workspace/api-client-react";
 import { ActualForm, FieldForm, OperationForm, ProgressForm, SeasonForm, VoidDialog } from "./Forms";
 import { CropAreaChart } from "./Charts";
@@ -32,6 +32,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
   const [unit, setUnit] = useState<Unit | "all">("all");
   const [view, setView] = useState<View>("history");
   const [modal, setModal] = useState<Modal | null>(null);
+  const [planFieldId, setPlanFieldId] = useState<number | null>(null);
   const [notice, setNotice] = useState("");
   const manage = canManage(role);
   const actual = canActual(role);
@@ -100,8 +101,8 @@ export default function FieldsWorkspace({ role }: { role: string }) {
       ) : (
         <>
           <div className="flex flex-wrap gap-2" aria-label="Фильтры">
-            <select aria-label="Год" className="text-input !w-auto font-mono" value={year} onChange={(e) => setYearSel(Number(e.target.value))} data-testid="select-fields-year">{years.map((y) => <option key={y} value={y}>{y}</option>)}</select>
-            <select aria-label="Хозяйство" className="text-input !w-auto" value={unit} onChange={(e) => setUnit(e.target.value as Unit | "all")} data-testid="select-fields-unit"><option value="all">Все хозяйства</option>{UNITS.map((u) => <option key={u}>{u}</option>)}</select>
+            <select aria-label="Год" className="text-input !w-auto font-mono" value={year} onChange={(e) => { setYearSel(Number(e.target.value)); setPlanFieldId(null); }} data-testid="select-fields-year">{years.map((y) => <option key={y} value={y}>{y}</option>)}</select>
+            <select aria-label="Хозяйство" className="text-input !w-auto" value={unit} onChange={(e) => { setUnit(e.target.value as Unit | "all"); setPlanFieldId(null); }} data-testid="select-fields-unit"><option value="all">Все хозяйства</option>{UNITS.map((u) => <option key={u}>{u}</option>)}</select>
           </div>
 
           <section className="grid gap-3 lg:grid-cols-[minmax(230px,0.8fr)_minmax(0,1.6fr)]" aria-label="Сводка по площадям">
@@ -160,13 +161,67 @@ export default function FieldsWorkspace({ role }: { role: string }) {
             </section>
           )}
 
-          {view !== "history" && (
+          {view === "plan" && (() => {
+            const pf = planFieldId !== null && scopeIds.has(planFieldId) ? fieldById.get(planFieldId) : undefined;
+            if (!pf) return (
+              <section className="surface-card overflow-hidden" data-testid="section-plan-fields">
+                <SectionHead title={`План агроопераций на сезон · ${year}`} text="Выберите номер поля, чтобы открыть его сезонный график работ." />
+                {scopeFields.length === 0 ? <Empty icon={<LandPlot size={18} />} title="Полей нет" text="По выбранному хозяйству поля не внесены." testId="status-plan-fields-empty" /> : (
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-2 p-4 sm:p-5">
+                    {scopeFields.map((f) => {
+                      const s = yearSeasons.find((x) => x.fieldId === f.id);
+                      const n = s ? ops.filter((o) => o.seasonId === s.id && o.status !== "cancelled").length : 0;
+                      return <button key={f.id} type="button" onClick={() => setPlanFieldId(f.id)} data-testid={`button-plan-open-field-${f.id}`}
+                        className={cx("rounded-lg border p-2.5 text-left transition-colors hover:border-[hsl(203_87%_33%)]", s ? "border-border bg-card" : "border-dashed border-border bg-muted/20")}>
+                        <p className="font-mono text-sm font-bold">№ {f.number}</p>
+                        <p className="truncate text-[10.5px] text-muted-foreground">{s ? s.cropName : "нет сезона"}{f.isActive ? "" : " · архив"}</p>
+                        <p className="text-[10.5px] text-muted-foreground">{unit === "all" ? `${f.unit} · ` : ""}{n ? `операций: ${n}` : "без операций"}</p>
+                      </button>;
+                    })}
+                  </div>
+                )}
+              </section>
+            );
+            const s = yearSeasons.find((x) => x.fieldId === pf.id);
+            const so = s ? ops.filter((o) => o.seasonId === s.id && o.status !== "cancelled").sort((a, b) => a.plannedStart.localeCompare(b.plannedStart) || a.id - b.id) : [];
+            return (
+              <section className="surface-card overflow-hidden" data-testid="section-plan-field-schedule">
+                <div className="flex flex-col gap-2 border-b border-border bg-muted/25 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                  <div className="flex items-center gap-3">
+                    <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => setPlanFieldId(null)} data-testid="button-plan-back-fields"><ArrowLeft size={13} />К полям</button>
+                    <div><h2 className="text-sm font-bold">Поле № {pf.number} · {year}</h2><p className="text-[11px] text-muted-foreground">{pf.unit}{s ? ` · ${s.cropName}${s.variety ? ` · ${s.variety}` : ""} · ${ha(s.areaHa)}` : ""}</p></div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => setModal({ k: "history", fieldId: pf.id })} data-testid={`button-plan-history-field-${pf.id}`}><History size={13} />История поля</button>
+                    {manage && s && pf.isActive && <button type="button" className="button button-primary !min-h-[30px] !px-2 text-[11px]" onClick={() => setModal({ k: "op", op: null, seasonId: s.id })} data-testid={`button-plan-add-op-${pf.id}`}><Plus size={13} />План операции</button>}
+                    {manage && !s && pf.isActive && <button type="button" className="button button-primary !min-h-[30px] !px-2 text-[11px]" onClick={() => setModal({ k: "season", season: null, fieldId: pf.id })} data-testid={`button-plan-add-season-${pf.id}`}><Plus size={13} />Севооборот</button>}
+                  </div>
+                </div>
+                {!s ? <Empty icon={<Layers size={18} />} title={`На ${year} год сезона нет`} text={manage ? "Добавьте севооборот, затем планируйте операции." : "Сезонный план по этому полю не составлен."} testId="status-plan-no-season" />
+                : so.length === 0 ? <Empty icon={<CalendarRange size={18} />} title="Операций в графике нет" text={manage ? "Добавьте первую плановую операцию." : "Плановые операции ещё не внесены."} testId="status-plan-schedule-empty" /> : (
+                  <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-xs">
+                    <thead className="border-b border-border bg-muted/20 text-left text-[10.5px] text-muted-foreground"><tr><th className="px-4 py-2 font-semibold">Даты</th><th className="font-semibold">Операция</th><th className="font-semibold">Техника</th><th className="font-semibold">Механизатор</th><th className="px-4" /></tr></thead>
+                    <tbody className="divide-y divide-border/70">{so.map((o) => (
+                      <tr key={o.id} data-testid={`row-plan-op-${o.id}`}>
+                        <td className="px-4 py-2.5 font-mono text-[11px]">{dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)}</td>
+                        <td><p className="font-bold">{o.name}</p><StatusPill op={o} /></td>
+                        <td className="text-[11px]">{o.plannedEquipment || <span className="text-muted-foreground">не указана</span>}{o.plannedImplement && <p className="text-[10.5px] text-muted-foreground">{o.plannedImplement}</p>}</td>
+                        <td className="text-[11px]" data-testid={`text-plan-mechanic-${o.id}`}>{o.responsible || <span className="text-muted-foreground">не указан</span>}</td>
+                        <td className="px-4"><div className="flex justify-end">{manage && <button type="button" className="button button-secondary !min-h-[28px] !px-2 text-[10px]" onClick={() => setModal({ k: "op", op: o })} data-testid={`button-plan-edit-op-${o.id}`}><Pencil size={12} />Изменить</button>}</div></td>
+                      </tr>
+                    ))}</tbody></table></div>
+                )}
+              </section>
+            );
+          })()}
+
+          {(view === "inProgress" || view === "completed") && (
             <section className="surface-card overflow-hidden" data-testid="section-operations">
               <SectionHead
-                title={view === "plan" ? `План агроопераций на сезон · ${year}` : view === "inProgress" ? `Операции в процессе · ${year}` : `Завершённые операции · ${year}`}
-                text={view === "plan" ? "Создание и изменение планов доступно только в истории поля." : "Откройте историю поля, чтобы внести или исправить факт."}
+                title={(view as View) === "plan" ? `План агроопераций на сезон · ${year}` : view === "inProgress" ? `Операции в процессе · ${year}` : `Завершённые операции · ${year}`}
+                text={(view as View) === "plan" ? "Создание и изменение планов доступно только в истории поля." : "Откройте историю поля, чтобы внести или исправить факт."}
               />
-              {visibleOps.length === 0 ? <Empty icon={<CalendarRange size={18} />} title={view === "plan" ? "Плановых операций нет" : view === "inProgress" ? "Операций в процессе нет" : "Завершённых операций нет"} text={view === "plan" ? "Добавьте план из истории соответствующего поля." : "Операции появятся здесь после обновления их статуса в истории поля."} testId="status-operations-empty" /> : (
+              {visibleOps.length === 0 ? <Empty icon={<CalendarRange size={18} />} title={(view as View) === "plan" ? "Плановых операций нет" : view === "inProgress" ? "Операций в процессе нет" : "Завершённых операций нет"} text={(view as View) === "plan" ? "Добавьте план из истории соответствующего поля." : "Операции появятся здесь после обновления их статуса в истории поля."} testId="status-operations-empty" /> : (
                 <div className="overflow-x-auto"><table className="w-full min-w-[1080px] text-xs">
                   <thead className="border-b border-border bg-muted/20 text-left text-[10.5px] text-muted-foreground"><tr><th className="px-4 py-2 font-semibold">Операция · поле</th><th className="font-semibold">Статус</th><th className="font-semibold">План · техника</th><th className="font-semibold">Факт · исполнитель</th><th className="font-semibold">Выполнено</th><th className="px-4" /></tr></thead>
                   <tbody className="divide-y divide-border/70">
@@ -193,7 +248,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
 
           {modal?.k === "field" && <FieldForm role={role} field={modal.field} fields={fields} defaultUnit={unit === "all" ? UNITS[0] : unit} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "season" && <SeasonForm season={modal.season} fields={fields} seasons={seasons} cropSuggestions={d.cropSuggestions} defaultYear={year} defaultFieldId={modal.fieldId} onClose={() => setModal(null)} onDone={done} />}
-          {modal?.k === "op" && <OperationForm op={modal.op} seasons={seasons} fields={fields} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} defaultSeasonId={modal.seasonId ?? yearSeasons[0]?.id} onClose={() => setModal(null)} onDone={done} />}
+          {modal?.k === "op" && <OperationForm op={modal.op} seasons={seasons} fields={fields} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} defaultSeasonId={modal.seasonId ?? yearSeasons[0]?.id} operationSuggestions={d.operationSuggestions} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "actual" && <ActualForm op={modal.op} title={opTitle(modal.op)} today={today} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "progress" && <ProgressForm op={modal.op} title={opTitle(modal.op)} today={today} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "void" && <VoidDialog op={modal.op} title={opTitle(modal.op)} onClose={() => setModal(null)} onDone={done} />}

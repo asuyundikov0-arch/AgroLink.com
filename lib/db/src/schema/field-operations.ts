@@ -2,6 +2,7 @@ import { date, integer, numeric, pgTable, serial, text, timestamp, uniqueIndex }
 import { sql } from "drizzle-orm";
 import { fieldSeasonsTable } from "./field-seasons";
 import { employeesTable } from "./employees";
+import { fleetEquipmentTable } from "./fleet-equipment";
 
 export const fieldOperationsTable = pgTable("field_operations", {
   id: serial("id").primaryKey(),
@@ -13,6 +14,8 @@ export const fieldOperationsTable = pgTable("field_operations", {
   plannedAreaAres: integer("planned_area_ares").notNull(),
   plannedRatePerHa: numeric("planned_rate_per_ha", { precision: 14, scale: 2 }).notNull().default("0"),
   responsible: text("responsible").notNull().default(""),
+  plannedMechanicEmployeeId: integer("planned_mechanic_employee_id").references(() => employeesTable.id, { onDelete: "set null" }),
+  plannedEquipmentId: integer("planned_equipment_id").references(() => fleetEquipmentTable.id, { onDelete: "set null" }),
   plannedEquipment: text("planned_equipment").notNull().default(""),
   plannedImplement: text("planned_implement").notNull().default(""),
   notes: text("notes").notNull().default(""),

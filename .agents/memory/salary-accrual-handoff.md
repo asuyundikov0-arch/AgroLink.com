@@ -9,6 +9,12 @@ The daily register must fill automatically from employee-linked field work and t
 
 **How to apply:** Keep submitted registers read-only for the economist and do not add payment or “paid” status to salary accruals without a new explicit request.
 
+Every dispatcher-confirmed sheet contributes to an accumulating economist register per employee, with a breakdown by work type and the original dated work lines.
+
+**Why:** The user explicitly requested cumulative employee totals from every confirmed salary sheet, not just a list of separate daily sheets.
+
+**How to apply:** Count submitted sheets only, retain their individual history, and do not collapse distinct confirmed work lines merely because their employee, date or work type is the same.
+
 Chief department specialists and the dispatcher maintain the shared employee directory; employees are selected from it in work and transport records.
 
 **Why:** The user explicitly chose “Главные специалисты подразделений и диспетчер” and required accruals to enter the daily register automatically when an employee is selected.

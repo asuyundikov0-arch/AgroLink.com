@@ -17,7 +17,7 @@ import {
   useVoidFieldOperation,
 } from "@workspace/api-client-react";
 import EmployeeSelect from "../../employees/EmployeeSelect";
-import { Drawer, Field, OP_SUGGESTIONS, SaveError, UNITS, type Unit, dateFmt, errorInfo, ha, handleSaveError, haStr, isGD, parseHa, useInvalidateFields } from "./shared";
+import { Drawer, Field, SaveError, UNITS, type Unit, dateFmt, errorInfo, ha, handleSaveError, haStr, isGD, parseHa, useInvalidateFields } from "./shared";
 
 type Done = (msg: string) => void;
 const MAX_AREA = 1_000_000;
@@ -241,7 +241,7 @@ export function SeasonForm({ season, fields, seasons, cropSuggestions, defaultYe
 }
 
 /* ---------------- Operation plan ---------------- */
-export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetError, onRetry, defaultSeasonId, onClose, onDone }: { op: FieldOperation | null; seasons: FieldSeason[]; fields: AgroField[]; fleet: FleetEquipment[]; fleetLoading: boolean; fleetError: boolean; onRetry: () => void; defaultSeasonId?: number; onClose: () => void; onDone: Done }) {
+export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetError, onRetry, defaultSeasonId, operationSuggestions, onClose, onDone }: { operationSuggestions: string[]; op: FieldOperation | null; seasons: FieldSeason[]; fields: AgroField[]; fleet: FleetEquipment[]; fleetLoading: boolean; fleetError: boolean; onRetry: () => void; defaultSeasonId?: number; onClose: () => void; onDone: Done }) {
   const create = useCreateFieldOperation();
   const update = useUpdateFieldOperation();
   const invalidate = useInvalidateFields();
@@ -253,12 +253,22 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
     seasonId: String(initSeason), name: op?.name ?? "", plannedStart: op?.plannedStart?.slice(0, 10) ?? "", plannedEnd: op?.plannedEnd?.slice(0, 10) ?? "",
      area: op ? haStr(op.plannedAreaHa) : (() => { const s = seasons.find((x) => x.id === initSeason); return s ? haStr(s.areaHa) : ""; })(),
      plannedRate: op ? String(op.plannedRatePerHa) : "",
-     responsible: op?.responsible ?? "", plannedEquipment: op?.plannedEquipment ?? "", plannedImplement: op?.plannedImplement ?? "", notes: op?.notes ?? "",
+     responsible: op?.responsible ?? "", responsibleId: op?.plannedMechanicEmployeeId ?? null as number | null,
+     plannedEquipmentId: op?.plannedEquipmentId ?? (() => {
+       if (!op?.plannedEquipment) return null;
+       const m = fleet.filter((x) => `${x.kind} · ${x.registrationNumber || "без госномера"}` === op.plannedEquipment);
+       return m.length === 1 ? m[0].id : null;
+     })() as number | null,
+     plannedEquipment: op?.plannedEquipment ?? "", plannedImplement: op?.plannedImplement ?? "", notes: op?.notes ?? "",
   });
   const [errs, setErrs] = useState<Record<string, string>>({});
   const pending = create.isPending || update.isPending;
   const close = () => { if (!pending) onClose(); };
   const season = seasons.find((s) => s.id === Number(f.seasonId));
+  const seasonUnit = season ? fieldById.get(season.fieldId)?.unit : undefined;
+  const unitFleet = useMemo(() => fleet.filter((x) => !seasonUnit || x.unit === seasonUnit), [fleet, seasonUnit]);
+  const nameOptions = useMemo(() => { const list = [...operationSuggestions]; if (op?.name && !list.includes(op.name)) list.unshift(op.name); return list; }, [operationSuggestions, op]);
+  const eqLabel = (x: FleetEquipment) => `${x.kind} · ${x.registrationNumber || "без госномера"}`;
   const label = (s: FieldSeason) => `${s.year} · поле № ${fieldById.get(s.fieldId)?.number ?? s.fieldId} · ${s.cropName} · ${ha(s.areaHa)}`;
 
   const submit = async (ev: FormEvent) => {
@@ -278,11 +288,16 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
     const plannedRate = f.plannedRate.trim() ? Number(f.plannedRate.trim().replace(",", ".")) : null;
     if (plannedRate === null || !Number.isFinite(plannedRate) || plannedRate <= 0 || plannedRate > 1_000_000_000) er.plannedRate = "Укажите положительную расценку за гектар";
     if (f.responsible.length > 200) er.responsible = "Не более 200 символов";
+    const legacyMech = !!op && op.plannedMechanicEmployeeId == null && f.responsibleId === null && f.responsible === op.responsible;
+    const legacyEq = !!op && op.plannedEquipmentId == null && f.plannedEquipmentId === null && f.plannedEquipment === op.plannedEquipment;
+    if (!f.responsibleId && !legacyMech) er.responsible = "Выберите механизатора из справочника";
+    if (!f.plannedEquipmentId && !legacyEq) er.plannedEquipment = "Выберите технику из справочника";
+    else if (f.plannedEquipmentId && seasonUnit && !legacyEq) { const eq = fleet.find((x) => x.id === f.plannedEquipmentId); if (eq && eq.unit !== seasonUnit && eq.id !== op?.plannedEquipmentId) er.plannedEquipment = "Техника другого хозяйства"; }
     if (f.plannedEquipment.length > 200) er.plannedEquipment = "Не более 200 символов";
     if (f.plannedImplement.length > 200) er.plannedImplement = "Не более 200 символов";
     setErrs(er); e.clear();
     if (Object.keys(er).length) return;
-    const data = { seasonId: Number(f.seasonId), name, plannedStart: f.plannedStart, plannedEnd: f.plannedEnd, plannedAreaHa: area!, plannedRatePerHa: plannedRate!, responsible: f.responsible.trim(), plannedEquipment: f.plannedEquipment.trim(), plannedImplement: f.plannedImplement.trim(), notes: f.notes };
+    const data = { seasonId: Number(f.seasonId), name, plannedStart: f.plannedStart, plannedEnd: f.plannedEnd, plannedAreaHa: area!, plannedRatePerHa: plannedRate!, responsible: f.responsible.trim(), plannedMechanicEmployeeId: f.responsibleId, plannedEquipmentId: f.plannedEquipmentId, plannedEquipment: f.plannedEquipment.trim(), plannedImplement: f.plannedImplement.trim(), notes: f.notes };
     try {
       if (op) await update.mutateAsync({ id: op.id, data: { ...data, version: op.version } });
       else await create.mutateAsync({ data });
@@ -305,15 +320,27 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
               </select>
             </Field>
             <Field label="Операция *" error={errs.name} htmlFor="op-name" wide>
-              <input id="op-name" className="text-input" list="op-name-list" maxLength={150} value={f.name} onChange={(ev) => setF({ ...f, name: ev.target.value })} placeholder="Посев" data-testid="input-operation-name" />
-              <datalist id="op-name-list">{OP_SUGGESTIONS.map((c) => <option key={c} value={c} />)}</datalist>
+              <select id="op-name" className="text-input" value={f.name} onChange={(ev) => setF({ ...f, name: ev.target.value })} data-testid="input-operation-name">
+                <option value="">Выберите операцию</option>
+                {nameOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
             </Field>
             <Field label="Плановое начало *" error={errs.plannedStart} htmlFor="op-ps"><input id="op-ps" type="date" className="text-input" value={f.plannedStart} onChange={(ev) => setF({ ...f, plannedStart: ev.target.value })} data-testid="input-operation-planned-start" /></Field>
             <Field label="Плановое окончание *" error={errs.plannedEnd} htmlFor="op-pe"><input id="op-pe" type="date" className="text-input" value={f.plannedEnd} onChange={(ev) => setF({ ...f, plannedEnd: ev.target.value })} data-testid="input-operation-planned-end" /></Field>
             <Field label="Плановая площадь, га *" error={errs.area} hint={season ? `Площадь сезона ${ha(season.areaHa)}` : undefined} htmlFor="op-area"><input id="op-area" className="text-input font-mono" inputMode="decimal" value={f.area} onChange={(ev) => setF({ ...f, area: ev.target.value })} data-testid="input-operation-area" /></Field>
             <Field label="Плановая расценка, ₸/га *" error={errs.plannedRate} htmlFor="op-rate"><input id="op-rate" type="number" min="0.01" step="0.01" className="text-input font-mono" inputMode="decimal" value={f.plannedRate} onChange={(ev) => setF({ ...f, plannedRate: ev.target.value })} data-testid="input-operation-planned-rate" /></Field>
-            <Field label="Ответственный" error={errs.responsible} htmlFor="op-resp"><input id="op-resp" className="text-input" maxLength={200} value={f.responsible} onChange={(ev) => setF({ ...f, responsible: ev.target.value })} data-testid="input-operation-responsible" /></Field>
-            <Field label="Техника по плану" error={errs.plannedEquipment} hint="Выберите из общего справочника техники" htmlFor="op-equipment"><EquipmentSelect id="op-equipment" testId="select-operation-equipment" value={f.plannedEquipment} fleet={fleet} loading={fleetLoading} failed={fleetError} onRetry={onRetry} onChange={(plannedEquipment) => setF({ ...f, plannedEquipment })} /></Field>
+            <Field label="Механизатор по плану *" error={errs.responsible} htmlFor="op-resp"><EmployeeSelect id="op-resp" value={{ id: f.responsibleId, name: f.responsible }} onChange={(v) => setF({ ...f, responsibleId: v.id, responsible: v.name })} invalid={Boolean(errs.responsible)} testId="input-operation-responsible" /></Field>
+            <Field label="Техника по плану" error={errs.plannedEquipment} hint="Выберите из общего справочника техники" htmlFor="op-equipment"><div className="space-y-1.5">
+                {fleetError && <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-2.5 text-[10px] leading-4 text-destructive" role="alert">Не удалось загрузить справочник техники.<button type="button" className="ml-2 underline" onClick={onRetry} data-testid="select-operation-equipment-retry">Повторить</button></div>}
+                {!fleetLoading && !fleetError && unitFleet.length === 0 && <p className="text-[10px] text-muted-foreground">В справочнике нет техники хозяйства {seasonUnit ?? ""}.</p>}
+                <select id="op-equipment" className="text-input" disabled={fleetLoading || fleetError} value={f.plannedEquipmentId !== null ? String(f.plannedEquipmentId) : f.plannedEquipment ? "legacy" : ""} data-testid="select-operation-equipment"
+                  onChange={(ev) => { const v = ev.target.value; if (v === "legacy") setF({ ...f, plannedEquipmentId: null, plannedEquipment: op?.plannedEquipment ?? "" }); else { const eq = fleet.find((x) => x.id === Number(v)); setF({ ...f, plannedEquipmentId: eq ? eq.id : null, plannedEquipment: eq ? eqLabel(eq) : "" }); } }}>
+                  <option value="">{fleetLoading ? "Загрузка справочника…" : "Выберите технику"}</option>
+                  {op?.plannedEquipment && op.plannedEquipmentId == null && <option value="legacy">{op.plannedEquipment} · сохранено ранее</option>}
+                  {f.plannedEquipmentId !== null && !unitFleet.some((x) => x.id === f.plannedEquipmentId) && <option value={f.plannedEquipmentId}>{f.plannedEquipment || `Техника № ${f.plannedEquipmentId}`} · вне текущего хозяйства</option>}
+                  {unitFleet.map((x) => <option key={x.id} value={x.id}>{eqLabel(x)}</option>)}
+                </select>
+              </div></Field>
             <Field label="Агрегат по плану" error={errs.plannedImplement} hint="Например, сеялка СЗС-2.1" htmlFor="op-implement"><input id="op-implement" className="text-input" maxLength={200} value={f.plannedImplement} onChange={(ev) => setF({ ...f, plannedImplement: ev.target.value })} data-testid="input-operation-implement" /></Field>
             <Field label="Примечания" htmlFor="op-notes" wide><textarea id="op-notes" className="text-input min-h-[72px]" maxLength={3000} value={f.notes} onChange={(ev) => setF({ ...f, notes: ev.target.value })} data-testid="input-operation-notes" /></Field>
           </div>
@@ -332,7 +359,8 @@ export function ActualForm({ op, title, today, fleet, fleetLoading, fleetError, 
   const [f, setF] = useState({
     start: op.actualStart?.slice(0, 10) ?? "", end: op.actualEnd?.slice(0, 10) ?? "",
     area: op.actualAreaHa > 0 ? haStr(op.actualAreaHa) : "", notes: op.actualNotes ?? "",
-    operationName: op.actualOperationName || op.name, mechanic: op.actualMechanic ?? "", mechanicId: op.actualMechanicEmployeeId ?? null as number | null,
+    operationName: op.actualOperationName || op.name, mechanic: starting && !op.actualMechanic && op.actualMechanicEmployeeId == null && op.plannedMechanicEmployeeId != null ? op.responsible : op.actualMechanic ?? "",
+    mechanicId: (starting && !op.actualMechanic && op.actualMechanicEmployeeId == null ? op.plannedMechanicEmployeeId ?? null : op.actualMechanicEmployeeId ?? null) as number | null,
     equipment: op.actualEquipment || op.plannedEquipment, implement: op.actualImplement || op.plannedImplement,
   });
   const [errs, setErrs] = useState<Record<string, string>>({});

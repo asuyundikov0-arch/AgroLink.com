@@ -1372,6 +1372,8 @@ components:
         plannedAreaHa: { type: number, minimum: 0.01, maximum: 1000000 }
         plannedRatePerHa: { type: number, minimum: 0, maximum: 1000000000 }
         responsible: { type: string, maxLength: 200 }
+        plannedMechanicEmployeeId: { type: ["number", "null"], minimum: 1 }
+        plannedEquipmentId: { type: ["number", "null"], minimum: 1 }
         plannedEquipment: { type: string, maxLength: 200 }
         plannedImplement: { type: string, maxLength: 200 }
         notes: { type: string, maxLength: 3000 }
@@ -1493,7 +1495,7 @@ components:
         actualRateSetAt: { type: ["string", "null"] }
     FieldDashboard:
       type: object
-      required: [fields, seasons, operations, cropSuggestions, asOfDate]
+      required: [fields, seasons, operations, cropSuggestions, operationSuggestions, asOfDate]
       properties:
         fields:
           type: array
@@ -1505,6 +1507,9 @@ components:
           type: array
           items: { $ref: "#/components/schemas/FieldOperation" }
         cropSuggestions:
+          type: array
+          items: { type: string }
+        operationSuggestions:
           type: array
           items: { type: string }
         asOfDate: { type: string }

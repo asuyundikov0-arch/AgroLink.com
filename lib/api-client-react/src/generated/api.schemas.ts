@@ -98,6 +98,16 @@ export interface FieldOperationInput {
   plannedRatePerHa: number;
   /** @maxLength 200 */
   responsible: string;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  plannedMechanicEmployeeId?: number | null;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  plannedEquipmentId?: number | null;
   /** @maxLength 200 */
   plannedEquipment: string;
   /** @maxLength 200 */
@@ -268,6 +278,7 @@ export interface FieldDashboard {
   seasons: FieldSeason[];
   operations: FieldOperation[];
   cropSuggestions: string[];
+  operationSuggestions: string[];
   asOfDate: string;
 }
 
