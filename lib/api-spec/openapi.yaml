@@ -19,6 +19,43 @@ tags:
   - name: uploads
     description: Protected document upload workflow
 paths:
+  /agro/chemicals/workflow:
+    get:
+      operationId: getChemicalWorkflow
+      responses:
+        "200":
+          description: Заявки, подотчётный баланс и ежедневный расход
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChemicalWorkflow" }
+  /agro/chemicals/requests:
+    post:
+      operationId: createChemicalRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChemicalRequestInput" }
+      responses:
+        "201":
+          description: Заявка агронома создана
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChemicalMutationResult" }
+  /agro/chemicals/consumptions:
+    post:
+      operationId: createChemicalConsumption
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChemicalConsumptionInput" }
+      responses:
+        "201":
+          description: Диспетчер внёс фактический ежедневный расход
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChemicalMutationResult" }
   /agro/chemicals:
     get:
       operationId: getChemicalWarehouse
@@ -1406,12 +1443,10 @@ components:
           items: { $ref: "#/components/schemas/ChemicalInvoiceLine" }
     ChemicalIssueInput:
       type: object
-      required: [requestId, batchId, seasonId, employeeId, quantity, occurredOn, notes]
+      required: [requestId, chemicalRequestId, quantity, occurredOn, notes]
       properties:
         requestId: { type: string, minLength: 16, maxLength: 100 }
-        batchId: { type: number, minimum: 1 }
-        seasonId: { type: number, minimum: 1 }
-        employeeId: { type: number, minimum: 1 }
+        chemicalRequestId: { type: number, minimum: 1 }
         quantity: { type: number, exclusiveMinimum: 0, maximum: 1000000 }
         occurredOn: { type: string }
         notes: { type: string, maxLength: 1000 }
@@ -1457,7 +1492,8 @@ components:
         seasonId: { type: number }
         fieldNumber: { type: string }
         year: { type: number }
-        employeeId: { type: number }
+        employeeId: { type: [number, "null"] }
+        chemicalRequestId: { type: [number, "null"] }
         employeeName: { type: string }
         quantity: { type: number }
         amount: { type: number }
@@ -1477,6 +1513,106 @@ components:
         fields:
           type: array
           items: { $ref: "#/components/schemas/ChemicalFieldCost" }
+    ChemicalRequestInput:
+      type: object
+      required: [requestId, operationId, batchId, quantity, notes]
+      properties:
+        requestId: { type: string, minLength: 16, maxLength: 100 }
+        operationId: { type: number, minimum: 1 }
+        batchId: { type: number, minimum: 1 }
+        quantity: { type: number, minimum: 0.001, maximum: 1000000 }
+        notes: { type: string, maxLength: 1000 }
+    ChemicalConsumptionInput:
+      type: object
+      required: [requestId, issueId, reportDate, quantity, notes]
+      properties:
+        requestId: { type: string, minLength: 16, maxLength: 100 }
+        issueId: { type: number, minimum: 1 }
+        reportDate: { type: string }
+        quantity: { type: number, minimum: 0.001, maximum: 1000000 }
+        notes: { type: string, maxLength: 1000 }
+    ChemicalWorkDay:
+      type: object
+      required: [date, dailyAreaHa]
+      properties:
+        date: { type: string }
+        dailyAreaHa: { type: number }
+    ChemicalWork:
+      type: object
+      required: [id, seasonId, fieldNumber, farm, year, name, actualStart, actualEnd, days]
+      properties:
+        id: { type: number }
+        seasonId: { type: number }
+        fieldNumber: { type: string }
+        farm: { type: string }
+        year: { type: number }
+        name: { type: string }
+        actualStart: { type: [string, "null"] }
+        actualEnd: { type: [string, "null"] }
+        days:
+          type: array
+          items: { $ref: "#/components/schemas/ChemicalWorkDay" }
+    ChemicalRequest:
+      type: object
+      required: [id, operationId, batchId, name, unit, quantity, issuedQuantity, requesterName, isMine, createdAt, notes]
+      properties:
+        id: { type: number }
+        operationId: { type: number }
+        batchId: { type: number }
+        name: { type: string }
+        unit: { type: string }
+        quantity: { type: number }
+        issuedQuantity: { type: number }
+        requesterName: { type: string }
+        isMine: { type: boolean }
+        createdAt: { type: string }
+        notes: { type: string }
+    ChemicalCustody:
+      type: object
+      required: [issueId, chemicalRequestId, operationId, name, unit, requesterName, isMine, quantity, remaining, remainingAmount, occurredOn]
+      properties:
+        issueId: { type: number }
+        chemicalRequestId: { type: number }
+        operationId: { type: number }
+        name: { type: string }
+        unit: { type: string }
+        requesterName: { type: string }
+        isMine: { type: boolean }
+        quantity: { type: number }
+        remaining: { type: number }
+        remainingAmount: { type: number }
+        occurredOn: { type: string }
+    ChemicalConsumption:
+      type: object
+      required: [id, issueId, operationId, reportDate, name, unit, quantity, amount, dailyAreaHa, confirmedBy, notes]
+      properties:
+        id: { type: number }
+        issueId: { type: number }
+        operationId: { type: number }
+        reportDate: { type: string }
+        name: { type: string }
+        unit: { type: string }
+        quantity: { type: number }
+        amount: { type: number }
+        dailyAreaHa: { type: number }
+        confirmedBy: { type: string }
+        notes: { type: string }
+    ChemicalWorkflow:
+      type: object
+      required: [operations, requests, custody, consumptions]
+      properties:
+        operations:
+          type: array
+          items: { $ref: "#/components/schemas/ChemicalWork" }
+        requests:
+          type: array
+          items: { $ref: "#/components/schemas/ChemicalRequest" }
+        custody:
+          type: array
+          items: { $ref: "#/components/schemas/ChemicalCustody" }
+        consumptions:
+          type: array
+          items: { $ref: "#/components/schemas/ChemicalConsumption" }
     AgroFieldInput:
       type: object
       required: [unit, number, areaHa, notes, isActive]
@@ -1532,6 +1668,7 @@ components:
       type: object
       required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, plannedRatePerHa, responsible, plannedEquipment, plannedImplement, notes]
       properties:
+        requiresChemicals: { type: boolean, default: false }
         seasonId: { type: number, minimum: 1 }
         name: { type: string, minLength: 1, maxLength: 150 }
         plannedStart: { type: string }
@@ -1643,6 +1780,7 @@ components:
       description: Stored plan metadata; unplanned actual work has zero planned hectares.
       required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, plannedRatePerHa, responsible, plannedEquipment, plannedImplement, notes, version]
       properties:
+        requiresChemicals: { type: boolean }
         seasonId: { type: number, minimum: 1 }
         name: { type: string, minLength: 1, maxLength: 150 }
         plannedStart: { type: string }

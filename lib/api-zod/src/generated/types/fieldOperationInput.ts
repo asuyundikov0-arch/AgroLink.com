@@ -7,6 +7,7 @@
  */
 
 export interface FieldOperationInput {
+  requiresChemicals?: boolean;
   /** @minimum 1 */
   seasonId: number;
   /**

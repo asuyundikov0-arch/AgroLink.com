@@ -1,18 +1,16 @@
 import { type FormEvent, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { FlaskConical, PackagePlus, Plus, RefreshCw, Search, Send, Trash2 } from "lucide-react";
+import { FlaskConical, PackagePlus, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import {
-  type ChemicalBatch,
   type ChemicalInvoiceLineUnit,
   getGetChemicalWarehouseQueryKey,
-  getListEmployeesQueryKey,
   useCreateChemicalInvoice,
-  useCreateChemicalIssue,
   useGetChemicalWarehouse,
-  useListEmployees,
 } from "@workspace/api-client-react";
 import { Drawer, Field, POLL_MS, UNITS, cx, dateFmt, errorInfo } from "./grain/shared";
 import { businessToday } from "../engineering/repairs/shared";
+import { CustodyList, WarehouseRequests } from "./chemicals/Custody";
+import { useChemicalWorkflow } from "./chemicals/Workflow";
 
 const CHEM_UNITS: ChemicalInvoiceLineUnit[] = ["л", "кг", "шт"];
 export const canManageChemicals = (r: string) => r === "grain_manager" || r === "general_director";
@@ -25,11 +23,10 @@ const parseNum = (s: string) => Number(s.replace(/\s/g, "").replace(",", "."));
 const QTY_RE = /^\d+([.,]\d{1,3})?$/;
 const PRICE_RE = /^\d+([.,]\d{1,2})?$/;
 
-type View = "stock" | "journal" | "cost";
+type View = "stock" | "requests" | "custody" | "journal" | "cost";
 type Line = { key: string; name: string; unit: ChemicalInvoiceLineUnit; quantity: string; unitPrice: string };
 const newLine = (): Line => ({ key: crypto.randomUUID(), name: "", unit: "л", quantity: "", unitPrice: "" });
 const newInvoice = () => ({ requestId: crypto.randomUUID(), number: "", occurredOn: businessToday(), supplier: "", farm: UNITS[0] as string, lines: [newLine()] });
-const newIssue = (batchId = "") => ({ requestId: crypto.randomUUID(), batchId, seasonId: "", employeeId: "", quantity: "", occurredOn: businessToday(), notes: "" });
 
 export default function ChemicalWarehouse({ role, onOpenFields }: { role: string; onOpenFields?: () => void }) {
   const canEdit = canManageChemicals(role);
@@ -41,7 +38,9 @@ export default function ChemicalWarehouse({ role, onOpenFields }: { role: string
   const [search, setSearch] = useState("");
   const [showEmpty, setShowEmpty] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
-  const [issueFor, setIssueFor] = useState<string | null>(null);
+  const flow = useChemicalWorkflow();
+  const openReq = (flow.data?.requests ?? []).filter((r) => r.issuedQuantity < r.quantity).length;
+  const custodyAmount = (flow.data?.custody ?? []).reduce((a, c) => a + (c.remaining > 0 ? c.remainingAmount : 0), 0);
   const [notice, setNotice] = useState("");
 
   const data = q.data;
@@ -75,25 +74,26 @@ export default function ChemicalWarehouse({ role, onOpenFields }: { role: string
       <div>
         <div className="text-[10px] font-bold uppercase tracking-[.12em] text-muted-foreground">Склад химии · СЗР и удобрения</div>
         <h2 className="mt-1 text-lg font-bold">Остатки по накладным и списание на поля</h2>
-        {!canEdit && <p className="mt-1 text-xs text-muted-foreground" data-testid="text-chem-readonly">Только просмотр. Приход и выдачу оформляют заведующий током и генеральный директор.</p>}
+        {!canEdit && <p className="mt-1 text-xs text-muted-foreground" data-testid="text-chem-readonly">Только просмотр. Приход и выдачу по заявкам агрономов оформляют заведующий током и генеральный директор.</p>}
       </div>
       {canEdit && <div className="flex flex-wrap gap-2">
-        <button type="button" className="button button-secondary" onClick={() => setIssueFor("")} data-testid="button-chem-issue-open"><Send size={14} />Выдать на поле</button>
+        <button type="button" className="button button-secondary" onClick={() => setView("requests")} data-testid="button-chem-issue-open">Заявки агрономов ({openReq})</button>
         <button type="button" className="button button-primary" onClick={() => setInvoiceOpen(true)} data-testid="button-chem-invoice-open"><PackagePlus size={14} />Приход по накладной</button>
       </div>}
     </div>
     {notice && <div className="rounded-lg border border-[hsl(157_45%_70%)] bg-[hsl(157_45%_94%)] px-3 py-2 text-xs font-semibold text-[hsl(161_45%_26%)]" role="status" data-testid="status-chem-notice">{notice}</div>}
 
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
       <Kpi label="Остаток на складе" value={money(stockTotal)} sub={`${batches.filter((b) => b.remaining > 0).length} партий в выборке`} testId="kpi-chem-stock" />
       <Kpi label="Остаток в литрах" value={`${qty(stockLitres)} л`} sub="По выбранным партиям · без кг и шт" testId="kpi-chem-stock-litres" />
+      <Kpi label="На подотчёте агрономов" value={money(custodyAmount)} sub="Ожидает подтверждения расхода" testId="kpi-chem-custody" danger={custodyAmount > 0} />
       <Kpi label="Выдано по журналу" value={money(issuedTotal)} sub={`${issues.length} выдач`} testId="kpi-chem-issued" />
       <Kpi label="Химия на 1 га посева" value={sownTotal > 0 ? money(costWithSowing / sownTotal) : "—"} sub={`${qty(sownTotal)} га фактического сева`} testId="kpi-chem-perha" />
     </div>
 
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex gap-1 rounded-lg border border-border bg-card p-1" role="tablist">
-        {([["stock", "Остатки"], ["journal", "Журнал выдачи"], ["cost", "Затраты по полям"]] as const).map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={view === k} className={cx("rounded-md px-3 py-1.5 text-xs font-bold", view === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")} onClick={() => setView(k)} data-testid={`tab-chem-${k}`}>{l}</button>)}
+        {([["stock", "Остатки"], ["requests", `Заявки (${openReq})`], ["custody", "Подотчёт"], ["journal", "Журнал выдачи"], ["cost", "Затраты по полям"]] as const).map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={view === k} className={cx("rounded-md px-3 py-1.5 text-xs font-bold", view === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")} onClick={() => setView(k)} data-testid={`tab-chem-${k}`}>{l}</button>)}
       </div>
       <select className="text-input !w-auto !min-h-[34px]" value={farm} onChange={(e) => setFarm(e.target.value)} data-testid="select-chem-farm"><option value="all">Все хозяйства</option>{UNITS.map((u) => <option key={u} value={u}>{u}</option>)}</select>
       {view !== "stock" && <select className="text-input !w-auto !min-h-[34px]" value={year} onChange={(e) => setYear(e.target.value)} data-testid="select-chem-year"><option value="all">Все годы</option>{years.map((y) => <option key={y} value={y}>{y}</option>)}</select>}
@@ -103,7 +103,7 @@ export default function ChemicalWarehouse({ role, onOpenFields }: { role: string
 
     {view === "stock" && <div className="surface-card overflow-x-auto" data-testid="table-chem-stock">
       {batches.length === 0 ? <Empty title="Партий нет" text={canEdit ? "Оформите приход по накладной — каждая строка накладной станет отдельной партией со своей ценой." : "Пока нет партий химии на складе по выбранным условиям."} /> :
-        <table className="w-full min-w-[860px] text-xs"><thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-[.1em] text-muted-foreground"><Th>Накладная</Th><Th>Поставщик / хозяйство</Th><Th>Препарат</Th><Th right>Получено</Th><Th right>Остаток</Th><Th right>Цена ед.</Th><Th right>Сумма остатка</Th>{canEdit && <Th />}</tr></thead>
+        <table className="w-full min-w-[860px] text-xs"><thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-[.1em] text-muted-foreground"><Th>Накладная</Th><Th>Поставщик / хозяйство</Th><Th>Препарат</Th><Th right>Получено</Th><Th right>Остаток</Th><Th right>Цена ед.</Th><Th right>Сумма остатка</Th></tr></thead>
           <tbody className="divide-y divide-border/70">{batches.map((b) => <tr key={b.id} className={cx(b.remaining <= 0 && "opacity-55")} data-testid={`row-chem-batch-${b.id}`}>
             <Td><div className="font-bold">№ {b.invoiceNumber}</div><div className="text-[10px] text-muted-foreground">{dateFmt(b.occurredOn)}</div></Td>
             <Td><div className="font-semibold">{b.supplier}</div><div className="text-[10px] text-muted-foreground">{b.farm}</div></Td>
@@ -112,10 +112,11 @@ export default function ChemicalWarehouse({ role, onOpenFields }: { role: string
             <Td right mono><span className="font-bold" data-testid={`text-chem-remaining-${b.id}`}>{qty(b.remaining)} {b.unit}</span></Td>
             <Td right mono>{money(b.unitPrice)}</Td>
             <Td right mono><span className="font-bold">{money(b.remainingAmount)}</span></Td>
-            {canEdit && <Td right>{b.remaining > 0 && <button type="button" className="button button-ghost !min-h-[30px] !px-2 text-[11px]" onClick={() => setIssueFor(String(b.id))} data-testid={`button-chem-issue-${b.id}`}><Send size={12} />Выдать</button>}</Td>}
           </tr>)}</tbody></table>}
     </div>}
 
+    {view === "requests" && <WarehouseRequests canEdit={canEdit} onDone={done} />}
+    {view === "custody" && <div className="surface-card" data-testid="section-chem-custody"><div className="border-b border-border px-4 py-2.5 text-[11px] font-semibold text-destructive">Химия на подотчёте агрономов, не подтверждённая диспетчером как дневной расход.</div><CustodyList testId="table-chem-custody" /></div>}
     {view === "journal" && <div className="surface-card overflow-x-auto" data-testid="table-chem-journal">
       {issues.length === 0 ? <Empty title="Выдач нет" text="Здесь появятся списания химии на поля: кто получил, на какое поле и сезон, сколько и на какую сумму." /> :
         <table className="w-full min-w-[900px] text-xs"><thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-[.1em] text-muted-foreground"><Th>Дата</Th><Th>Препарат / партия</Th><Th>Поле · год</Th><Th>Получатель</Th><Th right>Количество</Th><Th right>Сумма</Th><Th>Примечание</Th></tr></thead>
@@ -123,7 +124,7 @@ export default function ChemicalWarehouse({ role, onOpenFields }: { role: string
             <Td mono>{dateFmt(i.occurredOn)}</Td>
             <Td><div className="font-bold">{i.name}</div><div className="text-[10px] text-muted-foreground">накл. № {i.invoiceNumber} · {i.farm}</div></Td>
             <Td><span className="font-semibold">Поле {i.fieldNumber}</span> · {i.year}</Td>
-            <Td><div>{i.employeeName}</div><div className="text-[10px] text-muted-foreground">внёс: {i.createdBy}</div></Td>
+            <Td><div>{i.employeeName}</div>{i.chemicalRequestId == null && <div className="text-[10px] text-muted-foreground">прежняя выдача · затраты учтены</div>}<div className="text-[10px] text-muted-foreground">внёс: {i.createdBy}</div></Td>
             <Td right mono>{qty(i.quantity)} {i.unit}</Td>
             <Td right mono><span className="font-bold">{money(i.amount)}</span></Td>
             <Td><span className="text-muted-foreground">{i.notes || "—"}</span></Td>
@@ -147,12 +148,11 @@ export default function ChemicalWarehouse({ role, onOpenFields }: { role: string
     </div>}
 
     {canEdit && invoiceOpen && <InvoiceDrawer onClose={() => setInvoiceOpen(false)} onDone={() => done("Накладная проведена, партии добавлены на склад.")} />}
-    {canEdit && issueFor !== null && <IssueDrawer batches={data?.batches ?? []} seasons={data?.fields ?? []} initialBatch={issueFor} onClose={() => setIssueFor(null)} onDone={() => done("Выдача записана в журнал, остаток партии уменьшен.")} onOpenFields={onOpenFields} />}
   </div>;
 }
 
-function Kpi({ label, value, sub, testId }: { label: string; value: string; sub: string; testId: string }) {
-  return <div className="surface-card p-3.5" data-testid={testId}><div className="text-[10px] font-bold uppercase tracking-[.12em] text-muted-foreground">{label}</div><div className="mt-1 font-mono text-xl font-bold">{value}</div><div className="mt-0.5 text-[10px] text-muted-foreground">{sub}</div></div>;
+function Kpi({ label, value, sub, testId, danger }: { label: string; value: string; sub: string; testId: string; danger?: boolean }) {
+  return <div className={cx("surface-card p-3.5", danger && "border-destructive/40 text-destructive")} data-testid={testId}><div className="text-[10px] font-bold uppercase tracking-[.12em] text-muted-foreground">{label}</div><div className="mt-1 font-mono text-xl font-bold">{value}</div><div className="mt-0.5 text-[10px] text-muted-foreground">{sub}</div></div>;
 }
 function Th({ children, right }: { children?: React.ReactNode; right?: boolean }) { return <th className={cx("px-3 py-2.5 font-bold", right && "text-right")}>{children}</th>; }
 function Td({ children, right, mono }: { children?: React.ReactNode; right?: boolean; mono?: boolean }) { return <td className={cx("px-3 py-2.5 align-top", right && "text-right", mono && "font-mono whitespace-nowrap")}>{children}</td>; }
@@ -210,63 +210,6 @@ function InvoiceDrawer({ onClose, onDone }: { onClose: () => void; onDone: () =>
           {(errs[`${l.key}.name`] || errs[`${l.key}.quantity`] || errs[`${l.key}.unitPrice`]) && <p className="mt-1 text-[10px] font-semibold text-destructive">{[errs[`${l.key}.name`], errs[`${l.key}.quantity`] && `Количество: ${errs[`${l.key}.quantity`]}`, errs[`${l.key}.unitPrice`] && `Цена: ${errs[`${l.key}.unitPrice`]}`].filter(Boolean).join(" · ")}</p>}
         </div>)}</div>
       </div>
-      <SubmitError msg={subErr} />
-    </form>
-  </Drawer>;
-}
-
-function IssueDrawer({ batches, seasons, initialBatch, onClose, onDone, onOpenFields }: { batches: ChemicalBatch[]; seasons: { seasonId: number; fieldNumber: string; farm: string; year: number; cropName: string }[]; initialBatch: string; onClose: () => void; onDone: () => void; onOpenFields?: () => void }) {
-  const [f, setF] = useState(() => newIssue(initialBatch));
-  const [errs, setErrs] = useState<Record<string, string>>({});
-  const [subErr, setSubErr] = useState("");
-  const m = useCreateChemicalIssue();
-  const empQ = useListEmployees({ query: { queryKey: getListEmployeesQueryKey(), staleTime: 30_000 } });
-  const employees = (empQ.data ?? []).filter((e) => e.isActive).sort((a, b) => a.fullName.localeCompare(b.fullName, "ru"));
-  const today = businessToday();
-  const available = batches.filter((b) => b.remaining > 0 || String(b.id) === f.batchId);
-  const batch = batches.find((b) => String(b.id) === f.batchId);
-  const farmSeasons = batch ? seasons.filter((s) => s.farm === batch.farm).sort((a, b) => b.year - a.year || a.fieldNumber.localeCompare(b.fieldNumber, "ru", { numeric: true })) : [];
-  const season = farmSeasons.find((x) => String(x.seasonId) === f.seasonId);
-  const amount = batch && batch.remaining > 0 && QTY_RE.test(f.quantity)
-    ? Math.round(batch.remainingAmount * 100 * parseNum(f.quantity) / batch.remaining) / 100 : 0;
-
-  const submit = (ev: FormEvent) => {
-    ev.preventDefault();
-    const e: Record<string, string> = {};
-    if (!batch) e.batchId = "Выберите партию";
-    if (!f.seasonId || !farmSeasons.some((s) => String(s.seasonId) === f.seasonId)) e.seasonId = "Выберите поле и сезон того же хозяйства";
-    if (!f.employeeId || !employees.some((x) => String(x.id) === f.employeeId)) e.employeeId = "Выберите активного сотрудника";
-    if (!QTY_RE.test(f.quantity.trim()) || parseNum(f.quantity) <= 0) e.quantity = "Больше нуля, до 3 знаков после запятой";
-    else if (batch && parseNum(f.quantity) > batch.remaining) e.quantity = `В партии осталось ${qty(batch.remaining)} ${batch.unit}`;
-    if (!f.occurredOn) e.occurredOn = "Укажите дату";
-    else if (f.occurredOn > today) e.occurredOn = "Дата не может быть позже сегодняшней";
-    else if (batch && f.occurredOn < batch.occurredOn.slice(0, 10)) e.occurredOn = `Не раньше даты прихода ${dateFmt(batch.occurredOn)}`;
-    else if (season && Number(f.occurredOn.slice(0, 4)) !== season.year) e.occurredOn = `Дата должна быть в ${season.year} году — году выбранного сезона`;
-    setErrs(e); setSubErr("");
-    if (Object.keys(e).length) return;
-    m.mutate({ data: { requestId: f.requestId, batchId: Number(f.batchId), seasonId: Number(f.seasonId), employeeId: Number(f.employeeId), quantity: parseNum(f.quantity), occurredOn: f.occurredOn, notes: f.notes.trim() } }, {
-      onSuccess: () => { setF(newIssue()); onDone(); onClose(); },
-      onError: (err) => setSubErr(errorInfo(err).message),
-    });
-  };
-
-  return <Drawer title="Выдача химии на поле" eyebrow="Склад химии" onClose={onClose} testId="drawer-chem-issue" footer={<div className="flex justify-between gap-2"><span className="self-center font-mono text-sm font-bold" data-testid="text-chem-issue-amount">{money(amount)}</span><div className="flex gap-2"><button type="button" className="button button-ghost" onClick={onClose}>Отмена</button><button type="submit" form="chem-issue-form" className="button button-primary" disabled={m.isPending} data-testid="button-chem-issue-submit">{m.isPending ? "Записываем…" : "Записать выдачу"}</button></div></div>}>
-    <form id="chem-issue-form" onSubmit={submit} className="space-y-3" noValidate>
-      <Field label="Партия (накладная)" error={errs.batchId} htmlFor="cs-batch" hint={batch ? `Остаток ${qty(batch.remaining)} ${batch.unit} · ${money(batch.unitPrice)} за ${batch.unit} · приход ${dateFmt(batch.occurredOn)}` : available.length === 0 ? "На складе нет остатков — сначала оформите приход." : undefined}>
-        <select id="cs-batch" className="text-input" value={f.batchId} onChange={(e) => setF({ ...f, batchId: e.target.value, seasonId: "" })} data-testid="select-chem-issue-batch"><option value="">Выберите партию</option>{available.map((b) => <option key={b.id} value={b.id}>{b.name} — накл. № {b.invoiceNumber} от {dateFmt(b.occurredOn)} · {b.farm} · ост. {qty(b.remaining)} {b.unit}</option>)}</select>
-      </Field>
-      <Field label="Поле и сезон" error={errs.seasonId} htmlFor="cs-season" hint={batch && farmSeasons.length === 0 ? <span>Нет сезонов полей хозяйства {batch.farm}. Создайте их во вкладке «Полевые работы».{onOpenFields && <> <button type="button" className="font-bold underline" onClick={() => { onClose(); onOpenFields(); }}>Открыть</button></>}</span> : !batch ? "Сначала выберите партию — список ограничен её хозяйством." : undefined}>
-        <select id="cs-season" className="text-input" disabled={!batch} value={f.seasonId} onChange={(e) => setF({ ...f, seasonId: e.target.value })} data-testid="select-chem-issue-season"><option value="">Выберите поле</option>{farmSeasons.map((s) => <option key={s.seasonId} value={s.seasonId}>Поле {s.fieldNumber} · {s.year} · {s.cropName}</option>)}</select>
-      </Field>
-      <Field label="Получатель" error={errs.employeeId} htmlFor="cs-emp" hint={!empQ.isLoading && !empQ.isError && employees.length === 0 ? "В справочнике нет активных сотрудников. Добавьте их в разделе «Сотрудники»." : undefined}>
-        {empQ.isLoading ? <div className="skeleton h-10 rounded-lg" /> : empQ.isError ? <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">Справочник сотрудников не загрузился. <button type="button" className="font-bold underline" onClick={() => void empQ.refetch()}>Повторить</button></div> :
-          <select id="cs-emp" className="text-input" value={f.employeeId} onChange={(e) => setF({ ...f, employeeId: e.target.value })} data-testid="select-chem-issue-employee"><option value="">Выберите сотрудника</option>{employees.map((x) => <option key={x.id} value={x.id}>{x.fullName}{x.position ? ` — ${x.position}` : ""}</option>)}</select>}
-      </Field>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label={`Количество${batch ? `, ${batch.unit}` : ""}`} error={errs.quantity} htmlFor="cs-qty"><input id="cs-qty" inputMode="decimal" className="text-input font-mono" value={f.quantity} onChange={(e) => setF({ ...f, quantity: e.target.value })} data-testid="input-chem-issue-qty" /></Field>
-        <Field label="Дата выдачи" error={errs.occurredOn} htmlFor="cs-date"><input id="cs-date" type="date" min={batch?.occurredOn.slice(0, 10)} max={today} className="text-input" value={f.occurredOn} onChange={(e) => setF({ ...f, occurredOn: e.target.value })} data-testid="input-chem-issue-date" /></Field>
-      </div>
-      <Field label="Примечание" htmlFor="cs-notes"><textarea id="cs-notes" className="text-input min-h-20" maxLength={1000} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} data-testid="input-chem-issue-notes" /></Field>
       <SubmitError msg={subErr} />
     </form>
   </Drawer>;

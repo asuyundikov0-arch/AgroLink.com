@@ -26,3 +26,18 @@ export function chemicalReceiptValue(quantityMillis: number, unitPriceCents: num
 export function chemicalCostPerHa(cents: number, sownAres: number) {
   return sownAres > 0 ? Math.round(cents * 100 / sownAres) / 100 : null;
 }
+
+export function chemicalFieldCosts(
+  issues: { id: number; seasonId: number; amountCents: string; chemicalRequestId: number | null }[],
+  consumptions: { issueId: number; amountCents: string }[],
+) {
+  const costs = new Map<number, number>();
+  const byId = new Map(issues.map(i => [i.id, i]));
+  for (const issue of issues.filter(i => i.chemicalRequestId === null))
+    costs.set(issue.seasonId, (costs.get(issue.seasonId) ?? 0) + Number(issue.amountCents));
+  for (const consumption of consumptions) {
+    const issue = byId.get(consumption.issueId);
+    if (issue) costs.set(issue.seasonId, (costs.get(issue.seasonId) ?? 0) + Number(consumption.amountCents));
+  }
+  return costs;
+}

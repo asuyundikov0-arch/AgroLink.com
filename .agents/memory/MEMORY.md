@@ -9,4 +9,4 @@
 - [Salary accrual handoff](salary-accrual-handoff.md) — dispatcher sends daily work orders to HR; only HR-confirmed field and transport accruals enter employee payroll and reach the economist.
 - [Field plans, facts and sowing](field-plan-navigation.md) — separate field-first plan/fact entry, unplanned work, per-field progress and automatic crop-level daily sowing reports.
 - [Partial index changes](partial-index-push.md) — Drizzle push may miss a changed WHERE predicate; verify the live index definition.
-- [Chemical warehouse](chemical-warehouse-rules.md) — заведующий током оформляет приход и выдачу; стоимость химии на гектар делится на фактический посев поля за сезон.
+- [Chemical warehouse](chemical-warehouse-rules.md) — выдача по заявке на баланс агронома; диспетчер списывает ежедневный расход на поле; цена/га по фактическому посеву.

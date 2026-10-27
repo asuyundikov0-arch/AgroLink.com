@@ -6,6 +6,7 @@ import { FactEntryChooser } from "./FactEntryChooser";
 import { type PlanFact, planFactBySeason, planFactSummary } from "./planFact";
 import { ActualForm, FieldForm, OperationForm, ProgressForm, SeasonForm, VoidDialog } from "./Forms";
 import { CropAreaChart } from "./Charts";
+import { ChemicalOperationRequests } from "../chemicals/Requests";
 import { ChemicalSeasonCost } from "../ChemicalWarehouse";
 import { Drawer, POLL_MS, Progress, StatusPill, UNITS, type Unit, canActual, canManage, cx, dateFmt, errorInfo, ha, haNum, isGD, pctFmt, sumHa } from "./shared";
 
@@ -491,6 +492,7 @@ function FactsView({ year, unitAll, scopeFields, yearSeasons, ops, pfBySeason, r
                   {o.progressReports.at(-1) && <p className="text-muted-foreground">Отчёт {dateFmt(o.progressReports.at(-1)!.reportDate)} · +{ha(o.progressReports.at(-1)!.dailyAreaHa)}</p>}</td>
                 <td>{o.isUnplanned ? <span className="font-mono text-[11px] font-bold">{ha(o.actualAreaHa)}</span> : <><Progress value={o.progressPercent} label={`Выполнено ${o.name}`} /><p className="font-mono text-[10px] text-muted-foreground">{ha(o.actualAreaHa)} из {ha(o.plannedAreaHa)}</p></>}</td>
                 <td className="px-4"><div className="flex flex-wrap justify-end gap-1.5">
+                  {canWrite && !o.actualEnd && o.requiresChemicals && !o.isUnplanned && <ChemToggle op={o} btn={btn} />}
                   {canWrite && !o.actualEnd && <><button type="button" className={btn} onClick={() => onProgress(o)} data-testid={`button-fact-progress-${o.id}`}><Activity size={12} />Отчёт за день</button><button type="button" className={btn} onClick={() => onActual(o)} data-testid={`button-fact-finish-${o.id}`}>Завершить</button></>}
                   {canWrite && !!o.actualEnd && <button type="button" className={btn} onClick={() => onActual(o)} data-testid={`button-fact-edit-${o.id}`}><Pencil size={12} />Изменить факт</button>}
                   {gd && <button type="button" className="button button-danger border !min-h-[28px] !px-2 text-[10px]" onClick={() => onVoid(o)} data-testid={`button-fact-void-${o.id}`}><Ban size={12} />Отменить</button>}
@@ -503,11 +505,22 @@ function FactsView({ year, unitAll, scopeFields, yearSeasons, ops, pfBySeason, r
           <ul className="divide-y divide-border/70 px-4 pb-3 sm:px-5">{notStarted.map((o) => (
             <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-xs" data-testid={`row-fact-planned-${o.id}`}>
               <div><p className="font-semibold">{o.name} <StatusPill op={o} /></p><p className="font-mono text-[10.5px] text-muted-foreground">план {dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)} · {ha(o.plannedAreaHa)}{o.responsible ? ` · ${o.responsible}` : ""}</p></div>
-              {canWrite && <button type="button" className={btn} onClick={() => onActual(o)} data-testid={`button-fact-start-${o.id}`}><Activity size={12} />Начать по плану</button>}
+              <div className="flex flex-wrap gap-1.5">{canWrite && o.requiresChemicals && <ChemToggle op={o} btn={btn} />}{canWrite && <button type="button" className={btn} onClick={() => onActual(o)} data-testid={`button-fact-start-${o.id}`}><Activity size={12} />Начать по плану</button>}</div>
             </li>
           ))}</ul>
         )}
       </>}
     </section>
   );
+}
+
+function ChemToggle({ op, btn }: { op: FieldOperation; btn: string }) {
+  const [open, setOpen] = useState(false);
+  return <>
+    <button type="button" className={btn} onClick={() => setOpen(true)} data-testid={`button-fact-chem-request-${op.id}`}>Заявка на химию</button>
+    {open && <Drawer title="Заявка на химию" eyebrow={`${op.name} · ${op.actualStart ? "довыдача" : "до начала работ"}`} onClose={() => setOpen(false)} testId={`drawer-chem-request-${op.id}`} footer={<div className="flex justify-end"><button type="button" className="button button-ghost" onClick={() => setOpen(false)}>Закрыть</button></div>}>
+      <p className="text-[11px] leading-5 text-muted-foreground">Можно подать несколько строк: каждая заявка на один препарат. Выданная химия числится на вас до подтверждения диспетчером дневного расхода.</p>
+      <ChemicalOperationRequests operationId={op.id} compact />
+    </Drawer>}
+  </>;
 }

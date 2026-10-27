@@ -13,11 +13,7 @@ export interface ChemicalIssueInput {
      */
   requestId: string;
   /** @minimum 1 */
-  batchId: number;
-  /** @minimum 1 */
-  seasonId: number;
-  /** @minimum 1 */
-  employeeId: number;
+  chemicalRequestId: number;
   /**
      * @maximum 1000000
      * @exclusiveMinimum 0

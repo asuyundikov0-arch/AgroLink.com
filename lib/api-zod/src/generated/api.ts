@@ -8,6 +8,112 @@
 import * as zod from 'zod';
 
 
+export const GetChemicalWorkflowResponse = zod.object({
+  "operations": zod.array(zod.object({
+  "id": zod.number(),
+  "seasonId": zod.number(),
+  "fieldNumber": zod.string(),
+  "farm": zod.string(),
+  "year": zod.number(),
+  "name": zod.string(),
+  "actualStart": zod.string().nullable(),
+  "actualEnd": zod.string().nullable(),
+  "days": zod.array(zod.object({
+  "date": zod.string(),
+  "dailyAreaHa": zod.number()
+}))
+})),
+  "requests": zod.array(zod.object({
+  "id": zod.number(),
+  "operationId": zod.number(),
+  "batchId": zod.number(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "quantity": zod.number(),
+  "issuedQuantity": zod.number(),
+  "requesterName": zod.string(),
+  "isMine": zod.boolean(),
+  "createdAt": zod.string(),
+  "notes": zod.string()
+})),
+  "custody": zod.array(zod.object({
+  "issueId": zod.number(),
+  "chemicalRequestId": zod.number(),
+  "operationId": zod.number(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "requesterName": zod.string(),
+  "isMine": zod.boolean(),
+  "quantity": zod.number(),
+  "remaining": zod.number(),
+  "remainingAmount": zod.number(),
+  "occurredOn": zod.string()
+})),
+  "consumptions": zod.array(zod.object({
+  "id": zod.number(),
+  "issueId": zod.number(),
+  "operationId": zod.number(),
+  "reportDate": zod.string(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "quantity": zod.number(),
+  "amount": zod.number(),
+  "dailyAreaHa": zod.number(),
+  "confirmedBy": zod.string(),
+  "notes": zod.string()
+}))
+})
+
+
+export const createChemicalRequestBodyRequestIdMin = 16;
+export const createChemicalRequestBodyRequestIdMax = 100;
+
+
+
+export const createChemicalRequestBodyQuantityMin = 0.001;
+export const createChemicalRequestBodyQuantityMax = 1000000;
+
+export const createChemicalRequestBodyNotesMax = 1000;
+
+
+
+export const CreateChemicalRequestBody = zod.object({
+  "requestId": zod.string().min(createChemicalRequestBodyRequestIdMin).max(createChemicalRequestBodyRequestIdMax),
+  "operationId": zod.number().min(1),
+  "batchId": zod.number().min(1),
+  "quantity": zod.number().min(createChemicalRequestBodyQuantityMin).max(createChemicalRequestBodyQuantityMax),
+  "notes": zod.string().max(createChemicalRequestBodyNotesMax)
+})
+
+export const CreateChemicalRequestResponse = zod.object({
+  "id": zod.number()
+})
+
+
+export const createChemicalConsumptionBodyRequestIdMin = 16;
+export const createChemicalConsumptionBodyRequestIdMax = 100;
+
+
+export const createChemicalConsumptionBodyQuantityMin = 0.001;
+export const createChemicalConsumptionBodyQuantityMax = 1000000;
+
+export const createChemicalConsumptionBodyNotesMax = 1000;
+
+
+
+export const CreateChemicalConsumptionBody = zod.object({
+  "requestId": zod.string().min(createChemicalConsumptionBodyRequestIdMin).max(createChemicalConsumptionBodyRequestIdMax),
+  "issueId": zod.number().min(1),
+  "reportDate": zod.string(),
+  "quantity": zod.number().min(createChemicalConsumptionBodyQuantityMin).max(createChemicalConsumptionBodyQuantityMax),
+  "notes": zod.string().max(createChemicalConsumptionBodyNotesMax)
+})
+
+export const CreateChemicalConsumptionResponse = zod.object({
+  "id": zod.number()
+})
+
+
 export const GetChemicalWarehouseResponse = zod.object({
   "batches": zod.array(zod.object({
   "id": zod.number(),
@@ -33,7 +139,8 @@ export const GetChemicalWarehouseResponse = zod.object({
   "seasonId": zod.number(),
   "fieldNumber": zod.string(),
   "year": zod.number(),
-  "employeeId": zod.number(),
+  "employeeId": zod.number().nullable(),
+  "chemicalRequestId": zod.number().nullish(),
   "employeeName": zod.string(),
   "quantity": zod.number(),
   "amount": zod.number(),
@@ -99,8 +206,6 @@ export const createChemicalIssueBodyRequestIdMin = 16;
 export const createChemicalIssueBodyRequestIdMax = 100;
 
 
-
-
 export const createChemicalIssueBodyQuantityExclusiveMin = 0;
 export const createChemicalIssueBodyQuantityMax = 1000000;
 
@@ -110,9 +215,7 @@ export const createChemicalIssueBodyNotesMax = 1000;
 
 export const CreateChemicalIssueBody = zod.object({
   "requestId": zod.string().min(createChemicalIssueBodyRequestIdMin).max(createChemicalIssueBodyRequestIdMax),
-  "batchId": zod.number().min(1),
-  "seasonId": zod.number().min(1),
-  "employeeId": zod.number().min(1),
+  "chemicalRequestId": zod.number().min(1),
   "quantity": zod.number().gt(createChemicalIssueBodyQuantityExclusiveMin).max(createChemicalIssueBodyQuantityMax),
   "occurredOn": zod.string(),
   "notes": zod.string().max(createChemicalIssueBodyNotesMax)
@@ -187,6 +290,7 @@ export const createUnplannedFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const CreateUnplannedFieldOperationResponse = zod.object({
+  "requiresChemicals": zod.boolean().optional(),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(createUnplannedFieldOperationResponseOneNameMax),
   "plannedStart": zod.string(),
@@ -353,6 +457,7 @@ export const GetFieldDashboardResponse = zod.object({
   "updatedAt": zod.string()
 }))),
   "operations": zod.array(zod.object({
+  "requiresChemicals": zod.boolean().optional(),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(getFieldDashboardResponseOperationsItemOneNameMax),
   "plannedStart": zod.string(),
@@ -650,7 +755,7 @@ export const UpdateFieldSeasonResponse = zod.object({
 }))
 
 
-
+export const createFieldOperationBodyRequiresChemicalsDefault = false;
 export const createFieldOperationBodyNameMax = 150;
 
 export const createFieldOperationBodyPlannedAreaHaMin = 0.01;
@@ -672,6 +777,7 @@ export const createFieldOperationBodyNotesMax = 3000;
 
 
 export const CreateFieldOperationBody = zod.object({
+  "requiresChemicals": zod.boolean().default(createFieldOperationBodyRequiresChemicalsDefault),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(createFieldOperationBodyNameMax),
   "plannedStart": zod.string(),
@@ -724,6 +830,7 @@ export const createFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const CreateFieldOperationResponse = zod.object({
+  "requiresChemicals": zod.boolean().optional(),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(createFieldOperationResponseOneNameMax),
   "plannedStart": zod.string(),
@@ -786,7 +893,7 @@ export const UpdateFieldOperationParams = zod.object({
   "id": zod.coerce.number()
 })
 
-
+export const updateFieldOperationBodyOneRequiresChemicalsDefault = false;
 export const updateFieldOperationBodyOneNameMax = 150;
 
 export const updateFieldOperationBodyOnePlannedAreaHaMin = 0.01;
@@ -809,6 +916,7 @@ export const updateFieldOperationBodyOneNotesMax = 3000;
 
 
 export const UpdateFieldOperationBody = zod.object({
+  "requiresChemicals": zod.boolean().default(updateFieldOperationBodyOneRequiresChemicalsDefault),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(updateFieldOperationBodyOneNameMax),
   "plannedStart": zod.string(),
@@ -863,6 +971,7 @@ export const updateFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const UpdateFieldOperationResponse = zod.object({
+  "requiresChemicals": zod.boolean().optional(),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(updateFieldOperationResponseOneNameMax),
   "plannedStart": zod.string(),
@@ -993,6 +1102,7 @@ export const updateFieldOperationActualResponseTwoActualNotesMax = 3000;
 
 
 export const UpdateFieldOperationActualResponse = zod.object({
+  "requiresChemicals": zod.boolean().optional(),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(updateFieldOperationActualResponseOneNameMax),
   "plannedStart": zod.string(),
@@ -1161,6 +1271,7 @@ export const createFieldOperationProgressResponseTwoActualNotesMax = 3000;
 
 
 export const CreateFieldOperationProgressResponse = zod.object({
+  "requiresChemicals": zod.boolean().optional(),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(createFieldOperationProgressResponseOneNameMax),
   "plannedStart": zod.string(),
@@ -1291,6 +1402,7 @@ export const updateFieldOperationProgressResponseTwoActualNotesMax = 3000;
 
 
 export const UpdateFieldOperationProgressResponse = zod.object({
+  "requiresChemicals": zod.boolean().optional(),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(updateFieldOperationProgressResponseOneNameMax),
   "plannedStart": zod.string(),
@@ -1402,6 +1514,7 @@ export const voidFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const VoidFieldOperationResponse = zod.object({
+  "requiresChemicals": zod.boolean().optional(),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(voidFieldOperationResponseOneNameMax),
   "plannedStart": zod.string(),

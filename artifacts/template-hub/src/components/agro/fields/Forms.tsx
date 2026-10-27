@@ -17,10 +17,12 @@ import {
   useVoidFieldOperation,
 } from "@workspace/api-client-react";
 import EmployeeSelect from "../../employees/EmployeeSelect";
+import { ChemicalOperationRequests, useHasOwnChemicalRequest } from "../chemicals/Requests";
 import { Drawer, Field, SaveError, UNITS, type Unit, dateFmt, errorInfo, ha, handleSaveError, haStr, isGD, parseHa, useInvalidateFields } from "./shared";
 
 type Done = (msg: string) => void;
 const MAX_AREA = 1_000_000;
+export const CHEM_NAME_RE = /хим|гербицид|СЗР|десикац|фунгицид|инсектицид|протрав|пестицид/i;
 const limitOf = (op: FieldOperation) => op.actualAreaLimitHa > 0 ? op.actualAreaLimitHa : op.plannedAreaHa;
 
 function Footer({ pending, conflict, onCancel, prefix, label = "Сохранить" }: { pending: boolean; conflict: boolean; onCancel: () => void; prefix: string; label?: string }) {
@@ -261,6 +263,7 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
        return m.length === 1 ? m[0].id : null;
      })() as number | null,
      plannedEquipment: op?.plannedEquipment ?? "", plannedImplement: op?.plannedImplement ?? "", notes: op?.notes ?? "",
+     requiresChemicals: op?.requiresChemicals ?? (op ? CHEM_NAME_RE.test(op.name) : false), chemTouched: !!op,
   });
   const [errs, setErrs] = useState<Record<string, string>>({});
   const pending = create.isPending || update.isPending;
@@ -298,7 +301,7 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
     if (f.plannedImplement.length > 200) er.plannedImplement = "Не более 200 символов";
     setErrs(er); e.clear();
     if (Object.keys(er).length) return;
-    const data = { seasonId: Number(f.seasonId), name, plannedStart: f.plannedStart, plannedEnd: f.plannedEnd, plannedAreaHa: area!, plannedRatePerHa: plannedRate!, responsible: f.responsible.trim(), plannedMechanicEmployeeId: f.responsibleId, plannedEquipmentId: f.plannedEquipmentId, plannedEquipment: f.plannedEquipment.trim(), plannedImplement: f.plannedImplement.trim(), notes: f.notes };
+    const data = { seasonId: Number(f.seasonId), name, plannedStart: f.plannedStart, plannedEnd: f.plannedEnd, plannedAreaHa: area!, plannedRatePerHa: plannedRate!, responsible: f.responsible.trim(), plannedMechanicEmployeeId: f.responsibleId, plannedEquipmentId: f.plannedEquipmentId, plannedEquipment: f.plannedEquipment.trim(), plannedImplement: f.plannedImplement.trim(), notes: f.notes, requiresChemicals: f.requiresChemicals || CHEM_NAME_RE.test(name) };
     try {
       if (op) await update.mutateAsync({ id: op.id, data: { ...data, version: op.version } });
       else await create.mutateAsync({ data });
@@ -321,11 +324,15 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
               </select>
             </Field>
             <Field label="Операция *" error={errs.name} htmlFor="op-name" wide>
-              <select id="op-name" className="text-input" value={f.name} onChange={(ev) => setF({ ...f, name: ev.target.value })} data-testid="input-operation-name">
+              <select id="op-name" className="text-input" value={f.name} onChange={(ev) => { const n = ev.target.value; setF({ ...f, name: n, requiresChemicals: CHEM_NAME_RE.test(n) || (f.chemTouched && f.requiresChemicals) }); }} data-testid="input-operation-name">
                 <option value="">Выберите операцию</option>
                 {nameOptions.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </Field>
+            <label className="flex items-start gap-2 text-xs font-semibold sm:col-span-2" htmlFor="op-chem">
+              <input id="op-chem" type="checkbox" className="mt-0.5" checked={f.requiresChemicals || CHEM_NAME_RE.test(f.name)} disabled={CHEM_NAME_RE.test(f.name)} onChange={(ev) => setF({ ...f, requiresChemicals: ev.target.checked, chemTouched: true })} data-testid="checkbox-operation-requires-chemicals" />
+              <span>Требуется химия со склада<span className="block text-[10.5px] font-normal text-muted-foreground">{CHEM_NAME_RE.test(f.name) ? "Химобработка определена по названию операции." : "Отметьте, например, для внесения удобрений. Начать работу можно только после заявки агронома."}</span></span>
+            </label>
             <Field label="Плановое начало *" error={errs.plannedStart} htmlFor="op-ps"><input id="op-ps" type="date" className="text-input" value={f.plannedStart} onChange={(ev) => setF({ ...f, plannedStart: ev.target.value })} data-testid="input-operation-planned-start" /></Field>
             <Field label="Плановое окончание *" error={errs.plannedEnd} htmlFor="op-pe"><input id="op-pe" type="date" className="text-input" value={f.plannedEnd} onChange={(ev) => setF({ ...f, plannedEnd: ev.target.value })} data-testid="input-operation-planned-end" /></Field>
             <Field label="Плановая площадь, га *" error={errs.area} hint={season ? `Площадь сезона ${ha(season.areaHa)}` : undefined} htmlFor="op-area"><input id="op-area" className="text-input font-mono" inputMode="decimal" value={f.area} onChange={(ev) => setF({ ...f, area: ev.target.value })} data-testid="input-operation-area" /></Field>
@@ -411,6 +418,7 @@ export function ActualForm({ op, title, today, fleet, fleetLoading, fleetError, 
       <Drawer title={starting ? "Начать операцию" : op.actualEnd ? "Изменить факт завершения" : "Завершить операцию"} eyebrow={`${title} · версия ${op.version}`} onClose={close} testId="form-actual"
         footer={<Footer pending={pending} conflict={e.conflict} onCancel={close} prefix="actual" label={starting ? "Зафиксировать начало" : "Завершить операцию"} />}>
         <SaveError message={e.saveError} conflict={e.conflict} testId="text-actual-error" />
+        {op.requiresChemicals && !op.isUnplanned && <ActualChemGate op={op} starting={starting} />}
         <div className="rounded-lg border border-border bg-muted/40 p-3 font-mono text-[11px] leading-5" data-testid="text-actual-plan">
           {op.isUnplanned ? <>Вне плана · допустимо до {ha(limitOf(op))}</> : <>План: {dateFmt(op.plannedStart)} – {dateFmt(op.plannedEnd)} · {ha(op.plannedAreaHa)}{op.responsible ? ` · ${op.responsible}` : ""}</>}
           {op.plannedEquipment && <><br />Техника: {op.plannedEquipment}</>}{op.plannedImplement && <> · агрегат: {op.plannedImplement}</>}
@@ -434,6 +442,15 @@ export function ActualForm({ op, title, today, fleet, fleetLoading, fleetError, 
       </Drawer>
     </form>
   );
+}
+
+function ActualChemGate({ op, starting }: { op: FieldOperation; starting: boolean }) {
+  const own = useHasOwnChemicalRequest(op.id);
+  return <div className="space-y-2" data-testid="actual-chem-gate">
+    {starting && !own.loading && !own.has && <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-[11px] leading-5 text-amber-900" data-testid="text-actual-chem-required">Химобработка: начать нельзя без вашей заявки на химию со склада. Создайте заявку ниже, затем зафиксируйте начало.</p>}
+    {starting && own.has && <p className="rounded-lg border border-border bg-muted/40 p-2.5 text-[11px] text-muted-foreground" data-testid="text-actual-chem-ok">Заявка на химию создана. Можно фиксировать начало.</p>}
+    <ChemicalOperationRequests operationId={op.id} embedded />
+  </div>;
 }
 
 /* ---------------- Daily cumulative progress ---------------- */

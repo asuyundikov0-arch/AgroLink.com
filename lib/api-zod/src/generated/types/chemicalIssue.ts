@@ -16,7 +16,10 @@ export interface ChemicalIssue {
   seasonId: number;
   fieldNumber: string;
   year: number;
-  employeeId: number;
+  /** @nullable */
+  employeeId: number | null;
+  /** @nullable */
+  chemicalRequestId?: number | null;
   employeeName: string;
   quantity: number;
   amount: number;

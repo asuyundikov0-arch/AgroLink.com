@@ -15,9 +15,10 @@ import {
 } from "@workspace/api-client-react";
 import { dateFmt, errorInfo, POLL_MS } from "./grain/shared";
 import { money } from "../engineering/repairs/shared";
+import ChemicalConsumptionSection from "./chemicals/Consumption";
 import PayrollRegisterWorkspace from "../economic/PayrollRegisterWorkspace";
 
-type View = "grain" | "fields" | "payroll";
+type View = "grain" | "fields" | "chemicals" | "payroll";
 const operationLabel: Record<GrainTransportTrip["operation"], string> = {
   receipt: "Приход с поля",
   transfer: "Перемещение",
@@ -67,10 +68,11 @@ export default function DispatcherWorkspace() {
       <div className="inline-flex flex-wrap rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Работа диспетчера">
         <button type="button" role="tab" aria-selected={view === "grain"} onClick={() => setView("grain")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "grain" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-grain">Перевозка зерна ({grainTrips.length})</button>
         <button type="button" role="tab" aria-selected={view === "fields"} onClick={() => setView("fields")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "fields" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-fields">Полевые расценки ({fieldOperations.length})</button>
+        <button type="button" role="tab" aria-selected={view === "chemicals"} onClick={() => setView("chemicals")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "chemicals" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-chemicals">Химия по дням</button>
         <button type="button" role="tab" aria-selected={view === "payroll"} onClick={() => setView("payroll")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "payroll" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-payroll"><Wallet size={13} /> Ежедневные наряды</button>
       </div>
 
-      {view === "payroll" ? <PayrollRegisterWorkspace canManage /> : view === "grain" ? (
+      {view === "payroll" ? <PayrollRegisterWorkspace canManage /> : view === "chemicals" ? <ChemicalConsumptionSection onSaved={setNotice} /> : view === "grain" ? (
         <section className="surface-card p-4 sm:p-5" data-testid="section-dispatch-grain">
           <header className="flex flex-wrap items-end justify-between gap-3">
             <div><p className="eyebrow">Транспортные рейсы</p><h2 className="mt-1 text-lg font-bold">Оплата за каждый рейс</h2></div>

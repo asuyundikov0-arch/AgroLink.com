@@ -2,13 +2,15 @@ import { Router, type IRouter, type RequestHandler } from "express";
 import { and, eq, sql } from "drizzle-orm";
 import {
   db, chemicalInvoicesTable as invoices, chemicalBatchesTable as batches, chemicalIssuesTable as issues,
-  agroFieldsTable, fieldSeasonsTable, fieldOperationsTable, employeesTable, activityTable,
+  agroFieldsTable, fieldSeasonsTable, fieldOperationsTable, activityTable, chemicalConsumptionsTable,
 } from "@workspace/db";
-import { CreateChemicalInvoiceBody, CreateChemicalIssueBody, GetChemicalWarehouseResponse } from "@workspace/api-zod";
+import { CreateChemicalInvoiceBody, CreateChemicalIssueBody, GetChemicalWarehouseResponse,
+  CreateChemicalRequestBody, CreateChemicalConsumptionBody } from "@workspace/api-zod";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { grainBusinessDate, validGrainDate } from "../lib/grain-ledger";
 import { isSeedingOperation } from "../lib/daily-seeding";
-import { ChemicalError, chemicalCheck as check, scaledChemical, chemicalIssueValue, chemicalReceiptValue, chemicalCostPerHa } from "../lib/chemical-stock";
+import { ChemicalError, chemicalCheck as check, scaledChemical, chemicalReceiptValue, chemicalCostPerHa, chemicalFieldCosts } from "../lib/chemical-stock";
+import { chemicalWorkflow, requestChemical, issueRequestedChemical, consumeChemical } from "../lib/chemical-workflow";
 
 const router: IRouter = Router();
 const readers = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "general_director"];
@@ -25,15 +27,14 @@ const safe = (fn: RequestHandler): RequestHandler => async (req, res, next) => {
     next(e);
   }
 };
-router.use("/agro/chemicals", requireApprovedRole, guard(readers));
+router.use("/agro/chemicals", requireApprovedRole, guard([...readers, "dispatcher"]));
 const by = (access: RoleAccess) => `${access.displayName} · ${access.role}`;
 function day(value: string) {
   check(validGrainDate(value) && value <= grainBusinessDate(), "Укажите корректную дату не позднее сегодняшней.");
 }
-function id(value: number) { check(Number.isSafeInteger(value) && value > 0, "Некорректный идентификатор."); }
 const farms = ["АПК Арыстан Grain", "АФ Веденовка"];
 
-router.get("/agro/chemicals", safe(async (_req, res): Promise<void> => {
+router.get("/agro/chemicals", guard(readers), safe(async (_req, res): Promise<void> => {
   const result = await db.transaction(async (tx) => {
     await tx.execute(sql`set transaction isolation level repeatable read`);
     const batchRows = await tx.select({ batch: batches, invoice: invoices }).from(batches)
@@ -42,11 +43,12 @@ router.get("/agro/chemicals", safe(async (_req, res): Promise<void> => {
       .innerJoin(agroFieldsTable, eq(fieldSeasonsTable.fieldId, agroFieldsTable.id));
     const operationRows = await tx.select().from(fieldOperationsTable);
     const issueRows = await tx.select().from(issues);
+    const consumedRows = await tx.select({ consumption: chemicalConsumptionsTable, issue: issues })
+      .from(chemicalConsumptionsTable).innerJoin(issues, eq(chemicalConsumptionsTable.issueId, issues.id));
     const seasonMap = new Map(seasonRows.map(row => [row.season.id, row]));
     const batchMap = new Map(batchRows.map(row => [row.batch.id, row]));
-    const costs = new Map<number, number>();
+    const costs = chemicalFieldCosts(issueRows, consumedRows.map(row => row.consumption));
     const sowing = new Map<number, number>();
-    for (const row of issueRows) costs.set(row.seasonId, (costs.get(row.seasonId) ?? 0) + Number(row.amountCents));
     for (const row of operationRows) {
       if (row.voidedAt || !row.actualStart || row.actualStart > grainBusinessDate()
         || !isSeedingOperation(row.actualOperationName || row.name)) continue;
@@ -73,7 +75,7 @@ router.get("/agro/chemicals", safe(async (_req, res): Promise<void> => {
         return { id: row.id, batchId: row.batchId, name: source.batch.name, unit: source.batch.unit,
           farm: source.invoice.farm, invoiceNumber: source.invoice.number, seasonId: row.seasonId,
           fieldNumber: target.field.number, year: target.season.year, employeeId: row.employeeId,
-          employeeName: row.employeeName, quantity: row.quantityMillis / 1000,
+          employeeName: row.employeeName, chemicalRequestId: row.chemicalRequestId, quantity: row.quantityMillis / 1000,
           amount: Number(row.amountCents) / 100, occurredOn: row.occurredOn, notes: row.notes, createdBy: row.createdBy };
       }).sort((a, b) => b.occurredOn.localeCompare(a.occurredOn) || b.id - a.id),
     });
@@ -121,44 +123,28 @@ router.post("/agro/chemicals/invoices", guard(chemicalWriters), safe(async (req,
 
 router.post("/agro/chemicals/issues", guard(chemicalWriters), safe(async (req, res): Promise<void> => {
   const parsed = CreateChemicalIssueBody.safeParse(req.body);
-  check(parsed.success, "Проверьте поле, сотрудника и количество.");
-  const input = parsed.data;
-  day(input.occurredOn);
-  id(input.batchId); id(input.seasonId); id(input.employeeId);
-  const quantity = scaledChemical(input.quantity, 1000, "количество — до 3 знаков");
-  check(quantity > 0 && quantity <= 1_000_000_000, "Количество должно быть больше нуля.");
-  const actor = by(res.locals.access);
-  const result = await db.transaction(async tx => {
-    await tx.execute(sql`select pg_advisory_xact_lock(718392009)`);
-    const [existing] = await tx.select().from(issues).where(eq(issues.requestId, input.requestId));
-    if (existing) return { id: existing.id };
-    const [source] = await tx.select({ batch: batches, invoice: invoices }).from(batches)
-      .innerJoin(invoices, eq(batches.invoiceId, invoices.id)).where(eq(batches.id, input.batchId)).for("update");
-    check(source, "Партия химии не найдена.", 404);
-    const [target] = await tx.select({ season: fieldSeasonsTable, field: agroFieldsTable }).from(fieldSeasonsTable)
-      .innerJoin(agroFieldsTable, eq(fieldSeasonsTable.fieldId, agroFieldsTable.id))
-      .where(eq(fieldSeasonsTable.id, input.seasonId)).for("share");
-    check(target && target.field.isActive, "Выберите действующее поле и его сезон.");
-    check(target.field.unit === source.invoice.farm, "Партия и поле должны относиться к одному хозяйству.");
-    check(input.occurredOn >= source.invoice.occurredOn, "Дата выдачи не может предшествовать накладной.");
-    check(Number(input.occurredOn.slice(0, 4)) === target.season.year, "Дата выдачи должна относиться к выбранному сезону поля.");
-    const [employee] = await tx.select().from(employeesTable).where(eq(employeesTable.id, input.employeeId)).for("share");
-    check(employee?.isActive, "Выберите действующего сотрудника из справочника.");
-    const amount = chemicalIssueValue(quantity, source.batch.remainingMillis, Number(source.batch.remainingCents));
-    const [created] = await tx.insert(issues).values({
-      requestId: input.requestId, batchId: input.batchId, seasonId: input.seasonId, employeeId: input.employeeId,
-      employeeName: employee.fullName, quantityMillis: quantity, amountCents: String(amount),
-      occurredOn: input.occurredOn, notes: input.notes.trim(), createdBy: actor,
-    }).returning();
-    await tx.update(batches).set({
-      remainingMillis: source.batch.remainingMillis - quantity,
-      remainingCents: String(Number(source.batch.remainingCents) - amount),
-    }).where(eq(batches.id, source.batch.id));
-    await tx.insert(activityTable).values({ action: "Химия списана на поле",
-      templateName: `${source.batch.name} · поле ${target.field.number} · ${employee.fullName}`, userName: actor });
-    return { id: created.id };
-  });
+  check(parsed.success, "Выдача возможна только по заявке агронома. Выберите заявку и количество.");
+  const result = await db.transaction(tx => issueRequestedChemical(tx, parsed.data, res.locals.access));
   res.status(201).json(result);
+}));
+
+router.get("/agro/chemicals/workflow", safe(async (_req, res): Promise<void> => {
+  const result = await db.transaction(async tx => {
+    await tx.execute(sql`set transaction isolation level repeatable read`);
+    return chemicalWorkflow(tx, res.locals.access);
+  });
+  res.setHeader("Cache-Control", "no-store");
+  res.json(result);
+}));
+router.post("/agro/chemicals/requests", guard(["agronomist", "general_director"]), safe(async (req, res): Promise<void> => {
+  const parsed = CreateChemicalRequestBody.safeParse(req.body);
+  check(parsed.success, "Выберите плановую операцию, химию и количество.");
+  res.status(201).json(await db.transaction(tx => requestChemical(tx, parsed.data, res.locals.access)));
+}));
+router.post("/agro/chemicals/consumptions", guard(["dispatcher", "general_director"]), safe(async (req, res): Promise<void> => {
+  const parsed = CreateChemicalConsumptionBody.safeParse(req.body);
+  check(parsed.success, "Выберите выдачу, дату факта и расход химии.");
+  res.status(201).json(await db.transaction(tx => consumeChemical(tx, parsed.data, res.locals.access)));
 }));
 
 export default router;

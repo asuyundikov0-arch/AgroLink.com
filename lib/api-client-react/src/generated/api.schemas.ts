@@ -73,11 +73,7 @@ export interface ChemicalIssueInput {
      */
   requestId: string;
   /** @minimum 1 */
-  batchId: number;
-  /** @minimum 1 */
-  seasonId: number;
-  /** @minimum 1 */
-  employeeId: number;
+  chemicalRequestId: number;
   /**
      * @maximum 1000000
      * @exclusiveMinimum 0
@@ -126,7 +122,10 @@ export interface ChemicalIssue {
   seasonId: number;
   fieldNumber: string;
   year: number;
-  employeeId: number;
+  /** @nullable */
+  employeeId: number | null;
+  /** @nullable */
+  chemicalRequestId?: number | null;
   employeeName: string;
   quantity: number;
   amount: number;
@@ -139,6 +138,111 @@ export interface ChemicalWarehouse {
   batches: ChemicalBatch[];
   issues: ChemicalIssue[];
   fields: ChemicalFieldCost[];
+}
+
+export interface ChemicalRequestInput {
+  /**
+     * @minLength 16
+     * @maxLength 100
+     */
+  requestId: string;
+  /** @minimum 1 */
+  operationId: number;
+  /** @minimum 1 */
+  batchId: number;
+  /**
+     * @minimum 0.001
+     * @maximum 1000000
+     */
+  quantity: number;
+  /** @maxLength 1000 */
+  notes: string;
+}
+
+export interface ChemicalConsumptionInput {
+  /**
+     * @minLength 16
+     * @maxLength 100
+     */
+  requestId: string;
+  /** @minimum 1 */
+  issueId: number;
+  reportDate: string;
+  /**
+     * @minimum 0.001
+     * @maximum 1000000
+     */
+  quantity: number;
+  /** @maxLength 1000 */
+  notes: string;
+}
+
+export interface ChemicalWorkDay {
+  date: string;
+  dailyAreaHa: number;
+}
+
+export interface ChemicalWork {
+  id: number;
+  seasonId: number;
+  fieldNumber: string;
+  farm: string;
+  year: number;
+  name: string;
+  /** @nullable */
+  actualStart: string | null;
+  /** @nullable */
+  actualEnd: string | null;
+  days: ChemicalWorkDay[];
+}
+
+export interface ChemicalRequest {
+  id: number;
+  operationId: number;
+  batchId: number;
+  name: string;
+  unit: string;
+  quantity: number;
+  issuedQuantity: number;
+  requesterName: string;
+  isMine: boolean;
+  createdAt: string;
+  notes: string;
+}
+
+export interface ChemicalCustody {
+  issueId: number;
+  chemicalRequestId: number;
+  operationId: number;
+  name: string;
+  unit: string;
+  requesterName: string;
+  isMine: boolean;
+  quantity: number;
+  remaining: number;
+  remainingAmount: number;
+  occurredOn: string;
+}
+
+export interface ChemicalConsumption {
+  id: number;
+  issueId: number;
+  operationId: number;
+  reportDate: string;
+  name: string;
+  unit: string;
+  quantity: number;
+  amount: number;
+  dailyAreaHa: number;
+  confirmedBy: string;
+  notes: string;
+}
+
+export interface ChemicalWorkflow {
+  operations: ChemicalWork[];
+  requests: ChemicalRequest[];
+  custody: ChemicalCustody[];
+  consumptions: ChemicalConsumption[];
 }
 
 export type AgroFieldInputUnit = typeof AgroFieldInputUnit[keyof typeof AgroFieldInputUnit];
@@ -213,6 +317,7 @@ export type FieldSeason = FieldSeasonUpdate & {
 };
 
 export interface FieldOperationInput {
+  requiresChemicals?: boolean;
   /** @minimum 1 */
   seasonId: number;
   /**
@@ -386,6 +491,7 @@ export interface DailySeedingReport {
  * Stored plan metadata; unplanned actual work has zero planned hectares.
  */
 export interface FieldOperationRecordPlan {
+  requiresChemicals?: boolean;
   /** @minimum 1 */
   seasonId: number;
   /**

@@ -25,10 +25,13 @@ import type {
   AgroFieldInput,
   AgroFieldUpdate,
   ArchiveCell,
+  ChemicalConsumptionInput,
   ChemicalInvoiceInput,
   ChemicalIssueInput,
   ChemicalMutationResult,
+  ChemicalRequestInput,
   ChemicalWarehouse,
+  ChemicalWorkflow,
   DailySeedingReport,
   DashboardSummary,
   DocumentUploadInput,
@@ -131,6 +134,207 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetChemicalWorkflowUrl = () => {
+
+
+
+
+  return `/api/agro/chemicals/workflow`
+}
+
+export const getChemicalWorkflow = async ( options?: Parameters<typeof customFetch>[1]): Promise<ChemicalWorkflow> => {
+
+  return customFetch<ChemicalWorkflow>(getGetChemicalWorkflowUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChemicalWorkflowQueryKey = () => {
+    return [
+    `/api/agro/chemicals/workflow`
+    ] as const;
+    }
+
+
+export const getGetChemicalWorkflowQueryOptions = <TData = Awaited<ReturnType<typeof getChemicalWorkflow>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChemicalWorkflow>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChemicalWorkflowQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChemicalWorkflow>>> = ({ signal }) => getChemicalWorkflow({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChemicalWorkflow>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChemicalWorkflowQueryResult = NonNullable<Awaited<ReturnType<typeof getChemicalWorkflow>>>
+export type GetChemicalWorkflowQueryError = ErrorType<unknown>
+
+
+
+export function useGetChemicalWorkflow<TData = Awaited<ReturnType<typeof getChemicalWorkflow>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChemicalWorkflow>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChemicalWorkflowQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateChemicalRequestUrl = () => {
+
+
+
+
+  return `/api/agro/chemicals/requests`
+}
+
+export const createChemicalRequest = async (chemicalRequestInput: ChemicalRequestInput, options?: Parameters<typeof customFetch>[1]): Promise<ChemicalMutationResult> => {
+
+  return customFetch<ChemicalMutationResult>(getCreateChemicalRequestUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(chemicalRequestInput)
+  }
+);}
+
+
+
+
+
+export const getCreateChemicalRequestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChemicalRequest>>, TError,{data: BodyType<ChemicalRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createChemicalRequest>>, TError,{data: BodyType<ChemicalRequestInput>}, TContext> => {
+
+const mutationKey = ['createChemicalRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createChemicalRequest>>, {data: BodyType<ChemicalRequestInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createChemicalRequest(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateChemicalRequestMutationResult = NonNullable<Awaited<ReturnType<typeof createChemicalRequest>>>
+    export type CreateChemicalRequestMutationBody = BodyType<ChemicalRequestInput>
+    export type CreateChemicalRequestMutationError = ErrorType<unknown>
+
+    export const useCreateChemicalRequest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChemicalRequest>>, TError,{data: BodyType<ChemicalRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createChemicalRequest>>,
+        TError,
+        {data: BodyType<ChemicalRequestInput>},
+        TContext
+      > => {
+      return useMutation(getCreateChemicalRequestMutationOptions(options));
+    }
+
+export const getCreateChemicalConsumptionUrl = () => {
+
+
+
+
+  return `/api/agro/chemicals/consumptions`
+}
+
+export const createChemicalConsumption = async (chemicalConsumptionInput: ChemicalConsumptionInput, options?: Parameters<typeof customFetch>[1]): Promise<ChemicalMutationResult> => {
+
+  return customFetch<ChemicalMutationResult>(getCreateChemicalConsumptionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(chemicalConsumptionInput)
+  }
+);}
+
+
+
+
+
+export const getCreateChemicalConsumptionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChemicalConsumption>>, TError,{data: BodyType<ChemicalConsumptionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createChemicalConsumption>>, TError,{data: BodyType<ChemicalConsumptionInput>}, TContext> => {
+
+const mutationKey = ['createChemicalConsumption'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createChemicalConsumption>>, {data: BodyType<ChemicalConsumptionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createChemicalConsumption(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateChemicalConsumptionMutationResult = NonNullable<Awaited<ReturnType<typeof createChemicalConsumption>>>
+    export type CreateChemicalConsumptionMutationBody = BodyType<ChemicalConsumptionInput>
+    export type CreateChemicalConsumptionMutationError = ErrorType<unknown>
+
+    export const useCreateChemicalConsumption = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChemicalConsumption>>, TError,{data: BodyType<ChemicalConsumptionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createChemicalConsumption>>,
+        TError,
+        {data: BodyType<ChemicalConsumptionInput>},
+        TContext
+      > => {
+      return useMutation(getCreateChemicalConsumptionMutationOptions(options));
+    }
 
 export const getGetChemicalWarehouseUrl = () => {
 

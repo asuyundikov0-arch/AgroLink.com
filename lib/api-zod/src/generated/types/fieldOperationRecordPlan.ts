@@ -10,6 +10,7 @@
  * Stored plan metadata; unplanned actual work has zero planned hectares.
  */
 export interface FieldOperationRecordPlan {
+  requiresChemicals?: boolean;
   /** @minimum 1 */
   seasonId: number;
   /**

@@ -10,6 +10,7 @@ export const fieldOperationsTable = pgTable("field_operations", {
   name: text("name").notNull(),
   nameKey: text("name_key").notNull(),
   isUnplanned: boolean("is_unplanned").notNull().default(false),
+  requiresChemicals: boolean("requires_chemicals").notNull().default(false),
   actualAreaLimitAres: integer("actual_area_limit_ares"),
   plannedStart: date("planned_start", { mode: "string" }).notNull(),
   plannedEnd: date("planned_end", { mode: "string" }).notNull(),
