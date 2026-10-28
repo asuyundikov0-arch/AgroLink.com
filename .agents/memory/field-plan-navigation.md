@@ -9,6 +9,18 @@ The seasonal agronomy plan must begin with field numbers. Opening a field shows 
 
 **How to apply:** Preserve field history and actual-work flows separately. Keep the selected season and farm in scope, and continue to reserve plan editing for the chief agronomist and general director.
 
+Справочник полей должен быть единым источником для планов, фактических работ и истории: одна карточка поля в рамках хозяйства, без повторного создания карточек по сезонам. Существующие планы и факты сохраняют связи с исходным полем.
+
+**Why:** Пользователь попросил объединить ранее введённые поля и работы в общий справочник, а не завести второй, независимый список.
+
+**How to apply:** При изменении навигации или справочника не копировать поля и не перепривязывать связанные работы без проверки исходных идентичностей. Показывать историю всех сезонов выбранного поля; отсутствие факта не заменять примером или вымышленной записью.
+
+Для хозяйства «АПК Арыстан Grain» пользователь указал площадь поля №4 — 500 га, поля №5 — 600 га.
+
+**Why:** Это заданные пользователем характеристики полей, а не предположение по соседним полям.
+
+**How to apply:** При восстановлении или сверке справочника опираться на эти значения до нового указания пользователя; не выводить площадь полей из площади сезонных операций.
+
 The selected field is fixed when entering either a plan or actual work; users must not move the operation to another field from its form. Plan and actual forms should use the same order of business fields, with planned fuel budget separate from actual depot expense.
 
 **Why:** The user explicitly requested a fixed default field, editable area, and matching plan/fact forms. This is a form simplification, not a request to remove the established agronomist/dispatcher division of responsibilities.

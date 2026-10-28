@@ -6,11 +6,12 @@ import { FieldWorkBoard } from "./FieldWorkBoard";
 import { LifecycleDialog, WorkResourcesForm, isPendingCompletion, isPendingUnplanned } from "./WorkForms";
 import { type PlanFact, planFactBySeason, planFactSummary } from "./planFact";
 import { FieldForm, OperationForm, SeasonForm, VoidDialog } from "./Forms";
+import { FieldDirectory } from "./FieldDirectory";
 import { CropAreaChart } from "./Charts";
 import { ChemicalSeasonCost } from "../ChemicalWarehouse";
 import { Drawer, POLL_MS, Progress, StatusPill, UNITS, type Unit, canActual, canManage, cx, dateFmt, errorInfo, ha, haNum, isGD, pctFmt, sumHa } from "./shared";
 
-type View = "history" | "plan" | "facts" | "inProgress" | "completed";
+type View = "directory" | "history" | "plan" | "facts" | "inProgress" | "completed";
 type Modal =
   | { k: "field"; field: AgroField | null }
   | { k: "season"; season: FieldSeason | null; fieldId?: number }
@@ -36,7 +37,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
   const [yearSel, setYearSel] = useState<number | null>(null);
   const year = yearSel ?? baseYear;
   const [unit, setUnit] = useState<Unit | "all">("all");
-  const [view, setView] = useState<View>("history");
+  const [view, setView] = useState<View>("directory");
   const [modal, setModal] = useState<Modal | null>(null);
   const [planFieldId, setPlanFieldId] = useState<number | null>(null);
   const [factFieldId, setFactFieldId] = useState<number | null>(null);
@@ -144,11 +145,16 @@ export default function FieldsWorkspace({ role }: { role: string }) {
           {notice && <div className="notice-banner" role="status" data-testid="text-fields-notice">{notice}<button type="button" aria-label="Скрыть" onClick={() => setNotice("")} data-testid="button-dismiss-fields-notice">×</button></div>}
 
           <div className="inline-flex max-w-full flex-wrap rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Раздел">
-            {([["history", "История полей"], ["plan", "План агроопераций на сезон"], ["facts", "Фактические работы"], ["inProgress", "Операции в процессе"], ["completed", "Завершённые операции"]] as const).map(([k, l]) => (
+            {([["directory", "Справочник полей"], ["history", "История полей"], ["plan", "План агроопераций на сезон"], ["facts", "Фактические работы"], ["inProgress", "Операции в процессе"], ["completed", "Завершённые операции"]] as const).map(([k, l]) => (
               <button key={k} type="button" role="tab" aria-selected={view === k} onClick={() => setView(k)} data-testid={`tab-fields-${k}`}
                 className={cx("rounded-md px-3 py-1.5 text-[11px] font-bold", view === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>{l}{k === "facts" && factsBadge > 0 && <span className="ml-1.5 rounded-full bg-[hsl(30_80%_40%)] px-1.5 font-mono text-[10px] text-white" data-testid="badge-tab-facts">{factsBadge}</span>}</button>
             ))}
           </div>
+
+          {view === "directory" && <FieldDirectory fields={scopeFields} seasons={seasons} operations={ops} canManage={manage} generalDirector={gd}
+            onAdd={() => setModal({ k: "field", field: null })}
+            onEdit={(field) => setModal({ k: "field", field })}
+            onHistory={(field) => setModal({ k: "history", fieldId: field.id })} />}
 
           {view === "history" && (
             <section className="surface-card overflow-hidden" data-testid="section-rotation">
