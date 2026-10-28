@@ -175,6 +175,8 @@ function IssueForm({ data, onClose }: { data: FuelWarehouse; onClose: () => void
   const [fleetId, setFleetId] = useState<number | "">("");
   const [liters, setLiters] = useState("");
   const [opChoice, setOpChoice] = useState<number | "">("");
+  const [forFieldWork, setForFieldWork] = useState(false);
+  const [fieldChoice, setFieldChoice] = useState<number | "">("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
   const fleet = data.equipment.filter((f) => f.unit === b.farm);
@@ -191,7 +193,12 @@ function IssueForm({ data, onClose }: { data: FuelWarehouse; onClose: () => void
         ((daily.length === 0 || (day === today() && w.endDate === null)) && w.equipment === label);
     });
   }, [vehicle, b.occurredOn, b.farm, data.workAssignments]);
-  const operationId = matches.length === 1 ? matches[0].operationId : matches.some((w) => w.operationId === opChoice) ? (opChoice as number) : null;
+  const fields = [...new Map(matches.map((work) => [work.fieldId, { id: work.fieldId, number: work.fieldNumber }])).values()]
+    .sort((a, b) => a.number.localeCompare(b.number, "ru", { numeric: true }));
+  const selectedField = fields.some((field) => field.id === fieldChoice) ? fieldChoice : "";
+  const fieldWorks = matches.filter((work) => work.fieldId === selectedField);
+  const operationId = !forFieldWork ? null : fieldWorks.length === 1 ? fieldWorks[0].operationId :
+    fieldWorks.some((work) => work.operationId === opChoice) ? (opChoice as number) : null;
   const l = num(liters);
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setError("");
@@ -200,21 +207,31 @@ function IssueForm({ data, onClose }: { data: FuelWarehouse; onClose: () => void
     if (!(l > 0 && l <= 1_000_000)) return setError("Литры: больше 0 и не более 1 000 000.");
     if (b.stock && l > b.stock.liters) return setError(`На остатке только ${lit(b.stock.liters)}.`);
     if (!b.stock) return setError("Этого топлива нет на остатке выбранного хозяйства.");
-    if (matches.length > 0 && operationId === null) return setError("Выберите полевую операцию, на которую выдаётся топливо.");
+    if (forFieldWork && selectedField === "") return setError("Выберите поле, для работы на котором заправляется техника.");
+    if (forFieldWork && operationId === null) return setError("Выберите полевую операцию, на которую выдаётся топливо.");
     if (b.occurredOn > today()) return setError("Дата не может быть в будущем.");
-    m.mutate({ data: { requestId: b.requestId, farm: b.farm, fuelType: b.fuelType.trim(), occurredOn: b.occurredOn, liters: Math.round(l * 1000) / 1000, fleetId: vehicle.id, operationId, notes: notes.trim() } }, {
+    m.mutate({ data: { requestId: b.requestId, farm: b.farm, fuelType: b.fuelType.trim(), occurredOn: b.occurredOn, liters: Math.round(l * 1000) / 1000, fleetId: vehicle.id, forFieldWork, operationId, notes: notes.trim() } }, {
       onSuccess: () => { void invalidate(); onClose(); },
       onError: (err) => setError(errText(err)),
     });
   };
   return <Sheet title="Выдача топлива" onClose={onClose} onSubmit={submit} pending={m.isPending} error={error} submitLabel="Выдать" testId="form-fuel-issue">
     <Common b={b} testPrefix="fuel-issue" />
-    <label className="form-label">Техника<select className="text-input mt-2" value={fleetId} onChange={(e) => { setFleetId(e.target.value ? Number(e.target.value) : ""); setOpChoice(""); }} data-testid="select-fuel-issue-fleet"><option value="">{fleet.length ? "Выберите технику" : "Нет техники в хозяйстве"}</option>{fleet.map((f) => <option key={f.id} value={f.id}>{fleetLabel(f)}</option>)}</select></label>
-    {vehicle && (matches.length === 0
-      ? <p className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground" data-testid="text-fuel-issue-no-field"><Link2Off size={12} />На эту дату техника не назначена на полевые работы — выдача без привязки к полю.</p>
-      : matches.length === 1
-        ? <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-[11px]" data-testid="text-fuel-issue-operation">Операция: <strong>Поле № {matches[0].fieldNumber} · {matches[0].operationName}</strong></p>
-        : <label className="form-label">Полевая операция<select className="text-input mt-2" value={opChoice} onChange={(e) => setOpChoice(e.target.value ? Number(e.target.value) : "")} data-testid="select-fuel-issue-operation"><option value="">Выберите операцию</option>{matches.map((w) => <option key={w.operationId} value={w.operationId}>Поле № {w.fieldNumber} · {w.operationName}</option>)}</select></label>)}
+    <label className="form-label">Техника<select className="text-input mt-2" value={fleetId} onChange={(e) => { setFleetId(e.target.value ? Number(e.target.value) : ""); setFieldChoice(""); setOpChoice(""); }} data-testid="select-fuel-issue-fleet"><option value="">{fleet.length ? "Выберите технику" : "Нет техники в хозяйстве"}</option>{fleet.map((f) => <option key={f.id} value={f.id}>{fleetLabel(f)}</option>)}</select></label>
+    <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-xs font-semibold">
+      <input type="checkbox" className="mt-0.5" checked={forFieldWork} disabled={!vehicle} onChange={(e) => { setForFieldWork(e.target.checked); setFieldChoice(""); setOpChoice(""); }} data-testid="checkbox-fuel-issue-for-field" />
+      <span>Техника работает в поле<span className="mt-1 block text-[11px] font-normal text-muted-foreground">Отметьте для полевой заправки и выберите поле. Стоимость топлива попадёт в затраты этого поля.</span></span>
+    </label>
+    {vehicle && !forFieldWork && <p className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground" data-testid="text-fuel-issue-no-field"><Link2Off size={12} />Обычная заправка: расход только по технике, без отнесения на поле.</p>}
+    {vehicle && forFieldWork && <div className="space-y-3 rounded-lg border border-border p-3">
+      <label className="form-label">Поле *<select className="text-input mt-2" value={selectedField} onChange={(e) => { setFieldChoice(e.target.value ? Number(e.target.value) : ""); setOpChoice(""); }} data-testid="select-fuel-issue-field">
+        <option value="">Выберите поле</option>{fields.map((field) => <option key={field.id} value={field.id}>Поле № {field.number}</option>)}
+      </select></label>
+      {fields.length === 0 && <p className="text-xs text-muted-foreground" data-testid="text-fuel-issue-no-assignment">На выбранную дату у техники нет начатых работ в поле. Агроном должен отметить начало работы и назначить эту технику.</p>}
+      {selectedField !== "" && <label className="form-label">Полевая операция *<select className="text-input mt-2" value={operationId ?? ""} onChange={(e) => setOpChoice(e.target.value ? Number(e.target.value) : "")} data-testid="select-fuel-issue-operation">
+        <option value="">Выберите операцию</option>{fieldWorks.map((work) => <option key={work.operationId} value={work.operationId}>{work.operationName}</option>)}
+      </select></label>}
+    </div>}
     <label className="form-label">Литры<input className="text-input mt-2" inputMode="decimal" value={liters} onChange={(e) => setLiters(e.target.value)} data-testid="input-fuel-issue-liters" /></label>
     {l > 0 && b.stock && <p className="font-mono text-xs">По средней цене ≈ {kzt(Math.round(l * b.stock.averagePricePerLiter))}</p>}
     <label className="form-label">Примечание<textarea className="text-input mt-2" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} data-testid="input-fuel-issue-notes" /></label>

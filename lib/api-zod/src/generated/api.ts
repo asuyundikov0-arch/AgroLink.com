@@ -132,6 +132,7 @@ export const createFuelIssueBodyNotesMax = 3000;
 
 
 export const CreateFuelIssueBody = zod.object({
+  "forFieldWork": zod.boolean().optional().describe('Явная отметка заведующего нефтебазой: заправка для работы в поле. При true обязательна подходящая operationId, при false operationId должна быть null. Старые клиенты без отметки сохраняют прежнюю проверку назначения.'),
   "requestId": zod.string().min(createFuelIssueBodyRequestIdMin).max(createFuelIssueBodyRequestIdMax),
   "farm": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
   "fuelType": zod.string().min(1).max(createFuelIssueBodyFuelTypeMax),

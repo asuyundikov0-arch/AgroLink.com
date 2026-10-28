@@ -56,6 +56,8 @@ export const FuelIssueInputFarm = {
 } as const;
 
 export interface FuelIssueInput {
+  /** Явная отметка заведующего нефтебазой: заправка для работы в поле. При true обязательна подходящая operationId, при false operationId должна быть null. Старые клиенты без отметки сохраняют прежнюю проверку назначения. */
+  forFieldWork?: boolean;
   /**
      * @minLength 8
      * @maxLength 100

@@ -58,6 +58,8 @@ test("weighted fuel stock, vehicle/field links, accepted chemicals and only HR-c
     await assert.rejects(postFuelMovement(tx, "receipt", { ...receipt, requestId: randomUUID() },
       { ...access, role: "engineer" }), /заведующий нефтебазой/);
     const issue = { ...base, requestId: randomUUID(), liters: 150, fleetId: fleet.id, operationId: operation.id };
+    await assert.rejects(postFuelMovement(tx, "issue", { ...issue, forFieldWork: true, operationId: null }, access), /Выберите поле/);
+    await assert.rejects(postFuelMovement(tx, "issue", { ...issue, forFieldWork: false }, access), /без полевых работ/);
     await assert.rejects(postFuelMovement(tx, "issue", { ...issue, operationId: null }, access), /Выберите полевую операцию/);
     await assert.rejects(postFuelMovement(tx, "issue", { ...issue, liters: 1600 }, access), /Недостаточно топлива/);
     const issued = await postFuelMovement(tx, "issue", issue, access);
@@ -125,6 +127,12 @@ test("weighted fuel stock, vehicle/field links, accepted chemicals and only HR-c
     assert.equal((await fieldCosts(tx, otherSeason.id))!.totalCost, 0);
     assert.equal((await approveDailyOrder(tx, order.id, 1, { ...access, role: "hr" })).status, 409);
     assert.equal((await fieldCosts(tx, season.id))!.totalCost, 158000);
+    const ordinaryInput = { ...issue, requestId: randomUUID(), forFieldWork: false, operationId: null, liters: 10 };
+    const ordinary = await postFuelMovement(tx, "issue", ordinaryInput, access);
+    assert.equal(ordinary.operationId, null, "Non-field refuelling is explicitly unallocated even for assigned equipment");
+    assert.equal(Number(ordinary.amountCents), 320000);
+    assert.equal((await postFuelMovement(tx, "issue", ordinaryInput, access)).id, ordinary.id);
+    assert.equal((await fieldCosts(tx, season.id))!.totalCost, 158000, "Ordinary refuelling must not add field costs");
     const [replacementFleet] = await tx.insert(fleetEquipmentTable).values({
       kind: "Трактор замены", registrationNumber: "", registrationKey: `${key}-replacement`,
       unit: farm, updatedBy: "test",
@@ -134,8 +142,8 @@ test("weighted fuel stock, vehicle/field links, accepted chemicals and only HR-c
     const changedWork = (await fuelAssignments(tx)).find((work) => work.operationId === operation.id)!;
     assert.equal(assignmentMatches(changedWork, fleet, day), true, "Past daily vehicle must remain attributable");
     assert.equal(assignmentMatches(changedWork, replacementFleet, day), true, "New current vehicle is eligible immediately");
-    const full = await postFuelMovement(tx, "issue", { ...issue, requestId: randomUUID(), liters: 1350 }, access);
-    assert.equal(Number(full.amountCents), 43_200_000);
+    const full = await postFuelMovement(tx, "issue", { ...issue, requestId: randomUUID(), forFieldWork: true, liters: 1340 }, access);
+    assert.equal(Number(full.amountCents), 42_880_000);
     const finalRows = await tx.select().from(fuelMovementsTable).where(eq(fuelMovementsTable.fuelType, issued.fuelType));
     assert.deepEqual(fuelBalance(finalRows), { millis: 0, cents: 0 });
     assert.equal(fuelRatio(101, 1, 3), 34);

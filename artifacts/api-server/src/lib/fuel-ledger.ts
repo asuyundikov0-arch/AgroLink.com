@@ -79,6 +79,12 @@ export async function postFuelMovement(
   fuelCheck(fuelType.length > 0 && fuelType.length <= 80, "Укажите вид топлива.");
   const receipt = kind === "receipt" ? input as FuelReceiptInput : null;
   const issue = kind === "issue" ? input as FuelIssueInput : null;
+  if (issue?.forFieldWork === true) {
+    fuelCheck(issue.operationId != null, "Выберите поле и полевую операцию для выдачи топлива.");
+  }
+  if (issue?.forFieldWork === false) {
+    fuelCheck(issue.operationId === null, "Для заправки без полевых работ поле и операция не указываются.");
+  }
   const price = receipt ? scaled(receipt.pricePerLiter, 100, 1000000) : null;
   fuelCheck(!receipt || receipt.invoiceNumber.trim(), "Укажите номер накладной.");
   // Same order as field mutations. Do not acquire the field lock after the fuel lock.
@@ -114,7 +120,7 @@ export async function postFuelMovement(
     if (issue!.operationId !== null) {
       fuelCheck(matching.some((a) => a.operationId === issue!.operationId),
         "Техника не назначена на эту полевую работу в выбранную дату.", 409);
-    } else {
+    } else if (issue!.forFieldWork !== false) {
       fuelCheck(matching.length === 0,
         "Техника работает в поле. Выберите полевую операцию для отнесения затрат.", 409);
     }

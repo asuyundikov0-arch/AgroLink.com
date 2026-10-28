@@ -1564,6 +1564,9 @@ components:
       type: object
       required: [requestId, farm, fuelType, occurredOn, liters, fleetId, operationId, notes]
       properties:
+        forFieldWork:
+          type: boolean
+          description: "Явная отметка заведующего нефтебазой: заправка для работы в поле. При true обязательна подходящая operationId, при false operationId должна быть null. Старые клиенты без отметки сохраняют прежнюю проверку назначения."
         requestId: { type: string, minLength: 8, maxLength: 100 }
         farm: { type: string, enum: ["АПК Арыстан Grain", "АФ Веденовка"] }
         fuelType: { type: string, minLength: 1, maxLength: 80 }
