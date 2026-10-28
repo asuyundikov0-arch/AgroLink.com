@@ -11,13 +11,13 @@ tags:
   - name: health
     description: Health operations
   - name: templates
-    description: Excel template catalog
+    description: Retired module; all endpoints return HTTP 410
   - name: dashboard
-    description: Workspace overview
+    description: Retired document overview; all endpoints return HTTP 410
   - name: reports
-    description: Completed report workflow
+    description: Retired manual report workflow; all endpoints return HTTP 410
   - name: uploads
-    description: Protected document upload workflow
+    description: Retired document upload workflow; all endpoints return HTTP 410
 paths:
   /agro/chemicals/workflow:
     get:
@@ -923,7 +923,7 @@ paths:
             schema: { $ref: "#/components/schemas/PayrollDailySubmitInput" }
       responses:
         "201":
-          description: Automatically calculated daily payroll register sent to the economist
+          description: Automatically calculated daily work order submitted for HR confirmation
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PayrollRegister" }
@@ -992,7 +992,7 @@ paths:
               $ref: "#/components/schemas/PayrollRegisterSubmitInput"
       responses:
         "200":
-          description: Payroll register sent to the economist
+          description: Daily work order submitted for HR confirmation
           content:
             application/json:
               schema:
@@ -1091,6 +1091,8 @@ paths:
   /templates:
     get:
       operationId: listTemplates
+      deprecated: true
+      description: Removed from the application. Returns HTTP 410.
       tags: [templates]
       summary: List templates
       parameters:
@@ -1120,6 +1122,8 @@ paths:
                   $ref: "#/components/schemas/Template"
     post:
       operationId: createTemplate
+      deprecated: true
+      description: Removed from the application. Returns HTTP 410.
       tags: [templates]
       summary: Add a template
       requestBody:
@@ -1138,6 +1142,8 @@ paths:
   /templates/{id}:
     get:
       operationId: getTemplate
+      deprecated: true
+      description: Removed from the application. Returns HTTP 410.
       tags: [templates]
       summary: Get template details
       parameters:
@@ -1157,6 +1163,8 @@ paths:
           description: Not found
     delete:
       operationId: deleteTemplate
+      deprecated: true
+      description: Removed from the application. Returns HTTP 410.
       tags: [templates]
       summary: Delete a template
       parameters:
@@ -1171,6 +1179,8 @@ paths:
   /templates/{id}/download:
     get:
       operationId: downloadTemplate
+      deprecated: true
+      description: Removed from the application. Returns HTTP 410.
       tags: [templates]
       summary: Download an authorized template file
       parameters:
@@ -1190,6 +1200,8 @@ paths:
   /dashboard/summary:
     get:
       operationId: getDashboardSummary
+      deprecated: true
+      description: Removed document overview. Returns HTTP 410.
       tags: [dashboard]
       summary: Get workspace summary
       responses:
@@ -1202,6 +1214,8 @@ paths:
   /activity:
     get:
       operationId: listActivity
+      deprecated: true
+      description: Removed document activity feed. Returns HTTP 410.
       tags: [dashboard]
       summary: List recent activity
       responses:
@@ -1216,6 +1230,8 @@ paths:
   /reports:
     get:
       operationId: listReports
+      deprecated: true
+      description: Removed manual document reports. Returns HTTP 410.
       tags: [reports]
       summary: List completed reports
       parameters:
@@ -1253,6 +1269,8 @@ paths:
                   $ref: "#/components/schemas/Report"
     post:
       operationId: createReport
+      deprecated: true
+      description: Removed manual document reports. Returns HTTP 410.
       tags: [reports]
       summary: Submit a completed report
       requestBody:
@@ -1271,6 +1289,8 @@ paths:
   /reports/upload-url:
     post:
       operationId: requestReportUploadUrl
+      deprecated: true
+      description: Removed manual document upload. Returns HTTP 410.
       tags: [uploads]
       summary: Request a protected upload URL for a document
       requestBody:
@@ -1289,6 +1309,8 @@ paths:
   /reports/{id}/status:
     patch:
       operationId: updateReportStatus
+      deprecated: true
+      description: Removed manual document workflow. Returns HTTP 410.
       tags: [reports]
       summary: Update report review status
       parameters:
@@ -1313,6 +1335,8 @@ paths:
   /reports/{id}:
     delete:
       operationId: deleteReport
+      deprecated: true
+      description: Removed manual document workflow. Returns HTTP 410.
       tags: [reports]
       summary: Delete a report as general director
       parameters:
@@ -1327,6 +1351,8 @@ paths:
   /archives:
     get:
       operationId: listArchives
+      deprecated: true
+      description: Removed document archive. Returns HTTP 410.
       tags: [archives]
       summary: List archive cells and document counts
       responses:
@@ -1341,6 +1367,8 @@ paths:
   /reports/{id}/download:
     get:
       operationId: downloadReport
+      deprecated: true
+      description: Removed manual document reports. Returns HTTP 410.
       tags: [reports]
       summary: Download an authorized completed report
       parameters:
@@ -2986,7 +3014,7 @@ components:
           type: string
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, engineer, chief_engineer, storekeeper, farm_director, general_director]
         status:
           type: string
           enum: [pending, approved, rejected]
@@ -3015,7 +3043,7 @@ components:
       properties:
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, engineer, chief_engineer, storekeeper, economist, lawyer, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, engineer, chief_engineer, storekeeper, farm_director, general_director]
         department:
           type: string
           minLength: 1

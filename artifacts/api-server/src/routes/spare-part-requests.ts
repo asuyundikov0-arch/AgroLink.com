@@ -27,7 +27,7 @@ import { aggregateSparePartRequestStatus, refreshSparePartRequestStatus } from "
 
 const router: IRouter = Router();
 const allowedRoles = new Set<AppRole>(["engineer", "chief_engineer", "general_director", "storekeeper"]);
-const paymentReaderRoles = new Set<AppRole>(["economist", "general_director"]);
+const paymentReaderRoles = new Set<AppRole>(["general_director"]);
 const protect: RequestHandler = (_req, res, next) => {
   const role = (res.locals.access as RoleAccess).role;
   if (!role || !allowedRoles.has(role)) {

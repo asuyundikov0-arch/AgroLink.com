@@ -6,7 +6,8 @@
 - [Grain ownership at elevators](grain-ownership.md) — elevator grain remains company stock; movement to an elevator is not a sale.
 - [Processing waste categories](grain-processing-waste.md) — the user requires separate weights for dead impurities and grain waste after drying or cleaning.
 - [Agro rates and dispatcher scope](agro-rates-and-dispatch.md) — chief agronomist plans per-hectare rates; dispatcher records completed-work rates and per-trip transport fees.
-- [Salary accrual handoff](salary-accrual-handoff.md) — dispatcher sends daily work orders to HR; only HR-confirmed field and transport accruals enter employee payroll and reach the economist.
+- [Salary accrual handoff](salary-accrual-handoff.md) — dispatcher sends daily orders to HR; only HR-confirmed field and transport accruals enter cumulative payroll available to the general director.
 - [Field plans, facts and sowing](field-plan-navigation.md) — separate field-first plan/fact entry, unplanned work, per-field progress and automatic crop-level daily sowing reports.
 - [Partial index changes](partial-index-push.md) — Drizzle push may miss a changed WHERE predicate; verify the live index definition.
 - [Chemical warehouse](chemical-warehouse-rules.md) — нормы × гектары дают ожидаемую тару; приёмка завтоком списывает с подотчёта, отклонения видны; цена/га по фактическому посеву.
+- [Operational product scope](product-scope.md) — убраны экономист, юрист и ручной документооборот; производственный учёт, кадровое подтверждение и автоматические сводки сохраняются.

@@ -1,5 +1,5 @@
-import { useMemo, useState, type ReactNode } from "react";
-import { Boxes, ClipboardCheck, ClipboardList, Wrench } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Boxes, ClipboardList, Wrench } from "lucide-react";
 import {
   type FleetEquipment,
   getListFleetEquipmentQueryKey,
@@ -10,14 +10,13 @@ import SparePartsWarehouse from "./SparePartsWarehouse";
 import SparePartRequests from "./SparePartRequests";
 import { POLL_MS, SectionError, errorInfo } from "./repairs/shared";
 
-export default function EngineeringWorkspace({ role, children }: { role: string; children: ReactNode }) {
+export default function EngineeringWorkspace({ role }: { role: string }) {
   const storekeeper = role === "storekeeper";
-  const [tab, setTab] = useState<"repairs" | "warehouse" | "requests" | "documents">(storekeeper ? "warehouse" : "repairs");
+  const [tab, setTab] = useState<"repairs" | "warehouse" | "requests">(storekeeper ? "warehouse" : "repairs");
   const tabs = [
     { id: "repairs" as const, label: "Ремонт техники", icon: Wrench },
     { id: "warehouse" as const, label: "Склад запчастей", icon: Boxes },
     { id: "requests" as const, label: "Заявки на запчасти", icon: ClipboardList },
-    ...(!storekeeper ? [{ id: "documents" as const, label: "Шаблоны и документы", icon: ClipboardCheck }] : []),
   ];
   return (
     <div>
@@ -31,8 +30,7 @@ export default function EngineeringWorkspace({ role, children }: { role: string;
       <div id="engineering-panel" role="tabpanel">
         {tab === "repairs" ? <RepairDashboard role={role} />
           : tab === "warehouse" ? <WarehousePanel role={role} />
-            : tab === "requests" ? <SparePartRequests role={role as "engineer" | "chief_engineer" | "general_director" | "storekeeper"} />
-              : children}
+            : <SparePartRequests role={role as "engineer" | "chief_engineer" | "general_director" | "storekeeper"} />}
       </div>
     </div>
   );

@@ -94,7 +94,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
 
   if (!allowed) return (
     <div className="surface-card empty-state" data-testid="status-fields-forbidden"><h3 className="text-sm font-bold">Нет доступа к полям и операциям</h3>
-      <p className="mt-1 max-w-sm text-center text-xs text-muted-foreground">Раздел доступен агрономам, главному агроному, экономисту, директору хозяйства и генеральному директору.</p></div>
+      <p className="mt-1 max-w-sm text-center text-xs text-muted-foreground">Раздел доступен агрономам, главному агроному, директору хозяйства и генеральному директору.</p></div>
   );
 
   return (

@@ -37,7 +37,7 @@ import { lockPayrollSources } from "../lib/payroll-source-guard";
 import { approveDailyOrder } from "../lib/payroll-hr";
 
 const router: IRouter = Router();
-const readerRoles = new Set(["dispatcher", "hr", "economist", "general_director"]);
+const readerRoles = new Set(["dispatcher", "hr", "general_director"]);
 const editorRoles = new Set(["dispatcher", "general_director"]);
 const accrualReaderRoles = new Set(["dispatcher", "general_director"]);
 const maxRegisterAmount = 999999999999.99;
@@ -345,8 +345,7 @@ async function loadRegister(id: number) {
 
 async function loadRegisters(role: string) {
   const rows = await db.select().from(payrollRegistersTable)
-    .where(role === "economist" ? eq(payrollRegistersTable.status, "sent_to_economist")
-      : role === "hr" ? inArray(payrollRegistersTable.status, ["pending_hr", "sent_to_economist"]) : undefined)
+    .where(role === "hr" ? inArray(payrollRegistersTable.status, ["pending_hr", "sent_to_economist"]) : undefined)
     .orderBy(desc(payrollRegistersTable.workDate), desc(payrollRegistersTable.id));
   if (rows.length === 0) return [];
   const ids = rows.map((row) => row.id);

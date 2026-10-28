@@ -155,7 +155,7 @@ export default function SparePartRequests({ role }: { role: Role }) {
           <p className="eyebrow">Инженерная служба · согласование закупок</p>
           <h2 className="mt-1 text-2xl font-bold tracking-[-0.045em]">{title}</h2>
           <p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">
-            Заявки обновляются автоматически. После согласования директора позиция попадает в реестр платежей экономиста; склад получает её на приёмку после отметки об оплате.
+            Заявки обновляются автоматически. После согласования директора позиция попадает в реестр платежей генерального директора; склад получает её на приёмку после отметки об оплате.
           </p>
         </div>
         {role === "storekeeper" && <Badge tone={activeWarehouseRequests > 0 ? "amber" : "muted"}><BellRing size={12} className="mr-1.5" />Активные заявки: {activeWarehouseRequests}</Badge>}

@@ -9,6 +9,15 @@ after(() => pool.end());
 const access: RoleAccess = { userId: "test-hr", role: "hr", displayName: "Отдел кадров", email: "", department: "" };
 test("every canonical role is accepted both at signup and in the current-user response", () => {
   assert.equal(GetMyRoleRequestResponse.safeParse(null).success, true);
+  for (const retiredRole of ["economist", "lawyer"]) {
+    assert.equal((appRoles as readonly string[]).includes(retiredRole), false);
+    assert.equal(CreateRoleRequestBody.safeParse({ requestedRole: retiredRole, department: "Хозяйство" }).success, false);
+    assert.equal(GetMyRoleRequestResponse.safeParse({
+      id: 1, userId: "test", email: "test@example.com", displayName: "Тест", department: "Хозяйство",
+      requestedRole: retiredRole, status: "approved", reviewComment: "", reviewedByName: "Директор",
+      requestedAt: new Date().toISOString(), reviewedAt: null,
+    }).success, false);
+  }
   for (const role of appRoles) {
     assert.equal(CreateRoleRequestBody.safeParse({ requestedRole: role, department: "Хозяйство" }).success, true, role);
     assert.equal(GetMyRoleRequestResponse.safeParse({
@@ -31,7 +40,7 @@ test("only HR confirmation releases a snapshot; version, duplicate and legacy ch
       { registerId: order.id, employeeId: employee.id, employeeName: employee.fullName, workType: "Посев", amountKzt: "200.00" },
     ]);
     assert.equal((await approveDailyOrder(tx, order.id, 1, { ...access, role: "dispatcher" })).status, 403);
-    assert.equal((await approveDailyOrder(tx, order.id, 1, { ...access, role: "economist" })).status, 403);
+    assert.equal((await approveDailyOrder(tx, order.id, 1, { ...access, role: "engineer" })).status, 403);
     assert.equal((await approveDailyOrder(tx, order.id, 9, access)).status, 409);
     const confirmed = await approveDailyOrder(tx, order.id, 1, access);
     assert.ok(confirmed.register);

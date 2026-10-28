@@ -31,6 +31,7 @@ import {
 const router: IRouter = Router();
 
 function serializeApplication(application: typeof roleApplicationsTable.$inferSelect) {
+  const supportedRole = appRoles.includes(application.requestedRole as AppRole);
   return {
     id: application.id,
     userId: application.userId,
@@ -40,10 +41,10 @@ function serializeApplication(application: typeof roleApplicationsTable.$inferSe
     requestedRole: appRoles.includes(application.requestedRole as AppRole)
       ? application.requestedRole as AppRole
       : "agronomist" as const,
-    status: ["pending", "approved", "rejected"].includes(application.status)
+    status: !supportedRole ? "rejected" as const : ["pending", "approved", "rejected"].includes(application.status)
       ? application.status as RoleApplicationStatus
       : "pending" as const,
-    reviewComment: application.reviewComment,
+    reviewComment: supportedRole ? application.reviewComment : "Эта роль удалена. Выберите действующую роль и отправьте новую заявку.",
     reviewedByName: application.reviewedByName,
     requestedAt: application.requestedAt.toISOString(),
     reviewedAt: application.reviewedAt?.toISOString() ?? null,
@@ -51,9 +52,10 @@ function serializeApplication(application: typeof roleApplicationsTable.$inferSe
 }
 
 function canReview(requestedRole: AppRole, reviewerRole: AccessRole): boolean {
+  if (!appRoles.includes(requestedRole)) return false;
   if (reviewerRole === "general_director") return true;
   if (reviewerRole === "farm_director") {
-    return ["agronomist", "chief_agronomist", "economist"].includes(requestedRole);
+    return ["agronomist", "chief_agronomist"].includes(requestedRole);
   }
   if (reviewerRole === "chief_agronomist") return requestedRole === "agronomist";
   return reviewerRole === "chief_engineer" && requestedRole === "engineer";
@@ -123,11 +125,11 @@ router.post("/role-requests", requireAuth, async (req, res, next): Promise<void>
       res.status(200).json(CreateRoleRequestResponse.parse(serializeApplication(existing)));
       return;
     }
-    if (existing?.status === "pending") {
+    if (existing?.status === "pending" && appRoles.includes(existing.requestedRole as AppRole)) {
       res.status(409).json({ error: "Заявка уже ожидает согласования" });
       return;
     }
-    if (existing?.status === "approved") {
+    if (existing?.status === "approved" && appRoles.includes(existing.requestedRole as AppRole)) {
       res.status(409).json({ error: "Роль уже согласована. Изменить её может только руководитель." });
       return;
     }

@@ -4702,6 +4702,8 @@ export const getListTemplatesUrl = (params?: ListTemplatesParams,) => {
 }
 
 /**
+ * Removed from the application. Returns HTTP 410.
+ * @deprecated
  * @summary List templates
  */
 export const listTemplates = async (params?: ListTemplatesParams, options?: Parameters<typeof customFetch>[1]): Promise<Template[]> => {
@@ -4749,6 +4751,7 @@ export type ListTemplatesQueryError = ErrorType<unknown>
 
 
 /**
+ * @deprecated
  * @summary List templates
  */
 
@@ -4779,6 +4782,8 @@ export const getCreateTemplateUrl = () => {
 }
 
 /**
+ * Removed from the application. Returns HTTP 410.
+ * @deprecated
  * @summary Add a template
  */
 export const createTemplate = async (templateInput: TemplateInput, options?: Parameters<typeof customFetch>[1]): Promise<Template> => {
@@ -4828,6 +4833,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateTemplateMutationError = ErrorType<unknown>
 
     /**
+ * @deprecated
  * @summary Add a template
  */
 export const useCreateTemplate = <TError = ErrorType<unknown>,
@@ -4850,6 +4856,8 @@ export const getGetTemplateUrl = (id: number,) => {
 }
 
 /**
+ * Removed from the application. Returns HTTP 410.
+ * @deprecated
  * @summary Get template details
  */
 export const getTemplate = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<Template> => {
@@ -4897,6 +4905,7 @@ export type GetTemplateQueryError = ErrorType<void>
 
 
 /**
+ * @deprecated
  * @summary Get template details
  */
 
@@ -4927,6 +4936,8 @@ export const getDeleteTemplateUrl = (id: number,) => {
 }
 
 /**
+ * Removed from the application. Returns HTTP 410.
+ * @deprecated
  * @summary Delete a template
  */
 export const deleteTemplate = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
@@ -4976,6 +4987,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type DeleteTemplateMutationError = ErrorType<unknown>
 
     /**
+ * @deprecated
  * @summary Delete a template
  */
 export const useDeleteTemplate = <TError = ErrorType<unknown>,
@@ -4998,6 +5010,8 @@ export const getDownloadTemplateUrl = (id: number,) => {
 }
 
 /**
+ * Removed from the application. Returns HTTP 410.
+ * @deprecated
  * @summary Download an authorized template file
  */
 export const downloadTemplate = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
@@ -5045,6 +5059,7 @@ export type DownloadTemplateQueryError = ErrorType<unknown>
 
 
 /**
+ * @deprecated
  * @summary Download an authorized template file
  */
 
@@ -5075,6 +5090,8 @@ export const getGetDashboardSummaryUrl = () => {
 }
 
 /**
+ * Removed document overview. Returns HTTP 410.
+ * @deprecated
  * @summary Get workspace summary
  */
 export const getDashboardSummary = async ( options?: Parameters<typeof customFetch>[1]): Promise<DashboardSummary> => {
@@ -5122,6 +5139,7 @@ export type GetDashboardSummaryQueryError = ErrorType<unknown>
 
 
 /**
+ * @deprecated
  * @summary Get workspace summary
  */
 
@@ -5152,6 +5170,8 @@ export const getListActivityUrl = () => {
 }
 
 /**
+ * Removed document activity feed. Returns HTTP 410.
+ * @deprecated
  * @summary List recent activity
  */
 export const listActivity = async ( options?: Parameters<typeof customFetch>[1]): Promise<Activity[]> => {
@@ -5199,6 +5219,7 @@ export type ListActivityQueryError = ErrorType<unknown>
 
 
 /**
+ * @deprecated
  * @summary List recent activity
  */
 
@@ -5236,6 +5257,8 @@ export const getListReportsUrl = (params?: ListReportsParams,) => {
 }
 
 /**
+ * Removed manual document reports. Returns HTTP 410.
+ * @deprecated
  * @summary List completed reports
  */
 export const listReports = async (params?: ListReportsParams, options?: Parameters<typeof customFetch>[1]): Promise<Report[]> => {
@@ -5283,6 +5306,7 @@ export type ListReportsQueryError = ErrorType<unknown>
 
 
 /**
+ * @deprecated
  * @summary List completed reports
  */
 
@@ -5313,6 +5337,8 @@ export const getCreateReportUrl = () => {
 }
 
 /**
+ * Removed manual document reports. Returns HTTP 410.
+ * @deprecated
  * @summary Submit a completed report
  */
 export const createReport = async (reportInput: ReportInput, options?: Parameters<typeof customFetch>[1]): Promise<Report> => {
@@ -5362,6 +5388,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateReportMutationError = ErrorType<unknown>
 
     /**
+ * @deprecated
  * @summary Submit a completed report
  */
 export const useCreateReport = <TError = ErrorType<unknown>,
@@ -5384,6 +5411,8 @@ export const getRequestReportUploadUrlUrl = () => {
 }
 
 /**
+ * Removed manual document upload. Returns HTTP 410.
+ * @deprecated
  * @summary Request a protected upload URL for a document
  */
 export const requestReportUploadUrl = async (documentUploadInput: DocumentUploadInput, options?: Parameters<typeof customFetch>[1]): Promise<DocumentUploadTarget> => {
@@ -5433,6 +5462,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RequestReportUploadUrlMutationError = ErrorType<unknown>
 
     /**
+ * @deprecated
  * @summary Request a protected upload URL for a document
  */
 export const useRequestReportUploadUrl = <TError = ErrorType<unknown>,
@@ -5455,6 +5485,8 @@ export const getUpdateReportStatusUrl = (id: number,) => {
 }
 
 /**
+ * Removed manual document workflow. Returns HTTP 410.
+ * @deprecated
  * @summary Update report review status
  */
 export const updateReportStatus = async (id: number,
@@ -5505,6 +5537,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateReportStatusMutationError = ErrorType<unknown>
 
     /**
+ * @deprecated
  * @summary Update report review status
  */
 export const useUpdateReportStatus = <TError = ErrorType<unknown>,
@@ -5527,6 +5560,8 @@ export const getDeleteReportUrl = (id: number,) => {
 }
 
 /**
+ * Removed manual document workflow. Returns HTTP 410.
+ * @deprecated
  * @summary Delete a report as general director
  */
 export const deleteReport = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
@@ -5576,6 +5611,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type DeleteReportMutationError = ErrorType<unknown>
 
     /**
+ * @deprecated
  * @summary Delete a report as general director
  */
 export const useDeleteReport = <TError = ErrorType<unknown>,
@@ -5598,6 +5634,8 @@ export const getListArchivesUrl = () => {
 }
 
 /**
+ * Removed document archive. Returns HTTP 410.
+ * @deprecated
  * @summary List archive cells and document counts
  */
 export const listArchives = async ( options?: Parameters<typeof customFetch>[1]): Promise<ArchiveCell[]> => {
@@ -5645,6 +5683,7 @@ export type ListArchivesQueryError = ErrorType<unknown>
 
 
 /**
+ * @deprecated
  * @summary List archive cells and document counts
  */
 
@@ -5675,6 +5714,8 @@ export const getDownloadReportUrl = (id: number,) => {
 }
 
 /**
+ * Removed manual document reports. Returns HTTP 410.
+ * @deprecated
  * @summary Download an authorized completed report
  */
 export const downloadReport = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
@@ -5722,6 +5763,7 @@ export type DownloadReportQueryError = ErrorType<unknown>
 
 
 /**
+ * @deprecated
  * @summary Download an authorized completed report
  */
 

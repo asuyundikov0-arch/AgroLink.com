@@ -1,8 +1,5 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
-import templatesRouter from "./templates";
-import reportsRouter from "./reports";
-import archivesRouter from "./archives";
 import roleApplicationsRouter from "./role-applications";
 import equipmentRepairsRouter from "./equipment-repairs";
 import grainRouter from "./grain";
@@ -15,9 +12,10 @@ import chemicalsRouter from "./chemicals";
 const router: IRouter = Router();
 
 router.use(healthRouter);
-router.use(templatesRouter);
-router.use(reportsRouter);
-router.use(archivesRouter);
+// Retired document modules must not remain usable through bookmarked API URLs.
+router.use(["/templates", "/reports", "/archives", "/dashboard/summary", "/activity"], (_req, res) => {
+  res.status(410).json({ error: "Отправка отчётов, архив и формы отчётов удалены из приложения." });
+});
 router.use(roleApplicationsRouter);
 router.use(equipmentRepairsRouter);
 router.use(grainRouter);

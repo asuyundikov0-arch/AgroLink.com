@@ -1,17 +1,17 @@
 ---
 name: Salary accrual handoff
-description: Employee-linked daily work orders, mandatory HR approval and cumulative payroll for the economist.
+description: Employee-linked daily work orders, mandatory HR approval and cumulative payroll available to the general director.
 ---
 
-Daily work orders must fill automatically from employee-linked field work and grain transport accruals, not from manually typed salary lines. The dispatcher reviews the work and rates, then sends a daily work order to the separate “Отдел кадров” role. HR confirms the accruals; only then do they enter cumulative payroll per employee and become visible to the economist. The general director retains full access. This is an accrual handoff, not an actual payment record.
+Daily work orders must fill automatically from employee-linked field work and grain transport accruals, not from manually typed salary lines. The dispatcher reviews the work and rates, then sends a daily work order to the separate “Отдел кадров” role. HR confirms the accruals; only then do they enter cumulative payroll per employee. The general director retains full access, including the cumulative register after removal of the economist role. This is an accrual handoff, not an actual payment record.
 
 **Why:** The user added mandatory HR confirmation and explicitly chose “Перевозки и полевые работы” for its scope. Dispatcher submission is a daily work order, not yet confirmed salary; it must not be confused with the separate spare-parts payment register.
 
-**How to apply:** Exclude orders waiting for HR from employee salary totals and the economist's register. Keep confirmed snapshots read-only and do not add payment or “paid” status without an explicit request. Preserve previously submitted historical sheets without requiring retrospective HR approval.
+**How to apply:** Exclude orders waiting for HR from employee salary totals and the cumulative register. Keep confirmed snapshots read-only and do not add payment or “paid” status without an explicit request. Preserve previously submitted historical sheets without requiring retrospective HR approval.
 
-Every HR-confirmed daily order contributes to an accumulating economist register per employee, with a breakdown by work type and the original dated work lines.
+Every HR-confirmed daily order contributes to a cumulative register per employee available to the general director, with a breakdown by work type and the original dated work lines.
 
-**Why:** The user requested cumulative employee totals with work details, and subsequently made HR confirmation the prerequisite for these accruals.
+**Why:** The user requested cumulative employee totals with work details, subsequently made HR confirmation the prerequisite, and later removed the economist role without removing payroll.
 
 **How to apply:** Count submitted sheets only, retain their individual history, and do not collapse distinct confirmed work lines merely because their employee, date or work type is the same.
 

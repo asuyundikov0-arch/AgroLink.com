@@ -4030,6 +4030,8 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * Removed from the application. Returns HTTP 410.
+ * @deprecated
  * @summary List templates
  */
 export const ListTemplatesQueryParams = zod.object({
@@ -4059,6 +4061,8 @@ export const ListTemplatesResponse = zod.array(ListTemplatesResponseItem)
 
 
 /**
+ * Removed from the application. Returns HTTP 410.
+ * @deprecated
  * @summary Add a template
  */
 
@@ -4096,6 +4100,8 @@ export const CreateTemplateResponse = zod.object({
 
 
 /**
+ * Removed from the application. Returns HTTP 410.
+ * @deprecated
  * @summary Get template details
  */
 export const GetTemplateParams = zod.object({
@@ -4122,6 +4128,8 @@ export const GetTemplateResponse = zod.object({
 
 
 /**
+ * Removed from the application. Returns HTTP 410.
+ * @deprecated
  * @summary Delete a template
  */
 export const DeleteTemplateParams = zod.object({
@@ -4132,6 +4140,8 @@ export const DeleteTemplateResponse = zod.void()
 
 
 /**
+ * Removed from the application. Returns HTTP 410.
+ * @deprecated
  * @summary Download an authorized template file
  */
 export const DownloadTemplateParams = zod.object({
@@ -4142,6 +4152,8 @@ export const DownloadTemplateResponse = zod.unknown()
 
 
 /**
+ * Removed document overview. Returns HTTP 410.
+ * @deprecated
  * @summary Get workspace summary
  */
 export const GetDashboardSummaryResponse = zod.object({
@@ -4153,6 +4165,8 @@ export const GetDashboardSummaryResponse = zod.object({
 
 
 /**
+ * Removed document activity feed. Returns HTTP 410.
+ * @deprecated
  * @summary List recent activity
  */
 export const ListActivityResponseItem = zod.object({
@@ -4166,6 +4180,8 @@ export const ListActivityResponse = zod.array(ListActivityResponseItem)
 
 
 /**
+ * Removed manual document reports. Returns HTTP 410.
+ * @deprecated
  * @summary List completed reports
  */
 export const ListReportsQueryParams = zod.object({
@@ -4199,6 +4215,8 @@ export const ListReportsResponse = zod.array(ListReportsResponseItem)
 
 
 /**
+ * Removed manual document reports. Returns HTTP 410.
+ * @deprecated
  * @summary Submit a completed report
  */
 
@@ -4238,6 +4256,8 @@ export const CreateReportResponse = zod.object({
 
 
 /**
+ * Removed manual document upload. Returns HTTP 410.
+ * @deprecated
  * @summary Request a protected upload URL for a document
  */
 
@@ -4261,6 +4281,8 @@ export const RequestReportUploadUrlResponse = zod.object({
 
 
 /**
+ * Removed manual document workflow. Returns HTTP 410.
+ * @deprecated
  * @summary Update report review status
  */
 export const UpdateReportStatusParams = zod.object({
@@ -4297,6 +4319,8 @@ export const UpdateReportStatusResponse = zod.object({
 
 
 /**
+ * Removed manual document workflow. Returns HTTP 410.
+ * @deprecated
  * @summary Delete a report as general director
  */
 export const DeleteReportParams = zod.object({
@@ -4307,6 +4331,8 @@ export const DeleteReportResponse = zod.void()
 
 
 /**
+ * Removed document archive. Returns HTTP 410.
+ * @deprecated
  * @summary List archive cells and document counts
  */
 export const ListArchivesResponseItem = zod.object({
@@ -4320,6 +4346,8 @@ export const ListArchivesResponse = zod.array(ListArchivesResponseItem)
 
 
 /**
+ * Removed manual document reports. Returns HTTP 410.
+ * @deprecated
  * @summary Download an authorized completed report
  */
 export const DownloadReportParams = zod.object({
@@ -4338,7 +4366,7 @@ export const GetMyRoleRequestResponse = zod.union([zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -4356,7 +4384,7 @@ export const ListRoleRequestsResponseItem = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -4373,7 +4401,7 @@ export const ListRoleRequestsResponse = zod.array(ListRoleRequestsResponseItem)
 
 
 export const CreateRoleRequestBody = zod.object({
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'farm_director', 'general_director']),
   "department": zod.string().min(1)
 })
 
@@ -4383,7 +4411,7 @@ export const CreateRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -4410,7 +4438,7 @@ export const ReviewRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -4428,7 +4456,7 @@ export const ListUsersResponseItem = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'economist', 'lawyer', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),

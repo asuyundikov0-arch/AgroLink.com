@@ -110,13 +110,13 @@ export default function PayrollRegisterWorkspace({ canManage, canApprove = false
   const approveRegister = async (register: PayrollRegister) => {
     if (!canApprove || approve.isPending || approvingId !== null) return;
     const employees = groupLines(register.entries).length;
-    const ok = window.confirm(`Подтвердить начисления по наряду за ${formatDate(register.workDate)} (${register.unit})?\n\n${employees} сотр. · ${register.entries.length} строк · итого ${money(register.totalAmount)}.\n\nПосле подтверждения суммы войдут в накопительные начисления сотрудников и будут переданы экономисту. Отменить подтверждение нельзя.`);
+    const ok = window.confirm(`Подтвердить начисления по наряду за ${formatDate(register.workDate)} (${register.unit})?\n\n${employees} сотр. · ${register.entries.length} строк · итого ${money(register.totalAmount)}.\n\nПосле подтверждения суммы войдут в накопительные начисления сотрудников и попадут в зарплатный реестр. Отменить подтверждение нельзя.`);
     if (!ok) return;
     setApprovingId(register.id); setError(""); setErrorConflict(false); setNotice("");
     try {
       await approve.mutateAsync({ id: register.id, data: { version: register.version } });
       await refreshAll();
-      setNotice(`Наряд № ${register.id} за ${formatDate(register.workDate)} подтверждён: ${money(register.totalAmount)} переданы в накопительный реестр экономиста.`);
+      setNotice(`Наряд № ${register.id} за ${formatDate(register.workDate)} подтверждён: ${money(register.totalAmount)} переданы в накопительный зарплатный реестр.`);
     } catch (err) {
       const info = errorInfo(err);
       if (info.status === 409) { setErrorConflict(true); setError("Наряд уже подтверждён или изменился. Обновите список и проверьте актуальное состояние."); }
@@ -134,7 +134,7 @@ export default function PayrollRegisterWorkspace({ canManage, canApprove = false
 
   return <section className="space-y-4" data-testid="payroll-register-workspace">
     {!canApprove && <header>
-      <p className="eyebrow">{canManage ? "Диспетчер · отдел кадров · экономист" : "Подтверждено отделом кадров"}</p>
+      <p className="eyebrow">{canManage ? "Диспетчер · отдел кадров · генеральный директор" : "Подтверждено отделом кадров"}</p>
       <h1 className="mt-1.5 font-display text-2xl font-bold tracking-[-0.045em] sm:text-3xl">{canManage ? "Ежедневные наряды" : "Зарплатный реестр"}</h1>
       <p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">{canManage
         ? "Суммы собираются из рейсов зерна и полевых работ с фактической расценкой. Наряд за день отправляется в отдел кадров и фиксируется. Зарплатой он становится только после подтверждения отдела кадров."
@@ -227,7 +227,7 @@ function SentRegister({ register }: { register: PayrollRegister }) {
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-bold">{formatDate(register.workDate)}</h3>{hrApproved
           ? <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2.5 py-1 text-[10px] font-bold text-teal-800"><Lock size={10} />Подтверждён отделом кадров</span>
-          : <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold text-muted-foreground"><Lock size={10} />Ранее передан экономисту</span>}<span className="text-[10px] text-muted-foreground">№ {register.id}</span></div>
+          : <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold text-muted-foreground"><Lock size={10} />Ранее подтверждён</span>}<span className="text-[10px] text-muted-foreground">№ {register.id}</span></div>
         <p className="mt-1 text-xs text-muted-foreground">{register.unit} · {groups.length} сотр. · отправил {register.submittedByName || register.createdByName || "—"} · {formatDateTime(register.submittedAt)}</p>
         {hrApproved && <p className="mt-0.5 text-xs text-muted-foreground" data-testid={`text-payroll-hr-approval-${register.id}`}>Подтвердил {register.hrApprovedByName || "—"} · {formatDateTime(register.hrApprovedAt ?? null)}</p>}
         <details className="group mt-3"><summary className="cursor-pointer list-none text-[11px] font-semibold text-muted-foreground hover:text-foreground">Показать начисления по сотрудникам</summary><div className="mt-2"><EmployeeGroups groups={groups} testPrefix={`payroll-register-employee-${register.id}`} /></div></details>
