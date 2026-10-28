@@ -1,0 +1,26 @@
+/* Local extraction of the existing AgroLink visual tokens; never change the main app. */
+.agrolink-payroll-proposal {
+  color-scheme: dark;
+  --background: 0 0% 6%;
+  --foreground: 40 12% 92%;
+  --border: 0 0% 22%;
+  --card: 0 0% 9%;
+  --card-foreground: 40 12% 92%;
+  --muted: 0 0% 14%;
+  --muted-foreground: 40 5% 66%;
+  --primary: 40 12% 92%;
+  --primary-foreground: 0 0% 7%;
+  --secondary: 0 0% 15%;
+  --secondary-foreground: 40 12% 92%;
+  --accent: 40 55% 64%;
+  --accent-foreground: 0 0% 7%;
+  --popover: 0 0% 9%;
+  --popover-foreground: 40 12% 92%;
+  --input: 0 0% 28%;
+  --ring: 40 12% 80%;
+  --radius: 0.75rem;
+  --app-font-sans: 'DM Sans', sans-serif;
+  --app-font-mono: 'Space Mono', monospace;
+  color: hsl(var(--foreground));
+  font-family: var(--app-font-sans);
+}

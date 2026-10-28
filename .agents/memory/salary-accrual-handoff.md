@@ -32,3 +32,9 @@ Sending a work order to HR fixes and reserves its source accruals even before sa
 **Why:** Rates can be entered later than the work date; one permanently closed register per date would silently omit late accruals.
 
 **How to apply:** Prevent duplicate source accruals across snapshots and prevent changing submitted source amounts without an explicit correction workflow.
+
+В хозяйстве есть не только сотрудники со сдельными начислениями за полевые работы и перевозки, но и разнорабочие, а также специалисты на окладах.
+
+**Why:** Пользователь прямо указал эти категории при обсуждении расширения работы отдела кадров.
+
+**How to apply:** Не считать гектары и рейсы единственными возможными основаниями зарплаты. При предложении новых схем учитывать табель и договорные условия оплаты; сам факт существования этих категорий не разрешает автоматически добавлять оклад к сдельной оплате или менять действующий расчёт.
