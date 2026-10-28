@@ -3661,6 +3661,7 @@ export const ListEmployeesResponseItem = zod.object({
   "id": zod.number(),
   "fullName": zod.string(),
   "department": zod.string(),
+  "payrollGroup": zod.string().nullish(),
   "position": zod.string(),
   "isActive": zod.boolean(),
   "createdBy": zod.string(),
@@ -3690,6 +3691,7 @@ export const CreateEmployeeResponse = zod.object({
   "id": zod.number(),
   "fullName": zod.string(),
   "department": zod.string(),
+  "payrollGroup": zod.string().nullish(),
   "position": zod.string(),
   "isActive": zod.boolean(),
   "createdBy": zod.string(),
@@ -3726,6 +3728,33 @@ export const UpdateEmployeeResponse = zod.object({
   "id": zod.number(),
   "fullName": zod.string(),
   "department": zod.string(),
+  "payrollGroup": zod.string().nullish(),
+  "position": zod.string(),
+  "isActive": zod.boolean(),
+  "createdBy": zod.string(),
+  "updatedBy": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+
+
+
+export const UpdateEmployeePayrollGroupParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const UpdateEmployeePayrollGroupBody = zod.object({
+  "payrollGroup": zod.enum(['brigade', 'motor_pool', 'grain_floor', 'workshop', 'machinery_yard', 'unassigned']),
+  "expectedGroup": zod.enum(['brigade', 'motor_pool', 'grain_floor', 'workshop', 'machinery_yard', 'unassigned'])
+})
+
+export const UpdateEmployeePayrollGroupResponse = zod.object({
+  "id": zod.number(),
+  "fullName": zod.string(),
+  "department": zod.string(),
+  "payrollGroup": zod.string().nullish(),
   "position": zod.string(),
   "isActive": zod.boolean(),
   "createdBy": zod.string(),

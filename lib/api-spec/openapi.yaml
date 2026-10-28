@@ -926,6 +926,34 @@ paths:
               schema: { $ref: "#/components/schemas/Employee" }
         "404":
           description: Employee not found
+  /economic/employees/{id}/payroll-group:
+    patch:
+      operationId: updateEmployeePayrollGroup
+      tags: [economy]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EmployeePayrollGroupInput" }
+      responses:
+        "200":
+          description: Employee payroll group changed without changing salary
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Employee" }
+        "400":
+          description: Invalid group or employee ID
+        "403":
+          description: Only HR and general director may distribute employees
+        "404":
+          description: Employee not found
+        "409":
+          description: Employee group changed since it was loaded
   /economic/payroll-accruals:
     get:
       operationId: listPayrollAccruals
@@ -2615,6 +2643,16 @@ components:
       required: [version]
       properties:
         version: { type: number, minimum: 1 }
+    EmployeePayrollGroupInput:
+      type: object
+      required: [payrollGroup, expectedGroup]
+      properties:
+        payrollGroup:
+          type: string
+          enum: [brigade, motor_pool, grain_floor, workshop, machinery_yard, unassigned]
+        expectedGroup:
+          type: string
+          enum: [brigade, motor_pool, grain_floor, workshop, machinery_yard, unassigned]
     EmployeeCreateInput:
       type: object
       required: [fullName, department, position]
@@ -2637,6 +2675,7 @@ components:
         id: { type: number }
         fullName: { type: string }
         department: { type: string }
+        payrollGroup: { type: ["string", "null"] }
         position: { type: string }
         isActive: { type: boolean }
         createdBy: { type: string }

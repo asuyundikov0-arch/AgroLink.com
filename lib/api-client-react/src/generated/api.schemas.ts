@@ -1491,6 +1491,35 @@ export interface PayrollRegisterSubmitInput {
   version: number;
 }
 
+export type EmployeePayrollGroupInputPayrollGroup = typeof EmployeePayrollGroupInputPayrollGroup[keyof typeof EmployeePayrollGroupInputPayrollGroup];
+
+
+export const EmployeePayrollGroupInputPayrollGroup = {
+  brigade: 'brigade',
+  motor_pool: 'motor_pool',
+  grain_floor: 'grain_floor',
+  workshop: 'workshop',
+  machinery_yard: 'machinery_yard',
+  unassigned: 'unassigned',
+} as const;
+
+export type EmployeePayrollGroupInputExpectedGroup = typeof EmployeePayrollGroupInputExpectedGroup[keyof typeof EmployeePayrollGroupInputExpectedGroup];
+
+
+export const EmployeePayrollGroupInputExpectedGroup = {
+  brigade: 'brigade',
+  motor_pool: 'motor_pool',
+  grain_floor: 'grain_floor',
+  workshop: 'workshop',
+  machinery_yard: 'machinery_yard',
+  unassigned: 'unassigned',
+} as const;
+
+export interface EmployeePayrollGroupInput {
+  payrollGroup: EmployeePayrollGroupInputPayrollGroup;
+  expectedGroup: EmployeePayrollGroupInputExpectedGroup;
+}
+
 export interface EmployeeCreateInput {
   /**
      * @minLength 2
@@ -1520,6 +1549,8 @@ export interface Employee {
   id: number;
   fullName: string;
   department: string;
+  /** @nullable */
+  payrollGroup?: string | null;
   position: string;
   isActive: boolean;
   createdBy: string;

@@ -206,7 +206,7 @@ export default function PayrollRegisterWorkspace({ canManage, canApprove = false
   </section>;
 }
 
-function PendingRegister({ register, canApprove, approving, disabled, onApprove }: { register: PayrollRegister; canApprove: boolean; approving: boolean; disabled: boolean; onApprove: () => void }) {
+export function PendingRegister({ register, canApprove, approving, disabled, onApprove }: { register: PayrollRegister; canApprove: boolean; approving: boolean; disabled: boolean; onApprove: () => void }) {
   const groups = groupLines(register.entries);
   return <article className="py-4" data-testid={`payroll-pending-card-${register.id}`}>
     <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">

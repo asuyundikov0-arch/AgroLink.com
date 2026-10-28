@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { Router, type IRouter, type RequestHandler } from "express";
 import {
   CreateEmployeeBody,
@@ -7,6 +7,9 @@ import {
   UpdateEmployeeBody,
   UpdateEmployeeParams,
   UpdateEmployeeResponse,
+  UpdateEmployeePayrollGroupBody,
+  UpdateEmployeePayrollGroupParams,
+  UpdateEmployeePayrollGroupResponse,
 } from "@workspace/api-zod";
 import { activityTable, db, employeesTable } from "@workspace/db";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
@@ -14,7 +17,7 @@ import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 const router: IRouter = Router();
 const employeeReaders = new Set([
   "agronomist", "chief_agronomist", "grain_manager", "weigher",
-  "dispatcher", "general_director", "chief_engineer",
+  "dispatcher", "general_director", "chief_engineer", "hr",
 ]);
 const employeeManagers = new Set(["chief_agronomist", "chief_engineer", "dispatcher", "general_director"]);
 const actor = (access: RoleAccess) => `${access.displayName} · ${access.role}`;
@@ -135,6 +138,42 @@ router.patch(
     } catch (error) {
       next(error);
     }
+  },
+);
+
+router.patch(
+  "/economic/employees/:id/payroll-group",
+  roleGuard(new Set(["hr", "general_director"]), "Распределять сотрудников по зарплатным группам могут отдел кадров и генеральный директор."),
+  async (req, res, next): Promise<void> => {
+    try {
+      const params = UpdateEmployeePayrollGroupParams.safeParse(req.params);
+      const parsed = UpdateEmployeePayrollGroupBody.safeParse(req.body);
+      if (!params.success || !parsed.success || !Number.isSafeInteger(params.data.id)) {
+        res.status(400).json({ error: "Проверьте сотрудника и выбранную группу." });
+        return;
+      }
+      const access = res.locals.access as RoleAccess;
+      const expected = parsed.data.expectedGroup;
+      const group = parsed.data.payrollGroup === "unassigned" ? null : parsed.data.payrollGroup;
+      const row = await db.transaction(async (tx) => {
+        const [updated] = await tx.update(employeesTable).set({
+          payrollGroup: group, updatedBy: actor(access), updatedAt: new Date(),
+        }).where(and(eq(employeesTable.id, params.data.id), expected === "unassigned"
+          ? isNull(employeesTable.payrollGroup) : eq(employeesTable.payrollGroup, expected))).returning();
+        if (updated) await tx.insert(activityTable).values({
+          action: "Изменена зарплатная группа сотрудника",
+          templateName: `${updated.fullName} · ${group ?? "без группы"}`,
+          userName: actor(access),
+        });
+        return updated;
+      });
+      if (!row) {
+        const [existing] = await db.select({ id: employeesTable.id }).from(employeesTable).where(eq(employeesTable.id, params.data.id));
+        res.status(existing ? 409 : 404).json({ error: existing ? "Группа уже изменена. Обновите список сотрудников." : "Сотрудник не найден." });
+        return;
+      }
+      res.json(UpdateEmployeePayrollGroupResponse.parse(employeeJson(row)));
+    } catch (error) { next(error); }
   },
 );
 

@@ -42,9 +42,9 @@ import EngineeringWorkspace from "@/components/engineering/EngineeringWorkspace"
 import AgroWorkspace from "@/components/agro/AgroWorkspace";
 import PaymentRegister from "@/components/economic/PaymentRegister";
 import EmployeeDirectory from "@/components/employees/EmployeeDirectory";
-import PayrollRegisterWorkspace from "@/components/economic/PayrollRegisterWorkspace";
 import { ChemicalBalanceCard } from "@/components/agro/chemicals/Custody";
 import HRWorkspace from "@/components/hr/HRWorkspace";
+import PayrollRegisterWorkspace from "@/components/economic/PayrollRegisterWorkspace";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import companyEmblem from "@assets/IMG_0731_1787404427367.jpeg";

@@ -4,6 +4,7 @@ export const employeesTable = pgTable("employees", {
   id: serial("id").primaryKey(),
   fullName: text("full_name").notNull(),
   department: text("department").notNull().default(""),
+  payrollGroup: text("payroll_group"),
   position: text("position").notNull().default(""),
   isActive: boolean("is_active").notNull().default(true),
   createdBy: text("created_by").notNull(),

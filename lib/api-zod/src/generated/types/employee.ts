@@ -10,6 +10,8 @@ export interface Employee {
   id: number;
   fullName: string;
   department: string;
+  /** @nullable */
+  payrollGroup?: string | null;
   position: string;
   isActive: boolean;
   createdBy: string;

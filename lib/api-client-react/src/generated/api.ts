@@ -40,6 +40,7 @@ import type {
   DocumentUploadTarget,
   Employee,
   EmployeeCreateInput,
+  EmployeePayrollGroupInput,
   EmployeeUpdateInput,
   ExpenseInput,
   ExpenseUpdate,
@@ -4109,6 +4110,72 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getUpdateEmployeeMutationOptions(options));
+    }
+
+export const getUpdateEmployeePayrollGroupUrl = (id: number,) => {
+
+
+
+
+  return `/api/economic/employees/${id}/payroll-group`
+}
+
+export const updateEmployeePayrollGroup = async (id: number,
+    employeePayrollGroupInput: EmployeePayrollGroupInput, options?: Parameters<typeof customFetch>[1]): Promise<Employee> => {
+
+  return customFetch<Employee>(getUpdateEmployeePayrollGroupUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(employeePayrollGroupInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateEmployeePayrollGroupMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEmployeePayrollGroup>>, TError,{id: number;data: BodyType<EmployeePayrollGroupInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateEmployeePayrollGroup>>, TError,{id: number;data: BodyType<EmployeePayrollGroupInput>}, TContext> => {
+
+const mutationKey = ['updateEmployeePayrollGroup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateEmployeePayrollGroup>>, {id: number;data: BodyType<EmployeePayrollGroupInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateEmployeePayrollGroup(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateEmployeePayrollGroupMutationResult = NonNullable<Awaited<ReturnType<typeof updateEmployeePayrollGroup>>>
+    export type UpdateEmployeePayrollGroupMutationBody = BodyType<EmployeePayrollGroupInput>
+    export type UpdateEmployeePayrollGroupMutationError = ErrorType<void>
+
+    export const useUpdateEmployeePayrollGroup = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEmployeePayrollGroup>>, TError,{id: number;data: BodyType<EmployeePayrollGroupInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateEmployeePayrollGroup>>,
+        TError,
+        {id: number;data: BodyType<EmployeePayrollGroupInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateEmployeePayrollGroupMutationOptions(options));
     }
 
 export const getListPayrollAccrualsUrl = () => {
