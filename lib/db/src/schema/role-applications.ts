@@ -10,6 +10,7 @@ export const appRoles = [
   "engineer",
   "chief_engineer",
   "storekeeper",
+  "fuel_manager",
   "farm_director",
   "general_director",
 ] as const;

@@ -11,3 +11,5 @@
 - [Partial index changes](partial-index-push.md) — Drizzle push may miss a changed WHERE predicate; verify the live index definition.
 - [Chemical warehouse](chemical-warehouse-rules.md) — нормы × гектары дают ожидаемую тару; приёмка завтоком списывает с подотчёта, отклонения видны; цена/га по фактическому посеву.
 - [Operational product scope](product-scope.md) — убраны экономист, юрист и ручной документооборот; производственный учёт, кадровое подтверждение и автоматические сводки сохраняются.
+- [Fuel and field costs](fuel-and-field-costs.md) — нефтебаза, средняя стоимость топлива, привязка к технике и операции; затраты поля: тара, ГСМ и подтверждённая кадрами зарплата.
+- [Visual direction](visual-style.md) — преимущественно чёрно-белое оформление и изображение AgroLink с полем на фоне кабинетов и всех отделов.

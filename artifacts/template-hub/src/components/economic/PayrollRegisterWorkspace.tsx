@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check, ClipboardList, Clock3, Hourglass, Lock, RefreshCw, Send, ShieldCheck, Users, Wallet } from "lucide-react";
 import {
@@ -64,7 +64,9 @@ function EmployeeGroups({ groups, testPrefix }: { groups: Group[]; testPrefix: s
 
 type Tab = "queue" | "cumulative" | "history";
 
-export default function PayrollRegisterWorkspace({ canManage, canApprove = false }: { canManage: boolean; canApprove?: boolean }) {
+export default function PayrollRegisterWorkspace({ canManage, canApprove = false, onApproved }: { canManage: boolean; canApprove?: boolean; onApproved?: () => void }) {
+  const onApprovedRef = useRef(onApproved);
+  onApprovedRef.current = onApproved;
   const queryClient = useQueryClient();
   const registersQuery = useListPayrollRegisters({ query: { queryKey: getListPayrollRegistersQueryKey(), refetchInterval: 15000 } });
   const accrualsQuery = useListPayrollAccruals({ query: { queryKey: getListPayrollAccrualsQueryKey(), enabled: canManage, refetchInterval: canManage ? 15000 : false } });
@@ -87,6 +89,7 @@ export default function PayrollRegisterWorkspace({ canManage, canApprove = false
   const sentTotal = sent.reduce((sum, register) => sum + register.totalAmount, 0);
 
   const refreshAll = () => Promise.all([
+    queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0] ?? "").includes("/costs") }),
     queryClient.invalidateQueries({ queryKey: getListPayrollRegistersQueryKey() }),
     ...(canManage ? [queryClient.invalidateQueries({ queryKey: getListPayrollAccrualsQueryKey() })] : []),
   ]);
@@ -98,6 +101,7 @@ export default function PayrollRegisterWorkspace({ canManage, canApprove = false
     try {
       await send.mutateAsync({ data: { workDate: day.workDate.slice(0, 10), unit: day.unit, sourceHash: day.sourceHash } });
       await refreshAll();
+      onApprovedRef.current?.();
       setNotice(`Наряд за ${formatDate(day.workDate)} (${day.unit}) отправлен в отдел кадров. Начисления станут зарплатой после подтверждения отдела кадров.`);
     } catch (err) {
       const info = errorInfo(err);

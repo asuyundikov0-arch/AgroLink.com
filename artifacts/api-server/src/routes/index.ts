@@ -8,6 +8,7 @@ import sparePartRequestsRouter from "./spare-part-requests";
 import payrollRegistersRouter from "./payroll-registers";
 import employeesRouter from "./employees";
 import chemicalsRouter from "./chemicals";
+import fuelRouter from "./fuel";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(sparePartRequestsRouter);
 router.use(payrollRegistersRouter);
 router.use(employeesRouter);
 router.use(chemicalsRouter);
+router.use(fuelRouter);
 
 export default router;

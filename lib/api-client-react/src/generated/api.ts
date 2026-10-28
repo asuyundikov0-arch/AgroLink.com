@@ -44,6 +44,7 @@ import type {
   ExpenseInput,
   ExpenseUpdate,
   FieldActualInput,
+  FieldCosts,
   FieldDashboard,
   FieldDispatchItem,
   FieldDispatchRateInput,
@@ -60,6 +61,10 @@ import type {
   FleetEquipment,
   FleetInput,
   FleetUpdate,
+  FuelIssueInput,
+  FuelMovement,
+  FuelReceiptInput,
+  FuelWarehouse,
   GetDailySeedingReportParams,
   GrainCrop,
   GrainCropInput,
@@ -137,6 +142,278 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetFuelWarehouseUrl = () => {
+
+
+
+
+  return `/api/engineering/fuel`
+}
+
+export const getFuelWarehouse = async ( options?: Parameters<typeof customFetch>[1]): Promise<FuelWarehouse> => {
+
+  return customFetch<FuelWarehouse>(getGetFuelWarehouseUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFuelWarehouseQueryKey = () => {
+    return [
+    `/api/engineering/fuel`
+    ] as const;
+    }
+
+
+export const getGetFuelWarehouseQueryOptions = <TData = Awaited<ReturnType<typeof getFuelWarehouse>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFuelWarehouse>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFuelWarehouseQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFuelWarehouse>>> = ({ signal }) => getFuelWarehouse({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFuelWarehouse>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFuelWarehouseQueryResult = NonNullable<Awaited<ReturnType<typeof getFuelWarehouse>>>
+export type GetFuelWarehouseQueryError = ErrorType<unknown>
+
+
+
+export function useGetFuelWarehouse<TData = Awaited<ReturnType<typeof getFuelWarehouse>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFuelWarehouse>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFuelWarehouseQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateFuelReceiptUrl = () => {
+
+
+
+
+  return `/api/engineering/fuel/receipts`
+}
+
+export const createFuelReceipt = async (fuelReceiptInput: FuelReceiptInput, options?: Parameters<typeof customFetch>[1]): Promise<FuelMovement> => {
+
+  return customFetch<FuelMovement>(getCreateFuelReceiptUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(fuelReceiptInput)
+  }
+);}
+
+
+
+
+
+export const getCreateFuelReceiptMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFuelReceipt>>, TError,{data: BodyType<FuelReceiptInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createFuelReceipt>>, TError,{data: BodyType<FuelReceiptInput>}, TContext> => {
+
+const mutationKey = ['createFuelReceipt'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createFuelReceipt>>, {data: BodyType<FuelReceiptInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createFuelReceipt(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateFuelReceiptMutationResult = NonNullable<Awaited<ReturnType<typeof createFuelReceipt>>>
+    export type CreateFuelReceiptMutationBody = BodyType<FuelReceiptInput>
+    export type CreateFuelReceiptMutationError = ErrorType<unknown>
+
+    export const useCreateFuelReceipt = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFuelReceipt>>, TError,{data: BodyType<FuelReceiptInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createFuelReceipt>>,
+        TError,
+        {data: BodyType<FuelReceiptInput>},
+        TContext
+      > => {
+      return useMutation(getCreateFuelReceiptMutationOptions(options));
+    }
+
+export const getCreateFuelIssueUrl = () => {
+
+
+
+
+  return `/api/engineering/fuel/issues`
+}
+
+export const createFuelIssue = async (fuelIssueInput: FuelIssueInput, options?: Parameters<typeof customFetch>[1]): Promise<FuelMovement> => {
+
+  return customFetch<FuelMovement>(getCreateFuelIssueUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(fuelIssueInput)
+  }
+);}
+
+
+
+
+
+export const getCreateFuelIssueMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFuelIssue>>, TError,{data: BodyType<FuelIssueInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createFuelIssue>>, TError,{data: BodyType<FuelIssueInput>}, TContext> => {
+
+const mutationKey = ['createFuelIssue'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createFuelIssue>>, {data: BodyType<FuelIssueInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createFuelIssue(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateFuelIssueMutationResult = NonNullable<Awaited<ReturnType<typeof createFuelIssue>>>
+    export type CreateFuelIssueMutationBody = BodyType<FuelIssueInput>
+    export type CreateFuelIssueMutationError = ErrorType<unknown>
+
+    export const useCreateFuelIssue = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFuelIssue>>, TError,{data: BodyType<FuelIssueInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createFuelIssue>>,
+        TError,
+        {data: BodyType<FuelIssueInput>},
+        TContext
+      > => {
+      return useMutation(getCreateFuelIssueMutationOptions(options));
+    }
+
+export const getGetFieldCostsUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/fields/seasons/${id}/costs`
+}
+
+export const getFieldCosts = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<FieldCosts> => {
+
+  return customFetch<FieldCosts>(getGetFieldCostsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFieldCostsQueryKey = (id: number,) => {
+    return [
+    `/api/agro/fields/seasons/${id}/costs`
+    ] as const;
+    }
+
+
+export const getGetFieldCostsQueryOptions = <TData = Awaited<ReturnType<typeof getFieldCosts>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFieldCosts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFieldCostsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFieldCosts>>> = ({ signal }) => getFieldCosts(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFieldCosts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFieldCostsQueryResult = NonNullable<Awaited<ReturnType<typeof getFieldCosts>>>
+export type GetFieldCostsQueryError = ErrorType<unknown>
+
+
+
+export function useGetFieldCosts<TData = Awaited<ReturnType<typeof getFieldCosts>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFieldCosts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFieldCostsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetChemicalWorkflowUrl = () => {
 

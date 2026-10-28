@@ -15,6 +15,12 @@ Every HR-confirmed daily order contributes to a cumulative register per employee
 
 **How to apply:** Count submitted sheets only, retain their individual history, and do not collapse distinct confirmed work lines merely because their employee, date or work type is the same.
 
+HR-confirmed field-work wages also contribute to the costs of their original field season and operation.
+
+**Why:** The user explicitly requested field-level wage costs after HR confirmation, alongside chemicals and fuel.
+
+**How to apply:** Resolve the original work operation from the accrual source, not a name in the notes. Pending HR orders do not contribute to field costs. Keep employee payroll and field-cost breakdowns consistent without duplicating the accrual.
+
 Chief department specialists and the dispatcher maintain the shared employee directory; employees are selected from it in work and transport records.
 
 **Why:** The user explicitly chose “Главные специалисты подразделений и диспетчер” and required accruals to enter the daily register automatically when an employee is selected.

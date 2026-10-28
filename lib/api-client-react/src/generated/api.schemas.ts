@@ -5,6 +5,214 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type FuelReceiptInputFarm = typeof FuelReceiptInputFarm[keyof typeof FuelReceiptInputFarm];
+
+
+export const FuelReceiptInputFarm = {
+  АПК_Арыстан_Grain: 'АПК Арыстан Grain',
+  АФ_Веденовка: 'АФ Веденовка',
+} as const;
+
+export interface FuelReceiptInput {
+  /**
+     * @minLength 8
+     * @maxLength 100
+     */
+  requestId: string;
+  farm: FuelReceiptInputFarm;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  fuelType: string;
+  occurredOn: string;
+  /**
+     * @minimum 0.001
+     * @maximum 1000000
+     */
+  liters: number;
+  /**
+     * @minimum 0.01
+     * @maximum 1000000
+     */
+  pricePerLiter: number;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  invoiceNumber: string;
+  /** @maxLength 300 */
+  supplier: string;
+  /** @maxLength 3000 */
+  notes: string;
+}
+
+export type FuelIssueInputFarm = typeof FuelIssueInputFarm[keyof typeof FuelIssueInputFarm];
+
+
+export const FuelIssueInputFarm = {
+  АПК_Арыстан_Grain: 'АПК Арыстан Grain',
+  АФ_Веденовка: 'АФ Веденовка',
+} as const;
+
+export interface FuelIssueInput {
+  /**
+     * @minLength 8
+     * @maxLength 100
+     */
+  requestId: string;
+  farm: FuelIssueInputFarm;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  fuelType: string;
+  occurredOn: string;
+  /**
+     * @minimum 0.001
+     * @maximum 1000000
+     */
+  liters: number;
+  /** @minimum 1 */
+  fleetId: number;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  operationId: number | null;
+  /** @maxLength 3000 */
+  notes: string;
+}
+
+export type FuelMovementKind = typeof FuelMovementKind[keyof typeof FuelMovementKind];
+
+
+export const FuelMovementKind = {
+  receipt: 'receipt',
+  issue: 'issue',
+} as const;
+
+export interface FuelMovement {
+  id: number;
+  requestId: string;
+  kind: FuelMovementKind;
+  farm: string;
+  fuelType: string;
+  occurredOn: string;
+  liters: number;
+  amount: number;
+  pricePerLiter: number;
+  /** @nullable */
+  fleetId: number | null;
+  equipment: string;
+  /** @nullable */
+  operationId: number | null;
+  fieldNumber: string;
+  operationName: string;
+  invoiceNumber: string;
+  supplier: string;
+  notes: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface FuelStock {
+  farm: string;
+  fuelType: string;
+  liters: number;
+  amount: number;
+  averagePricePerLiter: number;
+}
+
+export type FuelWorkAssignmentAssignmentsItem = {
+  date: string;
+  equipment: string;
+};
+
+export interface FuelWorkAssignment {
+  operationId: number;
+  fieldId: number;
+  fieldNumber: string;
+  farm: string;
+  operationName: string;
+  startDate: string;
+  /** @nullable */
+  endDate: string | null;
+  equipment: string;
+  assignments: FuelWorkAssignmentAssignmentsItem[];
+}
+
+export type FleetEquipmentUnit = typeof FleetEquipmentUnit[keyof typeof FleetEquipmentUnit];
+
+
+export const FleetEquipmentUnit = {
+  АПК_Арыстан_Grain: 'АПК Арыстан Grain',
+  АФ_Веденовка: 'АФ Веденовка',
+} as const;
+
+export interface FleetEquipment {
+  id: number;
+  kind: string;
+  /** @nullable */
+  registrationNumber: string | null;
+  unit: FleetEquipmentUnit;
+  version: number;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface FuelWarehouse {
+  stocks: FuelStock[];
+  movements: FuelMovement[];
+  equipment: FleetEquipment[];
+  workAssignments: FuelWorkAssignment[];
+}
+
+export interface FieldCostTotals {
+  chemicalCost: number;
+  fuelCost: number;
+  salaryCost: number;
+  totalCost: number;
+  fuelLiters: number;
+}
+
+export type FieldOperationCostsChemicalsItem = {
+  batchId: number;
+  name: string;
+  unit: string;
+  quantity: number;
+  amount: number;
+};
+
+export type FieldOperationCostsFuelsItem = {
+  fuelType: string;
+  liters: number;
+  amount: number;
+};
+
+export type FieldOperationCostsSalariesItem = {
+  /** @nullable */
+  employeeId: number | null;
+  employeeName: string;
+  workDate: string;
+  amount: number;
+};
+
+export type FieldOperationCosts = FieldCostTotals & {
+  operationId: number;
+  name: string;
+  chemicals: FieldOperationCostsChemicalsItem[];
+  fuels: FieldOperationCostsFuelsItem[];
+  salaries: FieldOperationCostsSalariesItem[];
+};
+
+export type FieldCosts = FieldCostTotals & {
+  fieldId: number;
+  seasonId: number;
+  unallocatedChemicalCost: number;
+  operations: FieldOperationCosts[];
+};
+
 export interface ChemicalMutationResult {
   id: number;
 }
@@ -910,25 +1118,6 @@ export type FleetUpdate = FleetInput & {
   /** @minimum 1 */
   version: number;
 };
-
-export type FleetEquipmentUnit = typeof FleetEquipmentUnit[keyof typeof FleetEquipmentUnit];
-
-
-export const FleetEquipmentUnit = {
-  АПК_Арыстан_Grain: 'АПК Арыстан Grain',
-  АФ_Веденовка: 'АФ Веденовка',
-} as const;
-
-export interface FleetEquipment {
-  id: number;
-  kind: string;
-  /** @nullable */
-  registrationNumber: string | null;
-  unit: FleetEquipmentUnit;
-  version: number;
-  updatedAt: string;
-  updatedBy: string;
-}
 
 export interface PlanInput {
   /** @minimum 1 */
@@ -2133,6 +2322,7 @@ export const RoleRequestRequestedRole = {
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
   storekeeper: 'storekeeper',
+  fuel_manager: 'fuel_manager',
   farm_director: 'farm_director',
   general_director: 'general_director',
 } as const;
@@ -2174,6 +2364,7 @@ export const RoleRequestInputRequestedRole = {
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
   storekeeper: 'storekeeper',
+  fuel_manager: 'fuel_manager',
   farm_director: 'farm_director',
   general_director: 'general_director',
 } as const;

@@ -37,6 +37,7 @@ export * from "./field-operation-progress";
 export * from "./payroll-registers";
 export * from "./employees";
 export * from "./chemical-warehouse";
+export * from "./fuel-movements";
 
 export const templatesTable = pgTable("templates", {
   id: serial("id").primaryKey(),

@@ -18,6 +18,8 @@ import { summarizeDailySeeding } from "../lib/daily-seeding";
 import { isChemicalOperation, chemicalRequestsExist, chemicalIssuedForOperation, lastChemicalConfirmation } from "../lib/chemical-workflow";
 import { ChemicalError } from "../lib/chemical-stock";
 import { startOrChangeFieldWork, transitionFieldWork, validateChemicalPlan } from "../lib/field-workflow";
+import { fieldCosts } from "../lib/field-costs";
+import { GetFieldCostsResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 const managers = ["chief_agronomist", "general_director"];
@@ -29,6 +31,18 @@ const roles = (allowed: string[]): RequestHandler => (_req, res, next) => {
 };
 router.use("/agro/fields", requireApprovedRole);
 const manage = roles(managers);
+router.get("/agro/fields/seasons/:id/costs", roles(readers), async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isSafeInteger(id) || id <= 0) { res.status(400).json({ error: "Укажите корректный сезон поля." }); return; }
+    const result = await db.transaction(async (tx) => {
+      await tx.execute(sql`set transaction isolation level repeatable read`);
+      return fieldCosts(tx, id);
+    });
+    if (!result) { res.status(404).json({ error: "Сезон поля не найден." }); return; }
+    res.json(GetFieldCostsResponse.parse(result));
+  } catch (error) { next(error); }
+});
 class FieldError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }

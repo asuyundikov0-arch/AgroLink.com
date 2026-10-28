@@ -19,6 +19,63 @@ tags:
   - name: uploads
     description: Retired document upload workflow; all endpoints return HTTP 410
 paths:
+  /engineering/fuel:
+    get:
+      operationId: getFuelWarehouse
+      responses:
+        "200":
+          description: Fuel stocks, immutable movements and field work assignments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FuelWarehouse"
+  /engineering/fuel/receipts:
+    post:
+      operationId: createFuelReceipt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FuelReceiptInput"
+      responses:
+        "201":
+          description: Fuel receipt posted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FuelMovement"
+  /engineering/fuel/issues:
+    post:
+      operationId: createFuelIssue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FuelIssueInput"
+      responses:
+        "201":
+          description: Fuel issued to a vehicle, optionally charged to field work
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FuelMovement"
+  /agro/fields/seasons/{id}/costs:
+    get:
+      operationId: getFieldCosts
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: number, minimum: 1 }
+      responses:
+        "200":
+          description: Field season and operation costs from posted chemistry, fuel and HR-confirmed wages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FieldCosts"
   /agro/chemicals/workflow:
     get:
       operationId: getChemicalWorkflow
@@ -1490,6 +1547,158 @@ paths:
           description: User access revoked
 components:
   schemas:
+    FuelReceiptInput:
+      type: object
+      required: [requestId, farm, fuelType, occurredOn, liters, pricePerLiter, invoiceNumber, supplier, notes]
+      properties:
+        requestId: { type: string, minLength: 8, maxLength: 100 }
+        farm: { type: string, enum: ["АПК Арыстан Grain", "АФ Веденовка"] }
+        fuelType: { type: string, minLength: 1, maxLength: 80 }
+        occurredOn: { type: string }
+        liters: { type: number, minimum: 0.001, maximum: 1000000 }
+        pricePerLiter: { type: number, minimum: 0.01, maximum: 1000000 }
+        invoiceNumber: { type: string, minLength: 1, maxLength: 200 }
+        supplier: { type: string, maxLength: 300 }
+        notes: { type: string, maxLength: 3000 }
+    FuelIssueInput:
+      type: object
+      required: [requestId, farm, fuelType, occurredOn, liters, fleetId, operationId, notes]
+      properties:
+        requestId: { type: string, minLength: 8, maxLength: 100 }
+        farm: { type: string, enum: ["АПК Арыстан Grain", "АФ Веденовка"] }
+        fuelType: { type: string, minLength: 1, maxLength: 80 }
+        occurredOn: { type: string }
+        liters: { type: number, minimum: 0.001, maximum: 1000000 }
+        fleetId: { type: number, minimum: 1 }
+        operationId: { type: [number, "null"], minimum: 1 }
+        notes: { type: string, maxLength: 3000 }
+    FuelMovement:
+      type: object
+      required: [id, requestId, kind, farm, fuelType, occurredOn, liters, amount, pricePerLiter, fleetId, equipment, operationId, fieldNumber, operationName, invoiceNumber, supplier, notes, createdBy, createdAt]
+      properties:
+        id: { type: number }
+        requestId: { type: string }
+        kind: { type: string, enum: [receipt, issue] }
+        farm: { type: string }
+        fuelType: { type: string }
+        occurredOn: { type: string }
+        liters: { type: number }
+        amount: { type: number }
+        pricePerLiter: { type: number }
+        fleetId: { type: [number, "null"] }
+        equipment: { type: string }
+        operationId: { type: [number, "null"] }
+        fieldNumber: { type: string }
+        operationName: { type: string }
+        invoiceNumber: { type: string }
+        supplier: { type: string }
+        notes: { type: string }
+        createdBy: { type: string }
+        createdAt: { type: string }
+    FuelStock:
+      type: object
+      required: [farm, fuelType, liters, amount, averagePricePerLiter]
+      properties:
+        farm: { type: string }
+        fuelType: { type: string }
+        liters: { type: number }
+        amount: { type: number }
+        averagePricePerLiter: { type: number }
+    FuelWorkAssignment:
+      type: object
+      required: [operationId, fieldId, fieldNumber, farm, operationName, startDate, endDate, equipment, assignments]
+      properties:
+        operationId: { type: number }
+        fieldId: { type: number }
+        fieldNumber: { type: string }
+        farm: { type: string }
+        operationName: { type: string }
+        startDate: { type: string }
+        endDate: { type: [string, "null"] }
+        equipment: { type: string }
+        assignments:
+          type: array
+          items:
+            type: object
+            required: [date, equipment]
+            properties:
+              date: { type: string }
+              equipment: { type: string }
+    FuelWarehouse:
+      type: object
+      required: [stocks, movements, equipment, workAssignments]
+      properties:
+        stocks:
+          type: array
+          items: { $ref: "#/components/schemas/FuelStock" }
+        movements:
+          type: array
+          items: { $ref: "#/components/schemas/FuelMovement" }
+        equipment:
+          type: array
+          items: { $ref: "#/components/schemas/FleetEquipment" }
+        workAssignments:
+          type: array
+          items: { $ref: "#/components/schemas/FuelWorkAssignment" }
+    FieldCostTotals:
+      type: object
+      required: [chemicalCost, fuelCost, salaryCost, totalCost, fuelLiters]
+      properties:
+        chemicalCost: { type: number }
+        fuelCost: { type: number }
+        salaryCost: { type: number }
+        totalCost: { type: number }
+        fuelLiters: { type: number }
+    FieldOperationCosts:
+      allOf:
+        - $ref: "#/components/schemas/FieldCostTotals"
+        - type: object
+          required: [operationId, name, chemicals, fuels, salaries]
+          properties:
+            operationId: { type: number }
+            name: { type: string }
+            chemicals:
+              type: array
+              items:
+                type: object
+                required: [batchId, name, unit, quantity, amount]
+                properties:
+                  batchId: { type: number }
+                  name: { type: string }
+                  unit: { type: string }
+                  quantity: { type: number }
+                  amount: { type: number }
+            fuels:
+              type: array
+              items:
+                type: object
+                required: [fuelType, liters, amount]
+                properties:
+                  fuelType: { type: string }
+                  liters: { type: number }
+                  amount: { type: number }
+            salaries:
+              type: array
+              items:
+                type: object
+                required: [employeeId, employeeName, workDate, amount]
+                properties:
+                  employeeId: { type: [number, "null"] }
+                  employeeName: { type: string }
+                  workDate: { type: string }
+                  amount: { type: number }
+    FieldCosts:
+      allOf:
+        - $ref: "#/components/schemas/FieldCostTotals"
+        - type: object
+          required: [fieldId, seasonId, unallocatedChemicalCost, operations]
+          properties:
+            fieldId: { type: number }
+            seasonId: { type: number }
+            unallocatedChemicalCost: { type: number }
+            operations:
+              type: array
+              items: { $ref: "#/components/schemas/FieldOperationCosts" }
     ChemicalMutationResult:
       type: object
       required: [id]
@@ -3014,7 +3223,7 @@ components:
           type: string
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, engineer, chief_engineer, storekeeper, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, engineer, chief_engineer, storekeeper, fuel_manager, farm_director, general_director]
         status:
           type: string
           enum: [pending, approved, rejected]
@@ -3043,7 +3252,7 @@ components:
       properties:
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, engineer, chief_engineer, storekeeper, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, engineer, chief_engineer, storekeeper, fuel_manager, farm_director, general_director]
         department:
           type: string
           minLength: 1

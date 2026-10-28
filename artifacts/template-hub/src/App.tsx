@@ -1,4 +1,4 @@
-import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import { type CSSProperties, type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -48,6 +48,7 @@ import HRWorkspace from "@/components/hr/HRWorkspace";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import companyEmblem from "@assets/IMG_0731_1787404427367.jpeg";
+import fieldBackdrop from "@assets/4EEAF023-8B35-41FE-8D91-A04A016B4736_1793193861034.png";
 import "./index.css";
 
 const queryClient = new QueryClient();
@@ -66,6 +67,7 @@ const roleLabels = {
   engineer: "Инженер",
   chief_engineer: "Главный инженер",
   storekeeper: "Заведующий складом",
+  fuel_manager: "Заведующий нефтебазой",
   hr: "Отдел кадров",
 } as const;
 type AppRole = keyof typeof roleLabels;
@@ -86,45 +88,48 @@ const clerkAppearance = {
     logoImageUrl: companyEmblem,
   },
   variables: {
-    colorPrimary: "#243649",
-    colorForeground: "#293744",
-    colorMutedForeground: "#71808a",
-    colorBackground: "#fffdf8",
-    colorInput: "#ffffff",
-    colorInputForeground: "#293744",
-    colorDanger: "#d54a43",
-    colorNeutral: "#ded8cc",
+    colorPrimary: "#ece9e2",
+    colorPrimaryForeground: "#121212",
+    colorForeground: "#ece9e2",
+    colorMutedForeground: "#9a978f",
+    colorBackground: "#151515",
+    colorInput: "#1d1d1d",
+    colorInputForeground: "#ece9e2",
+    colorDanger: "#e0605a",
+    colorNeutral: "#ece9e2",
     fontFamily: "DM Sans, sans-serif",
     borderRadius: "0.75rem",
   },
   elements: {
     rootBox: "w-full flex justify-center",
-    cardBox: "w-[440px] max-w-full overflow-hidden rounded-2xl bg-[#fffdf8] shadow-xl",
+    cardBox: "w-[440px] max-w-full overflow-hidden rounded-2xl border border-white/10 bg-[#151515]/95 shadow-2xl backdrop-blur",
     card: "!border-0 !bg-transparent !shadow-none",
     footer: "!border-0 !bg-transparent !shadow-none",
-    headerTitle: "text-slate-800",
-    headerSubtitle: "text-slate-500",
-    socialButtonsBlockButtonText: "text-slate-700",
-    formFieldLabel: "text-slate-700",
-    footerActionLink: "text-[#0b679e]",
-    footerActionText: "text-slate-500",
-    dividerText: "text-slate-400",
-    identityPreviewEditButton: "text-[#0b679e]",
-    formFieldSuccessText: "text-[#0b679e]",
-    alertText: "text-slate-700",
+    headerTitle: "text-[#ece9e2]",
+    headerSubtitle: "text-[#9a978f]",
+    socialButtonsBlockButtonText: "text-[#ece9e2]",
+    formFieldLabel: "text-[#d8d5ce]",
+    footerActionLink: "text-[#d9b46a]",
+    footerActionText: "text-[#9a978f]",
+    dividerText: "text-[#7d7a73]",
+    identityPreviewEditButton: "text-[#d9b46a]",
+    formFieldSuccessText: "text-[#d9b46a]",
+    alertText: "text-[#ece9e2]",
     logoBox: "pb-2",
     logoImage: "h-10 w-10",
-    socialButtonsBlockButton: "border-stone-200 bg-white",
-    formButtonPrimary: "bg-slate-800 hover:bg-slate-700",
-    formFieldInput: "border-stone-200 bg-white",
-    footerAction: "border-stone-200",
-    dividerLine: "bg-stone-200",
-    alert: "border-stone-200 bg-stone-50",
-    otpCodeFieldInput: "border-stone-200",
+    socialButtonsBlockButton: "border-white/15 bg-[#1d1d1d]",
+    formButtonPrimary: "bg-[#ece9e2] text-[#121212] hover:bg-white/80",
+    formFieldInput: "border-white/15 bg-[#1d1d1d] text-[#ece9e2]",
+    footerAction: "border-white/10",
+    dividerLine: "bg-white/10",
+    alert: "border-white/10 bg-[#1d1d1d]",
+    otpCodeFieldInput: "border-white/15",
     formFieldRow: "gap-2",
     main: "gap-4",
   },
 };
+
+const backdropStyle = { "--app-backdrop": `url("${fieldBackdrop}")` } as CSSProperties;
 
 function cn(...classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -159,12 +164,12 @@ function EmptyState({ title, description }: { title: string; description: string
 
 function PublicLanding() {
   return (
-    <main className="auth-landing">
+    <main className="auth-landing app-backdrop" style={backdropStyle}>
       <div className="auth-landing-grid" aria-hidden="true" />
       <section className="auth-landing-card">
         <div className="landing-brand"><BrandEmblem size="lg" /><div><p className="landing-brand-name">AgroLink operation</p><p className="landing-brand-caption">Операционная система хозяйства</p></div></div>
         <p className="eyebrow mt-7">Поле, ток, техника, люди</p>
-        <h1 className="mt-3 font-display text-4xl font-bold tracking-[-0.05em] text-foreground">Операции в одном месте.<br /><span className="text-[#0b679e]">Понятные роли.</span></h1>
+        <h1 className="mt-3 font-display text-4xl font-bold tracking-[-0.05em] text-foreground">Операции в одном месте.<br /><span className="text-[hsl(var(--accent))]">Понятные роли.</span></h1>
         <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground">Каждый сотрудник выбирает роль при регистрации. Полевые работы, баланс зерна, склад химии, ремонт техники и наряды открываются только после согласования роли руководителем.</p>
         <div className="mt-8 flex flex-wrap gap-3">
           <a href={`${basePath}/sign-in`} className="button button-primary">Войти <UserRound size={16} /></a>
@@ -172,7 +177,7 @@ function PublicLanding() {
         </div>
       </section>
       <aside className="auth-landing-aside">
-        <ShieldCheck size={28} className="text-[#0b679e]" />
+        <ShieldCheck size={28} className="text-foreground" />
         <h2 className="mt-5 font-display text-2xl font-bold tracking-[-0.04em]">Доступ под контролем</h2>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">После регистрации заявка попадает в очередь руководителя. До согласования действия по рабочим ролям недоступны.</p>
       </aside>
@@ -191,6 +196,7 @@ const demoRoleScenarios: Record<AppRole, { workspace: string; title: string; des
   engineer: { workspace: "Инженерный блок", title: "Заявка на запчасти", description: "Укажите технику и нужные позиции, затем направьте заявку главному инженеру.", document: "Заявка на запчасти · К-744 · Инженерная служба", action: "Отправить главному инженеру", result: "Демо: заявка направлена главному инженеру." },
   chief_engineer: { workspace: "Инженерный блок", title: "Проверка заявок на запчасти", description: "Проверьте позиции заявки инженера и направьте их генеральному директору.", document: "Заявка на запчасти · К-744 · Инженерная служба", action: "Согласовать и направить", result: "Демо: заявка согласована и направлена генеральному директору." },
   storekeeper: { workspace: "Инженерный блок", title: "Приёмка запчастей", description: "Проверьте одобренные заявки, внесите фактическое поступление по накладной и пополните склад.", document: "Заявка на покупку запчастей · Инженерная служба", action: "Оприходовать накладную", result: "Демо: поступление по заявке оприходовано на складе." },
+  fuel_manager: { workspace: "Инженерный блок", title: "Учёт нефтебазы", description: "Внесите приход топлива по накладной и выдачу на технику с указанием поля и операции.", document: "Выдача ДТ · К-744 · поле № 14", action: "Провести выдачу", result: "Демо: выдача топлива учтена, остаток нефтебазы уменьшен." },
   hr: { workspace: "Отдел кадров", title: "Подтверждение ежедневных нарядов", description: "Проверьте дневной наряд диспетчера по всем сотрудникам и подтвердите начисления.", document: "Ежедневный наряд · АФ Веденовка", action: "Подтвердить начисления", result: "Демо: наряд подтверждён и передан в накопительный зарплатный реестр." },
 };
 
@@ -198,15 +204,15 @@ function PublicDemo() {
   const [role, setRole] = useState<AppRole>("engineer");
   const [message, setMessage] = useState("");
   const scenario = demoRoleScenarios[role];
-  return <main className="min-h-screen bg-background px-4 py-6 sm:px-7 sm:py-10">
+  return <main className="app-backdrop min-h-[100dvh] px-4" style={backdropStyle}><div className="py-6 sm:py-10">
     <div className="mx-auto max-w-5xl">
       <div className="mb-7 flex flex-col justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-center"><div className="flex items-center gap-3"><BrandEmblem /><div><p className="landing-brand-name">AgroLink operation</p><p className="text-xs text-muted-foreground">Интерактивная демо-версия</p></div></div><a href={basePath || "/"} className="button button-secondary text-xs"><ArrowLeft size={14} />К стартовой странице</a></div>
-      <section className="surface-card mb-6 border-l-[4px] border-l-amber-400 p-5 sm:p-7"><p className="eyebrow">Без регистрации и доступа к данным</p><h1 className="mt-2 font-display text-3xl font-bold tracking-[-0.05em]">Посмотрите работу каждой роли</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">Это безопасная учебная копия интерфейса. Все действия работают только внутри этого экрана и не создают пользователей, записи или заявки.</p><label className="form-label mt-6 block max-w-sm">Роль для демонстрации<select className="text-input mt-2" value={role} onChange={(event) => { setRole(event.target.value as AppRole); setMessage(""); }} data-testid="select-public-demo-role">{appRoles.map((item) => <option key={item} value={item}>{roleLabels[item]}</option>)}</select></label></section>
+      <section className="surface-card mb-6 border-l-[4px] border-l-[hsl(var(--accent))] p-5 sm:p-7"><p className="eyebrow">Без регистрации и доступа к данным</p><h1 className="mt-2 font-display text-3xl font-bold tracking-[-0.05em]">Посмотрите работу каждой роли</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">Это безопасная учебная копия интерфейса. Все действия работают только внутри этого экрана и не создают пользователей, записи или заявки.</p><label className="form-label mt-6 block max-w-sm">Роль для демонстрации<select className="text-input mt-2" value={role} onChange={(event) => { setRole(event.target.value as AppRole); setMessage(""); }} data-testid="select-public-demo-role">{appRoles.map((item) => <option key={item} value={item}>{roleLabels[item]}</option>)}</select></label></section>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_330px]"><section className="surface-card overflow-hidden"><div className="border-b border-border bg-muted/25 px-5 py-5 sm:px-7"><p className="eyebrow">{scenario.workspace}</p><h2 className="mt-2 font-display text-2xl font-bold tracking-[-0.045em]">{scenario.title}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{scenario.description}</p></div><div className="p-5 sm:p-7"><article className="rounded-xl border border-border bg-card p-4 sm:p-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div className="flex min-w-0 items-start gap-3"><div className="setting-icon"><ClipboardCheck size={17} /></div><div><div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-bold">{scenario.document}</h3><span className="meta-chip">Демо-запись</span></div><p className="mt-1 text-xs text-muted-foreground">Рабочая операция · маршрут показан на примере</p></div></div><button type="button" className="button button-primary shrink-0 text-xs" onClick={() => setMessage(scenario.result)} data-testid="button-run-demo-action"><Check size={14} />{scenario.action}</button></div></article>{message && <div className="notice-banner mt-5"><Check size={16} />{message}<button type="button" aria-label="Закрыть" onClick={() => setMessage("")}><X size={14} /></button></div>}</div></section>
         <aside className="surface-card p-5 sm:p-6"><div className="section-heading"><div className="setting-icon"><Users size={17} /></div><div><h2>Маршрут роли</h2><p>Без настоящих прав доступа.</p></div></div><ol className="mt-6 space-y-4 text-sm"><li className="flex gap-3"><span className="meta-chip">1</span><span>Выберите роль в списке.</span></li><li className="flex gap-3"><span className="meta-chip">2</span><span>Посмотрите доступный ей рабочий раздел.</span></li><li className="flex gap-3"><span className="meta-chip">3</span><span>Нажмите действие и увидите результат в демо-режиме.</span></li></ol><a href={`${basePath}/sign-up`} className="button button-secondary mt-7 w-full justify-center text-xs">Перейти к настоящей регистрации</a></aside>
       </div>
     </div>
-  </main>;
+  </div></main>;
 }
 
 function AuthBackButton() {
@@ -214,11 +220,11 @@ function AuthBackButton() {
 }
 
 function SignInPage() {
-  return <main className="auth-screen"><AuthBackButton /><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></main>;
+  return <main className="auth-screen app-backdrop" style={backdropStyle}><AuthBackButton /><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></main>;
 }
 
 function SignUpPage() {
-  return <main className="auth-screen"><AuthBackButton /><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></main>;
+  return <main className="auth-screen app-backdrop" style={backdropStyle}><AuthBackButton /><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></main>;
 }
 
 function RoleRequestScreen({ request }: { request: RoleRequest | null }) {
@@ -243,7 +249,7 @@ function RoleRequestScreen({ request }: { request: RoleRequest | null }) {
   };
 
   return (
-    <main className="access-page">
+    <main className="access-page app-backdrop" style={backdropStyle}>
       <section className="access-card">
         <div className={cn("access-icon", isPending ? "access-icon-waiting" : isRejected ? "access-icon-rejected" : "")}>
           {isPending ? <Clock3 size={24} /> : isRejected ? <RotateCcw size={24} /> : <ShieldCheck size={24} />}
@@ -259,7 +265,7 @@ function RoleRequestScreen({ request }: { request: RoleRequest | null }) {
               ? (request.reviewComment || "Руководитель отклонил заявку. Исправьте роль или подразделение и отправьте её повторно.")
               : `Здравствуйте, ${user?.firstName || "сотрудник"}. Укажите рабочую роль — руководитель подтвердит её перед открытием доступа.`}
         </p>
-        {isPending && <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-left text-xs leading-5 text-amber-900"><strong>Уведомление отправлено.</strong> Экран автоматически проверяет результат согласования.</div>}
+        {isPending && <div className="mt-6 rounded-xl border border-border bg-muted/60 p-4 text-left text-xs leading-5 text-foreground"><strong>Уведомление отправлено.</strong> Экран автоматически проверяет результат согласования.</div>}
         {!isPending && (
           <form className="mt-7 grid gap-5 text-left" onSubmit={submit}>
             <label className="form-label">Запрашиваемая роль<span className="select-wrap mt-2"><select className="text-input appearance-none" value={requestedRole} onChange={(event) => setRequestedRole(event.target.value as AppRole)} data-testid="select-requested-role">{appRoles.map((role) => <option value={role} key={role}>{roleLabels[role]}</option>)}</select><ChevronDown size={15} /></span></label>
@@ -330,7 +336,7 @@ function Shell({
   const isHr = role === "hr";
   const isHrVisible = isHr || role === "general_director";
   const isAgroVisible = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "dispatcher", "general_director"].includes(role);
-  const isEngineeringVisible = ["engineer", "chief_engineer", "storekeeper", "general_director"].includes(role);
+  const isEngineeringVisible = ["engineer", "chief_engineer", "storekeeper", "fuel_manager", "general_director"].includes(role);
   const isEconomicVisible = role === "general_director";
   const isEmployeesVisible = ["general_director", "chief_agronomist", "chief_engineer", "dispatcher"].includes(role);
   const navigation = [
@@ -350,7 +356,7 @@ function Shell({
   };
 
   return (
-    <div className="min-h-[100dvh] overflow-x-clip bg-background text-foreground">
+    <div className="app-backdrop min-h-[100dvh] overflow-x-clip text-foreground" style={backdropStyle}>
       <aside className={cn("fixed inset-y-0 left-0 z-30 w-[256px] flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground transition-transform duration-300 md:translate-x-0", mobileOpen ? "flex translate-x-0" : "hidden -translate-x-full md:flex")} data-testid="sidebar-navigation">
         <div className="mb-9 flex items-center gap-3 px-2"><BrandEmblem /><div><div className="font-display text-[15px] font-bold tracking-[-0.02em]">AgroLink operation</div><div className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-sidebar-foreground/55">Операционный контур</div></div></div>
         <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/35">Рабочее пространство</div>
@@ -416,7 +422,7 @@ function Cabinet({ role, actualRole, demoRole, onDemoRoleChange }: {
   return (
     <div className="animate-page">
       <div className="mb-8"><p className="eyebrow">Рабочее пространство</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em] text-foreground sm:text-[34px]">Личный кабинет</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Ваша роль «{roleLabels[role]}» подтверждена. Рабочие разделы в меню слева открыты в соответствии с ролью.</p></div>
-      {actualRole === "general_director" && <section className="surface-card mb-7 border-l-[4px] border-l-amber-400 p-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="eyebrow">Демонстрационный режим</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">Просмотр интерфейса по ролям</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Переключатель меняет только экран. Доступ к данным и любые действия от имени другой роли заблокированы.</p></div><label className="form-label min-w-60">Роль для просмотра<select className="text-input mt-2" value={demoRole ?? ""} onChange={(event) => onDemoRoleChange(event.target.value ? event.target.value as AppRole : null)} data-testid="select-demo-role"><option value="">Моя роль — генеральный директор</option>{appRoles.filter((item) => item !== "general_director").map((item) => <option key={item} value={item}>{roleLabels[item]}</option>)}</select></label></div></section>}
+      {actualRole === "general_director" && <section className="surface-card mb-7 border-l-[4px] border-l-[hsl(var(--accent))] p-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="eyebrow">Демонстрационный режим</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">Просмотр интерфейса по ролям</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Переключатель меняет только экран. Доступ к данным и любые действия от имени другой роли заблокированы.</p></div><label className="form-label min-w-60">Роль для просмотра<select className="text-input mt-2" value={demoRole ?? ""} onChange={(event) => onDemoRoleChange(event.target.value ? event.target.value as AppRole : null)} data-testid="select-demo-role"><option value="">Моя роль — генеральный директор</option>{appRoles.filter((item) => item !== "general_director").map((item) => <option key={item} value={item}>{roleLabels[item]}</option>)}</select></label></div></section>}
       <ApprovalQueue role={role} isDemoPreview={Boolean(demoRole)} />
       {(role === "agronomist" || role === "general_director") && <ChemicalBalanceCard seeAll={role === "general_director"} />}
       <UserManagement role={role} />
@@ -439,7 +445,7 @@ function FinanceBlock({ role, actualRole, demoRole }: { role: AppRole; actualRol
 }
 
 function SettingsPage({ role, request }: { role: AppRole; request: RoleRequest }) {
-  return <div className="animate-page"><div className="mb-7"><p className="eyebrow">Рабочее пространство</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em]">Настройки и доступ</h1><p className="mt-2 text-sm text-muted-foreground">Параметры профиля и подтверждённой роли.</p></div><section className="surface-card max-w-2xl p-6"><div className="section-heading"><div className="setting-icon"><UserRound size={17} /></div><div><h2>Профиль</h2><p>Подтверждённые данные текущей заявки.</p></div></div><dl className="mt-6 space-y-4 text-sm"><div className="flex justify-between gap-4 border-b border-border pb-3"><dt className="text-muted-foreground">Сотрудник</dt><dd className="text-right font-semibold">{request.displayName}</dd></div><div className="flex justify-between gap-4 border-b border-border pb-3"><dt className="text-muted-foreground">E-mail</dt><dd className="text-right font-semibold">{request.email}</dd></div><div className="flex justify-between gap-4 border-b border-border pb-3"><dt className="text-muted-foreground">Роль</dt><dd className="text-right font-semibold text-teal-800">{roleLabels[role]}</dd></div><div className="flex justify-between gap-4"><dt className="text-muted-foreground">Подразделение</dt><dd className="text-right font-semibold">{request.department}</dd></div></dl></section></div>;
+  return <div className="animate-page"><div className="mb-7"><p className="eyebrow">Рабочее пространство</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em]">Настройки и доступ</h1><p className="mt-2 text-sm text-muted-foreground">Параметры профиля и подтверждённой роли.</p></div><section className="surface-card max-w-2xl p-6"><div className="section-heading"><div className="setting-icon"><UserRound size={17} /></div><div><h2>Профиль</h2><p>Подтверждённые данные текущей заявки.</p></div></div><dl className="mt-6 space-y-4 text-sm"><div className="flex justify-between gap-4 border-b border-border pb-3"><dt className="text-muted-foreground">Сотрудник</dt><dd className="text-right font-semibold">{request.displayName}</dd></div><div className="flex justify-between gap-4 border-b border-border pb-3"><dt className="text-muted-foreground">E-mail</dt><dd className="text-right font-semibold">{request.email}</dd></div><div className="flex justify-between gap-4 border-b border-border pb-3"><dt className="text-muted-foreground">Роль</dt><dd className="text-right font-semibold text-foreground">{roleLabels[role]}</dd></div><div className="flex justify-between gap-4"><dt className="text-muted-foreground">Подразделение</dt><dd className="text-right font-semibold">{request.department}</dd></div></dl></section></div>;
 }
 
 function Workspace({ role, actualRole, demoRole, request, section, onDemoRoleChange }: {
@@ -453,7 +459,7 @@ function Workspace({ role, actualRole, demoRole, request, section, onDemoRoleCha
   return <>
     {section === "cabinet" && <Cabinet role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />}
     {section === "agro" && <AgroWorkspace role={role} />}
-    {section === "engineering" && <EngineeringWorkspace role={role} />}
+    {section === "engineering" && <EngineeringWorkspace role={role} demoActive={Boolean(demoRole)} />}
     {section === "economic" && <FinanceBlock role={role} actualRole={actualRole} demoRole={demoRole} />}
     {section === "employees" && <EmployeeDirectory canManage={["general_director", "chief_agronomist", "chief_engineer", "dispatcher"].includes(role) && !demoRole} />}
     {section === "hr" && (role === "hr" || role === "general_director") && <HRWorkspace demoActive={Boolean(demoRole)} onExitDemo={() => onDemoRoleChange(null)} />}
@@ -473,8 +479,8 @@ function AccessGate() {
     if (request?.status === "approved" && request.requestedRole === "dispatcher") setSection("agro");
     if (request?.status === "approved" && request.requestedRole === "hr") setSection("hr");
   }, [request?.requestedRole, request?.status]);
-  if (requestQuery.isLoading) return <main className="access-page"><LoadingRows count={2} /></main>;
-  if (requestQuery.isError) return <main className="access-page"><ErrorState onRetry={() => requestQuery.refetch()} /></main>;
+  if (requestQuery.isLoading) return <main className="access-page app-backdrop" style={backdropStyle}><LoadingRows count={2} /></main>;
+  if (requestQuery.isError) return <main className="access-page app-backdrop" style={backdropStyle}><ErrorState onRetry={() => requestQuery.refetch()} /></main>;
   if (request?.status !== "approved" || !isAppRole(request.requestedRole)) return <RoleRequestScreen request={request && request.status === "approved" ? { ...request, status: "rejected", reviewComment: "Ваша прежняя роль больше не используется. Выберите актуальную роль и отправьте заявку повторно." } : request} />;
   const actualRole = request.requestedRole;
   const canUseDemo = actualRole === "general_director";

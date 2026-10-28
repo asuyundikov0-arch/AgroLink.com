@@ -71,77 +71,78 @@
 
 /* LIGHT MODE */
 :root {
-  --button-outline: rgba(0, 0, 0, 0.1);
+  color-scheme: dark;
+  --button-outline: rgba(255, 255, 255, 0.1);
   --badge-outline: rgba(0, 0, 0, 0.05);
 
   /* Automatic computation of border around primary / danger buttons */
-  --opaque-button-border-intensity: -8; /* In terms of percentages */
+  --opaque-button-border-intensity: 9; /* In terms of percentages */
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(0, 0, 0, 0.03);
-  --elevate-2: rgba(0, 0, 0, 0.08);
+  --elevate-1: rgba(255, 255, 255, 0.04);
+  --elevate-2: rgba(255, 255, 255, 0.09);
 
-  --background: 210 28% 97%;
+  --background: 0 0% 6%;
 
-  --foreground: 210 43% 17%;
+  --foreground: 40 12% 92%;
 
-  --border: 205 21% 86%;
+  --border: 0 0% 22%;
 
-  --card: 0 0% 100%;
+  --card: 0 0% 9%;
 
-  --card-foreground: 210 43% 17%;
+  --card-foreground: 40 12% 92%;
 
-  --card-border: 205 21% 86%;
+  --card-border: 0 0% 20%;
 
-  --sidebar: 203 87% 27%;
+  --sidebar: 0 0% 4%;
 
-  --sidebar-foreground: 43 31% 92%;
+  --sidebar-foreground: 40 12% 92%;
 
-  --sidebar-border: 203 75% 35%;
+  --sidebar-border: 0 0% 16%;
 
-  --sidebar-primary: 39 100% 52%;
+  --sidebar-primary: 40 12% 92%;
 
-  --sidebar-primary-foreground: 210 43% 17%;
+  --sidebar-primary-foreground: 0 0% 6%;
 
-  --sidebar-accent: 203 80% 23%;
+  --sidebar-accent: 0 0% 13%;
 
-  --sidebar-accent-foreground: 43 31% 92%;
+  --sidebar-accent-foreground: 40 12% 95%;
 
-  --sidebar-ring: 39 100% 52%;
+  --sidebar-ring: 40 12% 80%;
 
-  --popover: 0 0% 100%;
+  --popover: 0 0% 9%;
 
-  --popover-foreground: 210 43% 17%;
+  --popover-foreground: 40 12% 92%;
 
-  --popover-border: 205 21% 86%;
+  --popover-border: 0 0% 22%;
 
-  --primary: 203 87% 33%;
+  --primary: 40 12% 92%;
 
-  --primary-foreground: 0 0% 100%;
+  --primary-foreground: 0 0% 7%;
 
-  --secondary: 205 28% 92%;
+  --secondary: 0 0% 15%;
 
-  --secondary-foreground: 210 43% 17%;
+  --secondary-foreground: 40 12% 92%;
 
-  --muted: 205 25% 93%;
+  --muted: 0 0% 14%;
 
-  --muted-foreground: 207 18% 45%;
+  --muted-foreground: 40 5% 66%;
 
-  --accent: 39 100% 52%;
+  --accent: 40 55% 64%;
 
-  --accent-foreground: 210 43% 17%;
+  --accent-foreground: 0 0% 7%;
 
-  --destructive: 2 68% 52%;
+  --destructive: 2 70% 60%;
 
-  --destructive-foreground: 42 35% 98%;
+  --destructive-foreground: 0 0% 7%;
 
-  --input: 39 19% 82%;
-  --ring: 39 100% 52%;
-  --chart-1: 39 100% 52%;
-  --chart-2: 203 87% 33%;
-  --chart-3: 210 43% 17%;
-  --chart-4: 32 91% 55%;
-  --chart-5: 2 68% 52%;
+  --input: 0 0% 28%;
+  --ring: 40 12% 80%;
+  --chart-1: 40 55% 64%;
+  --chart-2: 40 12% 88%;
+  --chart-3: 0 0% 55%;
+  --chart-4: 28 45% 52%;
+  --chart-5: 2 70% 60%;
 
   --app-font-sans: 'DM Sans', sans-serif;
   --app-font-serif: Georgia, serif;
@@ -586,3 +587,63 @@
   .detail-hero { padding:24px 21px 27px; }
   .detail-stat { padding:14px 15px; }
 }
+
+/* ===== Monochrome field theme (stage 1) ===== */
+.app-backdrop { position:relative; isolation:isolate; background-color:hsl(var(--background)); }
+.app-backdrop::before { content:""; position:fixed; inset:0; z-index:-2; pointer-events:none; background-image:var(--app-backdrop); background-size:cover; background-position:center 35%; background-repeat:no-repeat; filter:grayscale(1) contrast(1.05); opacity:.55; }
+.app-backdrop::after { content:""; position:fixed; inset:0; z-index:-1; pointer-events:none; background:linear-gradient(180deg, hsl(0 0% 4% / .55), hsl(0 0% 5% / .82) 45%, hsl(0 0% 4% / .9)); }
+.app-backdrop header.sticky { background:hsl(0 0% 5% / .72) !important; }
+.app-backdrop aside[data-testid="sidebar-navigation"] { background:hsl(0 0% 3% / .88); backdrop-filter:blur(12px); }
+.surface-card, .stat-card, .access-card, .auth-landing-aside { background:hsl(var(--card) / .9) !important; backdrop-filter:blur(10px); box-shadow:0 18px 40px rgba(0,0,0,.35) !important; }
+.auth-landing, .auth-screen, .access-page { background:transparent !important; }
+.auth-landing-grid { opacity:.12; }
+.landing-brand-name { color:hsl(var(--foreground)) !important; }
+.brand-emblem { box-shadow:0 8px 20px rgba(0,0,0,.45) !important; }
+.auth-back-button:hover, .button-secondary:hover { border-color:hsl(var(--foreground) / .45) !important; color:hsl(var(--foreground)) !important; background:hsl(var(--muted)) !important; }
+.button-primary:hover { background:hsl(0 0% 100% / .82) !important; }
+.button-yellow:hover { background:hsl(40 55% 72%) !important; }
+.button-engineering { background:hsl(0 0% 20%) !important; } .button-engineering:hover { background:hsl(0 0% 26%) !important; }
+.workspace-tab { background:hsl(var(--card) / .85); }
+.workspace-tab-active, .meta-chip, .file-badge, .activity-icon, .empty-icon, .stat-icon-teal, .stat-icon-blue, .setting-icon, .setting-icon-engineering, .access-icon { color:hsl(var(--foreground)) !important; background:hsl(var(--foreground) / .1) !important; border-color:hsl(var(--foreground) / .3) !important; }
+.stat-icon-yellow, .setting-icon-yellow, .access-icon-waiting { color:hsl(var(--accent)) !important; background:hsl(var(--accent) / .14) !important; }
+.stat-icon-coral, .access-icon-rejected { color:hsl(var(--destructive)) !important; background:hsl(var(--destructive) / .14) !important; }
+.template-row:hover { background:hsl(var(--foreground) / .05) !important; }
+.detail-hero { background:linear-gradient(135deg, hsl(var(--card)), hsl(0 0% 13%)) !important; }
+.status-pill { color:hsl(150 35% 72%) !important; background:hsl(150 30% 50% / .15) !important; }
+.notice-banner { color:hsl(var(--foreground)) !important; background:hsl(var(--card) / .92) !important; border-color:hsl(var(--foreground) / .25) !important; }
+.search-field:focus-within, .text-input:focus { border-color:hsl(var(--foreground) / .6) !important; box-shadow:0 0 0 3px hsl(var(--foreground) / .1) !important; }
+.upload-dropzone { border-color:hsl(var(--foreground) / .3) !important; background:hsl(var(--foreground) / .04) !important; }
+.toggle-input:checked { background:hsl(var(--foreground)) !important; }
+.avatar-blue { color:hsl(var(--foreground)) !important; background:hsl(0 0% 22%) !important; }
+select option { background:hsl(var(--popover)); color:hsl(var(--popover-foreground)); }
+
+/* Retint hardcoded light Tailwind utilities used across modules */
+.app-backdrop :is(.bg-white, .bg-slate-50, .bg-stone-50, .bg-gray-50, .bg-zinc-50, .bg-neutral-50) { background-color:hsl(var(--card)) !important; }
+.app-backdrop :is([class*="bg-blue-50"], [class*="bg-sky-50"], [class*="bg-teal-50"], [class*="bg-cyan-50"], [class*="bg-indigo-50"], [class*="bg-blue-100"], [class*="bg-sky-100"], [class*="bg-slate-100"], [class*="bg-stone-100"], [class*="bg-gray-100"]) { background-color:hsl(var(--foreground) / .07) !important; }
+.app-backdrop :is([class*="bg-amber-50"], [class*="bg-yellow-50"], [class*="bg-orange-50"], [class*="bg-amber-100"], [class*="bg-yellow-100"], [class*="bg-orange-100"]) { background-color:hsl(var(--accent) / .12) !important; }
+.app-backdrop :is([class*="bg-emerald-50"], [class*="bg-green-50"], [class*="bg-emerald-100"], [class*="bg-green-100"]) { background-color:hsl(150 30% 50% / .14) !important; }
+.app-backdrop :is([class*="bg-red-50"], [class*="bg-rose-50"], [class*="bg-red-100"], [class*="bg-rose-100"]) { background-color:hsl(var(--destructive) / .14) !important; }
+.app-backdrop :is([class*="border-blue-"], [class*="border-sky-"], [class*="border-teal-"], [class*="border-slate-"], [class*="border-stone-"], [class*="border-gray-"], [class*="border-indigo-"]) { border-color:hsl(var(--border)) !important; }
+.app-backdrop :is([class*="border-amber-"], [class*="border-yellow-"], [class*="border-orange-"]) { border-color:hsl(var(--accent) / .45) !important; }
+.app-backdrop :is([class*="border-emerald-"], [class*="border-green-"]) { border-color:hsl(150 30% 50% / .4) !important; }
+.app-backdrop :is([class*="border-red-"], [class*="border-rose-"]) { border-color:hsl(var(--destructive) / .45) !important; }
+.app-backdrop :is([class*="text-slate-"], [class*="text-gray-"], [class*="text-stone-"], [class*="text-zinc-"], [class*="text-blue-"], [class*="text-sky-"], [class*="text-teal-"], [class*="text-indigo-"], [class*="text-cyan-"], [class*="text-[#0b679e]"]) { color:hsl(var(--foreground) / .88) !important; }
+.app-backdrop :is([class*="text-amber-"], [class*="text-yellow-"], [class*="text-orange-"]) { color:hsl(var(--accent)) !important; }
+.app-backdrop :is([class*="text-emerald-"], [class*="text-green-"]) { color:hsl(150 35% 68%) !important; }
+.app-backdrop :is([class*="text-red-"], [class*="text-rose-"]) { color:hsl(2 75% 70%) !important; }
+.app-backdrop [class*="bg-[hsl("] { background-color:hsl(var(--foreground) / .08) !important; }
+.app-backdrop [class*="text-[hsl("] { color:hsl(var(--foreground) / .9) !important; }
+.app-backdrop :is(.bg-primary, .bg-foreground) { background-color:hsl(var(--primary)) !important; }
+.app-backdrop :is([class*="bg-blue-5"], [class*="bg-blue-6"], [class*="bg-sky-6"], [class*="bg-teal-6"], [class*="bg-emerald-6"]) { background-color:hsl(var(--primary)) !important; color:hsl(var(--primary-foreground)) !important; }
+.app-backdrop table thead, .app-backdrop th { background-color:hsl(0 0% 11%) ; }
+.app-backdrop tr:hover td { background-color:hsl(var(--foreground) / .03); }
+[role="dialog"], [data-radix-popper-content-wrapper] > * { color:hsl(var(--popover-foreground)); }
+
+/* Fuel depot readability on dark */
+.fuel-pill { display:inline-flex; align-items:center; gap:4px; border-radius:99px; padding:2px 8px; font-size:10px; font-weight:700; border:1px solid transparent; }
+.fuel-pill-in { color:hsl(150 40% 74%); background:hsl(150 30% 45% / .18); border-color:hsl(150 30% 55% / .35); }
+.fuel-pill-out { color:hsl(40 55% 74%); background:hsl(40 55% 55% / .14); border-color:hsl(40 55% 60% / .35); }
+.fuel-qty-in { color:hsl(150 40% 74%); }
+.fuel-qty-out { color:hsl(40 55% 76%); }
+.fuel-error { border:1px solid hsl(2 70% 60% / .55); border-radius:8px; padding:8px 12px; color:hsl(2 85% 82%); background:hsl(2 60% 30% / .35); font-size:12px; line-height:1.45; }
+.app-backdrop .text-destructive { color:hsl(2 85% 76%) !important; }

@@ -1,8 +1,9 @@
 import { type ReactNode, useState } from "react";
 import { ArrowLeft, Ban, BellRing, CalendarRange, ChevronDown, FlaskConical, History, Layers, Play, Plus, Settings2, Tractor } from "lucide-react";
-import { type AgroField, type FieldLifecycleInputAction, type FieldOperation, type FieldSeason } from "@workspace/api-client-react";
+import { type AgroField, type FieldCosts, type FieldLifecycleInputAction, type FieldOperation, type FieldSeason, getGetFieldCostsQueryKey, useGetFieldCosts } from "@workspace/api-client-react";
+import { FieldCostsPanel, OperationCost } from "./FieldCostsPanel";
 import { ChemicalOperationRequests } from "../chemicals/Requests";
-import { Drawer, Progress, StatusPill, canActual, canManage, cx, dateFmt, ha, isGD } from "./shared";
+import { Drawer, POLL_MS, Progress, StatusPill, canActual, canManage, cx, dateFmt, ha, isGD } from "./shared";
 import { DailyHistory, approvalOf, chemNormsMissing, isPendingCompletion, isPendingUnplanned, limitOf, ReviewButtons } from "./WorkForms";
 
 type Props = {
@@ -22,6 +23,9 @@ export function FieldWorkBoard({ field, season, year, ops, role, planFact, onBac
   const active = so.filter((o) => o.status === "in_progress" && !isPendingCompletion(o)).sort((a, b) => (b.actualStart ?? "").localeCompare(a.actualStart ?? ""));
   const requests = so.filter((o) => o.isUnplanned && !o.actualStart).sort((a, b) => b.id - a.id);
   const plan = so.filter((o) => !o.isUnplanned && !o.actualStart).sort((a, b) => a.plannedStart.localeCompare(b.plannedStart) || a.id - b.id);
+  const costsQuery = useGetFieldCosts(season?.id ?? 0, { query: { enabled: !!season, queryKey: getGetFieldCostsQueryKey(season?.id ?? 0), refetchInterval: POLL_MS } });
+  const costByOp = new Map<number, FieldCosts["operations"][number]>((costsQuery.data?.operations ?? []).map((c) => [c.operationId, c]));
+  const costsReady = !!costsQuery.data;
   const done = so.filter((o) => o.status === "completed").sort((a, b) => (b.actualEnd ?? "").localeCompare(a.actualEnd ?? ""));
 
   return (
@@ -39,15 +43,16 @@ export function FieldWorkBoard({ field, season, year, ops, role, planFact, onBac
       </div>
       {!canActual(role) && !chief && <p className="border-b border-border px-4 py-2 text-[11px] text-muted-foreground sm:px-5" data-testid="text-facts-readonly">Режим просмотра.</p>}
       {!season ? <Blank icon={<Layers size={18} />} title={`На ${year} год сезона нет`} text="Сезон и план работ добавляет главный агроном." testId="status-facts-no-season" /> : <div className="divide-y divide-border">
+        <FieldCostsPanel costs={costsQuery.data} isLoading={costsQuery.isLoading} isError={costsQuery.isError} onRetry={() => { void costsQuery.refetch(); }} />
 
         {completionReq.length > 0 && <Block title="Запрошено завершение" count={completionReq.length} tone="alert" testId="block-completion-requests">
-          {completionReq.map((o) => <Card key={o.id} op={o} tone="alert" testId={`card-completion-${o.id}`}
+          {completionReq.map((o) => <Card key={o.id} cost={costByOp.get(o.id)} costsReady={costsReady} op={o} tone="alert" testId={`card-completion-${o.id}`}
             meta={<p className="font-semibold text-[hsl(30_80%_30%)]">Диспетчер {o.completionRequestedBy || ""} просит завершить на {dateFmt(o.completionRequestedOn)} · итог {ha(o.actualAreaHa)}</p>}
             actions={(canActual(role)) ? <ReviewButtons approveLabel="Подтвердить завершение" rejectLabel="Вернуть" onApprove={() => onLifecycle(o, "approve_completion")} onReject={() => onLifecycle(o, "reject_completion")} testId={`button-completion-${o.id}`} /> : <span className="text-[10.5px] text-muted-foreground">Ждёт решения агронома</span>} />)}
         </Block>}
 
         <Block title="Выполняются" count={active.length} testId="block-active">
-          {active.length === 0 ? <p className="text-[11px] text-muted-foreground" data-testid="status-facts-active-empty">Сейчас на поле ничего не выполняется.</p> : active.map((o) => <Card key={o.id} op={o} testId={`row-fact-op-${o.id}`}
+          {active.length === 0 ? <p className="text-[11px] text-muted-foreground" data-testid="status-facts-active-empty">Сейчас на поле ничего не выполняется.</p> : active.map((o) => <Card key={o.id} cost={costByOp.get(o.id)} costsReady={costsReady} op={o} testId={`row-fact-op-${o.id}`}
             meta={<>{o.approvalNote && o.status === "in_progress" && <p className="text-[hsl(2_57%_40%)]">Возвращено: {o.approvalNote}</p>}</>}
             actions={<>
               {actual && <button type="button" className={btn} onClick={() => onWork(o)} data-testid={`button-fact-resources-${o.id}`}><Settings2 size={12} />Изменить сведения о выполняемой работе</button>}
@@ -59,7 +64,7 @@ export function FieldWorkBoard({ field, season, year, ops, role, planFact, onBac
         {requests.length > 0 && <Block title="Внеплановые заявки" count={requests.filter(isPendingUnplanned).length} tone={requests.some(isPendingUnplanned) ? "info" : undefined} testId="block-unplanned-requests">
           {requests.map((o) => {
             const st = approvalOf(o);
-            return <Card key={o.id} op={o} testId={`card-unplanned-${o.id}`}
+            return <Card key={o.id} cost={costByOp.get(o.id)} costsReady={costsReady} op={o} testId={`card-unplanned-${o.id}`}
               meta={<>
                 <ApprovalPill status={st} id={o.id} />
                 {st === "rejected" && o.approvalNote && <p className="text-[hsl(2_57%_40%)]" data-testid={`text-unplanned-reject-reason-${o.id}`}>Причина: {o.approvalNote}</p>}
@@ -75,12 +80,12 @@ export function FieldWorkBoard({ field, season, year, ops, role, planFact, onBac
         </Block>}
 
         <Block title="План работ" count={plan.length} testId="block-plan">
-          {plan.length === 0 ? <p className="text-[11px] text-muted-foreground" data-testid="status-facts-notstarted-empty">Все плановые работы начаты или план пуст.</p> : plan.map((o) => <Card key={o.id} op={o} testId={`row-fact-planned-${o.id}`}
+          {plan.length === 0 ? <p className="text-[11px] text-muted-foreground" data-testid="status-facts-notstarted-empty">Все плановые работы начаты или план пуст.</p> : plan.map((o) => <Card key={o.id} cost={costByOp.get(o.id)} costsReady={costsReady} op={o} testId={`row-fact-planned-${o.id}`}
             actions={<>{actual && <StartBtn op={o} onWork={onWork} />}{gd && <VoidBtn op={o} onVoid={onVoid} />}</>} />)}
         </Block>
 
-        <Block title="Завершённые" count={done.length} testId="block-completed" collapsed>
-          {done.length === 0 ? <p className="text-[11px] text-muted-foreground">Завершённых работ нет.</p> : done.map((o) => <Card key={o.id} op={o} testId={`row-fact-done-${o.id}`}
+        <Block title="Завершённые" count={done.length} testId="block-completed">
+          {done.length === 0 ? <p className="text-[11px] text-muted-foreground">Завершённых работ нет.</p> : done.map((o) => <Card key={o.id} cost={costByOp.get(o.id)} costsReady={costsReady} op={o} testId={`row-fact-done-${o.id}`}
             meta={<p className="text-muted-foreground">{o.actualRatePerHa === null ? "Ожидает расценки диспетчера" : `Расценка ${o.actualRatePerHa} ₸/га`}</p>}
             actions={gd ? <VoidBtn op={o} onVoid={onVoid} /> : null} history />)}
         </Block>
@@ -102,7 +107,7 @@ function Block({ title, count, tone, testId, collapsed, children }: { title: str
   </div>;
 }
 
-function Card({ op: o, meta, actions, tone, history, testId }: { op: FieldOperation; meta?: ReactNode; actions?: ReactNode; tone?: "alert"; history?: boolean; testId: string }) {
+function Card({ op: o, cost, costsReady, meta, actions, tone, history, testId }: { op: FieldOperation; cost?: FieldCosts["operations"][number]; costsReady: boolean; meta?: ReactNode; actions?: ReactNode; tone?: "alert"; history?: boolean; testId: string }) {
   const [showHist, setShowHist] = useState(false);
   const started = !!o.actualStart;
   return <article className={cx("rounded-lg border bg-card p-3 text-xs", tone === "alert" ? "border-[hsl(30_80%_45%/.5)]" : "border-border")} data-testid={testId}>
@@ -118,6 +123,7 @@ function Card({ op: o, meta, actions, tone, history, testId }: { op: FieldOperat
         <div className="flex flex-wrap justify-end gap-1.5">{actions}{history && <button type="button" className={btn} onClick={() => setShowHist(!showHist)} data-testid={`button-daily-toggle-${o.id}`}><CalendarRange size={12} />По дням ({o.progressReports.length})</button>}</div>
       </div>
     </div>
+    {costsReady && <OperationCost cost={cost} opId={o.id} />}
     {showHist && <div className="mt-2 rounded-md border border-border/70 bg-muted/20 px-2.5 py-1.5"><DailyHistory op={o} /></div>}
   </article>;
 }

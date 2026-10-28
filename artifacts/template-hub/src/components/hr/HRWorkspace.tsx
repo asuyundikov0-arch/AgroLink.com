@@ -1,7 +1,10 @@
 import { ArrowLeft, BadgeCheck } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import PayrollRegisterWorkspace from "../economic/PayrollRegisterWorkspace";
 
 export default function HRWorkspace({ demoActive = false, onExitDemo }: { demoActive?: boolean; onExitDemo?: () => void }) {
+  const qc = useQueryClient();
+  const refreshCosts = () => { void qc.invalidateQueries({ predicate: (q) => String(q.queryKey[0] ?? "").includes("/costs") }); };
   return <div className="animate-page space-y-5" data-testid="hr-workspace">
     <header className="flex flex-wrap items-end justify-between gap-3">
       <div>
@@ -11,6 +14,6 @@ export default function HRWorkspace({ demoActive = false, onExitDemo }: { demoAc
       </div>
       {demoActive && onExitDemo && <button type="button" className="button button-secondary text-xs" onClick={onExitDemo} data-testid="button-hr-exit-demo"><ArrowLeft size={14} />Выйти из демо-роли</button>}
     </header>
-    <PayrollRegisterWorkspace canManage={false} canApprove />
+    <PayrollRegisterWorkspace canManage={false} canApprove onApproved={refreshCosts} />
   </div>;
 }

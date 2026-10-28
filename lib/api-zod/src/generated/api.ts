@@ -8,6 +8,211 @@
 import * as zod from 'zod';
 
 
+export const GetFuelWarehouseResponse = zod.object({
+  "stocks": zod.array(zod.object({
+  "farm": zod.string(),
+  "fuelType": zod.string(),
+  "liters": zod.number(),
+  "amount": zod.number(),
+  "averagePricePerLiter": zod.number()
+})),
+  "movements": zod.array(zod.object({
+  "id": zod.number(),
+  "requestId": zod.string(),
+  "kind": zod.enum(['receipt', 'issue']),
+  "farm": zod.string(),
+  "fuelType": zod.string(),
+  "occurredOn": zod.string(),
+  "liters": zod.number(),
+  "amount": zod.number(),
+  "pricePerLiter": zod.number(),
+  "fleetId": zod.number().nullable(),
+  "equipment": zod.string(),
+  "operationId": zod.number().nullable(),
+  "fieldNumber": zod.string(),
+  "operationName": zod.string(),
+  "invoiceNumber": zod.string(),
+  "supplier": zod.string(),
+  "notes": zod.string(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string()
+})),
+  "equipment": zod.array(zod.object({
+  "id": zod.number(),
+  "kind": zod.string(),
+  "registrationNumber": zod.string().nullable(),
+  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
+  "version": zod.number(),
+  "updatedAt": zod.string(),
+  "updatedBy": zod.string()
+})),
+  "workAssignments": zod.array(zod.object({
+  "operationId": zod.number(),
+  "fieldId": zod.number(),
+  "fieldNumber": zod.string(),
+  "farm": zod.string(),
+  "operationName": zod.string(),
+  "startDate": zod.string(),
+  "endDate": zod.string().nullable(),
+  "equipment": zod.string(),
+  "assignments": zod.array(zod.object({
+  "date": zod.string(),
+  "equipment": zod.string()
+}))
+}))
+})
+
+
+export const createFuelReceiptBodyRequestIdMin = 8;
+export const createFuelReceiptBodyRequestIdMax = 100;
+
+export const createFuelReceiptBodyFuelTypeMax = 80;
+
+export const createFuelReceiptBodyLitersMin = 0.001;
+export const createFuelReceiptBodyLitersMax = 1000000;
+
+export const createFuelReceiptBodyPricePerLiterMin = 0.01;
+export const createFuelReceiptBodyPricePerLiterMax = 1000000;
+
+export const createFuelReceiptBodyInvoiceNumberMax = 200;
+
+export const createFuelReceiptBodySupplierMax = 300;
+
+export const createFuelReceiptBodyNotesMax = 3000;
+
+
+
+export const CreateFuelReceiptBody = zod.object({
+  "requestId": zod.string().min(createFuelReceiptBodyRequestIdMin).max(createFuelReceiptBodyRequestIdMax),
+  "farm": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
+  "fuelType": zod.string().min(1).max(createFuelReceiptBodyFuelTypeMax),
+  "occurredOn": zod.string(),
+  "liters": zod.number().min(createFuelReceiptBodyLitersMin).max(createFuelReceiptBodyLitersMax),
+  "pricePerLiter": zod.number().min(createFuelReceiptBodyPricePerLiterMin).max(createFuelReceiptBodyPricePerLiterMax),
+  "invoiceNumber": zod.string().min(1).max(createFuelReceiptBodyInvoiceNumberMax),
+  "supplier": zod.string().max(createFuelReceiptBodySupplierMax),
+  "notes": zod.string().max(createFuelReceiptBodyNotesMax)
+})
+
+export const CreateFuelReceiptResponse = zod.object({
+  "id": zod.number(),
+  "requestId": zod.string(),
+  "kind": zod.enum(['receipt', 'issue']),
+  "farm": zod.string(),
+  "fuelType": zod.string(),
+  "occurredOn": zod.string(),
+  "liters": zod.number(),
+  "amount": zod.number(),
+  "pricePerLiter": zod.number(),
+  "fleetId": zod.number().nullable(),
+  "equipment": zod.string(),
+  "operationId": zod.number().nullable(),
+  "fieldNumber": zod.string(),
+  "operationName": zod.string(),
+  "invoiceNumber": zod.string(),
+  "supplier": zod.string(),
+  "notes": zod.string(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string()
+})
+
+
+export const createFuelIssueBodyRequestIdMin = 8;
+export const createFuelIssueBodyRequestIdMax = 100;
+
+export const createFuelIssueBodyFuelTypeMax = 80;
+
+export const createFuelIssueBodyLitersMin = 0.001;
+export const createFuelIssueBodyLitersMax = 1000000;
+
+
+
+export const createFuelIssueBodyNotesMax = 3000;
+
+
+
+export const CreateFuelIssueBody = zod.object({
+  "requestId": zod.string().min(createFuelIssueBodyRequestIdMin).max(createFuelIssueBodyRequestIdMax),
+  "farm": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
+  "fuelType": zod.string().min(1).max(createFuelIssueBodyFuelTypeMax),
+  "occurredOn": zod.string(),
+  "liters": zod.number().min(createFuelIssueBodyLitersMin).max(createFuelIssueBodyLitersMax),
+  "fleetId": zod.number().min(1),
+  "operationId": zod.number().min(1).nullable(),
+  "notes": zod.string().max(createFuelIssueBodyNotesMax)
+})
+
+export const CreateFuelIssueResponse = zod.object({
+  "id": zod.number(),
+  "requestId": zod.string(),
+  "kind": zod.enum(['receipt', 'issue']),
+  "farm": zod.string(),
+  "fuelType": zod.string(),
+  "occurredOn": zod.string(),
+  "liters": zod.number(),
+  "amount": zod.number(),
+  "pricePerLiter": zod.number(),
+  "fleetId": zod.number().nullable(),
+  "equipment": zod.string(),
+  "operationId": zod.number().nullable(),
+  "fieldNumber": zod.string(),
+  "operationName": zod.string(),
+  "invoiceNumber": zod.string(),
+  "supplier": zod.string(),
+  "notes": zod.string(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string()
+})
+
+
+
+
+
+export const GetFieldCostsParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const GetFieldCostsResponse = zod.object({
+  "chemicalCost": zod.number(),
+  "fuelCost": zod.number(),
+  "salaryCost": zod.number(),
+  "totalCost": zod.number(),
+  "fuelLiters": zod.number()
+}).and(zod.object({
+  "fieldId": zod.number(),
+  "seasonId": zod.number(),
+  "unallocatedChemicalCost": zod.number(),
+  "operations": zod.array(zod.object({
+  "chemicalCost": zod.number(),
+  "fuelCost": zod.number(),
+  "salaryCost": zod.number(),
+  "totalCost": zod.number(),
+  "fuelLiters": zod.number()
+}).and(zod.object({
+  "operationId": zod.number(),
+  "name": zod.string(),
+  "chemicals": zod.array(zod.object({
+  "batchId": zod.number(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "quantity": zod.number(),
+  "amount": zod.number()
+})),
+  "fuels": zod.array(zod.object({
+  "fuelType": zod.string(),
+  "liters": zod.number(),
+  "amount": zod.number()
+})),
+  "salaries": zod.array(zod.object({
+  "employeeId": zod.number().nullable(),
+  "employeeName": zod.string(),
+  "workDate": zod.string(),
+  "amount": zod.number()
+}))
+})))
+}))
+
+
 export const GetChemicalWorkflowResponse = zod.object({
   "dailyExpectations": zod.array(zod.object({
   "operationId": zod.number(),
@@ -4366,7 +4571,7 @@ export const GetMyRoleRequestResponse = zod.union([zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -4384,7 +4589,7 @@ export const ListRoleRequestsResponseItem = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -4401,7 +4606,7 @@ export const ListRoleRequestsResponse = zod.array(ListRoleRequestsResponseItem)
 
 
 export const CreateRoleRequestBody = zod.object({
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
   "department": zod.string().min(1)
 })
 
@@ -4411,7 +4616,7 @@ export const CreateRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -4438,7 +4643,7 @@ export const ReviewRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -4456,7 +4661,7 @@ export const ListUsersResponseItem = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),

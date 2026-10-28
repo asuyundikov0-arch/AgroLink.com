@@ -76,6 +76,7 @@ export function useInvalidateFields() {
     qc.invalidateQueries({ queryKey: getGetDailySeedingReportQueryKey() }),
     qc.invalidateQueries({ queryKey: getGetChemicalWarehouseQueryKey() }),
     qc.invalidateQueries({ queryKey: getGetChemicalWorkflowQueryKey() }),
+    qc.invalidateQueries({ predicate: (q) => String(q.queryKey[0] ?? "").includes("/costs") }),
   ]);
 }
 
