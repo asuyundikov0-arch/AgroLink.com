@@ -5,12 +5,13 @@ import {
   agroFieldsTable, fieldSeasonsTable, fieldOperationsTable, activityTable, chemicalConsumptionsTable,
 } from "@workspace/db";
 import { CreateChemicalInvoiceBody, CreateChemicalIssueBody, GetChemicalWarehouseResponse,
-  CreateChemicalRequestBody, CreateChemicalConsumptionBody } from "@workspace/api-zod";
+  CreateChemicalRequestBody, CreateChemicalConsumptionBody, CreateChemicalContainerReturnBody, UpdateChemicalBatchPackagingBody } from "@workspace/api-zod";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { grainBusinessDate, validGrainDate } from "../lib/grain-ledger";
 import { isSeedingOperation } from "../lib/daily-seeding";
 import { ChemicalError, chemicalCheck as check, scaledChemical, chemicalReceiptValue, chemicalCostPerHa, chemicalFieldCosts } from "../lib/chemical-stock";
 import { chemicalWorkflow, requestChemical, issueRequestedChemical, consumeChemical } from "../lib/chemical-workflow";
+import { chemicalPackaging, setChemicalPackaging, acceptChemicalContainers } from "../lib/chemical-containers";
 
 const router: IRouter = Router();
 const readers = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "general_director"];
@@ -60,6 +61,8 @@ router.get("/agro/chemicals", guard(readers), safe(async (_req, res): Promise<vo
         supplier: inv.supplier, farm: inv.farm, name: b.name, unit: b.unit,
         quantity: b.receivedMillis / 1000, remaining: b.remainingMillis / 1000,
         unitPrice: Number(b.unitPriceCents) / 100, remainingAmount: Number(b.remainingCents) / 100,
+        containerVolume: b.containerVolumeMillis === null ? null : b.containerVolumeMillis / 1000,
+        containerCount: b.containerCount,
       })).sort((a, b) => b.id - a.id),
       fields: seasonRows.map(({ season: s, field: f }) => {
         // A repeatedly sown hectare remains one hectare of land, not additional acreage.
@@ -97,7 +100,7 @@ router.post("/agro/chemicals/invoices", guard(chemicalWriters), safe(async (req,
     check(quantity > 0 && quantity <= 1_000_000_000 && price >= 0 && price <= 1_000_000_000, "Недопустимые количество или цена.");
     const cents = chemicalReceiptValue(quantity, price);
     check(cents <= 1_000_000_000_000, "Сумма позиции слишком велика.");
-    return { name: line.name.trim(), unit: line.unit, receivedMillis: quantity, remainingMillis: quantity,
+    return { ...chemicalPackaging(line, quantity), name: line.name.trim(), unit: line.unit, receivedMillis: quantity, remainingMillis: quantity,
       unitPriceCents: String(price), receivedCents: String(cents), remainingCents: String(cents) };
   });
   const actor = by(res.locals.access);
@@ -143,8 +146,19 @@ router.post("/agro/chemicals/requests", guard(["agronomist", "general_director"]
 }));
 router.post("/agro/chemicals/consumptions", guard(["dispatcher", "general_director"]), safe(async (req, res): Promise<void> => {
   const parsed = CreateChemicalConsumptionBody.safeParse(req.body);
-  check(parsed.success, "Выберите выдачу, дату факта и расход химии.");
+  check(parsed.success, "Выберите принятую заведующим током пустую тару для подтверждения расхода.");
   res.status(201).json(await db.transaction(tx => consumeChemical(tx, parsed.data, res.locals.access)));
+}));
+router.post("/agro/chemicals/container-returns", guard(chemicalWriters), safe(async (req, res): Promise<void> => {
+  const parsed = CreateChemicalContainerReturnBody.safeParse(req.body);
+  check(parsed.success, "Выберите выдачу, день работы, дату возврата и целое количество пустой тары.");
+  res.status(201).json(await db.transaction(tx => acceptChemicalContainers(tx, parsed.data, res.locals.access)));
+}));
+router.put("/agro/chemicals/batches/:id/packaging", guard(chemicalWriters), safe(async (req, res): Promise<void> => {
+  const parsed = UpdateChemicalBatchPackagingBody.safeParse(req.body);
+  check(parsed.success, "Укажите объём одной упаковки и целое количество упаковок в исходной партии.");
+  const id = Number(req.params.id);
+  res.json(await db.transaction(tx => setChemicalPackaging(tx, id, parsed.data, res.locals.access)));
 }));
 
 export default router;

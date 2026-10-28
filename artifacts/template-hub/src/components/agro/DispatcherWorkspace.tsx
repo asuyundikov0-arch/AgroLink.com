@@ -15,7 +15,7 @@ import {
 } from "@workspace/api-client-react";
 import { dateFmt, errorInfo, POLL_MS } from "./grain/shared";
 import { money } from "../engineering/repairs/shared";
-import ChemicalConsumptionSection from "./chemicals/Consumption";
+import ChemicalConsumptionSection, { usePendingContainerReturns } from "./chemicals/Consumption";
 import PayrollRegisterWorkspace from "../economic/PayrollRegisterWorkspace";
 
 type View = "grain" | "fields" | "chemicals" | "payroll";
@@ -43,6 +43,7 @@ export default function DispatcherWorkspace() {
   const unratedTrips = grainTrips.filter((trip) => trip.rateKzt === null).length;
   const unratedFields = fieldOperations.filter((operation) => operation.actualRatePerHa === null).length;
   const [view, setView] = useState<View>("grain");
+  const pendingChem = usePendingContainerReturns();
   const [notice, setNotice] = useState("");
 
   return (
@@ -68,7 +69,7 @@ export default function DispatcherWorkspace() {
       <div className="inline-flex flex-wrap rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Работа диспетчера">
         <button type="button" role="tab" aria-selected={view === "grain"} onClick={() => setView("grain")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "grain" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-grain">Перевозка зерна ({grainTrips.length})</button>
         <button type="button" role="tab" aria-selected={view === "fields"} onClick={() => setView("fields")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "fields" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-fields">Полевые расценки ({fieldOperations.length})</button>
-        <button type="button" role="tab" aria-selected={view === "chemicals"} onClick={() => setView("chemicals")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "chemicals" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-chemicals">Химия по дням</button>
+        <button type="button" role="tab" aria-selected={view === "chemicals"} onClick={() => setView("chemicals")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "chemicals" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-chemicals">Химия по дням{pendingChem > 0 && <span className="ml-1.5 rounded-full bg-destructive px-1.5 py-px text-[10px] text-destructive-foreground" data-testid="badge-dispatch-chem-pending" title="Склад принял пустую тару, ждёт подтверждения">{pendingChem}</span>}</button>
         <button type="button" role="tab" aria-selected={view === "payroll"} onClick={() => setView("payroll")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "payroll" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-payroll"><Wallet size={13} /> Ежедневные наряды</button>
       </div>
 

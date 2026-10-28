@@ -47,7 +47,10 @@ export const GetChemicalWorkflowResponse = zod.object({
   "quantity": zod.number(),
   "remaining": zod.number(),
   "remainingAmount": zod.number(),
-  "occurredOn": zod.string()
+  "occurredOn": zod.string(),
+  "containerVolume": zod.number().nullish(),
+  "pendingReturnQuantity": zod.number().optional(),
+  "pendingReturnCount": zod.number().optional()
 })),
   "consumptions": zod.array(zod.object({
   "id": zod.number(),
@@ -60,7 +63,21 @@ export const GetChemicalWorkflowResponse = zod.object({
   "amount": zod.number(),
   "dailyAreaHa": zod.number(),
   "confirmedBy": zod.string(),
-  "notes": zod.string()
+  "notes": zod.string(),
+  "containerReturnId": zod.number().nullish()
+})),
+  "containerReturns": zod.array(zod.object({
+  "id": zod.number(),
+  "issueId": zod.number(),
+  "operationId": zod.number(),
+  "reportDate": zod.string(),
+  "returnedOn": zod.string(),
+  "containerCount": zod.number(),
+  "containerVolume": zod.number(),
+  "quantity": zod.number(),
+  "acceptedBy": zod.string(),
+  "notes": zod.string(),
+  "consumptionId": zod.number().nullable()
 }))
 })
 
@@ -94,22 +111,62 @@ export const createChemicalConsumptionBodyRequestIdMin = 16;
 export const createChemicalConsumptionBodyRequestIdMax = 100;
 
 
-export const createChemicalConsumptionBodyQuantityMin = 0.001;
-export const createChemicalConsumptionBodyQuantityMax = 1000000;
-
 export const createChemicalConsumptionBodyNotesMax = 1000;
 
 
 
 export const CreateChemicalConsumptionBody = zod.object({
   "requestId": zod.string().min(createChemicalConsumptionBodyRequestIdMin).max(createChemicalConsumptionBodyRequestIdMax),
-  "issueId": zod.number().min(1),
-  "reportDate": zod.string(),
-  "quantity": zod.number().min(createChemicalConsumptionBodyQuantityMin).max(createChemicalConsumptionBodyQuantityMax),
+  "containerReturnId": zod.number().min(1),
   "notes": zod.string().max(createChemicalConsumptionBodyNotesMax)
 })
 
 export const CreateChemicalConsumptionResponse = zod.object({
+  "id": zod.number()
+})
+
+
+export const createChemicalContainerReturnBodyRequestIdMin = 16;
+export const createChemicalContainerReturnBodyRequestIdMax = 100;
+
+
+export const createChemicalContainerReturnBodyContainerCountMax = 1000000;
+
+export const createChemicalContainerReturnBodyNotesMax = 1000;
+
+
+
+export const CreateChemicalContainerReturnBody = zod.object({
+  "requestId": zod.string().min(createChemicalContainerReturnBodyRequestIdMin).max(createChemicalContainerReturnBodyRequestIdMax),
+  "issueId": zod.number().min(1),
+  "reportDate": zod.string(),
+  "returnedOn": zod.string(),
+  "containerCount": zod.number().min(1).max(createChemicalContainerReturnBodyContainerCountMax),
+  "notes": zod.string().max(createChemicalContainerReturnBodyNotesMax)
+})
+
+export const CreateChemicalContainerReturnResponse = zod.object({
+  "id": zod.number()
+})
+
+
+export const UpdateChemicalBatchPackagingParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateChemicalBatchPackagingBodyContainerVolumeMin = 0.001;
+export const updateChemicalBatchPackagingBodyContainerVolumeMax = 1000000;
+
+export const updateChemicalBatchPackagingBodyContainerCountMax = 1000000;
+
+
+
+export const UpdateChemicalBatchPackagingBody = zod.object({
+  "containerVolume": zod.number().min(updateChemicalBatchPackagingBodyContainerVolumeMin).max(updateChemicalBatchPackagingBodyContainerVolumeMax),
+  "containerCount": zod.number().min(1).max(updateChemicalBatchPackagingBodyContainerCountMax)
+})
+
+export const UpdateChemicalBatchPackagingResponse = zod.object({
   "id": zod.number()
 })
 
@@ -127,7 +184,9 @@ export const GetChemicalWarehouseResponse = zod.object({
   "quantity": zod.number(),
   "remaining": zod.number(),
   "unitPrice": zod.number(),
-  "remainingAmount": zod.number()
+  "remainingAmount": zod.number(),
+  "containerVolume": zod.number().nullish(),
+  "containerCount": zod.number().nullish()
 })),
   "issues": zod.array(zod.object({
   "id": zod.number(),
@@ -179,6 +238,11 @@ export const createChemicalInvoiceBodyLinesItemQuantityMax = 1000000;
 export const createChemicalInvoiceBodyLinesItemUnitPriceMin = 0;
 export const createChemicalInvoiceBodyLinesItemUnitPriceMax = 10000000;
 
+export const createChemicalInvoiceBodyLinesItemContainerVolumeMin = 0.001;
+export const createChemicalInvoiceBodyLinesItemContainerVolumeMax = 1000000;
+
+export const createChemicalInvoiceBodyLinesItemContainerCountMax = 1000000;
+
 export const createChemicalInvoiceBodyLinesMax = 100;
 
 
@@ -193,7 +257,9 @@ export const CreateChemicalInvoiceBody = zod.object({
   "name": zod.string().min(1).max(createChemicalInvoiceBodyLinesItemNameMax),
   "unit": zod.enum(['л', 'кг', 'шт']),
   "quantity": zod.number().gt(createChemicalInvoiceBodyLinesItemQuantityExclusiveMin).max(createChemicalInvoiceBodyLinesItemQuantityMax),
-  "unitPrice": zod.number().min(createChemicalInvoiceBodyLinesItemUnitPriceMin).max(createChemicalInvoiceBodyLinesItemUnitPriceMax)
+  "unitPrice": zod.number().min(createChemicalInvoiceBodyLinesItemUnitPriceMin).max(createChemicalInvoiceBodyLinesItemUnitPriceMax),
+  "containerVolume": zod.number().min(createChemicalInvoiceBodyLinesItemContainerVolumeMin).max(createChemicalInvoiceBodyLinesItemContainerVolumeMax),
+  "containerCount": zod.number().min(1).max(createChemicalInvoiceBodyLinesItemContainerCountMax)
 })).min(1).max(createChemicalInvoiceBodyLinesMax)
 })
 

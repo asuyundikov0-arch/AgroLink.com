@@ -19,4 +19,8 @@ export interface ChemicalBatch {
   remaining: number;
   unitPrice: number;
   remainingAmount: number;
+  /** @nullable */
+  containerVolume?: number | null;
+  /** @nullable */
+  containerCount?: number | null;
 }

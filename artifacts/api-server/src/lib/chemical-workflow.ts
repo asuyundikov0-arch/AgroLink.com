@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import {
   db, chemicalRequestsTable as requests, chemicalIssuesTable as issues,
-  chemicalConsumptionsTable as consumptions, chemicalBatchesTable as batches,
+  chemicalConsumptionsTable as consumptions, chemicalContainerReturnsTable as containerReturns, chemicalBatchesTable as batches,
   chemicalInvoicesTable as invoices, fieldOperationsTable as operations,
   fieldOperationProgressTable as progress, fieldSeasonsTable as seasons,
   agroFieldsTable as fields, activityTable,
@@ -84,6 +84,8 @@ export async function issueRequestedChemical(tx: ChemicalTx, input: ChemicalIssu
   check(batch && batch.invoice.farm === context.field.unit, "Партия не соответствует хозяйству поля.", 409);
   check(input.occurredOn >= batch.invoice.occurredOn, "Дата выдачи раньше накладной.");
   check(Number(input.occurredOn.slice(0, 4)) === context.season.year, "Дата выдачи должна относиться к сезону поля.");
+  check(!batch.batch.containerVolumeMillis || millis % batch.batch.containerVolumeMillis === 0,
+    "Для этой партии выдача оформляется целыми упаковками указанного объёма.", 409);
   const cents = chemicalIssueValue(millis, batch.batch.remainingMillis, Number(batch.batch.remainingCents));
   const [row] = await tx.insert(issues).values({
     requestId: input.requestId, chemicalRequestId: request.id, batchId: request.batchId,
@@ -113,31 +115,38 @@ export function chemicalFactDays(op: typeof operations.$inferSelect, reports: (t
 }
 export async function consumeChemical(tx: ChemicalTx, input: ChemicalConsumptionInput, access: RoleAccess) {
   check(access.role === "dispatcher" || access.role === "general_director", "Ежедневный расход подтверждает диспетчер.", 403);
-  identifier(input.issueId); validDay(input.reportDate);
-  const millis = quantity(input.quantity);
+  identifier(input.containerReturnId);
   await lockChemicalWorkflow(tx);
   const [existing] = await tx.select().from(consumptions).where(eq(consumptions.requestId, input.requestId));
-  if (existing) return { id: existing.id };
-  const [issue] = await tx.select().from(issues).where(eq(issues.id, input.issueId)).for("update");
+  if (existing) {
+    check(existing.containerReturnId === input.containerReturnId, "Запрос уже использован для другого подтверждения.", 409);
+    return { id: existing.id };
+  }
+  const [receipt] = await tx.select().from(containerReturns).where(eq(containerReturns.id, input.containerReturnId));
+  check(receipt, "Сначала заведующий током должен принять пустую тару и уведомить диспетчера.", 409);
+  const [confirmed] = await tx.select({ id: consumptions.id }).from(consumptions).where(eq(consumptions.containerReturnId, receipt.id));
+  check(!confirmed, "Расход по этой возвращённой таре уже подтверждён.", 409);
+  const millis = receipt.quantityMillis;
+  const [issue] = await tx.select().from(issues).where(eq(issues.id, receipt.issueId)).for("update");
   check(issue?.chemicalRequestId, "Выберите выдачу, числящуюся на балансе агронома.", 409);
   const [request] = await tx.select().from(requests).where(eq(requests.id, issue.chemicalRequestId));
   check(request, "Заявка не найдена.", 404);
   const context = await operationContext(tx, request.operationId);
   const reports = await tx.select().from(progress).where(eq(progress.operationId, request.operationId));
-  const fact = chemicalFactDays(context.op, reports).find(row => row.date === input.reportDate);
-  check(fact && input.reportDate >= issue.occurredOn, "Сначала внесите положительный факт работ за эту дату; расход не может быть раньше выдачи.", 409);
+  check(receipt.operationId === request.operationId, "Возврат тары связан с другой операцией.", 409);
+  const fact = chemicalFactDays(context.op, reports).find(row => row.date === receipt.reportDate);
+  check(fact && receipt.reportDate >= issue.occurredOn, "Сначала внесите положительный факт работ за эту дату; расход не может быть раньше выдачи.", 409);
   const consumed = await tx.select().from(consumptions).where(eq(consumptions.issueId, issue.id));
-  check(!consumed.some(row => row.reportDate === input.reportDate), "Расход этой выдачи за выбранный день уже подтверждён.", 409);
   const remaining = issue.quantityMillis - consumed.reduce((sum, row) => sum + row.quantityMillis, 0);
   const remainingCents = Number(issue.amountCents) - consumed.reduce((sum, row) => sum + Number(row.amountCents), 0);
   const cents = chemicalIssueValue(millis, remaining, remainingCents);
   const [row] = await tx.insert(consumptions).values({
     requestId: input.requestId, issueId: issue.id, operationId: request.operationId,
-    reportDate: input.reportDate, quantityMillis: millis, amountCents: String(cents),
+    reportDate: receipt.reportDate, quantityMillis: millis, amountCents: String(cents), containerReturnId: receipt.id,
     dailyAreaAres: Math.round(fact.dailyAreaHa * 100), confirmedBy: actor(access), notes: input.notes.trim(),
   }).returning();
   await tx.insert(activityTable).values({ action: "Подтверждён ежедневный расход химии",
-    templateName: `${input.reportDate} · поле ${context.field.number} · ${request.requesterName}`, userName: actor(access) });
+    templateName: `${receipt.reportDate} · поле ${context.field.number} · ${request.requesterName} · тара №${receipt.id}`, userName: actor(access) });
   return { id: row.id };
 }
 
@@ -148,6 +157,8 @@ export async function chemicalWorkflow(tx: ChemicalTx, access: RoleAccess) {
   const requestRows = await tx.select().from(requests);
   const issueRows = await tx.select().from(issues);
   const consumedRows = await tx.select().from(consumptions);
+  const returnRows = await tx.select().from(containerReturns);
+  const confirmedReturns = new Map(consumedRows.filter(c => c.containerReturnId !== null).map(c => [c.containerReturnId, c.id]));
   const reportRows = await tx.select().from(progress).orderBy(asc(progress.reportDate));
   const batchMap = new Map(batchRows.map(b => [b.id, b]));
   const requestMap = new Map(requestRows.map(r => [r.id, r]));
@@ -165,19 +176,27 @@ export async function chemicalWorkflow(tx: ChemicalTx, access: RoleAccess) {
     custody: issueRows.filter(i => i.chemicalRequestId !== null).map(i => {
       const r = requestMap.get(i.chemicalRequestId!)!;
       const consumed = consumedRows.filter(c => c.issueId === i.id);
+      const pending = returnRows.filter(r => r.issueId === i.id && !confirmedReturns.has(r.id));
       return { issueId: i.id, chemicalRequestId: r.id, operationId: r.operationId,
         name: batchMap.get(i.batchId)!.name, unit: batchMap.get(i.batchId)!.unit,
         requesterName: r.requesterName, isMine: r.requesterUserId === access.userId, quantity: i.quantityMillis / 1000,
         remaining: (i.quantityMillis - consumed.reduce((sum, c) => sum + c.quantityMillis, 0)) / 1000,
         remainingAmount: (Number(i.amountCents) - consumed.reduce((sum, c) => sum + Number(c.amountCents), 0)) / 100,
-        occurredOn: i.occurredOn };
+        occurredOn: i.occurredOn, containerVolume: batchMap.get(i.batchId)!.containerVolumeMillis === null
+          ? null : batchMap.get(i.batchId)!.containerVolumeMillis! / 1000,
+        pendingReturnQuantity: pending.reduce((s, r) => s + r.quantityMillis, 0) / 1000,
+        pendingReturnCount: pending.reduce((s, r) => s + r.containerCount, 0) };
     }),
     consumptions: consumedRows.map(c => {
       const b = batchMap.get(issueMap.get(c.issueId)!.batchId)!;
       return { id: c.id, issueId: c.issueId, operationId: c.operationId, reportDate: c.reportDate,
         name: b.name, unit: b.unit, quantity: c.quantityMillis / 1000, amount: Number(c.amountCents) / 100,
-        dailyAreaHa: c.dailyAreaAres / 100, confirmedBy: c.confirmedBy, notes: c.notes };
+        dailyAreaHa: c.dailyAreaAres / 100, confirmedBy: c.confirmedBy, notes: c.notes, containerReturnId: c.containerReturnId };
     }),
+    containerReturns: returnRows.map(r => ({ id: r.id, issueId: r.issueId, operationId: r.operationId,
+      reportDate: r.reportDate, returnedOn: r.returnedOn, containerCount: r.containerCount,
+      containerVolume: r.containerVolumeMillis / 1000, quantity: r.quantityMillis / 1000,
+      acceptedBy: r.acceptedBy, notes: r.notes, consumptionId: confirmedReturns.get(r.id) ?? null })),
   });
 }
 

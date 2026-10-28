@@ -18,4 +18,8 @@ export interface ChemicalCustody {
   remaining: number;
   remainingAmount: number;
   occurredOn: string;
+  /** @nullable */
+  containerVolume?: number | null;
+  pendingReturnQuantity?: number;
+  pendingReturnCount?: number;
 }

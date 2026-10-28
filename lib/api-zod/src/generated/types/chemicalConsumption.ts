@@ -18,4 +18,6 @@ export interface ChemicalConsumption {
   dailyAreaHa: number;
   confirmedBy: string;
   notes: string;
+  /** @nullable */
+  containerReturnId?: number | null;
 }

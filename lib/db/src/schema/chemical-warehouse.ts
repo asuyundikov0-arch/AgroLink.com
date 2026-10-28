@@ -1,4 +1,4 @@
-import { date, integer, numeric, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { date, integer, numeric, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { fieldSeasonsTable } from "./field-seasons";
 import { employeesTable } from "./employees";
 import { fieldOperationsTable } from "./field-operations";
@@ -36,6 +36,8 @@ export const chemicalBatchesTable = pgTable("chemical_batches", {
   unitPriceCents: numeric("unit_price_cents", { precision: 16, scale: 0 }).notNull(),
   receivedCents: numeric("received_cents", { precision: 16, scale: 0 }).notNull(),
   remainingCents: numeric("remaining_cents", { precision: 16, scale: 0 }).notNull(),
+  containerVolumeMillis: integer("container_volume_millis"),
+  containerCount: integer("container_count"),
 });
 
 export const chemicalIssuesTable = pgTable("chemical_issues", {
@@ -54,6 +56,21 @@ export const chemicalIssuesTable = pgTable("chemical_issues", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const chemicalContainerReturnsTable = pgTable("chemical_container_returns", {
+  id: serial("id").primaryKey(),
+  requestId: text("request_id").notNull().unique(),
+  issueId: integer("issue_id").notNull().references(() => chemicalIssuesTable.id, { onDelete: "restrict" }),
+  operationId: integer("operation_id").notNull().references(() => fieldOperationsTable.id, { onDelete: "restrict" }),
+  reportDate: date("report_date", { mode: "string" }).notNull(),
+  returnedOn: date("returned_on", { mode: "string" }).notNull(),
+  containerCount: integer("container_count").notNull(),
+  containerVolumeMillis: integer("container_volume_millis").notNull(),
+  quantityMillis: integer("quantity_millis").notNull(),
+  acceptedBy: text("accepted_by").notNull(),
+  notes: text("notes").notNull().default(""),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const chemicalConsumptionsTable = pgTable("chemical_consumptions", {
   id: serial("id").primaryKey(),
   requestId: text("request_id").notNull().unique(),
@@ -64,6 +81,7 @@ export const chemicalConsumptionsTable = pgTable("chemical_consumptions", {
   amountCents: numeric("amount_cents", { precision: 16, scale: 0 }).notNull(),
   dailyAreaAres: integer("daily_area_ares").notNull(),
   confirmedBy: text("confirmed_by").notNull(),
+  containerReturnId: integer("container_return_id").unique().references(() => chemicalContainerReturnsTable.id, { onDelete: "restrict" }),
   notes: text("notes").notNull().default(""),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [uniqueIndex("chemical_consumption_issue_day_unique").on(t.issueId, t.reportDate)]);
+});

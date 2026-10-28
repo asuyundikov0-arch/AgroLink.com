@@ -13,13 +13,7 @@ export interface ChemicalConsumptionInput {
      */
   requestId: string;
   /** @minimum 1 */
-  issueId: number;
-  reportDate: string;
-  /**
-     * @minimum 0.001
-     * @maximum 1000000
-     */
-  quantity: number;
+  containerReturnId: number;
   /** @maxLength 1000 */
   notes: string;
 }

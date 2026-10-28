@@ -15,6 +15,12 @@ Actual work is entered through its own field-first view, not inside the planning
 
 **How to apply:** Preserve the existing links between planned work, its daily progress and salary accruals. Show unplanned work separately from planned work.
 
+Partial daily performance of a planned chemical field operation is still work under that plan, not an unplanned operation.
+
+**Why:** The user explicitly corrected treating a 100-hectare daily fact as unplanned when it was part of the planned chemical treatment.
+
+**How to apply:** Never infer business intent from a saved unplanned flag alone when the user reports an incorrect plan/fact link. Preserve the plan association during daily fact entry; do not require full-field completion to recognise a day's work.
+
 The main operations screen must show per-field planned-work progress percentages. Unplanned work is displayed separately and does not improve plan compliance.
 
 **Why:** The user requested a compact per-field plan/fact dashboard; counting unrelated unplanned work toward completion would misrepresent whether the plan was followed.

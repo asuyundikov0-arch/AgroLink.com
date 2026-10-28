@@ -1,16 +1,19 @@
 import { type FormEvent, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { FlaskConical, PackagePlus, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
+import { Boxes, FlaskConical, PackagePlus, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import {
+  type ChemicalBatch,
   type ChemicalInvoiceLineUnit,
   getGetChemicalWarehouseQueryKey,
   useCreateChemicalInvoice,
+  useUpdateChemicalBatchPackaging,
   useGetChemicalWarehouse,
 } from "@workspace/api-client-react";
 import { Drawer, Field, POLL_MS, UNITS, cx, dateFmt, errorInfo } from "./grain/shared";
 import { businessToday } from "../engineering/repairs/shared";
 import { CustodyList, WarehouseRequests } from "./chemicals/Custody";
-import { useChemicalWorkflow } from "./chemicals/Workflow";
+import { useChemicalWorkflow, useInvalidateChemicals } from "./chemicals/Workflow";
+import { WarehouseReturns } from "./chemicals/Returns";
 
 const CHEM_UNITS: ChemicalInvoiceLineUnit[] = ["л", "кг", "шт"];
 export const canManageChemicals = (r: string) => r === "grain_manager" || r === "general_director";
@@ -22,10 +25,14 @@ const money = (v: number) => `${nf2.format(v)} ₸`;
 const parseNum = (s: string) => Number(s.replace(/\s/g, "").replace(",", "."));
 const QTY_RE = /^\d+([.,]\d{1,3})?$/;
 const PRICE_RE = /^\d+([.,]\d{1,2})?$/;
+const INT_RE = /^\d+$/;
+const milli = (v: number) => Math.round(v * 1000);
+/** Exact total in milli-units: capacity × count, or null when inputs invalid. */
+const lineTotal = (vol: string, count: string) => QTY_RE.test(vol.trim()) && parseNum(vol) > 0 && INT_RE.test(count.trim()) && Number(count) > 0 ? milli(parseNum(vol)) * Number(count) : null;
 
-type View = "stock" | "requests" | "custody" | "journal" | "cost";
-type Line = { key: string; name: string; unit: ChemicalInvoiceLineUnit; quantity: string; unitPrice: string };
-const newLine = (): Line => ({ key: crypto.randomUUID(), name: "", unit: "л", quantity: "", unitPrice: "" });
+type View = "stock" | "requests" | "custody" | "returns" | "journal" | "cost";
+type Line = { key: string; name: string; unit: ChemicalInvoiceLineUnit; containerVolume: string; containerCount: string; unitPrice: string };
+const newLine = (): Line => ({ key: crypto.randomUUID(), name: "", unit: "л", containerVolume: "", containerCount: "", unitPrice: "" });
 const newInvoice = () => ({ requestId: crypto.randomUUID(), number: "", occurredOn: businessToday(), supplier: "", farm: UNITS[0] as string, lines: [newLine()] });
 
 export default function ChemicalWarehouse({ role, onOpenFields }: { role: string; onOpenFields?: () => void }) {
@@ -42,6 +49,8 @@ export default function ChemicalWarehouse({ role, onOpenFields }: { role: string
   const openReq = (flow.data?.requests ?? []).filter((r) => r.issuedQuantity < r.quantity).length;
   const custodyAmount = (flow.data?.custody ?? []).reduce((a, c) => a + (c.remaining > 0 ? c.remainingAmount : 0), 0);
   const [notice, setNotice] = useState("");
+  const [packTarget, setPackTarget] = useState<ChemicalBatch | null>(null);
+  const pendingReturns = (flow.data?.containerReturns ?? []).filter((r) => r.consumptionId == null).length;
 
   const data = q.data;
   const s = search.trim().toLowerCase();
@@ -93,7 +102,7 @@ export default function ChemicalWarehouse({ role, onOpenFields }: { role: string
 
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex gap-1 rounded-lg border border-border bg-card p-1" role="tablist">
-        {([["stock", "Остатки"], ["requests", `Заявки (${openReq})`], ["custody", "Подотчёт"], ["journal", "Журнал выдачи"], ["cost", "Затраты по полям"]] as const).map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={view === k} className={cx("rounded-md px-3 py-1.5 text-xs font-bold", view === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")} onClick={() => setView(k)} data-testid={`tab-chem-${k}`}>{l}</button>)}
+        {([["stock", "Остатки"], ["requests", `Заявки (${openReq})`], ["custody", "Подотчёт"], ["returns", `Пустая тара (${pendingReturns})`], ["journal", "Журнал выдачи"], ["cost", "Затраты по полям"]] as const).map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={view === k} className={cx("rounded-md px-3 py-1.5 text-xs font-bold", view === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")} onClick={() => setView(k)} data-testid={`tab-chem-${k}`}>{l}</button>)}
       </div>
       <select className="text-input !w-auto !min-h-[34px]" value={farm} onChange={(e) => setFarm(e.target.value)} data-testid="select-chem-farm"><option value="all">Все хозяйства</option>{UNITS.map((u) => <option key={u} value={u}>{u}</option>)}</select>
       {view !== "stock" && <select className="text-input !w-auto !min-h-[34px]" value={year} onChange={(e) => setYear(e.target.value)} data-testid="select-chem-year"><option value="all">Все годы</option>{years.map((y) => <option key={y} value={y}>{y}</option>)}</select>}
@@ -103,12 +112,13 @@ export default function ChemicalWarehouse({ role, onOpenFields }: { role: string
 
     {view === "stock" && <div className="surface-card overflow-x-auto" data-testid="table-chem-stock">
       {batches.length === 0 ? <Empty title="Партий нет" text={canEdit ? "Оформите приход по накладной — каждая строка накладной станет отдельной партией со своей ценой." : "Пока нет партий химии на складе по выбранным условиям."} /> :
-        <table className="w-full min-w-[860px] text-xs"><thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-[.1em] text-muted-foreground"><Th>Накладная</Th><Th>Поставщик / хозяйство</Th><Th>Препарат</Th><Th right>Получено</Th><Th right>Остаток</Th><Th right>Цена ед.</Th><Th right>Сумма остатка</Th></tr></thead>
+        <table className="w-full min-w-[860px] text-xs"><thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-[.1em] text-muted-foreground"><Th>Накладная</Th><Th>Поставщик / хозяйство</Th><Th>Препарат</Th><Th right>Получено</Th><Th right>Тара</Th><Th right>Остаток</Th><Th right>Цена ед.</Th><Th right>Сумма остатка</Th></tr></thead>
           <tbody className="divide-y divide-border/70">{batches.map((b) => <tr key={b.id} className={cx(b.remaining <= 0 && "opacity-55")} data-testid={`row-chem-batch-${b.id}`}>
             <Td><div className="font-bold">№ {b.invoiceNumber}</div><div className="text-[10px] text-muted-foreground">{dateFmt(b.occurredOn)}</div></Td>
             <Td><div className="font-semibold">{b.supplier}</div><div className="text-[10px] text-muted-foreground">{b.farm}</div></Td>
             <Td><span className="font-bold">{b.name}</span></Td>
             <Td right mono>{qty(b.quantity)} {b.unit}</Td>
+            <Td right mono>{b.containerVolume ? <span data-testid={`text-chem-packaging-${b.id}`}>{b.containerCount ?? "?"} × {qty(b.containerVolume)} {b.unit}</span> : canEdit ? <button type="button" className="button button-ghost !min-h-[26px] !px-2 text-[11px] text-destructive" onClick={() => setPackTarget(b)} data-testid={`button-chem-packaging-${b.id}`}><Boxes size={12} />Указать тару</button> : <span className="text-muted-foreground">не указана</span>}</Td>
             <Td right mono><span className="font-bold" data-testid={`text-chem-remaining-${b.id}`}>{qty(b.remaining)} {b.unit}</span></Td>
             <Td right mono>{money(b.unitPrice)}</Td>
             <Td right mono><span className="font-bold">{money(b.remainingAmount)}</span></Td>
@@ -116,7 +126,8 @@ export default function ChemicalWarehouse({ role, onOpenFields }: { role: string
     </div>}
 
     {view === "requests" && <WarehouseRequests canEdit={canEdit} onDone={done} />}
-    {view === "custody" && <div className="surface-card" data-testid="section-chem-custody"><div className="border-b border-border px-4 py-2.5 text-[11px] font-semibold text-destructive">Химия на подотчёте агрономов, не подтверждённая диспетчером как дневной расход.</div><CustodyList testId="table-chem-custody" /></div>}
+    {view === "custody" && <div className="surface-card" data-testid="section-chem-custody"><div className="border-b border-border px-4 py-2.5 text-[11px] font-semibold text-destructive">Химия на подотчёте агрономов, не подтверждённая диспетчером как дневной расход. Сданная тара показана отдельно и до подтверждения не уменьшает остаток.</div><CustodyList testId="table-chem-custody" /></div>}
+    {view === "returns" && <WarehouseReturns canEdit={canEdit} onDone={done} />}
     {view === "journal" && <div className="surface-card overflow-x-auto" data-testid="table-chem-journal">
       {issues.length === 0 ? <Empty title="Выдач нет" text="Здесь появятся списания химии на поля: кто получил, на какое поле и сезон, сколько и на какую сумму." /> :
         <table className="w-full min-w-[900px] text-xs"><thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-[.1em] text-muted-foreground"><Th>Дата</Th><Th>Препарат / партия</Th><Th>Поле · год</Th><Th>Получатель</Th><Th right>Количество</Th><Th right>Сумма</Th><Th>Примечание</Th></tr></thead>
@@ -147,6 +158,7 @@ export default function ChemicalWarehouse({ role, onOpenFields }: { role: string
         </table>}
     </div>}
 
+    {canEdit && packTarget && <PackagingDrawer batch={packTarget} onClose={() => setPackTarget(null)} onDone={() => { setPackTarget(null); done("Фасовка партии сохранена."); }} />}
     {canEdit && invoiceOpen && <InvoiceDrawer onClose={() => setInvoiceOpen(false)} onDone={() => done("Накладная проведена, партии добавлены на склад.")} />}
   </div>;
 }
@@ -168,7 +180,8 @@ function InvoiceDrawer({ onClose, onDone }: { onClose: () => void; onDone: () =>
   const m = useCreateChemicalInvoice();
   const today = businessToday();
   const setLine = (k: string, patch: Partial<Line>) => setF((p) => ({ ...p, lines: p.lines.map((l) => (l.key === k ? { ...l, ...patch } : l)) }));
-  const total = f.lines.reduce((a, l) => a + (QTY_RE.test(l.quantity) && PRICE_RE.test(l.unitPrice) ? parseNum(l.quantity) * parseNum(l.unitPrice) : 0), 0);
+  const total = f.lines.reduce((a, l) => { const t = lineTotal(l.containerVolume, l.containerCount); return a + (t !== null && PRICE_RE.test(l.unitPrice) ? (t / 1000) * parseNum(l.unitPrice) : 0); }, 0);
+  const litres = f.lines.reduce((a, l) => a + (l.unit === "л" ? lineTotal(l.containerVolume, l.containerCount) ?? 0 : 0), 0) / 1000;
 
   const submit = (ev: FormEvent) => {
     ev.preventDefault();
@@ -178,18 +191,20 @@ function InvoiceDrawer({ onClose, onDone }: { onClose: () => void; onDone: () =>
     if (!f.occurredOn) e.occurredOn = "Укажите дату"; else if (f.occurredOn > today) e.occurredOn = "Дата не может быть позже сегодняшней";
     f.lines.forEach((l) => {
       if (!l.name.trim()) e[`${l.key}.name`] = "Наименование";
-      if (!QTY_RE.test(l.quantity.trim()) || parseNum(l.quantity) <= 0 || parseNum(l.quantity) > 1_000_000) e[`${l.key}.quantity`] = "> 0, до 3 знаков";
+      if (!QTY_RE.test(l.containerVolume.trim()) || parseNum(l.containerVolume) <= 0) e[`${l.key}.quantity`] = "объём тары > 0, до 3 знаков";
+      else if (!INT_RE.test(l.containerCount.trim()) || Number(l.containerCount) < 1) e[`${l.key}.quantity`] = "число ёмкостей — целое > 0";
+      else if ((lineTotal(l.containerVolume, l.containerCount) ?? 0) > 1_000_000_000) e[`${l.key}.quantity`] = "итог больше 1 000 000";
       if (!PRICE_RE.test(l.unitPrice.trim()) || parseNum(l.unitPrice) > 10_000_000) e[`${l.key}.unitPrice`] = "≥ 0, до 2 знаков";
     });
     setErrs(e); setSubErr("");
     if (Object.keys(e).length) return;
-    m.mutate({ data: { requestId: f.requestId, number: f.number.trim(), occurredOn: f.occurredOn, supplier: f.supplier.trim(), farm: f.farm, lines: f.lines.map((l) => ({ name: l.name.trim(), unit: l.unit, quantity: parseNum(l.quantity), unitPrice: parseNum(l.unitPrice) })) } }, {
+    m.mutate({ data: { requestId: f.requestId, number: f.number.trim(), occurredOn: f.occurredOn, supplier: f.supplier.trim(), farm: f.farm, lines: f.lines.map((l) => ({ name: l.name.trim(), unit: l.unit, quantity: lineTotal(l.containerVolume, l.containerCount)! / 1000, containerVolume: parseNum(l.containerVolume), containerCount: Number(l.containerCount), unitPrice: parseNum(l.unitPrice) })) } }, {
       onSuccess: () => { setF(newInvoice()); onDone(); onClose(); },
       onError: (err) => { const i = errorInfo(err); setSubErr(i.status === 409 ? "Накладная с таким номером, датой, поставщиком и хозяйством уже проведена. Проверьте журнал остатков." : i.message); },
     });
   };
 
-  return <Drawer title="Приход по накладной" eyebrow="Склад химии" onClose={onClose} testId="drawer-chem-invoice" footer={<div className="flex justify-between gap-2"><span className="self-center font-mono text-sm font-bold" data-testid="text-chem-invoice-total">{money(total)}</span><div className="flex gap-2"><button type="button" className="button button-ghost" onClick={onClose}>Отмена</button><button type="submit" form="chem-invoice-form" className="button button-primary" disabled={m.isPending} data-testid="button-chem-invoice-submit">{m.isPending ? "Проводим…" : "Провести накладную"}</button></div></div>}>
+  return <Drawer title="Приход по накладной" eyebrow="Склад химии" onClose={onClose} testId="drawer-chem-invoice" footer={<div className="flex justify-between gap-2"><span className="self-center font-mono text-sm font-bold" data-testid="text-chem-invoice-total">{money(total)}<span className="block text-[10px] font-normal text-muted-foreground" data-testid="text-chem-invoice-litres">{qty(litres)} л по строкам</span></span><div className="flex gap-2"><button type="button" className="button button-ghost" onClick={onClose}>Отмена</button><button type="submit" form="chem-invoice-form" className="button button-primary" disabled={m.isPending} data-testid="button-chem-invoice-submit">{m.isPending ? "Проводим…" : "Провести накладную"}</button></div></div>}>
     <form id="chem-invoice-form" onSubmit={submit} className="space-y-4" noValidate>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Номер накладной" error={errs.number} htmlFor="ci-number"><input id="ci-number" className="text-input" maxLength={100} value={f.number} onChange={(e) => setF({ ...f, number: e.target.value })} data-testid="input-chem-invoice-number" /></Field>
@@ -202,14 +217,52 @@ function InvoiceDrawer({ onClose, onDone }: { onClose: () => void; onDone: () =>
         <div className="space-y-2">{f.lines.map((l, i) => <div key={l.key} className="rounded-lg border border-border p-2.5" data-testid={`row-chem-line-${i}`}>
           <div className="flex gap-2"><input className={cx("text-input flex-1", errs[`${l.key}.name`] && "border-destructive")} placeholder="Наименование препарата" maxLength={200} value={l.name} onChange={(e) => setLine(l.key, { name: e.target.value })} data-testid={`input-chem-line-name-${i}`} />
             <button type="button" className="button button-ghost !px-2" aria-label="Удалить строку" disabled={f.lines.length === 1} onClick={() => setF({ ...f, lines: f.lines.filter((x) => x.key !== l.key) })} data-testid={`button-chem-line-remove-${i}`}><Trash2 size={14} /></button></div>
-          <div className="mt-2 grid grid-cols-[1fr_80px_1fr] gap-2">
-            <input inputMode="decimal" className={cx("text-input font-mono", errs[`${l.key}.quantity`] && "border-destructive")} placeholder="Кол-во" value={l.quantity} onChange={(e) => setLine(l.key, { quantity: e.target.value })} data-testid={`input-chem-line-qty-${i}`} />
+          <div className="mt-2 grid grid-cols-[80px_1fr_1fr] gap-2">
             <select className="text-input" value={l.unit} onChange={(e) => setLine(l.key, { unit: e.target.value as ChemicalInvoiceLineUnit })} data-testid={`select-chem-line-unit-${i}`}>{CHEM_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}</select>
-            <input inputMode="decimal" className={cx("text-input font-mono", errs[`${l.key}.unitPrice`] && "border-destructive")} placeholder="Цена за ед., ₸" value={l.unitPrice} onChange={(e) => setLine(l.key, { unitPrice: e.target.value })} data-testid={`input-chem-line-price-${i}`} />
+            <input inputMode="decimal" className={cx("text-input font-mono", errs[`${l.key}.quantity`] && "border-destructive")} placeholder={`Объём тары, ${l.unit}`} value={l.containerVolume} onChange={(e) => setLine(l.key, { containerVolume: e.target.value })} data-testid={`input-chem-line-volume-${i}`} />
+            <input inputMode="numeric" className={cx("text-input font-mono", errs[`${l.key}.quantity`] && "border-destructive")} placeholder="Ёмкостей, шт." value={l.containerCount} onChange={(e) => setLine(l.key, { containerCount: e.target.value })} data-testid={`input-chem-line-count-${i}`} />
+          </div>
+          <div className="mt-2 grid grid-cols-[1fr_1fr] gap-2">
+            <div className="flex items-center rounded-lg bg-muted/40 px-3 font-mono text-xs" data-testid={`text-chem-line-qty-${i}`}>{(() => { const t = lineTotal(l.containerVolume, l.containerCount); return t === null ? <span className="text-muted-foreground">Итого = тара × шт.</span> : <span>{l.containerCount} × {qty(parseNum(l.containerVolume))} = <b>{qty(t / 1000)} {l.unit}</b></span>; })()}</div>
+            <input inputMode="decimal" className={cx("text-input font-mono", errs[`${l.key}.unitPrice`] && "border-destructive")} placeholder={`Цена за ${l.unit}, ₸`} value={l.unitPrice} onChange={(e) => setLine(l.key, { unitPrice: e.target.value })} data-testid={`input-chem-line-price-${i}`} />
           </div>
           {(errs[`${l.key}.name`] || errs[`${l.key}.quantity`] || errs[`${l.key}.unitPrice`]) && <p className="mt-1 text-[10px] font-semibold text-destructive">{[errs[`${l.key}.name`], errs[`${l.key}.quantity`] && `Количество: ${errs[`${l.key}.quantity`]}`, errs[`${l.key}.unitPrice`] && `Цена: ${errs[`${l.key}.unitPrice`]}`].filter(Boolean).join(" · ")}</p>}
         </div>)}</div>
       </div>
+      <SubmitError msg={subErr} />
+    </form>
+  </Drawer>;
+}
+
+function PackagingDrawer({ batch, onClose, onDone }: { batch: ChemicalBatch; onClose: () => void; onDone: () => void }) {
+  const [vol, setVol] = useState("");
+  const [count, setCount] = useState("");
+  const [err, setErr] = useState("");
+  const [subErr, setSubErr] = useState("");
+  const m = useUpdateChemicalBatchPackaging();
+  const invalidate = useInvalidateChemicals();
+  const t = lineTotal(vol, count);
+  const target = milli(batch.quantity);
+  const submit = (ev: FormEvent) => {
+    ev.preventDefault();
+    setSubErr("");
+    if (t === null) { setErr("Объём тары > 0 (до 3 знаков) и целое число ёмкостей"); return; }
+    if (t !== target) { setErr(`Тара × шт. должно точно равняться полученному количеству ${qty(batch.quantity)} ${batch.unit}`); return; }
+    setErr("");
+    m.mutate({ id: batch.id, data: { containerVolume: parseNum(vol), containerCount: Number(count) } }, {
+      onSuccess: () => { void invalidate(); onDone(); },
+      onError: (x) => { const i = errorInfo(x); setSubErr(i.status === 409 ? "По партии уже есть сданная тара, фасовку изменить нельзя." : i.message); },
+    });
+  };
+  return <Drawer title="Фасовка партии" eyebrow="Склад химии" onClose={onClose} testId="drawer-chem-packaging" footer={<div className="flex justify-end gap-2"><button type="button" className="button button-ghost" onClick={onClose}>Отмена</button><button type="submit" form="chem-packaging-form" className="button button-primary" disabled={m.isPending} data-testid="button-chem-packaging-submit">{m.isPending ? "Сохраняем..." : "Сохранить фасовку"}</button></div>}>
+    <form id="chem-packaging-form" onSubmit={submit} noValidate className="space-y-3">
+      <div className="rounded-lg border border-border bg-muted/40 p-3 text-[11px] leading-5"><div className="font-bold">{batch.name}</div><div>накл. № {batch.invoiceNumber} · {dateFmt(batch.occurredOn)} · {batch.farm}</div><div className="font-mono">Получено {qty(batch.quantity)} {batch.unit}. Количество, остаток и цена не меняются.</div></div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label={`Объём тары, ${batch.unit}`} htmlFor="cp-vol"><input id="cp-vol" inputMode="decimal" className="text-input font-mono" value={vol} onChange={(e) => setVol(e.target.value)} data-testid="input-chem-packaging-volume" /></Field>
+        <Field label="Ёмкостей, шт." htmlFor="cp-count"><input id="cp-count" inputMode="numeric" className="text-input font-mono" value={count} onChange={(e) => setCount(e.target.value)} data-testid="input-chem-packaging-count" /></Field>
+      </div>
+      <div className={cx("rounded-lg border px-3 py-2 font-mono text-xs", t !== null && t !== target ? "border-destructive/40 text-destructive" : "border-border")} data-testid="text-chem-packaging-check">{t === null ? "тара × шт." : `${count} × ${qty(parseNum(vol))} = ${qty(t / 1000)}`} {batch.unit} / нужно {qty(batch.quantity)} {batch.unit}</div>
+      {err && <p className="text-[11px] font-semibold text-destructive" role="alert">{err}</p>}
       <SubmitError msg={subErr} />
     </form>
   </Drawer>;

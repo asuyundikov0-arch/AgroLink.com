@@ -52,7 +52,37 @@ paths:
             schema: { $ref: "#/components/schemas/ChemicalConsumptionInput" }
       responses:
         "201":
-          description: Диспетчер внёс фактический ежедневный расход
+          description: Диспетчер подтвердил расход по принятой пустой таре
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChemicalMutationResult" }
+  /agro/chemicals/container-returns:
+    post:
+      operationId: createChemicalContainerReturn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChemicalContainerReturnInput" }
+      responses:
+        "201":
+          description: Заведующий током принял пустую тару и уведомил диспетчера
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChemicalMutationResult" }
+  /agro/chemicals/batches/{id}/packaging:
+    put:
+      operationId: updateChemicalBatchPackaging
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChemicalPackagingInput" }
+      responses:
+        "200":
+          description: Уточнена упаковка ранее принятой партии без изменения остатков
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ChemicalMutationResult" }
@@ -1421,12 +1451,20 @@ components:
         id: { type: number }
     ChemicalInvoiceLine:
       type: object
-      required: [name, unit, quantity, unitPrice]
+      required: [name, unit, quantity, unitPrice, containerVolume, containerCount]
       properties:
         name: { type: string, minLength: 1, maxLength: 200 }
         unit: { type: string, enum: [л, кг, шт] }
         quantity: { type: number, exclusiveMinimum: 0, maximum: 1000000 }
         unitPrice: { type: number, minimum: 0, maximum: 10000000 }
+        containerVolume: { type: number, minimum: 0.001, maximum: 1000000 }
+        containerCount: { type: number, minimum: 1, maximum: 1000000 }
+    ChemicalPackagingInput:
+      type: object
+      required: [containerVolume, containerCount]
+      properties:
+        containerVolume: { type: number, minimum: 0.001, maximum: 1000000 }
+        containerCount: { type: number, minimum: 1, maximum: 1000000 }
     ChemicalInvoiceInput:
       type: object
       required: [requestId, number, occurredOn, supplier, farm, lines]
@@ -1466,6 +1504,8 @@ components:
         remaining: { type: number }
         unitPrice: { type: number }
         remainingAmount: { type: number }
+        containerVolume: { type: [number, "null"] }
+        containerCount: { type: [number, "null"] }
     ChemicalFieldCost:
       type: object
       required: [seasonId, fieldId, fieldNumber, farm, year, cropName, sownAreaHa, chemicalAmount, costPerHa]
@@ -1524,13 +1564,36 @@ components:
         notes: { type: string, maxLength: 1000 }
     ChemicalConsumptionInput:
       type: object
-      required: [requestId, issueId, reportDate, quantity, notes]
+      required: [requestId, containerReturnId, notes]
+      properties:
+        requestId: { type: string, minLength: 16, maxLength: 100 }
+        containerReturnId: { type: number, minimum: 1 }
+        notes: { type: string, maxLength: 1000 }
+    ChemicalContainerReturnInput:
+      type: object
+      required: [requestId, issueId, reportDate, returnedOn, containerCount, notes]
       properties:
         requestId: { type: string, minLength: 16, maxLength: 100 }
         issueId: { type: number, minimum: 1 }
         reportDate: { type: string }
-        quantity: { type: number, minimum: 0.001, maximum: 1000000 }
+        returnedOn: { type: string }
+        containerCount: { type: number, minimum: 1, maximum: 1000000 }
         notes: { type: string, maxLength: 1000 }
+    ChemicalContainerReturn:
+      type: object
+      required: [id, issueId, operationId, reportDate, returnedOn, containerCount, containerVolume, quantity, acceptedBy, notes, consumptionId]
+      properties:
+        id: { type: number }
+        issueId: { type: number }
+        operationId: { type: number }
+        reportDate: { type: string }
+        returnedOn: { type: string }
+        containerCount: { type: number }
+        containerVolume: { type: number }
+        quantity: { type: number }
+        acceptedBy: { type: string }
+        notes: { type: string }
+        consumptionId: { type: [number, "null"] }
     ChemicalWorkDay:
       type: object
       required: [date, dailyAreaHa]
@@ -1582,6 +1645,9 @@ components:
         remaining: { type: number }
         remainingAmount: { type: number }
         occurredOn: { type: string }
+        containerVolume: { type: [number, "null"] }
+        pendingReturnQuantity: { type: number }
+        pendingReturnCount: { type: number }
     ChemicalConsumption:
       type: object
       required: [id, issueId, operationId, reportDate, name, unit, quantity, amount, dailyAreaHa, confirmedBy, notes]
@@ -1597,9 +1663,10 @@ components:
         dailyAreaHa: { type: number }
         confirmedBy: { type: string }
         notes: { type: string }
+        containerReturnId: { type: [number, "null"] }
     ChemicalWorkflow:
       type: object
-      required: [operations, requests, custody, consumptions]
+      required: [operations, requests, custody, consumptions, containerReturns]
       properties:
         operations:
           type: array
@@ -1613,6 +1680,9 @@ components:
         consumptions:
           type: array
           items: { $ref: "#/components/schemas/ChemicalConsumption" }
+        containerReturns:
+          type: array
+          items: { $ref: "#/components/schemas/ChemicalContainerReturn" }
     AgroFieldInput:
       type: object
       required: [unit, number, areaHa, notes, isActive]

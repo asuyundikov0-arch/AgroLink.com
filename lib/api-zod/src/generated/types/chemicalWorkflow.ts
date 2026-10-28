@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ChemicalConsumption } from './chemicalConsumption';
+import type { ChemicalContainerReturn } from './chemicalContainerReturn';
 import type { ChemicalCustody } from './chemicalCustody';
 import type { ChemicalRequest } from './chemicalRequest';
 import type { ChemicalWork } from './chemicalWork';
@@ -15,4 +16,5 @@ export interface ChemicalWorkflow {
   requests: ChemicalRequest[];
   custody: ChemicalCustody[];
   consumptions: ChemicalConsumption[];
+  containerReturns: ChemicalContainerReturn[];
 }

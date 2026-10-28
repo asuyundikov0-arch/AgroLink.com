@@ -24,4 +24,14 @@ export interface ChemicalInvoiceLine {
      * @maximum 10000000
      */
   unitPrice: number;
+  /**
+     * @minimum 0.001
+     * @maximum 1000000
+     */
+  containerVolume: number;
+  /**
+     * @minimum 1
+     * @maximum 1000000
+     */
+  containerCount: number;
 }

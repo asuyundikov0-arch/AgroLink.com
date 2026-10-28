@@ -35,6 +35,29 @@ export interface ChemicalInvoiceLine {
      * @maximum 10000000
      */
   unitPrice: number;
+  /**
+     * @minimum 0.001
+     * @maximum 1000000
+     */
+  containerVolume: number;
+  /**
+     * @minimum 1
+     * @maximum 1000000
+     */
+  containerCount: number;
+}
+
+export interface ChemicalPackagingInput {
+  /**
+     * @minimum 0.001
+     * @maximum 1000000
+     */
+  containerVolume: number;
+  /**
+     * @minimum 1
+     * @maximum 1000000
+     */
+  containerCount: number;
 }
 
 export interface ChemicalInvoiceInput {
@@ -97,6 +120,10 @@ export interface ChemicalBatch {
   remaining: number;
   unitPrice: number;
   remainingAmount: number;
+  /** @nullable */
+  containerVolume?: number | null;
+  /** @nullable */
+  containerCount?: number | null;
 }
 
 export interface ChemicalFieldCost {
@@ -166,15 +193,43 @@ export interface ChemicalConsumptionInput {
      */
   requestId: string;
   /** @minimum 1 */
-  issueId: number;
-  reportDate: string;
-  /**
-     * @minimum 0.001
-     * @maximum 1000000
-     */
-  quantity: number;
+  containerReturnId: number;
   /** @maxLength 1000 */
   notes: string;
+}
+
+export interface ChemicalContainerReturnInput {
+  /**
+     * @minLength 16
+     * @maxLength 100
+     */
+  requestId: string;
+  /** @minimum 1 */
+  issueId: number;
+  reportDate: string;
+  returnedOn: string;
+  /**
+     * @minimum 1
+     * @maximum 1000000
+     */
+  containerCount: number;
+  /** @maxLength 1000 */
+  notes: string;
+}
+
+export interface ChemicalContainerReturn {
+  id: number;
+  issueId: number;
+  operationId: number;
+  reportDate: string;
+  returnedOn: string;
+  containerCount: number;
+  containerVolume: number;
+  quantity: number;
+  acceptedBy: string;
+  notes: string;
+  /** @nullable */
+  consumptionId: number | null;
 }
 
 export interface ChemicalWorkDay {
@@ -222,6 +277,10 @@ export interface ChemicalCustody {
   remaining: number;
   remainingAmount: number;
   occurredOn: string;
+  /** @nullable */
+  containerVolume?: number | null;
+  pendingReturnQuantity?: number;
+  pendingReturnCount?: number;
 }
 
 export interface ChemicalConsumption {
@@ -236,6 +295,8 @@ export interface ChemicalConsumption {
   dailyAreaHa: number;
   confirmedBy: string;
   notes: string;
+  /** @nullable */
+  containerReturnId?: number | null;
 }
 
 export interface ChemicalWorkflow {
@@ -243,6 +304,7 @@ export interface ChemicalWorkflow {
   requests: ChemicalRequest[];
   custody: ChemicalCustody[];
   consumptions: ChemicalConsumption[];
+  containerReturns: ChemicalContainerReturn[];
 }
 
 export type AgroFieldInputUnit = typeof AgroFieldInputUnit[keyof typeof AgroFieldInputUnit];

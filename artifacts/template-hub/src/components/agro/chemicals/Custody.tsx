@@ -1,7 +1,8 @@
 import { type FormEvent, useState } from "react";
 import { FlaskConical, Send, UserRound } from "lucide-react";
-import { type ChemicalRequest, type ChemicalWork, useCreateChemicalIssue } from "@workspace/api-client-react";
-import { Drawer, Field, cx, dateFmt, errorInfo } from "../grain/shared";
+import { type ChemicalRequest, type ChemicalWork, getGetChemicalWarehouseQueryKey, useCreateChemicalIssue, useGetChemicalWarehouse } from "@workspace/api-client-react";
+import { Drawer, Field, POLL_MS, cx, dateFmt, errorInfo } from "../grain/shared";
+import { ContainerReturnHistory, freeQty, milli } from "./Returns";
 import { businessToday } from "../../engineering/repairs/shared";
 import { ChemError, cmoney, cqty, parseQty, useChemicalWorkflow, useInvalidateChemicals, validQty } from "./Workflow";
 
@@ -41,11 +42,16 @@ function FulfilDrawer({ req, op, onClose, onDone }: { req: ChemicalRequest; op?:
   const m = useCreateChemicalIssue();
   const invalidate = useInvalidateChemicals();
   const today = businessToday();
+  const wh = useGetChemicalWarehouse({ query: { queryKey: getGetChemicalWarehouseQueryKey(), refetchInterval: POLL_MS } });
+  const vol = wh.data?.batches.find((b) => b.id === req.batchId)?.containerVolume ?? null;
+  const volM = vol ? milli(vol) : 0;
+  const qM = validQty(f.quantity) ? milli(parseQty(f.quantity)) : 0;
   const submit = (ev: FormEvent) => {
     ev.preventDefault();
     const e: Record<string, string> = {};
     if (!validQty(f.quantity)) e.quantity = "Больше 0, до 3 знаков";
     else if (parseQty(f.quantity) > rest) e.quantity = `По заявке осталось выдать ${cqty(rest)} ${req.unit}`;
+    else if (volM && qM % volM !== 0) e.quantity = `Только целыми ёмкостями по ${cqty(vol!)} ${req.unit}`;
     if (!f.occurredOn) e.occurredOn = "Укажите дату"; else if (f.occurredOn > today) e.occurredOn = "Не позже сегодняшней даты";
     setErrs(e); setSubErr("");
     if (Object.keys(e).length) return;
@@ -62,7 +68,8 @@ function FulfilDrawer({ req, op, onClose, onDone }: { req: ChemicalRequest; op?:
         <div className="font-mono">{req.name} · заявлено {cqty(req.quantity)} {req.unit} · выдано {cqty(req.issuedQuantity)}</div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label={`Количество, ${req.unit}`} error={errs.quantity} htmlFor="cf-qty"><input id="cf-qty" className="text-input font-mono" inputMode="decimal" value={f.quantity} onChange={(e) => setF({ ...f, quantity: e.target.value })} data-testid="input-chem-fulfil-qty" /></Field>
+        <Field label={`Количество, ${req.unit}`} error={errs.quantity} htmlFor="cf-qty"><input id="cf-qty" className="text-input font-mono" inputMode="decimal" value={f.quantity} onChange={(e) => setF({ ...f, quantity: e.target.value })} data-testid="input-chem-fulfil-qty" />
+          <span className="text-[10px] text-muted-foreground" data-testid="text-chem-fulfil-containers">{vol ? (qM && qM % volM === 0 ? `${qM / volM} шт. × ${cqty(vol)} ${req.unit}` : `Кратно таре ${cqty(vol)} ${req.unit}`) : "Фасовка партии не указана"}</span></Field>
         <Field label="Дата выдачи" error={errs.occurredOn} htmlFor="cf-date"><input id="cf-date" type="date" max={today} className="text-input" value={f.occurredOn} onChange={(e) => setF({ ...f, occurredOn: e.target.value })} data-testid="input-chem-fulfil-date" /></Field>
       </div>
       <Field label="Примечание" htmlFor="cf-notes"><textarea id="cf-notes" className="text-input min-h-20" maxLength={1000} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} data-testid="input-chem-fulfil-notes" /></Field>
@@ -81,7 +88,7 @@ export function CustodyList({ mineOnly, testId }: { mineOnly?: boolean; testId: 
   const total = rows.reduce((a, c) => a + c.remainingAmount, 0);
   if (rows.length === 0) return <div className="px-4 py-8 text-center text-xs text-muted-foreground" data-testid={`${testId}-empty`}>{mineOnly ? "На вашем подотчёте химии нет." : "Невозвращённой и неподтверждённой химии на подотчёте нет."}</div>;
   return <div className="overflow-x-auto" data-testid={testId}>
-    <table className="w-full min-w-[760px] text-xs"><thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-[.1em] text-muted-foreground"><th className="px-3 py-2.5">Выдано</th>{!mineOnly && <th className="px-3">Агроном</th>}<th className="px-3">Поле · операция</th><th className="px-3">Препарат</th><th className="px-3 text-right">Выдано</th><th className="px-3 text-right">Остаток</th><th className="px-3 text-right">Сумма</th></tr></thead>
+    <table className="w-full min-w-[760px] text-xs"><thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-[.1em] text-muted-foreground"><th className="px-3 py-2.5">Выдано</th>{!mineOnly && <th className="px-3">Агроном</th>}<th className="px-3">Поле · операция</th><th className="px-3">Препарат</th><th className="px-3 text-right">Выдано</th><th className="px-3 text-right">Остаток</th><th className="px-3 text-right">Сдано тарой</th><th className="px-3 text-right">Сумма</th></tr></thead>
       <tbody className="divide-y divide-border/70">{rows.map((c) => <tr key={c.issueId} className={cx(!mineOnly && "bg-destructive/5 text-destructive")} data-testid={`row-chem-custody-${c.issueId}`}>
         <td className="px-3 py-2.5 font-mono">{dateFmt(c.occurredOn)}</td>
         {!mineOnly && <td className="px-3 font-bold" data-testid={`text-chem-custody-holder-${c.issueId}`}>{c.requesterName}</td>}
@@ -89,9 +96,10 @@ export function CustodyList({ mineOnly, testId }: { mineOnly?: boolean; testId: 
         <td className="px-3 font-semibold">{c.name}</td>
         <td className="px-3 text-right font-mono">{cqty(c.quantity)} {c.unit}</td>
         <td className="px-3 text-right font-mono font-bold">{cqty(c.remaining)} {c.unit}</td>
+        <td className="px-3 text-right font-mono" data-testid={`text-chem-custody-pending-${c.issueId}`}>{(c.pendingReturnQuantity ?? 0) > 0 ? <>{cqty(c.pendingReturnQuantity ?? 0)} {c.unit}<div className="text-[10px] font-normal">{c.pendingReturnCount ?? 0} шт. · ждёт диспетчера · своб. {cqty(freeQty(c))}</div></> : "—"}</td>
         <td className="px-3 text-right font-mono font-bold">{cmoney(c.remainingAmount)}</td>
       </tr>)}</tbody>
-      <tfoot><tr className={cx("border-t border-border font-bold", !mineOnly && "text-destructive")}><td className="px-3 py-2.5" colSpan={mineOnly ? 5 : 6}>Итого на подотчёте</td><td className="px-3 text-right font-mono" data-testid={`${testId}-total`}>{cmoney(total)}</td></tr></tfoot>
+      <tfoot><tr className={cx("border-t border-border font-bold", !mineOnly && "text-destructive")}><td className="px-3 py-2.5" colSpan={mineOnly ? 6 : 7}>Итого на подотчёте</td><td className="px-3 text-right font-mono" data-testid={`${testId}-total`}>{cmoney(total)}</td></tr></tfoot>
     </table>
   </div>;
 }
@@ -101,5 +109,12 @@ export function ChemicalBalanceCard({ seeAll }: { seeAll: boolean }) {
   return <section className="surface-card mb-7 overflow-hidden" data-testid="cabinet-chem-balance">
     <div className="flex items-center gap-3 border-b border-border bg-muted/25 px-5 py-4"><div className="setting-icon"><FlaskConical size={17} /></div><div><p className="eyebrow">Подотчёт</p><h2 className="mt-1 font-display text-xl font-bold tracking-[-0.04em]">{seeAll ? "Химия на подотчёте агрономов" : "Моя химия на подотчёте"}</h2></div></div>
     <CustodyList mineOnly={!seeAll} testId="table-cabinet-chem-custody" />
+    <CabinetReturns mineOnly={!seeAll} />
   </section>;
+}
+
+function CabinetReturns({ mineOnly }: { mineOnly: boolean }) {
+  const flow = useChemicalWorkflow();
+  if (!flow.data) return null;
+  return <div className="border-t border-border"><div className="px-5 py-2.5 text-xs font-bold">Сданная пустая тара</div><ContainerReturnHistory data={flow.data} mineOnly={mineOnly} /></div>;
 }
