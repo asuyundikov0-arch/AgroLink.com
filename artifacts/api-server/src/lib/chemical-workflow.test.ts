@@ -20,6 +20,7 @@ test("chemical classification covers named legacy operations and explicit season
   assert.equal(isChemicalOperation({ name: "Гербицидная обработка" }), true);
   assert.equal(isChemicalOperation({ name: "Внесение удобрений", requiresChemicals: true }), true);
   assert.equal(isChemicalOperation({ name: "Посев" }), false);
+  assert.equal(isChemicalOperation({ name: "Гербицидная обработка", requiresChemicals: false, chemicalModeExplicit: true }), false);
 });
 test("request -> custody -> daily confirmed partial expense; roles, idempotency, no overspend", async () => {
   const rollback = new Error("rollback-chemical-workflow");
@@ -67,6 +68,15 @@ test("request -> custody -> daily confirmed partial expense; roles, idempotency,
     assert.equal(before.custody.find(i => i.issueId === issue.id)?.isMine, true);
     assert.equal((await chemicalWorkflow(tx, warehouse)).custody.find(i => i.issueId === issue.id)?.isMine, false);
     const receiptInput = { requestId: randomUUID(), issueId: issue.id, reportDate: "2026-02-10", returnedOn: "2026-02-11", containerCount: 2, notes: "" };
+    await assert.rejects(acceptChemicalContainers(tx, receiptInput, warehouse), /положительный дневной факт/);
+    await tx.update(fieldOperationsTable).set({
+      actualStart: "2026-02-10", actualAreaAres: 2000,
+      chemicalPlan: [{ batchId: batch.id, ratePerHa: 0.8 }],
+    }).where(eq(fieldOperationsTable.id, op.id));
+    await tx.insert(fieldOperationProgressTable).values([
+      { operationId: op.id, reportDate: "2026-02-10", cumulativeAreaAres: 1000, updatedBy: "test" },
+      { operationId: op.id, reportDate: "2026-02-11", cumulativeAreaAres: 2000, updatedBy: "test" },
+    ]);
     await assert.rejects(acceptChemicalContainers(tx, receiptInput, warehouse), /объём и количество упаковок/);
     await setChemicalPackaging(tx, batch.id, { containerVolume: 5, containerCount: 20 }, warehouse);
     await assert.rejects(issueRequestedChemical(tx, { ...issueInput, requestId: randomUUID(), quantity: 0.5 }, warehouse), /остаток заявки|целыми упаковками/);
@@ -75,36 +85,35 @@ test("request -> custody -> daily confirmed partial expense; roles, idempotency,
     const receipt = await acceptChemicalContainers(tx, receiptInput, warehouse);
     assert.equal((await acceptChemicalContainers(tx, receiptInput, warehouse)).id, receipt.id);
     const waiting = await chemicalWorkflow(tx, agronomist);
-    assert.equal(waiting.custody.find(i => i.issueId === issue.id)?.remaining, 40);
-    assert.equal(waiting.custody.find(i => i.issueId === issue.id)?.pendingReturnQuantity, 10);
-    assert.equal(waiting.containerReturns.find(r => r.id === receipt.id)?.consumptionId, null);
+    assert.equal(waiting.custody.find(i => i.issueId === issue.id)?.remaining, 30);
+    assert.equal(waiting.custody.find(i => i.issueId === issue.id)?.pendingReturnQuantity, 0);
+    const consumedId = waiting.containerReturns.find(r => r.id === receipt.id)?.consumptionId;
+    assert.ok(consumedId);
+    const expectation = waiting.dailyExpectations?.find(d => d.operationId === op.id && d.reportDate === receiptInput.reportDate);
+    assert.equal(expectation?.expectedQuantity, 8);
+    assert.equal(expectation?.expectedContainerCount, 1.6);
+    assert.equal(expectation?.returnedQuantity, 10);
+    assert.equal(expectation?.deviationQuantity, 2);
     await assert.rejects(setChemicalPackaging(tx, batch.id, { containerVolume: 10, containerCount: 10 }, warehouse), /менять упаковку/);
     const consumptionInput = { requestId: randomUUID(), containerReturnId: receipt.id, notes: "" };
     await assert.rejects(consumeChemical(tx, consumptionInput, agronomist), e => (e as { status: number }).status === 403);
-    await assert.rejects(consumeChemical(tx, consumptionInput, dispatcher), /Сначала внесите/);
-    await tx.update(fieldOperationsTable).set({ actualStart: "2026-02-10", actualAreaAres: 2000 }).where(eq(fieldOperationsTable.id, op.id));
-    await tx.insert(fieldOperationProgressTable).values([
-      { operationId: op.id, reportDate: "2026-02-10", cumulativeAreaAres: 1000, updatedBy: "test" },
-      { operationId: op.id, reportDate: "2026-02-11", cumulativeAreaAres: 2000, updatedBy: "test" },
-    ]);
-    const consumed = await consumeChemical(tx, consumptionInput, dispatcher);
-    assert.equal((await consumeChemical(tx, consumptionInput, dispatcher)).id, consumed.id);
-    await assert.rejects(consumeChemical(tx, { ...consumptionInput, requestId: randomUUID() }, dispatcher), /уже подтверждён/);
+    await assert.rejects(consumeChemical(tx, consumptionInput, dispatcher), e => (e as { status: number }).status === 403);
+    await assert.rejects(consumeChemical(tx, consumptionInput, warehouse), /уже подтверждён/);
     const second = await acceptChemicalContainers(tx, { ...receiptInput, requestId: randomUUID(), containerCount: 1 }, warehouse);
     await assert.rejects(acceptChemicalContainers(tx, { ...receiptInput, requestId: randomUUID(), containerCount: 6 }, warehouse), /превышает остаток/);
-    // Several deliveries of empty containers on the same work day are individually confirmed.
-    await consumeChemical(tx, { ...consumptionInput, requestId: randomUUID(), containerReturnId: second.id }, dispatcher);
-    const noFact = await acceptChemicalContainers(tx, { ...receiptInput, requestId: randomUUID(), containerCount: 1, reportDate: "2026-02-12", returnedOn: "2026-02-12" }, warehouse);
-    await assert.rejects(consumeChemical(tx, { ...consumptionInput, requestId: randomUUID(), containerReturnId: noFact.id }, dispatcher), /Сначала внесите/);
+    // Several deliveries on the same work day close custody immediately and individually.
+    assert.ok(second.id);
+    await assert.rejects(acceptChemicalContainers(tx, { ...receiptInput, requestId: randomUUID(), containerCount: 1,
+      reportDate: "2026-02-12", returnedOn: "2026-02-12" }, warehouse), /положительный дневной факт/);
     const afterWorkflow = await chemicalWorkflow(tx, agronomist);
     assert.equal(afterWorkflow.custody.find(i => i.issueId === issue.id)?.remaining, 25);
     assert.equal(afterWorkflow.custody.find(i => i.issueId === issue.id)?.remainingAmount, 37500);
-    assert.equal(afterWorkflow.custody.find(i => i.issueId === issue.id)?.pendingReturnQuantity, 5);
-    assert.equal(afterWorkflow.containerReturns.find(r => r.id === receipt.id)?.consumptionId, consumed.id);
+    assert.equal(afterWorkflow.custody.find(i => i.issueId === issue.id)?.pendingReturnQuantity, 0);
+    assert.equal(afterWorkflow.containerReturns.find(r => r.id === receipt.id)?.consumptionId, consumedId);
     assert.equal((await tx.select().from(chemicalBatchesTable).where(eq(chemicalBatchesTable.id, batch.id)))[0].remainingMillis, 60000);
     const consumptionRows = await tx.select().from(chemicalConsumptionsTable).where(eq(chemicalConsumptionsTable.issueId, issue.id));
     assert.equal(chemicalFieldCosts(issueRows, consumptionRows).get(season.id), 2250000);
-    assert.equal(afterWorkflow.consumptions.find(i => i.id === consumed.id)?.dailyAreaHa, 10);
+    assert.equal(afterWorkflow.consumptions.find(i => i.id === consumedId)?.dailyAreaHa, 10);
     throw rollback;
   }), e => e === rollback);
 });

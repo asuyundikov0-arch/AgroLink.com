@@ -299,7 +299,28 @@ export interface ChemicalConsumption {
   containerReturnId?: number | null;
 }
 
+export interface ChemicalDailyExpectation {
+  operationId: number;
+  batchId: number;
+  fieldNumber: string;
+  farm: string;
+  name: string;
+  unit: string;
+  reportDate: string;
+  dailyAreaHa: number;
+  ratePerHa: number;
+  expectedQuantity: number;
+  /** @nullable */
+  containerVolume: number | null;
+  /** @nullable */
+  expectedContainerCount: number | null;
+  returnedQuantity: number;
+  returnedContainerCount: number;
+  deviationQuantity: number;
+}
+
 export interface ChemicalWorkflow {
+  dailyExpectations?: ChemicalDailyExpectation[];
   operations: ChemicalWork[];
   requests: ChemicalRequest[];
   custody: ChemicalCustody[];
@@ -378,7 +399,18 @@ export type FieldSeason = FieldSeasonUpdate & {
   updatedAt: string;
 };
 
+export interface FieldChemicalPlan {
+  /** @minimum 1 */
+  batchId: number;
+  /**
+     * @minimum 0.001
+     * @maximum 1000000
+     */
+  ratePerHa: number;
+}
+
 export interface FieldOperationInput {
+  chemicalPlan?: FieldChemicalPlan[];
   requiresChemicals?: boolean;
   /** @minimum 1 */
   seasonId: number;
@@ -417,6 +449,26 @@ export interface FieldOperationInput {
   plannedImplement: string;
   /** @maxLength 3000 */
   notes: string;
+}
+
+export type FieldLifecycleInputAction = typeof FieldLifecycleInputAction[keyof typeof FieldLifecycleInputAction];
+
+
+export const FieldLifecycleInputAction = {
+  approve_unplanned: 'approve_unplanned',
+  reject_unplanned: 'reject_unplanned',
+  request_completion: 'request_completion',
+  approve_completion: 'approve_completion',
+  reject_completion: 'reject_completion',
+} as const;
+
+export interface FieldLifecycleInput {
+  /** @minimum 1 */
+  version: number;
+  action: FieldLifecycleInputAction;
+  date?: string;
+  /** @maxLength 1000 */
+  note?: string;
 }
 
 export type FieldOperationUpdate = FieldOperationInput & {
@@ -474,8 +526,11 @@ export interface FieldProgressInput {
   cumulativeAreaHa: number;
   /** @maxLength 200 */
   actualMechanic: string;
-  /** @minimum 1 */
-  actualMechanicEmployeeId: number;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  actualMechanicEmployeeId: number | null;
   /** @maxLength 200 */
   actualEquipment: string;
   /** @maxLength 200 */
@@ -506,6 +561,8 @@ export interface FieldProgressReport {
 }
 
 export interface UnplannedFieldOperationInput {
+  requiresChemicals?: boolean;
+  chemicalPlan?: FieldChemicalPlan[];
   /** @minimum 1 */
   seasonId: number;
   /**
@@ -549,10 +606,25 @@ export interface DailySeedingReport {
   totalAreaHa: number;
 }
 
+export type FieldOperationRecordPlanApprovalStatus = typeof FieldOperationRecordPlanApprovalStatus[keyof typeof FieldOperationRecordPlanApprovalStatus];
+
+
+export const FieldOperationRecordPlanApprovalStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
 /**
  * Stored plan metadata; unplanned actual work has zero planned hectares.
  */
 export interface FieldOperationRecordPlan {
+  chemicalPlan?: FieldChemicalPlan[];
+  approvalStatus?: FieldOperationRecordPlanApprovalStatus;
+  approvalNote?: string;
+  /** @nullable */
+  completionRequestedOn?: string | null;
+  completionRequestedBy?: string;
   requiresChemicals?: boolean;
   /** @minimum 1 */
   seasonId: number;
@@ -640,6 +712,8 @@ export interface FieldDispatchRateInput {
 }
 
 export interface FieldDispatchItem {
+  farm?: string;
+  operation?: FieldOperation;
   id: number;
   version: number;
   fieldNumber: string;

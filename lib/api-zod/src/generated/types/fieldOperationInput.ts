@@ -5,8 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { FieldChemicalPlan } from './fieldChemicalPlan';
 
 export interface FieldOperationInput {
+  chemicalPlan?: FieldChemicalPlan[];
   requiresChemicals?: boolean;
   /** @minimum 1 */
   seasonId: number;

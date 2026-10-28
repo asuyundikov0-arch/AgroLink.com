@@ -266,6 +266,24 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/FieldOperation" }
+  /agro/fields/operations/{id}/lifecycle:
+    post:
+      operationId: transitionFieldOperation
+      tags: [fields]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FieldLifecycleInput" }
+      responses:
+        "200":
+          description: Updated operation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FieldOperation" }
+        "400": { description: Invalid transition }
   /agro/fields/operations/{id}/actual:
     patch:
       operationId: updateFieldOperationActual
@@ -1664,10 +1682,32 @@ components:
         confirmedBy: { type: string }
         notes: { type: string }
         containerReturnId: { type: [number, "null"] }
+    ChemicalDailyExpectation:
+      type: object
+      required: [operationId, batchId, fieldNumber, farm, name, unit, reportDate, dailyAreaHa, ratePerHa, expectedQuantity, containerVolume, expectedContainerCount, returnedQuantity, returnedContainerCount, deviationQuantity]
+      properties:
+        operationId: { type: number }
+        batchId: { type: number }
+        fieldNumber: { type: string }
+        farm: { type: string }
+        name: { type: string }
+        unit: { type: string }
+        reportDate: { type: string }
+        dailyAreaHa: { type: number }
+        ratePerHa: { type: number }
+        expectedQuantity: { type: number }
+        containerVolume: { type: [number, "null"] }
+        expectedContainerCount: { type: [number, "null"] }
+        returnedQuantity: { type: number }
+        returnedContainerCount: { type: number }
+        deviationQuantity: { type: number }
     ChemicalWorkflow:
       type: object
       required: [operations, requests, custody, consumptions, containerReturns]
       properties:
+        dailyExpectations:
+          type: array
+          items: { $ref: "#/components/schemas/ChemicalDailyExpectation" }
         operations:
           type: array
           items: { $ref: "#/components/schemas/ChemicalWork" }
@@ -1738,6 +1778,9 @@ components:
       type: object
       required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, plannedRatePerHa, responsible, plannedEquipment, plannedImplement, notes]
       properties:
+        chemicalPlan:
+          type: array
+          items: { $ref: "#/components/schemas/FieldChemicalPlan" }
         requiresChemicals: { type: boolean, default: false }
         seasonId: { type: number, minimum: 1 }
         name: { type: string, minLength: 1, maxLength: 150 }
@@ -1751,6 +1794,20 @@ components:
         plannedEquipment: { type: string, maxLength: 200 }
         plannedImplement: { type: string, maxLength: 200 }
         notes: { type: string, maxLength: 3000 }
+    FieldChemicalPlan:
+      type: object
+      required: [batchId, ratePerHa]
+      properties:
+        batchId: { type: number, minimum: 1 }
+        ratePerHa: { type: number, minimum: 0.001, maximum: 1000000 }
+    FieldLifecycleInput:
+      type: object
+      required: [version, action]
+      properties:
+        version: { type: number, minimum: 1 }
+        action: { type: string, enum: [approve_unplanned, reject_unplanned, request_completion, approve_completion, reject_completion] }
+        date: { type: string }
+        note: { type: string, maxLength: 1000 }
     FieldOperationUpdate:
       allOf:
         - $ref: "#/components/schemas/FieldOperationInput"
@@ -1786,7 +1843,7 @@ components:
         reportDate: { type: string }
         cumulativeAreaHa: { type: number, minimum: 0, maximum: 1000000 }
         actualMechanic: { type: string, maxLength: 200 }
-        actualMechanicEmployeeId: { type: number, minimum: 1 }
+        actualMechanicEmployeeId: { type: ["number", "null"], minimum: 1 }
         actualEquipment: { type: string, maxLength: 200 }
         actualImplement: { type: string, maxLength: 200 }
         notes: { type: string, maxLength: 3000 }
@@ -1817,6 +1874,10 @@ components:
       type: object
       required: [seasonId, name, occurredOn, areaHa, completed, employeeId, equipmentId, implement, notes]
       properties:
+        requiresChemicals: { type: boolean, default: false }
+        chemicalPlan:
+          type: array
+          items: { $ref: "#/components/schemas/FieldChemicalPlan" }
         seasonId: { type: number, minimum: 1 }
         name: { type: string, minLength: 1, maxLength: 150 }
         occurredOn: { type: string }
@@ -1850,6 +1911,13 @@ components:
       description: Stored plan metadata; unplanned actual work has zero planned hectares.
       required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, plannedRatePerHa, responsible, plannedEquipment, plannedImplement, notes, version]
       properties:
+        chemicalPlan:
+          type: array
+          items: { $ref: "#/components/schemas/FieldChemicalPlan" }
+        approvalStatus: { type: string, enum: [pending, approved, rejected] }
+        approvalNote: { type: string }
+        completionRequestedOn: { type: [string, "null"] }
+        completionRequestedBy: { type: string }
         requiresChemicals: { type: boolean }
         seasonId: { type: number, minimum: 1 }
         name: { type: string, minLength: 1, maxLength: 150 }
@@ -1900,6 +1968,8 @@ components:
       type: object
       required: [id, version, fieldNumber, year, cropName, operationName, plannedStart, plannedEnd, actualStart, actualEnd, actualAreaHa, actualMechanic, actualMechanicEmployeeId, actualEquipment, actualImplement, plannedRatePerHa, actualRatePerHa, actualPayAmount, actualRateSetBy, actualRateSetAt]
       properties:
+        farm: { type: string }
+        operation: { $ref: "#/components/schemas/FieldOperation" }
         id: { type: number }
         version: { type: number }
         fieldNumber: { type: string }

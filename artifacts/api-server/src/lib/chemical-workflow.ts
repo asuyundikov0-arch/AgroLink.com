@@ -13,7 +13,8 @@ import { chemicalCheck as check, scaledChemical, chemicalIssueValue } from "./ch
 import { grainBusinessDate, validGrainDate } from "./grain-ledger";
 
 export type ChemicalTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-export function isChemicalOperation(op: { name: string; requiresChemicals?: boolean }) {
+export function isChemicalOperation(op: { name: string; requiresChemicals?: boolean; chemicalModeExplicit?: boolean }) {
+  if (op.chemicalModeExplicit) return !!op.requiresChemicals;
   return !!op.requiresChemicals || /хим|гербицид|сзр|десикац|фунгицид|инсектицид|протрав|пестицид/iu.test(op.name);
 }
 export async function lockChemicalWorkflow(tx: ChemicalTx) {
@@ -49,8 +50,9 @@ export async function requestChemical(tx: ChemicalTx, input: ChemicalRequestInpu
     return { id: existing.id };
   }
   const context = await operationContext(tx, input.operationId);
-  check(!context.op.isUnplanned && !context.op.actualEnd && isChemicalOperation(context.op),
-    "Заявка оформляется для незавершённой плановой операции с химией.", 409);
+  check(context.op.approvalStatus === "approved" && !context.op.actualEnd
+    && !context.op.completionRequestedOn && isChemicalOperation(context.op),
+    "Заявка оформляется для согласованной незавершённой операции с химией.", 409);
   const [batch] = await tx.select({ batch: batches, invoice: invoices }).from(batches)
     .innerJoin(invoices, eq(batches.invoiceId, invoices.id)).where(eq(batches.id, input.batchId));
   check(batch, "Партия химии не найдена.", 404);
@@ -114,7 +116,7 @@ export function chemicalFactDays(op: typeof operations.$inferSelect, reports: (t
   }).filter(row => row.dailyAreaHa > 0);
 }
 export async function consumeChemical(tx: ChemicalTx, input: ChemicalConsumptionInput, access: RoleAccess) {
-  check(access.role === "dispatcher" || access.role === "general_director", "Ежедневный расход подтверждает диспетчер.", 403);
+  check(access.role === "grain_manager" || access.role === "general_director", "Расход по принятой таре подтверждает заведующий током.", 403);
   identifier(input.containerReturnId);
   await lockChemicalWorkflow(tx);
   const [existing] = await tx.select().from(consumptions).where(eq(consumptions.requestId, input.requestId));
@@ -123,7 +125,7 @@ export async function consumeChemical(tx: ChemicalTx, input: ChemicalConsumption
     return { id: existing.id };
   }
   const [receipt] = await tx.select().from(containerReturns).where(eq(containerReturns.id, input.containerReturnId));
-  check(receipt, "Сначала заведующий током должен принять пустую тару и уведомить диспетчера.", 409);
+  check(receipt, "Сначала заведующий током должен принять пустую тару.", 409);
   const [confirmed] = await tx.select({ id: consumptions.id }).from(consumptions).where(eq(consumptions.containerReturnId, receipt.id));
   check(!confirmed, "Расход по этой возвращённой таре уже подтверждён.", 409);
   const millis = receipt.quantityMillis;
@@ -163,8 +165,29 @@ export async function chemicalWorkflow(tx: ChemicalTx, access: RoleAccess) {
   const batchMap = new Map(batchRows.map(b => [b.id, b]));
   const requestMap = new Map(requestRows.map(r => [r.id, r]));
   const issueMap = new Map(issueRows.map(i => [i.id, i]));
+  const dailyExpectations = opRows.filter(({ op, field }) => !op.voidedAt && field.isActive && isChemicalOperation(op))
+    .flatMap(({ op, field }) => chemicalFactDays(op, reportRows.filter(r => r.operationId === op.id))
+      .flatMap(day => op.chemicalPlan.flatMap(line => {
+        const b = batchMap.get(line.batchId);
+        if (!b) return [];
+        const expectedQuantity = Math.round(day.dailyAreaHa * line.ratePerHa * 1000) / 1000;
+        const receipts = returnRows.filter(r => r.operationId === op.id && r.reportDate === day.date
+          && issueMap.get(r.issueId)?.batchId === b.id);
+        const returnedQuantity = receipts.reduce((s, r) => s + r.quantityMillis, 0) / 1000;
+        return [{
+          operationId: op.id, batchId: b.id, fieldNumber: field.number, farm: field.unit,
+          name: b.name, unit: b.unit, reportDate: day.date, dailyAreaHa: day.dailyAreaHa,
+          ratePerHa: line.ratePerHa, expectedQuantity,
+          containerVolume: b.containerVolumeMillis ? b.containerVolumeMillis / 1000 : null,
+          expectedContainerCount: b.containerVolumeMillis
+            ? Math.round(expectedQuantity * 1000 / b.containerVolumeMillis * 1000) / 1000 : null,
+          returnedQuantity, returnedContainerCount: receipts.reduce((s, r) => s + r.containerCount, 0),
+          deviationQuantity: Math.round((returnedQuantity - expectedQuantity) * 1000) / 1000,
+        }];
+      })));
   return GetChemicalWorkflowResponse.parse({
-    operations: opRows.filter(({ op, field }) => !op.voidedAt && !op.isUnplanned && field.isActive && isChemicalOperation(op))
+    dailyExpectations,
+    operations: opRows.filter(({ op, field }) => !op.voidedAt && op.approvalStatus === "approved" && field.isActive && isChemicalOperation(op))
       .map(({ op, season, field }) => ({ id: op.id, seasonId: season.id, fieldNumber: field.number,
         farm: field.unit, year: season.year, name: op.name, actualStart: op.actualStart, actualEnd: op.actualEnd,
         days: chemicalFactDays(op, reportRows.filter(r => r.operationId === op.id)) })),

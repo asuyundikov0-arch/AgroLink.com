@@ -11,13 +11,13 @@ import {
   useCreateFieldSeason,
   useUpdateAgroField,
   useUpdateFieldOperation,
-  useUpdateFieldOperationActual,
+  
   useUpdateFieldOperationProgress,
   useUpdateFieldSeason,
   useVoidFieldOperation,
 } from "@workspace/api-client-react";
 import EmployeeSelect from "../../employees/EmployeeSelect";
-import { ChemicalOperationRequests, useHasOwnChemicalRequest } from "../chemicals/Requests";
+import { ChemicalPlanEditor, type ChemRow, chemPlanOf, chemRowsFrom } from "./ChemicalPlanEditor";
 import { Drawer, Field, SaveError, UNITS, type Unit, dateFmt, errorInfo, ha, handleSaveError, haStr, isGD, parseHa, useInvalidateFields } from "./shared";
 
 type Done = (msg: string) => void;
@@ -263,8 +263,10 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
        return m.length === 1 ? m[0].id : null;
      })() as number | null,
      plannedEquipment: op?.plannedEquipment ?? "", plannedImplement: op?.plannedImplement ?? "", notes: op?.notes ?? "",
-     requiresChemicals: op?.requiresChemicals ?? (op ? CHEM_NAME_RE.test(op.name) : false), chemTouched: !!op,
+     requiresChemicals: op?.requiresChemicals ?? false,
   });
+  const [chemRows, setChemRows] = useState<ChemRow[]>(() => chemRowsFrom(op?.chemicalPlan));
+  const locked = !!op?.actualStart;
   const [errs, setErrs] = useState<Record<string, string>>({});
   const pending = create.isPending || update.isPending;
   const close = () => { if (!pending) onClose(); };
@@ -277,7 +279,7 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
 
   const submit = async (ev: FormEvent) => {
     ev.preventDefault();
-    if (pending || e.conflict) return;
+    if (pending || e.conflict || locked) return;
     const er: Record<string, string> = {};
     if (!season) er.seasonId = "Выберите сезон";
     const name = f.name.trim();
@@ -299,9 +301,12 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
     else if (f.plannedEquipmentId && seasonUnit && !legacyEq) { const eq = fleet.find((x) => x.id === f.plannedEquipmentId); if (eq && eq.unit !== seasonUnit && eq.id !== op?.plannedEquipmentId) er.plannedEquipment = "Техника другого хозяйства"; }
     if (f.plannedEquipment.length > 200) er.plannedEquipment = "Не более 200 символов";
     if (f.plannedImplement.length > 200) er.plannedImplement = "Не более 200 символов";
+    const chem = chemPlanOf(f.requiresChemicals ? chemRows : []);
+    if (chem.error) er.chem = chem.error;
+    else if (f.requiresChemicals && !chem.plan.length) er.chem = "Укажите хотя бы один препарат и норму расхода на гектар.";
     setErrs(er); e.clear();
     if (Object.keys(er).length) return;
-    const data = { seasonId: Number(f.seasonId), name, plannedStart: f.plannedStart, plannedEnd: f.plannedEnd, plannedAreaHa: area!, plannedRatePerHa: plannedRate!, responsible: f.responsible.trim(), plannedMechanicEmployeeId: f.responsibleId, plannedEquipmentId: f.plannedEquipmentId, plannedEquipment: f.plannedEquipment.trim(), plannedImplement: f.plannedImplement.trim(), notes: f.notes, requiresChemicals: f.requiresChemicals || CHEM_NAME_RE.test(name) };
+    const data = { seasonId: Number(f.seasonId), name, plannedStart: f.plannedStart, plannedEnd: f.plannedEnd, plannedAreaHa: area!, plannedRatePerHa: plannedRate!, responsible: f.responsible.trim(), plannedMechanicEmployeeId: f.responsibleId, plannedEquipmentId: f.plannedEquipmentId, plannedEquipment: f.plannedEquipment.trim(), plannedImplement: f.plannedImplement.trim(), notes: f.notes, requiresChemicals: f.requiresChemicals, chemicalPlan: f.requiresChemicals ? chem.plan : [] };
     try {
       if (op) await update.mutateAsync({ id: op.id, data: { ...data, version: op.version } });
       else await create.mutateAsync({ data });
@@ -313,8 +318,9 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
   return (
     <form onSubmit={submit} noValidate>
       <Drawer title={op ? "План операции" : "Новая полевая операция"} eyebrow={op ? `Версия ${op.version} · изм. ${dateFmt(op.updatedAt)} · ${op.updatedBy}` : "План работ"} onClose={close} testId="form-operation"
-        footer={<Footer pending={pending} conflict={e.conflict} onCancel={close} prefix="operation" />}>
+        footer={<Footer pending={pending} conflict={e.conflict || locked} onCancel={close} prefix="operation" />}>
         <SaveError message={e.saveError} conflict={e.conflict} testId="text-operation-error" />
+        {locked && <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] leading-5 text-amber-900" data-testid="text-operation-locked">Работа начата {dateFmt(op!.actualStart)}. План после фактического начала не меняется; текущие ресурсы меняет агроном в фактических работах.</p>}
         {op && op.actualAreaHa > 0 && <p className="rounded-lg border border-border bg-muted/40 p-3 text-[11px] leading-5 text-muted-foreground">По операции уже есть факт ({ha(op.actualAreaHa)}). Сезон и название после начала работ сервер не изменит, план нельзя уменьшить ниже факта. Факт здесь не редактируется.</p>}
         {options.length === 0 ? <p className="text-xs text-muted-foreground" data-testid="text-operation-no-seasons">Нет сезонов на действующих полях. Сначала запланируйте севооборот.</p> : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -324,15 +330,16 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
               </select>
             </Field>
             <Field label="Операция *" error={errs.name} htmlFor="op-name" wide>
-              <select id="op-name" className="text-input" value={f.name} onChange={(ev) => { const n = ev.target.value; setF({ ...f, name: n, requiresChemicals: CHEM_NAME_RE.test(n) || (f.chemTouched && f.requiresChemicals) }); }} data-testid="input-operation-name">
+              <select id="op-name" className="text-input" value={f.name} onChange={(ev) => setF({ ...f, name: ev.target.value })} data-testid="input-operation-name">
                 <option value="">Выберите операцию</option>
                 {nameOptions.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </Field>
             <label className="flex items-start gap-2 text-xs font-semibold sm:col-span-2" htmlFor="op-chem">
-              <input id="op-chem" type="checkbox" className="mt-0.5" checked={f.requiresChemicals || CHEM_NAME_RE.test(f.name)} disabled={CHEM_NAME_RE.test(f.name)} onChange={(ev) => setF({ ...f, requiresChemicals: ev.target.checked, chemTouched: true })} data-testid="checkbox-operation-requires-chemicals" />
-              <span>Требуется химия со склада<span className="block text-[10.5px] font-normal text-muted-foreground">{CHEM_NAME_RE.test(f.name) ? "Химобработка определена по названию операции." : "Отметьте, например, для внесения удобрений. Начать работу можно только после заявки агронома."}</span></span>
+              <input id="op-chem" type="checkbox" className="mt-0.5" checked={f.requiresChemicals} onChange={(ev) => setF({ ...f, requiresChemicals: ev.target.checked })} data-testid="checkbox-operation-requires-chemicals" />
+              <span>Требуется химия<span className="block text-[10.5px] font-normal text-muted-foreground">Задайте нормы на гектар из партий склада. При начале работы склад автоматически получит заявку на плановую потребность (с округлением до целой тары).</span></span>
             </label>
+            {f.requiresChemicals && <div className="sm:col-span-2"><ChemicalPlanEditor farm={seasonUnit} areaHa={parseHa(f.area)} rows={chemRows} onChange={setChemRows} error={errs.chem} testId="operation-chem-plan" /></div>}
             <Field label="Плановое начало *" error={errs.plannedStart} htmlFor="op-ps"><input id="op-ps" type="date" className="text-input" value={f.plannedStart} onChange={(ev) => setF({ ...f, plannedStart: ev.target.value })} data-testid="input-operation-planned-start" /></Field>
             <Field label="Плановое окончание *" error={errs.plannedEnd} htmlFor="op-pe"><input id="op-pe" type="date" className="text-input" value={f.plannedEnd} onChange={(ev) => setF({ ...f, plannedEnd: ev.target.value })} data-testid="input-operation-planned-end" /></Field>
             <Field label="Плановая площадь, га *" error={errs.area} hint={season ? `Площадь сезона ${ha(season.areaHa)}` : undefined} htmlFor="op-area"><input id="op-area" className="text-input font-mono" inputMode="decimal" value={f.area} onChange={(ev) => setF({ ...f, area: ev.target.value })} data-testid="input-operation-area" /></Field>
@@ -356,101 +363,6 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
       </Drawer>
     </form>
   );
-}
-
-/* ---------------- Actual ---------------- */
-export function ActualForm({ op, title, today, fleet, fleetLoading, fleetError, onRetry, onClose, onDone }: { op: FieldOperation; title: string; today: string; fleet: FleetEquipment[]; fleetLoading: boolean; fleetError: boolean; onRetry: () => void; onClose: () => void; onDone: Done }) {
-  const mut = useUpdateFieldOperationActual();
-  const invalidate = useInvalidateFields();
-  const e = useErr();
-  const starting = !op.actualStart;
-  const [f, setF] = useState({
-    start: op.actualStart?.slice(0, 10) ?? "", end: op.actualEnd?.slice(0, 10) ?? "",
-    area: op.actualAreaHa > 0 ? haStr(op.actualAreaHa) : "", notes: op.actualNotes ?? "",
-    operationName: op.actualOperationName || op.name, mechanic: starting && !op.actualMechanic && op.actualMechanicEmployeeId == null && op.plannedMechanicEmployeeId != null ? op.responsible : op.actualMechanic ?? "",
-    mechanicId: (starting && !op.actualMechanic && op.actualMechanicEmployeeId == null ? op.plannedMechanicEmployeeId ?? null : op.actualMechanicEmployeeId ?? null) as number | null,
-    equipment: op.actualEquipment || op.plannedEquipment, implement: op.actualImplement || op.plannedImplement,
-  });
-  const [errs, setErrs] = useState<Record<string, string>>({});
-  const pending = mut.isPending;
-  const close = () => { if (!pending) onClose(); };
-  const parsed = f.area.trim() === "" ? 0 : parseHa(f.area);
-
-  const submit = async (ev: FormEvent) => {
-    ev.preventDefault();
-    if (pending || e.conflict) return;
-    const er: Record<string, string> = {};
-    if (starting) {
-      if (!f.operationName.trim()) er.operationName = "Укажите вид операции";
-      if (f.operationName.trim().length > 150) er.operationName = "Не более 150 символов";
-      if (!f.mechanicId) er.mechanic = "Выберите механизатора из справочника";
-      if (!f.equipment.trim()) er.equipment = "Укажите технику";
-      if (!f.implement.trim()) er.implement = "Укажите агрегат";
-    } else {
-      if (parsed === null) er.area = "Число с точностью до 0,01 га";
-      else if (parsed > limitOf(op)) er.area = `Не больше допустимой площади (${ha(limitOf(op))})`;
-      else if (!(parsed > 0)) er.area = "Укажите фактическую площадь";
-      if (!f.end) er.end = "Укажите дату завершения";
-      if (!f.mechanicId) er.mechanic = "Выберите механизатора из справочника";
-      if (!f.equipment.trim()) er.equipment = "Укажите технику";
-      if (!f.implement.trim()) er.implement = "Укажите агрегат";
-    }
-    if (f.start && f.start > today) er.start = "Дата не может быть позже сегодняшней";
-    if (!f.start) er.start = "Укажите фактическую дату начала";
-    if (!starting && f.end && f.end > today) er.end = "Дата не может быть позже сегодняшней";
-    if (!starting && f.end && f.start && f.end < f.start) er.end = "Раньше фактического начала";
-    setErrs(er); e.clear();
-    if (Object.keys(er).length) return;
-    try {
-      await mut.mutateAsync({ id: op.id, data: {
-        version: op.version, actualStart: f.start || null, actualEnd: starting ? null : f.end || null,
-        actualAreaHa: starting ? 0 : parsed ?? 0, actualOperationName: f.operationName.trim(),
-        actualMechanic: f.mechanic.trim(), actualMechanicEmployeeId: f.mechanicId, actualEquipment: f.equipment.trim(), actualImplement: f.implement.trim(), actualNotes: f.notes,
-      } });
-      await invalidate();
-      onDone(starting ? `Начало операции «${f.operationName.trim()}» зафиксировано.` : `Операция «${op.name}» завершена: ${ha(parsed ?? 0)}. Данные переданы диспетчеру для ввода фактической расценки.`);
-    } catch (err) { handleSaveError(err, true, e.set); }
-  };
-
-  const cov = parsed && !op.isUnplanned && op.plannedAreaHa > 0 ? (parsed / op.plannedAreaHa) * 100 : 0;
-  return (
-    <form onSubmit={submit} noValidate>
-      <Drawer title={starting ? "Начать операцию" : op.actualEnd ? "Изменить факт завершения" : "Завершить операцию"} eyebrow={`${title} · версия ${op.version}`} onClose={close} testId="form-actual"
-        footer={<Footer pending={pending} conflict={e.conflict} onCancel={close} prefix="actual" label={starting ? "Зафиксировать начало" : "Завершить операцию"} />}>
-        <SaveError message={e.saveError} conflict={e.conflict} testId="text-actual-error" />
-        {op.requiresChemicals && !op.isUnplanned && <ActualChemGate op={op} starting={starting} />}
-        <div className="rounded-lg border border-border bg-muted/40 p-3 font-mono text-[11px] leading-5" data-testid="text-actual-plan">
-          {op.isUnplanned ? <>Вне плана · допустимо до {ha(limitOf(op))}</> : <>План: {dateFmt(op.plannedStart)} – {dateFmt(op.plannedEnd)} · {ha(op.plannedAreaHa)}{op.responsible ? ` · ${op.responsible}` : ""}</>}
-          {op.plannedEquipment && <><br />Техника: {op.plannedEquipment}</>}{op.plannedImplement && <> · агрегат: {op.plannedImplement}</>}
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {starting ? <>
-            <Field label="Фактическое начало *" error={errs.start} htmlFor="ac-start"><input id="ac-start" type="date" max={today} className="text-input" value={f.start} onChange={(ev) => setF({ ...f, start: ev.target.value })} data-testid="input-actual-start" /></Field>
-            <Field label="Вид операции *" error={errs.operationName} htmlFor="ac-operation-name"><input id="ac-operation-name" className="text-input" maxLength={150} value={f.operationName} onChange={(ev) => setF({ ...f, operationName: ev.target.value })} data-testid="input-actual-operation-name" /></Field>
-          </> : <>
-            <Field label="Фактическое начало" error={errs.start} htmlFor="ac-start"><input id="ac-start" type="date" className="text-input" value={f.start} readOnly data-testid="input-actual-start" /></Field>
-            <Field label="Фактическое окончание *" error={errs.end} htmlFor="ac-end"><input id="ac-end" type="date" max={today} className="text-input" value={f.end} onChange={(ev) => setF({ ...f, end: ev.target.value })} data-testid="input-actual-end" /></Field>
-            <Field label="Фактическая площадь, га *" error={errs.area} hint={parsed ? `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(cov)}% от плана` : "Можно завершить меньшей площадью, чем запланировано"} htmlFor="ac-area" wide>
-              <input id="ac-area" className="text-input font-mono" inputMode="decimal" value={f.area} onChange={(ev) => setF({ ...f, area: ev.target.value })} data-testid="input-actual-area" />
-            </Field>
-          </>}
-          <Field label="Механизатор *" error={errs.mechanic} htmlFor="ac-mechanic"><EmployeeSelect id="ac-mechanic" value={{ id: f.mechanicId, name: f.mechanic }} onChange={(v) => setF({ ...f, mechanicId: v.id, mechanic: v.name })} invalid={Boolean(errs.mechanic)} testId="input-actual-mechanic" /></Field>
-          <Field label="Фактическая техника *" error={errs.equipment} hint="Выберите из справочника; можно изменить относительно плана" htmlFor="ac-equipment"><EquipmentSelect id="ac-equipment" testId="select-actual-equipment" value={f.equipment} fleet={fleet} loading={fleetLoading} failed={fleetError} onRetry={onRetry} onChange={(equipment) => setF({ ...f, equipment })} /></Field>
-          <Field label="Фактический агрегат *" error={errs.implement} hint="Можно изменить относительно плана" htmlFor="ac-implement"><input id="ac-implement" className="text-input" maxLength={200} value={f.implement} onChange={(ev) => setF({ ...f, implement: ev.target.value })} data-testid="input-actual-implement" /></Field>
-          <Field label="Примечание к факту" htmlFor="ac-notes" wide><textarea id="ac-notes" className="text-input min-h-[72px]" maxLength={3000} value={f.notes} onChange={(ev) => setF({ ...f, notes: ev.target.value })} data-testid="input-actual-notes" /></Field>
-        </div>
-      </Drawer>
-    </form>
-  );
-}
-
-function ActualChemGate({ op, starting }: { op: FieldOperation; starting: boolean }) {
-  const own = useHasOwnChemicalRequest(op.id);
-  return <div className="space-y-2" data-testid="actual-chem-gate">
-    {starting && !own.loading && !own.has && <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-[11px] leading-5 text-amber-900" data-testid="text-actual-chem-required">Химобработка: начать нельзя без вашей заявки на химию со склада. Создайте заявку ниже, затем зафиксируйте начало.</p>}
-    {starting && own.has && <p className="rounded-lg border border-border bg-muted/40 p-2.5 text-[11px] text-muted-foreground" data-testid="text-actual-chem-ok">Заявка на химию создана. Можно фиксировать начало.</p>}
-    <ChemicalOperationRequests operationId={op.id} embedded />
-  </div>;
 }
 
 /* ---------------- Daily cumulative progress ---------------- */

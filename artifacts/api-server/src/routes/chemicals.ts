@@ -144,7 +144,7 @@ router.post("/agro/chemicals/requests", guard(["agronomist", "general_director"]
   check(parsed.success, "Выберите плановую операцию, химию и количество.");
   res.status(201).json(await db.transaction(tx => requestChemical(tx, parsed.data, res.locals.access)));
 }));
-router.post("/agro/chemicals/consumptions", guard(["dispatcher", "general_director"]), safe(async (req, res): Promise<void> => {
+router.post("/agro/chemicals/consumptions", guard(chemicalWriters), safe(async (req, res): Promise<void> => {
   const parsed = CreateChemicalConsumptionBody.safeParse(req.body);
   check(parsed.success, "Выберите принятую заведующим током пустую тару для подтверждения расхода.");
   res.status(201).json(await db.transaction(tx => consumeChemical(tx, parsed.data, res.locals.access)));

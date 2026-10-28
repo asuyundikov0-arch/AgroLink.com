@@ -8,10 +8,12 @@
 import type { ChemicalConsumption } from './chemicalConsumption';
 import type { ChemicalContainerReturn } from './chemicalContainerReturn';
 import type { ChemicalCustody } from './chemicalCustody';
+import type { ChemicalDailyExpectation } from './chemicalDailyExpectation';
 import type { ChemicalRequest } from './chemicalRequest';
 import type { ChemicalWork } from './chemicalWork';
 
 export interface ChemicalWorkflow {
+  dailyExpectations?: ChemicalDailyExpectation[];
   operations: ChemicalWork[];
   requests: ChemicalRequest[];
   custody: ChemicalCustody[];

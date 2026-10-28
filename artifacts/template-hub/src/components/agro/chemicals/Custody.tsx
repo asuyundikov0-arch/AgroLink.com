@@ -17,7 +17,7 @@ export function WarehouseRequests({ canEdit, onDone }: { canEdit: boolean; onDon
   const ops = new Map(flow.data!.operations.map((o) => [o.id, o]));
   const open = flow.data!.requests.filter((r) => r.issuedQuantity < r.quantity).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   return <div className="surface-card overflow-x-auto" data-testid="table-chem-requests">
-    <div className="border-b border-border px-4 py-2.5 text-[11px] text-muted-foreground">Выдача только по заявке агронома на плановую химобработку. Выданное числится за агрономом до подтверждения диспетчером дневного расхода; затраты поля возникают только после подтверждения.</div>
+    <div className="border-b border-border px-4 py-2.5 text-[11px] text-muted-foreground">Выдача только по заявке агронома на плановую химобработку. Выданное числится за агрономом до сдачи пустой тары на склад (списание происходит при приёме тары). </div>
     {open.length === 0 ? <div className="empty-state px-4 py-10"><div className="empty-icon"><FlaskConical size={18} /></div><h3 className="mt-3 text-sm font-bold">Открытых заявок нет</h3><p className="mt-1 max-w-sm text-center text-xs text-muted-foreground">Агроном создаёт заявку в фактических работах по плановой химобработке поля.</p></div> :
       <table className="w-full min-w-[820px] text-xs"><thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-[.1em] text-muted-foreground"><th className="px-3 py-2.5">Дата заявки</th><th className="px-3">Агроном</th><th className="px-3">Операция</th><th className="px-3">Препарат</th><th className="px-3 text-right">Заявлено / выдано</th>{canEdit && <th />}</tr></thead>
         <tbody className="divide-y divide-border/70">{open.map((r) => <tr key={r.id} data-testid={`row-chem-request-${r.id}`}>
@@ -96,7 +96,7 @@ export function CustodyList({ mineOnly, testId }: { mineOnly?: boolean; testId: 
         <td className="px-3 font-semibold">{c.name}</td>
         <td className="px-3 text-right font-mono">{cqty(c.quantity)} {c.unit}</td>
         <td className="px-3 text-right font-mono font-bold">{cqty(c.remaining)} {c.unit}</td>
-        <td className="px-3 text-right font-mono" data-testid={`text-chem-custody-pending-${c.issueId}`}>{(c.pendingReturnQuantity ?? 0) > 0 ? <>{cqty(c.pendingReturnQuantity ?? 0)} {c.unit}<div className="text-[10px] font-normal">{c.pendingReturnCount ?? 0} шт. · ждёт диспетчера · своб. {cqty(freeQty(c))}</div></> : "—"}</td>
+        <td className="px-3 text-right font-mono" data-testid={`text-chem-custody-pending-${c.issueId}`}>{(c.pendingReturnQuantity ?? 0) > 0 ? <>{cqty(c.pendingReturnQuantity ?? 0)} {c.unit}<div className="text-[10px] font-normal">{c.pendingReturnCount ?? 0} шт. · принято до автосписания · своб. {cqty(freeQty(c))}</div></> : "—"}</td>
         <td className="px-3 text-right font-mono font-bold">{cmoney(c.remainingAmount)}</td>
       </tr>)}</tbody>
       <tfoot><tr className={cx("border-t border-border font-bold", !mineOnly && "text-destructive")}><td className="px-3 py-2.5" colSpan={mineOnly ? 6 : 7}>Итого на подотчёте</td><td className="px-3 text-right font-mono" data-testid={`${testId}-total`}>{cmoney(total)}</td></tr></tfoot>

@@ -14,6 +14,8 @@ import { businessToday } from "../engineering/repairs/shared";
 import { CustodyList, WarehouseRequests } from "./chemicals/Custody";
 import { useChemicalWorkflow, useInvalidateChemicals } from "./chemicals/Workflow";
 import { WarehouseReturns } from "./chemicals/Returns";
+import { ExpectationsTable, openExpectations } from "./chemicals/Expectations";
+import { LegacyReceipts } from "./chemicals/Consumption";
 
 const CHEM_UNITS: ChemicalInvoiceLineUnit[] = ["л", "кг", "шт"];
 export const canManageChemicals = (r: string) => r === "grain_manager" || r === "general_director";
@@ -30,7 +32,7 @@ const milli = (v: number) => Math.round(v * 1000);
 /** Exact total in milli-units: capacity × count, or null when inputs invalid. */
 const lineTotal = (vol: string, count: string) => QTY_RE.test(vol.trim()) && parseNum(vol) > 0 && INT_RE.test(count.trim()) && Number(count) > 0 ? milli(parseNum(vol)) * Number(count) : null;
 
-type View = "stock" | "requests" | "custody" | "returns" | "journal" | "cost";
+type View = "stock" | "expectations" | "requests" | "custody" | "returns" | "journal" | "cost";
 type Line = { key: string; name: string; unit: ChemicalInvoiceLineUnit; containerVolume: string; containerCount: string; unitPrice: string };
 const newLine = (): Line => ({ key: crypto.randomUUID(), name: "", unit: "л", containerVolume: "", containerCount: "", unitPrice: "" });
 const newInvoice = () => ({ requestId: crypto.randomUUID(), number: "", occurredOn: businessToday(), supplier: "", farm: UNITS[0] as string, lines: [newLine()] });
@@ -51,6 +53,7 @@ export default function ChemicalWarehouse({ role, onOpenFields }: { role: string
   const [notice, setNotice] = useState("");
   const [packTarget, setPackTarget] = useState<ChemicalBatch | null>(null);
   const pendingReturns = (flow.data?.containerReturns ?? []).filter((r) => r.consumptionId == null).length;
+  const pendingExpect = openExpectations(flow.data);
 
   const data = q.data;
   const s = search.trim().toLowerCase();
@@ -95,14 +98,14 @@ export default function ChemicalWarehouse({ role, onOpenFields }: { role: string
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
       <Kpi label="Остаток на складе" value={money(stockTotal)} sub={`${batches.filter((b) => b.remaining > 0).length} партий в выборке`} testId="kpi-chem-stock" />
       <Kpi label="Остаток в литрах" value={`${qty(stockLitres)} л`} sub="По выбранным партиям · без кг и шт" testId="kpi-chem-stock-litres" />
-      <Kpi label="На подотчёте агрономов" value={money(custodyAmount)} sub="Ожидает подтверждения расхода" testId="kpi-chem-custody" danger={custodyAmount > 0} />
+      <Kpi label="На подотчёте агрономов" value={money(custodyAmount)} sub="До сдачи пустой тары" testId="kpi-chem-custody" danger={custodyAmount > 0} />
       <Kpi label="Выдано по журналу" value={money(issuedTotal)} sub={`${issues.length} выдач`} testId="kpi-chem-issued" />
       <Kpi label="Химия на 1 га посева" value={sownTotal > 0 ? money(costWithSowing / sownTotal) : "—"} sub={`${qty(sownTotal)} га фактического сева`} testId="kpi-chem-perha" />
     </div>
 
     <div className="flex flex-wrap items-center gap-2">
       <div className="flex gap-1 rounded-lg border border-border bg-card p-1" role="tablist">
-        {([["stock", "Остатки"], ["requests", `Заявки (${openReq})`], ["custody", "Подотчёт"], ["returns", `Пустая тара (${pendingReturns})`], ["journal", "Журнал выдачи"], ["cost", "Затраты по полям"]] as const).map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={view === k} className={cx("rounded-md px-3 py-1.5 text-xs font-bold", view === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")} onClick={() => setView(k)} data-testid={`tab-chem-${k}`}>{l}</button>)}
+        {([["stock", "Остатки"], ["expectations", `Ожидаемая тара (${pendingExpect})`], ["requests", `Заявки (${openReq})`], ["custody", "Подотчёт"], ["returns", pendingReturns > 0 ? `Пустая тара (${pendingReturns} без списания)` : "Пустая тара"], ["journal", "Журнал выдачи"], ["cost", "Затраты по полям"]] as const).map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={view === k} className={cx("rounded-md px-3 py-1.5 text-xs font-bold", view === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")} onClick={() => setView(k)} data-testid={`tab-chem-${k}`}>{l}</button>)}
       </div>
       <select className="text-input !w-auto !min-h-[34px]" value={farm} onChange={(e) => setFarm(e.target.value)} data-testid="select-chem-farm"><option value="all">Все хозяйства</option>{UNITS.map((u) => <option key={u} value={u}>{u}</option>)}</select>
       {view !== "stock" && <select className="text-input !w-auto !min-h-[34px]" value={year} onChange={(e) => setYear(e.target.value)} data-testid="select-chem-year"><option value="all">Все годы</option>{years.map((y) => <option key={y} value={y}>{y}</option>)}</select>}
@@ -125,8 +128,10 @@ export default function ChemicalWarehouse({ role, onOpenFields }: { role: string
           </tr>)}</tbody></table>}
     </div>}
 
+    {view === "expectations" && <div className="surface-card" data-testid="section-chem-expectations"><div className="border-b border-border px-4 py-2.5 text-[11px] text-muted-foreground">Площадь за день от диспетчера × норма = сколько химии и тары агроном должен сдать. Отклонение = сдано − ожидается.</div>{flow.data ? <ExpectationsTable data={flow.data} /> : <div className="skeleton m-4 h-24 rounded-lg" />}</div>}
+    {view === "returns" && canEdit && <LegacyReceipts onSaved={done} />}
     {view === "requests" && <WarehouseRequests canEdit={canEdit} onDone={done} />}
-    {view === "custody" && <div className="surface-card" data-testid="section-chem-custody"><div className="border-b border-border px-4 py-2.5 text-[11px] font-semibold text-destructive">Химия на подотчёте агрономов, не подтверждённая диспетчером как дневной расход. Сданная тара показана отдельно и до подтверждения не уменьшает остаток.</div><CustodyList testId="table-chem-custody" /></div>}
+    {view === "custody" && <div className="surface-card" data-testid="section-chem-custody"><div className="border-b border-border px-4 py-2.5 text-[11px] font-semibold text-destructive">Химия на подотчёте агрономов. Списывается на поле, когда склад принимает пустую тару за день с площадью от диспетчера.</div><CustodyList testId="table-chem-custody" /></div>}
     {view === "returns" && <WarehouseReturns canEdit={canEdit} onDone={done} />}
     {view === "journal" && <div className="surface-card overflow-x-auto" data-testid="table-chem-journal">
       {issues.length === 0 ? <Empty title="Выдач нет" text="Здесь появятся списания химии на поля: кто получил, на какое поле и сезон, сколько и на какую сумму." /> :

@@ -1,4 +1,4 @@
-import { boolean, date, integer, numeric, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, date, integer, jsonb, numeric, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { fieldSeasonsTable } from "./field-seasons";
 import { employeesTable } from "./employees";
@@ -11,6 +11,13 @@ export const fieldOperationsTable = pgTable("field_operations", {
   nameKey: text("name_key").notNull(),
   isUnplanned: boolean("is_unplanned").notNull().default(false),
   requiresChemicals: boolean("requires_chemicals").notNull().default(false),
+  chemicalModeExplicit: boolean("chemical_mode_explicit").notNull().default(false),
+  chemicalPlan: jsonb("chemical_plan").$type<{ batchId: number; ratePerHa: number }[]>().notNull().default([]),
+  approvalStatus: text("approval_status").notNull().default("approved"),
+  approvalNote: text("approval_note").notNull().default(""),
+  startedByUserId: text("started_by_user_id"),
+  completionRequestedOn: date("completion_requested_on", { mode: "string" }),
+  completionRequestedBy: text("completion_requested_by").notNull().default(""),
   actualAreaLimitAres: integer("actual_area_limit_ares"),
   plannedStart: date("planned_start", { mode: "string" }).notNull(),
   plannedEnd: date("planned_end", { mode: "string" }).notNull(),

@@ -5,11 +5,19 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { FieldChemicalPlan } from './fieldChemicalPlan';
+import type { FieldOperationRecordPlanApprovalStatus } from './fieldOperationRecordPlanApprovalStatus';
 
 /**
  * Stored plan metadata; unplanned actual work has zero planned hectares.
  */
 export interface FieldOperationRecordPlan {
+  chemicalPlan?: FieldChemicalPlan[];
+  approvalStatus?: FieldOperationRecordPlanApprovalStatus;
+  approvalNote?: string;
+  /** @nullable */
+  completionRequestedOn?: string | null;
+  completionRequestedBy?: string;
   requiresChemicals?: boolean;
   /** @minimum 1 */
   seasonId: number;

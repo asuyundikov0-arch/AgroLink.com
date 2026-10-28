@@ -1,12 +1,12 @@
 import { type ReactNode, useMemo, useState } from "react";
-import { Activity, ArrowLeft, Ban, ClipboardCheck, CalendarRange, History, LandPlot, Layers, Pencil, Plus, RefreshCw, Sprout, TriangleAlert } from "lucide-react";
-import { type AgroField, type FieldOperation, type FieldSeason, getGetFieldDashboardQueryKey, getListFleetEquipmentQueryKey, useGetFieldDashboard, useListFleetEquipment } from "@workspace/api-client-react";
+import { ArrowLeft, ClipboardCheck, CalendarRange, History, LandPlot, Layers, Pencil, Plus, RefreshCw, Sprout, TriangleAlert } from "lucide-react";
+import { type AgroField, type FieldLifecycleInputAction, type FieldOperation, type FieldSeason, getGetFieldDashboardQueryKey, getListFleetEquipmentQueryKey, useGetFieldDashboard, useListFleetEquipment } from "@workspace/api-client-react";
 import { UnplannedForm } from "./UnplannedForm";
-import { FactEntryChooser } from "./FactEntryChooser";
+import { FieldWorkBoard } from "./FieldWorkBoard";
+import { LifecycleDialog, WorkResourcesForm, isPendingCompletion, isPendingUnplanned } from "./WorkForms";
 import { type PlanFact, planFactBySeason, planFactSummary } from "./planFact";
-import { ActualForm, FieldForm, OperationForm, ProgressForm, SeasonForm, VoidDialog } from "./Forms";
+import { FieldForm, OperationForm, SeasonForm, VoidDialog } from "./Forms";
 import { CropAreaChart } from "./Charts";
-import { ChemicalOperationRequests } from "../chemicals/Requests";
 import { ChemicalSeasonCost } from "../ChemicalWarehouse";
 import { Drawer, POLL_MS, Progress, StatusPill, UNITS, type Unit, canActual, canManage, cx, dateFmt, errorInfo, ha, haNum, isGD, pctFmt, sumHa } from "./shared";
 
@@ -15,11 +15,10 @@ type Modal =
   | { k: "field"; field: AgroField | null }
   | { k: "season"; season: FieldSeason | null; fieldId?: number }
   | { k: "op"; op: FieldOperation | null; seasonId?: number }
-  | { k: "actual"; op: FieldOperation }
-  | { k: "progress"; op: FieldOperation }
+  | { k: "work"; op: FieldOperation }
+  | { k: "lifecycle"; op: FieldOperation; action: FieldLifecycleInputAction }
   | { k: "void"; op: FieldOperation }
   | { k: "history"; fieldId: number }
-  | { k: "fact-entry"; fieldId: number; seasonId: number }
   | { k: "unplanned"; fieldId: number; seasonId: number };
 
 const READ_ROLES = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "general_director"];
@@ -67,11 +66,9 @@ export default function FieldsWorkspace({ role }: { role: string }) {
   const pfBySeason = useMemo(() => planFactBySeason(yearOps), [yearOps]);
   const pfTotal = useMemo(() => planFactSummary(yearOps), [yearOps]);
   const openFacts = (fieldId: number) => { setModal(null); setFactFieldId(fieldId); setView("facts"); };
+  const factsBadge = ops.filter((o) => (canActual(role) && isPendingCompletion(o)) || (canManage(role) && isPendingUnplanned(o))).length;
   const pickFactField = (fieldId: number | null) => {
     setFactFieldId(fieldId);
-    const field = fields.find((f) => f.id === fieldId);
-    const season = yearSeasons.find((s) => s.fieldId === fieldId);
-    if (actual && field?.isActive && season) setModal({ k: "fact-entry", fieldId: field.id, seasonId: season.id });
   };
 
   const prevOf = useMemo(() => {
@@ -149,7 +146,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
           <div className="inline-flex max-w-full flex-wrap rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Раздел">
             {([["history", "История полей"], ["plan", "План агроопераций на сезон"], ["facts", "Фактические работы"], ["inProgress", "Операции в процессе"], ["completed", "Завершённые операции"]] as const).map(([k, l]) => (
               <button key={k} type="button" role="tab" aria-selected={view === k} onClick={() => setView(k)} data-testid={`tab-fields-${k}`}
-                className={cx("rounded-md px-3 py-1.5 text-[11px] font-bold", view === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>{l}</button>
+                className={cx("rounded-md px-3 py-1.5 text-[11px] font-bold", view === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>{l}{k === "facts" && factsBadge > 0 && <span className="ml-1.5 rounded-full bg-[hsl(30_80%_40%)] px-1.5 font-mono text-[10px] text-white" data-testid="badge-tab-facts">{factsBadge}</span>}</button>
             ))}
           </div>
 
@@ -252,9 +249,8 @@ export default function FieldsWorkspace({ role }: { role: string }) {
             year={year} unitAll={unit === "all"} scopeFields={scopeFields} yearSeasons={yearSeasons} ops={ops} pfBySeason={pfBySeason} role={role}
             fieldId={factFieldId !== null && scopeIds.has(factFieldId) ? factFieldId : null} onPick={pickFactField}
             onHistory={(fieldId) => setModal({ k: "history", fieldId })}
-            onActual={(op) => setModal({ k: "actual", op })} onProgress={(op) => setModal({ k: "progress", op })} onVoid={(op) => setModal({ k: "void", op })}
+            onWork={(op) => setModal({ k: "work", op })} onLifecycle={(op, action) => setModal({ k: "lifecycle", op, action })} onVoid={(op) => setModal({ k: "void", op })}
             onUnplanned={(fieldId, seasonId) => setModal({ k: "unplanned", fieldId, seasonId })}
-            onAddFact={(fieldId, seasonId) => setModal({ k: "fact-entry", fieldId, seasonId })}
           />}
 
           {(view === "inProgress" || view === "completed") && (
@@ -289,18 +285,11 @@ export default function FieldsWorkspace({ role }: { role: string }) {
             </section>
           )}
 
-          {modal?.k === "fact-entry" && actual && fieldById.get(modal.fieldId)?.isActive && seasonById.get(modal.seasonId) && <FactEntryChooser
-            field={fieldById.get(modal.fieldId)!} season={seasonById.get(modal.seasonId)!} operations={ops}
-            onActual={(op) => setModal({ k: "actual", op })}
-            onProgress={(op) => setModal({ k: "progress", op })}
-            onUnplanned={() => setModal({ k: "unplanned", fieldId: modal.fieldId, seasonId: modal.seasonId })}
-            onClose={() => setModal(null)}
-          />}
           {modal?.k === "field" && <FieldForm role={role} field={modal.field} fields={fields} defaultUnit={unit === "all" ? UNITS[0] : unit} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "season" && <SeasonForm season={modal.season} fields={fields} seasons={seasons} cropSuggestions={d.cropSuggestions} defaultYear={year} defaultFieldId={modal.fieldId} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "op" && <OperationForm op={modal.op} seasons={seasons} fields={fields} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} defaultSeasonId={modal.seasonId ?? yearSeasons[0]?.id} operationSuggestions={d.operationSuggestions} onClose={() => setModal(null)} onDone={done} />}
-          {modal?.k === "actual" && <ActualForm op={modal.op} title={opTitle(modal.op)} today={today} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} onClose={() => setModal(null)} onDone={done} />}
-          {modal?.k === "progress" && <ProgressForm op={modal.op} title={opTitle(modal.op)} today={today} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} onClose={() => setModal(null)} onDone={done} />}
+          {modal?.k === "work" && <WorkResourcesForm op={modal.op} unit={seasonById.get(modal.op.seasonId) ? fieldById.get(seasonById.get(modal.op.seasonId)!.fieldId)?.unit ?? "" : ""} title={opTitle(modal.op)} today={today} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} onClose={() => setModal(null)} onDone={done} />}
+          {modal?.k === "lifecycle" && <LifecycleDialog op={modal.op} action={modal.action} title={opTitle(modal.op)} today={today} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "void" && <VoidDialog op={modal.op} title={opTitle(modal.op)} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "unplanned" && fieldById.get(modal.fieldId) && seasonById.get(modal.seasonId) && <UnplannedForm field={fieldById.get(modal.fieldId)!} season={seasonById.get(modal.seasonId)!} today={today} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} operationSuggestions={d.operationSuggestions} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "history" && fieldById.get(modal.fieldId) && <FieldHistory
@@ -431,18 +420,17 @@ function PlanFactBox({ pf, testId }: { pf: PlanFact; testId: string }) {
   );
 }
 
-function FactsView({ year, unitAll, scopeFields, yearSeasons, ops, pfBySeason, role, fieldId, onPick, onHistory, onActual, onProgress, onVoid, onUnplanned, onAddFact }: {
+function FactsView({ year, unitAll, scopeFields, yearSeasons, ops, pfBySeason, role, fieldId, onPick, onHistory, onWork, onLifecycle, onVoid, onUnplanned }: {
   year: number; unitAll: boolean; scopeFields: AgroField[]; yearSeasons: FieldSeason[]; ops: FieldOperation[]; pfBySeason: Map<number, PlanFact>; role: string;
   fieldId: number | null; onPick: (id: number | null) => void; onHistory: (fieldId: number) => void;
-  onActual: (op: FieldOperation) => void; onProgress: (op: FieldOperation) => void; onVoid: (op: FieldOperation) => void; onUnplanned: (fieldId: number, seasonId: number) => void;
-  onAddFact: (fieldId: number, seasonId: number) => void;
+  onWork: (op: FieldOperation) => void; onLifecycle: (op: FieldOperation, action: FieldLifecycleInputAction) => void; onVoid: (op: FieldOperation) => void; onUnplanned: (fieldId: number, seasonId: number) => void;
 }) {
   const actual = canActual(role);
   const gd = isGD(role);
   const f = fieldId !== null ? scopeFields.find((x) => x.id === fieldId) : undefined;
   if (!f) return (
     <section className="surface-card overflow-hidden" data-testid="section-facts-fields">
-      <SectionHead title={`Фактические работы · ${year}`} text="Выберите поле, чтобы внести выполненные операции — по плану или вне плана." />
+      <SectionHead title={`Фактические работы · ${year}`} text="Выберите поле: план, выполняемые работы, заявки и история по дням." />
       {scopeFields.length === 0 ? <Empty icon={<LandPlot size={18} />} title="Полей нет" text="По выбранному хозяйству поля не внесены." testId="status-facts-fields-empty" /> : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2 p-4 sm:p-5">
           {scopeFields.map((x) => {
@@ -452,7 +440,10 @@ function FactsView({ year, unitAll, scopeFields, yearSeasons, ops, pfBySeason, r
               <p className="font-mono text-sm font-bold">№ {x.number}</p>
               <p className="truncate text-[10.5px] text-muted-foreground">{s ? s.cropName : "нет сезона"}{unitAll ? ` · ${x.unit}` : ""}{x.isActive ? "" : " · архив"}</p>
               {s && <div className="mt-1"><PlanFactMini pf={pfBySeason.get(s.id)} testId={`text-facts-planfact-${x.id}`} /></div>}
-              {actual && x.isActive && s && <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-primary"><Plus size={12} />Добавить факт</span>}
+              {(() => { const so = s ? ops.filter((o) => o.seasonId === s.id) : []; const pc = so.filter(isPendingCompletion).length; const pu = so.filter(isPendingUnplanned).length; return <>
+                {pc > 0 && <span className="mt-1.5 block rounded bg-[hsl(30_80%_40%)] px-1.5 py-0.5 text-[10px] font-bold text-white" data-testid={`badge-facts-completion-${x.id}`}>Завершение: {pc}</span>}
+                {pu > 0 && <span className="mt-1 block rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground" data-testid={`badge-facts-unplanned-${x.id}`}>На согласовании: {pu}</span>}
+              </>; })()}
             </button>;
           })}
         </div>
@@ -460,67 +451,8 @@ function FactsView({ year, unitAll, scopeFields, yearSeasons, ops, pfBySeason, r
     </section>
   );
   const s = yearSeasons.find((y) => y.fieldId === f.id);
-  const so = s ? ops.filter((o) => o.seasonId === s.id && o.status !== "cancelled") : [];
-  const started = so.filter((o) => !!o.actualStart).sort((a, b) => (b.actualStart ?? "").localeCompare(a.actualStart ?? "") || b.id - a.id);
-  const notStarted = so.filter((o) => !o.actualStart && !o.isUnplanned).sort((a, b) => a.plannedStart.localeCompare(b.plannedStart) || a.id - b.id);
-  const canWrite = actual && f.isActive && !!s;
-  const btn = "button button-secondary !min-h-[28px] !px-2 text-[10px]";
-  return (
-    <section className="surface-card overflow-hidden" data-testid="section-facts-field">
-      <div className="flex flex-col gap-2 border-b border-border bg-muted/25 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-        <div className="flex items-center gap-3">
-          <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => onPick(null)} data-testid="button-facts-back-fields"><ArrowLeft size={13} />К полям</button>
-          <div><h2 className="text-sm font-bold">Факт · поле № {f.number} · {year}</h2><p className="text-[11px] text-muted-foreground">{f.unit}{s ? ` · ${s.cropName} · ${ha(s.areaHa)}` : ""}</p></div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {s && <PlanFactMini pf={pfBySeason.get(s.id)} testId={`text-facts-field-planfact-${f.id}`} />}
-          <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => onHistory(f.id)} data-testid={`button-facts-history-${f.id}`}><History size={13} />История</button>
-          {canWrite && <button type="button" className="button button-primary !min-h-[30px] !px-2 text-[11px]" onClick={() => onAddFact(f.id, s!.id)} data-testid={`button-facts-add-${f.id}`}><Plus size={13} />Добавить факт</button>}
-          {canWrite && <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => onUnplanned(f.id, s!.id)} data-testid={`button-facts-unplanned-${f.id}`}><Plus size={13} />Внеплановая операция</button>}
-        </div>
-      </div>
-      {!actual && <p className="border-b border-border px-4 py-2 text-[11px] text-muted-foreground sm:px-5" data-testid="text-facts-readonly">Режим просмотра: факт вносят агроном и генеральный директор.</p>}
-      {!s ? <Empty icon={<Layers size={18} />} title={`На ${year} год сезона нет`} text="Без сезона поля факт внести нельзя. Сезон добавляет главный агроном." testId="status-facts-no-season" /> : <>
-        <div className="px-4 pt-4 sm:px-5"><h3 className="text-xs font-bold">Выполняемые и выполненные</h3></div>
-        {started.length === 0 ? <p className="px-4 py-3 text-[11px] text-muted-foreground sm:px-5" data-testid="status-facts-started-empty">Фактических работ пока нет.</p> : (
-          <div className="overflow-x-auto"><table className="mt-2 w-full min-w-[760px] text-xs">
-            <thead className="border-y border-border bg-muted/20 text-left text-[10.5px] text-muted-foreground"><tr><th className="px-4 py-2 font-semibold">Операция</th><th className="font-semibold">Факт · исполнитель</th><th className="font-semibold">Выполнено</th><th className="px-4" /></tr></thead>
-            <tbody className="divide-y divide-border/70">{started.map((o) => (
-              <tr key={o.id} data-testid={`row-fact-op-${o.id}`}>
-                <td className="px-4 py-2.5"><p className="font-bold">{o.actualOperationName || o.name}</p><div className="mt-0.5 flex flex-wrap gap-1">{o.isUnplanned ? <UnplannedTag /> : null}<StatusPill op={o} /></div></td>
-                <td className="text-[10.5px] leading-5"><span className="font-mono">{dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)}</span><p>{o.actualMechanic || "механизатор не указан"}</p><p className="text-muted-foreground">{o.actualEquipment}{o.actualImplement ? ` · ${o.actualImplement}` : ""}</p>
-                  {o.progressReports.at(-1) && <p className="text-muted-foreground">Отчёт {dateFmt(o.progressReports.at(-1)!.reportDate)} · +{ha(o.progressReports.at(-1)!.dailyAreaHa)}</p>}</td>
-                <td>{o.isUnplanned ? <span className="font-mono text-[11px] font-bold">{ha(o.actualAreaHa)}</span> : <><Progress value={o.progressPercent} label={`Выполнено ${o.name}`} /><p className="font-mono text-[10px] text-muted-foreground">{ha(o.actualAreaHa)} из {ha(o.plannedAreaHa)}</p></>}</td>
-                <td className="px-4"><div className="flex flex-wrap justify-end gap-1.5">
-                  {canWrite && !o.actualEnd && o.requiresChemicals && !o.isUnplanned && <ChemToggle op={o} btn={btn} />}
-                  {canWrite && !o.actualEnd && <><button type="button" className={btn} onClick={() => onProgress(o)} data-testid={`button-fact-progress-${o.id}`}><Activity size={12} />Отчёт за день</button><button type="button" className={btn} onClick={() => onActual(o)} data-testid={`button-fact-finish-${o.id}`}>Завершить</button></>}
-                  {canWrite && !!o.actualEnd && <button type="button" className={btn} onClick={() => onActual(o)} data-testid={`button-fact-edit-${o.id}`}><Pencil size={12} />Изменить факт</button>}
-                  {gd && <button type="button" className="button button-danger border !min-h-[28px] !px-2 text-[10px]" onClick={() => onVoid(o)} data-testid={`button-fact-void-${o.id}`}><Ban size={12} />Отменить</button>}
-                </div></td>
-              </tr>
-            ))}</tbody></table></div>
-        )}
-        <div className="border-t border-border px-4 pt-4 sm:px-5"><h3 className="text-xs font-bold">Плановые, ещё не начатые</h3></div>
-        {notStarted.length === 0 ? <p className="px-4 py-3 text-[11px] text-muted-foreground sm:px-5" data-testid="status-facts-notstarted-empty">Все плановые операции начаты или план пуст.</p> : (
-          <ul className="divide-y divide-border/70 px-4 pb-3 sm:px-5">{notStarted.map((o) => (
-            <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-xs" data-testid={`row-fact-planned-${o.id}`}>
-              <div><p className="font-semibold">{o.name} <StatusPill op={o} /></p><p className="font-mono text-[10.5px] text-muted-foreground">план {dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)} · {ha(o.plannedAreaHa)}{o.responsible ? ` · ${o.responsible}` : ""}</p></div>
-              <div className="flex flex-wrap gap-1.5">{canWrite && o.requiresChemicals && <ChemToggle op={o} btn={btn} />}{canWrite && <button type="button" className={btn} onClick={() => onActual(o)} data-testid={`button-fact-start-${o.id}`}><Activity size={12} />Начать по плану</button>}</div>
-            </li>
-          ))}</ul>
-        )}
-      </>}
-    </section>
-  );
-}
-
-function ChemToggle({ op, btn }: { op: FieldOperation; btn: string }) {
-  const [open, setOpen] = useState(false);
-  return <>
-    <button type="button" className={btn} onClick={() => setOpen(true)} data-testid={`button-fact-chem-request-${op.id}`}>Заявка на химию</button>
-    {open && <Drawer title="Заявка на химию" eyebrow={`${op.name} · ${op.actualStart ? "довыдача" : "до начала работ"}`} onClose={() => setOpen(false)} testId={`drawer-chem-request-${op.id}`} footer={<div className="flex justify-end"><button type="button" className="button button-ghost" onClick={() => setOpen(false)}>Закрыть</button></div>}>
-      <p className="text-[11px] leading-5 text-muted-foreground">Можно подать несколько строк: каждая заявка на один препарат. Выданная химия числится на вас до подтверждения диспетчером дневного расхода.</p>
-      <ChemicalOperationRequests operationId={op.id} compact />
-    </Drawer>}
-  </>;
+  return <FieldWorkBoard field={f} season={s} year={year} ops={ops} role={role}
+    planFact={s ? <PlanFactMini pf={pfBySeason.get(s.id)} testId={`text-facts-field-planfact-${f.id}`} /> : null}
+    onBack={() => onPick(null)} onHistory={() => onHistory(f.id)} onUnplanned={() => s && onUnplanned(f.id, s.id)}
+    onWork={onWork} onLifecycle={onLifecycle} onVoid={onVoid} />;
 }

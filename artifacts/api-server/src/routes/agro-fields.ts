@@ -6,16 +6,18 @@ import {
   GetFieldDashboardResponse, GetFieldDispatchQueueResponse, UpdateFieldDispatchRateBody, UpdateFieldDispatchRateParams, UpdateFieldDispatchRateResponse,
   CreateAgroFieldResponse, CreateFieldSeasonResponse, CreateFieldOperationResponse,
   CreateUnplannedFieldOperationBody, CreateUnplannedFieldOperationResponse, GetDailySeedingReportResponse,
-  type FieldProgressReport, type FieldOperationInput,
+  TransitionFieldOperationBody, type FieldProgressReport, type FieldOperationInput,
 } from "@workspace/api-zod";
 import { activityTable, agroFieldsTable, employeesTable, fleetEquipmentTable, fieldSeasonsTable, fieldOperationsTable, fieldOperationProgressTable, grainCropsTable, db } from "@workspace/db";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { grainBusinessDate, validGrainDate } from "../lib/grain-ledger";
-import { fieldNumberKey, fieldOperationState, progressDeltaAres, toAreaAres, validateFieldActual, validateFieldPlan, validateFieldProgress } from "../lib/field-planning";
+import { fieldNumberKey, fieldOperationState, progressDeltaAres, toAreaAres, validateFieldPlan, validateFieldProgress } from "../lib/field-planning";
 import { fieldPayrollWasSubmitted, lockPayrollSources } from "../lib/payroll-source-guard";
 import { fieldOperationSuggestions } from "../lib/field-operation-catalog";
 import { summarizeDailySeeding } from "../lib/daily-seeding";
-import { isChemicalOperation, hasOwnChemicalRequest, chemicalRequestsExist, chemicalIssuedForOperation, lastChemicalConfirmation } from "../lib/chemical-workflow";
+import { isChemicalOperation, chemicalRequestsExist, chemicalIssuedForOperation, lastChemicalConfirmation } from "../lib/chemical-workflow";
+import { ChemicalError } from "../lib/chemical-stock";
+import { startOrChangeFieldWork, transitionFieldWork, validateChemicalPlan } from "../lib/field-workflow";
 
 const router: IRouter = Router();
 const managers = ["chief_agronomist", "general_director"];
@@ -39,7 +41,7 @@ function body<T>(schema: { parse: (value: unknown) => T }, input: unknown): T {
 }
 const safe = (handler: RequestHandler): RequestHandler => async (req, res, next) => {
   try { await handler(req, res, next); } catch (err) {
-    if (err instanceof FieldError) { res.status(err.status).json({ error: err.message }); return; }
+    if (err instanceof FieldError || err instanceof ChemicalError) { res.status(err.status).json({ error: err.message }); return; }
     const e = err as { code?: string; cause?: { code?: string } };
     if ((e.code ?? e.cause?.code) === "23505") {
       res.status(409).json({ error: "Такая запись уже существует: проверьте номер поля, сезон или одинаковые операции с теми же сроками." }); return;
@@ -108,13 +110,16 @@ async function fieldDispatchRows() {
     .from(fieldOperationsTable)
     .innerJoin(fieldSeasonsTable, eq(fieldOperationsTable.seasonId, fieldSeasonsTable.id))
     .innerJoin(agroFieldsTable, eq(fieldSeasonsTable.fieldId, agroFieldsTable.id))
-    .where(and(isNotNull(fieldOperationsTable.actualEnd), isNull(fieldOperationsTable.voidedAt)))
+    .where(and(isNotNull(fieldOperationsTable.actualStart), isNull(fieldOperationsTable.voidedAt)))
     .orderBy(desc(fieldOperationsTable.actualEnd), desc(fieldOperationsTable.id));
+  const reports = await db.select().from(fieldOperationProgressTable).orderBy(asc(fieldOperationProgressTable.reportDate));
   return GetFieldDispatchQueueResponse.parse(rows.map(({ operation, season, field }) => {
     const actualAreaHa = operation.actualAreaAres / 100;
     const actualRatePerHa = operation.actualRatePerHa === null ? null : Number(operation.actualRatePerHa);
     return {
       id: operation.id,
+      farm: field.unit,
+      operation: operationJson(operation, grainBusinessDate(), progressReportsJson(reports.filter(r => r.operationId === operation.id))),
       version: operation.version,
       fieldNumber: field.number,
       year: season.year,
@@ -315,14 +320,14 @@ router.post("/agro/fields/unplanned-operations", roles(actualWriters), safe(asyn
   const input = body(CreateUnplannedFieldOperationBody, req.body);
   const today = grainBusinessDate();
   const by = actor(res.locals.access);
-  const row = await mutate("Внесена внеплановая фактическая операция", by, async (tx) => {
+  const row = await mutate("Внеплановая работа отправлена главному агроному", by, async (tx) => {
     const season = await getSeason(tx, input.seasonId);
     const field = await getField(tx, season.fieldId);
     requireValue(field.isActive, "Для архивного поля новые фактические работы недоступны.", 409);
     requireValue(validGrainDate(input.occurredOn) && input.occurredOn <= today, "Укажите дату работы, не позднее сегодняшней.");
     const areaAres = toAreaAres(input.areaHa, true);
-    requireValue(areaAres !== null && areaAres <= season.areaAres, "Фактическая площадь должна быть от 0 до площади сезона, с точностью до 0,01 га.");
-    requireValue(!input.completed || areaAres > 0, "Для завершённой работы укажите положительную площадь.");
+    requireValue(areaAres === 0 && !input.completed,
+      "Внеплановая работа сначала отправляется на согласование без гектаров и завершения.", 409);
     requireValue(input.implement.trim(), "Укажите агрегат.");
     requireValue(positiveId(input.equipmentId), "Выберите корректную технику из справочника.");
     const mechanic = await selectedMechanic(tx, input.employeeId);
@@ -332,19 +337,17 @@ router.post("/agro/fields/unplanned-operations", roles(actualWriters), safe(asyn
     const name = fieldOperationSuggestions(names).find((candidate) => fieldNumberKey(candidate) === fieldNumberKey(input.name));
     requireValue(name, "Выберите вид операции из подготовленного списка.");
     const actualEquipment = `${equipment.kind} · ${equipment.registrationNumber || "без госномера"}`;
+    const needsChemicals = !!input.requiresChemicals;
+    const chemicalPlan = await validateChemicalPlan(tx, input.chemicalPlan ?? [], field.unit, needsChemicals);
     const [created] = await tx.insert(fieldOperationsTable).values({
       seasonId: season.id, name, nameKey: fieldNumberKey(name), isUnplanned: true,
+      approvalStatus: "pending", requiresChemicals: needsChemicals, chemicalModeExplicit: true, chemicalPlan,
       plannedStart: input.occurredOn, plannedEnd: input.occurredOn, plannedAreaAres: 0,
-      actualAreaLimitAres: season.areaAres, actualStart: input.occurredOn,
-      actualEnd: input.completed ? input.occurredOn : null, actualAreaAres: areaAres,
+      actualAreaLimitAres: season.areaAres, actualStart: null,
+      actualEnd: null, actualAreaAres: 0,
       actualOperationName: name, actualMechanic: mechanic.fullName, actualMechanicEmployeeId: mechanic.id,
       actualEquipment, actualImplement: input.implement.trim(), actualNotes: input.notes.trim(), updatedBy: by,
     }).returning();
-    if (areaAres > 0) await tx.insert(fieldOperationProgressTable).values({
-      operationId: created.id, reportDate: input.occurredOn, cumulativeAreaAres: areaAres,
-      actualMechanic: mechanic.fullName, actualMechanicEmployeeId: mechanic.id,
-      actualEquipment, actualImplement: input.implement.trim(), notes: input.notes.trim(), updatedBy: by,
-    });
     const progress = await tx.select().from(fieldOperationProgressTable).where(eq(fieldOperationProgressTable.operationId, created.id));
     return CreateUnplannedFieldOperationResponse.parse(operationJson(created, today, progressReportsJson(progress)));
   });
@@ -360,9 +363,10 @@ router.post("/agro/fields/operations", manage, safe(async (req, res) => {
     requireValue(field.isActive, "Поле в архиве. Новые работы недоступны.", 409);
     const error = validateFieldPlan(input, season.areaAres); requireValue(!error, error ?? "");
     const resources = await plannedResources(tx, input, field.unit);
+    const chemicalPlan = await validateChemicalPlan(tx, input.chemicalPlan ?? [], field.unit, !!input.requiresChemicals);
     const [created] = await tx.insert(fieldOperationsTable).values({
       seasonId: season.id, ...resources, plannedStart: input.plannedStart,
-      requiresChemicals: isChemicalOperation(input),
+      requiresChemicals: !!input.requiresChemicals, chemicalModeExplicit: true, chemicalPlan,
       plannedEnd: input.plannedEnd, plannedAreaAres: toAreaAres(input.plannedAreaHa)!, plannedRatePerHa: input.plannedRatePerHa.toFixed(2),
       plannedImplement: input.plannedImplement.trim(),
       notes: input.notes.trim(), updatedBy: by,
@@ -376,10 +380,11 @@ router.patch("/agro/fields/operations/:id", manage, safe(async (req, res) => {
   const by = actor(res.locals.access);
   const row = await mutate("Изменён план полевой операции", by, async (tx) => {
     const old = await getOperation(tx, Number(req.params.id)); revision(old, input.version);
+    requireValue(!old.actualStart, "Работа уже началась. План сохраняется; агроном может менять только сведения выполнения.", 409);
     requireValue(!old.voidedAt, "Отменённую операцию нельзя редактировать.", 409);
     requireValue(!old.isUnplanned, "Внеплановая работа не является планом. Изменяйте её в фактических работах.", 409);
     if (await chemicalRequestsExist(tx, old.id)) requireValue(
-      input.seasonId === old.seasonId && fieldNumberKey(input.name) === old.nameKey && isChemicalOperation(input),
+      input.seasonId === old.seasonId && fieldNumberKey(input.name) === old.nameKey && input.requiresChemicals,
       "По операции уже запрошена химия: нельзя менять поле, вид операции или снимать признак химической обработки.", 409);
     const season = await getSeason(tx, input.seasonId);
     requireValue(input.plannedRatePerHa > 0 && input.plannedRatePerHa <= 1_000_000_000, "Укажите положительную плановую расценку за гектар.");
@@ -388,10 +393,12 @@ router.patch("/agro/fields/operations/:id", manage, safe(async (req, res) => {
     if (input.seasonId !== old.seasonId) requireValue((await getField(tx, season.fieldId)).isActive, "Нельзя переносить работу на архивное поле.", 409);
     requireValue(toAreaAres(input.plannedAreaHa)! >= old.actualAreaAres, "Плановая площадь меньше уже выполненной.", 409);
     const resources = await plannedResources(tx, input, (await getField(tx, season.fieldId)).unit, old);
+    const chemicalPlan = await validateChemicalPlan(tx, input.chemicalPlan ?? old.chemicalPlan,
+      (await getField(tx, season.fieldId)).unit, !!input.requiresChemicals);
     const [updated] = await tx.update(fieldOperationsTable).set({
       seasonId: season.id, ...resources, plannedStart: input.plannedStart, plannedEnd: input.plannedEnd,
       plannedAreaAres: toAreaAres(input.plannedAreaHa)!,
-      requiresChemicals: isChemicalOperation(input),
+      requiresChemicals: !!input.requiresChemicals, chemicalModeExplicit: true, chemicalPlan,
       plannedRatePerHa: input.plannedRatePerHa.toFixed(2),
       plannedImplement: input.plannedImplement.trim(),
       notes: input.notes.trim(), ...stamp(by, old.version),
@@ -429,74 +436,23 @@ router.patch("/agro/fields/operations/:id/actual", roles(actualWriters), safe(as
   const today = grainBusinessDate();
   const row = await mutate("Внесён факт полевой операции", by, async (tx) => {
     const old = await getOperation(tx, Number(req.params.id)); revision(old, input.version);
-    requireValue(!old.voidedAt, "Отменённая операция недоступна для внесения факта.", 409);
-    if (!old.isUnplanned && !old.actualStart && input.actualStart && isChemicalOperation(old))
-      requireValue(await hasOwnChemicalRequest(tx, old.id, res.locals.access),
-        "Перед началом химической обработки агроном должен отправить заявку на склад химии.", 409);
-    requireValue(!await fieldPayrollWasSubmitted(tx, old.id), "Начисления по операции уже включены в отправленный наряд. Изменять факт нельзя.", 409);
-    const mechanic = input.actualStart ? await selectedMechanic(tx, input.actualMechanicEmployeeId) : null;
-    const progressRows = await tx.select().from(fieldOperationProgressTable)
-      .where(eq(fieldOperationProgressTable.operationId, old.id)).orderBy(asc(fieldOperationProgressTable.reportDate));
-    const latestProgress = progressRows.at(-1);
-    const lastChemicalDate = await lastChemicalConfirmation(tx, old.id);
-    if (lastChemicalDate) {
-      requireValue(input.actualOperationName.trim() === old.actualOperationName,
-        "Вид фактической операции уже связан с подтверждённым расходом химии и не может быть изменён.", 409);
-      requireValue(input.actualStart === old.actualStart && (!input.actualEnd || input.actualEnd >= lastChemicalDate),
-        "Нельзя менять начало или переносить завершение раньше подтверждённого расхода химии.", 409);
-      requireValue(toAreaAres(input.actualAreaHa, true)! >= (progressRows.find(p => p.reportDate === lastChemicalDate)?.cumulativeAreaAres ?? old.actualAreaAres),
-        "Нельзя уменьшать факт, по которому диспетчер уже подтвердил расход химии.", 409);
-      if (input.actualEnd === lastChemicalDate) {
-        const report = progressRows.find(p => p.reportDate === lastChemicalDate);
-        requireValue(report && report.cumulativeAreaAres === toAreaAres(input.actualAreaHa, true)
-          && report.actualMechanicEmployeeId === input.actualMechanicEmployeeId
-          && report.actualEquipment === input.actualEquipment.trim() && report.actualImplement === input.actualImplement.trim(),
-          "Расход химии за этот день подтверждён: завершите с уже внесённым фактом или внесите завершение более поздним днём.", 409);
-      }
-    }
-    const areaLimit = old.actualAreaLimitAres ?? old.plannedAreaAres;
-    const error = validateFieldActual(input, areaLimit, today, old.actualStart !== null); requireValue(!error, error ?? "");
-    requireValue(!old.isUnplanned || input.actualStart !== null, "Внеплановую работу нельзя превратить в план. Для отмены используйте отмену операции.", 409);
-    requireValue(!old.actualStart || input.actualStart !== null || res.locals.access.role === "general_director", "Сбросить уже внесённый факт может только генеральный директор.", 403);
-    if (input.actualEnd) {
-      const areaAres = toAreaAres(input.actualAreaHa, true)!;
-      requireValue(!latestProgress || input.actualEnd >= latestProgress.reportDate, "Дата завершения не может быть раньше последнего дневного отчёта.", 409);
-      const previous = progressRows.filter((item) => item.reportDate < input.actualEnd!).at(-1);
-      const progressError = validateFieldProgress(areaAres, areaLimit, previous?.cumulativeAreaAres ?? null, null);
-      requireValue(!progressError, progressError ?? "");
-    }
-    const [updated] = await tx.update(fieldOperationsTable).set({
-      actualStart: input.actualStart, actualEnd: input.actualEnd, actualAreaAres: toAreaAres(input.actualAreaHa, true)!,
-      actualOperationName: input.actualOperationName.trim(), actualMechanic: mechanic?.fullName ?? "",
-      actualMechanicEmployeeId: mechanic?.id ?? null,
-      actualEquipment: input.actualEquipment.trim(), actualImplement: input.actualImplement.trim(),
-      actualNotes: input.actualNotes.trim(), ...stamp(by, old.version),
-    }).where(eq(fieldOperationsTable.id, old.id)).returning();
-    if (input.actualEnd) {
-      const areaAres = toAreaAres(input.actualAreaHa, true)!;
-      const onFinishDate = progressRows.find((item) => item.reportDate === input.actualEnd);
-      const finalProgress = {
-        cumulativeAreaAres: areaAres, actualMechanic: mechanic!.fullName,
-        actualMechanicEmployeeId: mechanic!.id,
-        actualEquipment: input.actualEquipment.trim(), actualImplement: input.actualImplement.trim(),
-        notes: input.actualNotes.trim(), updatedBy: by, updatedAt: new Date(),
-      };
-      if (onFinishDate) {
-        await tx.update(fieldOperationProgressTable).set({ ...finalProgress, version: onFinishDate.version + 1 })
-          .where(eq(fieldOperationProgressTable.id, onFinishDate.id));
-      } else {
-        await tx.insert(fieldOperationProgressTable).values({
-          operationId: old.id, reportDate: input.actualEnd, ...finalProgress, version: 1,
-        });
-      }
-    }
-    return updated;
+    return startOrChangeFieldWork(tx, old, input, res.locals.access);
   });
   const progress = await db.select().from(fieldOperationProgressTable)
     .where(eq(fieldOperationProgressTable.operationId, row.id)).orderBy(asc(fieldOperationProgressTable.reportDate));
   res.json(operationJson(row, today, progressReportsJson(progress)));
 }));
-router.post("/agro/fields/operations/:id/progress", roles(actualWriters), safe(async (req, res) => {
+router.post("/agro/fields/operations/:id/lifecycle", roles(["chief_agronomist", "agronomist", "dispatcher", "general_director"]), safe(async (req, res) => {
+  const input = body(TransitionFieldOperationBody, req.body);
+  const row = await mutate("Изменён этап полевой работы", actor(res.locals.access), async tx => {
+    const old = await getOperation(tx, Number(req.params.id)); revision(old, input.version);
+    return transitionFieldWork(tx, old, input, res.locals.access);
+  });
+  const progress = await db.select().from(fieldOperationProgressTable)
+    .where(eq(fieldOperationProgressTable.operationId, row.id)).orderBy(asc(fieldOperationProgressTable.reportDate));
+  res.json(operationJson(row, grainBusinessDate(), progressReportsJson(progress)));
+}));
+router.post("/agro/fields/operations/:id/progress", roles(["dispatcher", "general_director"]), safe(async (req, res) => {
   const input = body(CreateFieldOperationProgressBody, req.body);
   const operationId = Number(req.params.id);
   requireValue(positiveId(operationId), "Выберите корректную операцию.");
@@ -505,15 +461,15 @@ router.post("/agro/fields/operations/:id/progress", roles(actualWriters), safe(a
   const row = await mutate("Добавлен дневной отчёт по полевой операции", by, async (tx) => {
     const old = await getOperation(tx, operationId);
     revision(old, input.operationVersion);
-    requireValue(!old.voidedAt && !old.actualEnd, "Отчёт недоступен для отменённой или завершённой операции.", 409);
+    requireValue(!old.voidedAt && !old.actualEnd && !old.completionRequestedOn, "Отчёт недоступен: работа отменена, завершена или ожидает подтверждения завершения.", 409);
     requireValue(!await fieldPayrollWasSubmitted(tx, old.id), "Начисления по операции уже включены в отправленный наряд. Изменять дневные отчёты нельзя.", 409);
     requireValue(old.actualStart !== null, "Сначала зафиксируйте начало операции.", 409);
     const confirmedThrough = await lastChemicalConfirmation(tx, old.id);
     requireValue(!confirmedThrough || input.reportDate > confirmedThrough,
       "За этот или последующий день уже подтверждён расход химии. Нельзя изменять дневной факт задним числом.", 409);
     requireValue(validGrainDate(input.reportDate) && input.reportDate >= old.actualStart && input.reportDate <= today, "Дата отчёта должна быть между началом операции и сегодняшним днём.");
-    requireValue(input.actualMechanic.trim() && input.actualEquipment.trim() && input.actualImplement.trim(), "Укажите механизатора, технику и агрегат.");
-    const mechanic = await selectedMechanic(tx, input.actualMechanicEmployeeId);
+    requireValue(old.actualMechanicEmployeeId && old.actualEquipment && old.actualImplement,
+      "Агроном должен указать исполнителя, технику и агрегат.", 409);
     const [sameDay] = await tx.select().from(fieldOperationProgressTable).where(and(
       eq(fieldOperationProgressTable.operationId, old.id),
       eq(fieldOperationProgressTable.reportDate, input.reportDate),
@@ -533,16 +489,14 @@ router.post("/agro/fields/operations/:id/progress", roles(actualWriters), safe(a
     requireValue(!progressError, progressError ?? "");
     await tx.insert(fieldOperationProgressTable).values({
       operationId: old.id, reportDate: input.reportDate, cumulativeAreaAres: areaAres!,
-      actualMechanic: mechanic.fullName, actualMechanicEmployeeId: mechanic.id, actualEquipment: input.actualEquipment.trim(),
-      actualImplement: input.actualImplement.trim(), notes: input.notes.trim(), updatedBy: by,
+      actualMechanic: old.actualMechanic, actualMechanicEmployeeId: old.actualMechanicEmployeeId, actualEquipment: old.actualEquipment,
+      actualImplement: old.actualImplement, notes: input.notes.trim(), updatedBy: by,
     });
     const reports = await tx.select().from(fieldOperationProgressTable)
       .where(eq(fieldOperationProgressTable.operationId, old.id)).orderBy(asc(fieldOperationProgressTable.reportDate));
     const latest = reports.at(-1)!;
     const [updated] = await tx.update(fieldOperationsTable).set({
-      actualAreaAres: latest.cumulativeAreaAres, actualMechanic: latest.actualMechanic, actualMechanicEmployeeId: latest.actualMechanicEmployeeId,
-      actualEquipment: latest.actualEquipment, actualImplement: latest.actualImplement,
-      actualNotes: latest.notes, ...stamp(by, old.version),
+      actualAreaAres: latest.cumulativeAreaAres, ...stamp(by, old.version),
     }).where(and(eq(fieldOperationsTable.id, old.id), eq(fieldOperationsTable.version, old.version))).returning();
     requireValue(updated, "Операция была изменена. Обновите страницу и повторите.", 409);
     return updated;
@@ -551,7 +505,7 @@ router.post("/agro/fields/operations/:id/progress", roles(actualWriters), safe(a
     .where(eq(fieldOperationProgressTable.operationId, row.id)).orderBy(asc(fieldOperationProgressTable.reportDate));
   res.status(201).json(operationJson(row, today, progressReportsJson(progress)));
 }));
-router.patch("/agro/fields/operations/:id/progress/:progressId", roles(actualWriters), safe(async (req, res) => {
+router.patch("/agro/fields/operations/:id/progress/:progressId", roles(["dispatcher", "general_director"]), safe(async (req, res) => {
   const input = body(UpdateFieldOperationProgressBody, req.body);
   const operationId = Number(req.params.id);
   const progressId = Number(req.params.progressId);
@@ -561,7 +515,7 @@ router.patch("/agro/fields/operations/:id/progress/:progressId", roles(actualWri
   const row = await mutate("Исправлен дневной отчёт по полевой операции", by, async (tx) => {
     const old = await getOperation(tx, operationId);
     revision(old, input.operationVersion);
-    requireValue(!old.voidedAt && !old.actualEnd, "Отчёт недоступен для отменённой или завершённой операции.", 409);
+    requireValue(!old.voidedAt && !old.actualEnd && !old.completionRequestedOn, "Отчёт недоступен: работа отменена, завершена или ожидает подтверждения завершения.", 409);
     requireValue(!await fieldPayrollWasSubmitted(tx, old.id), "Начисления по операции уже включены в отправленный наряд. Изменять дневные отчёты нельзя.", 409);
     const [report] = await tx.select().from(fieldOperationProgressTable).where(and(
       eq(fieldOperationProgressTable.id, progressId),
@@ -570,12 +524,11 @@ router.patch("/agro/fields/operations/:id/progress/:progressId", roles(actualWri
     requireValue(report, "Дневной отчёт не найден.", 404);
     revision(report, input.version);
     const confirmedThrough = await lastChemicalConfirmation(tx, old.id);
-    requireValue(!confirmedThrough || report.reportDate > confirmedThrough,
-      "По этому или последующему отчёту уже подтверждён расход химии. Исправление исходного факта недоступно.", 409);
+    requireValue(!confirmedThrough || report.reportDate > confirmedThrough
+      || toAreaAres(input.cumulativeAreaHa, true) === report.cumulativeAreaAres,
+      "По этому или последующему отчёту уже подтверждён расход химии. Площадь менять нельзя; примечание доступно.", 409);
     requireValue(input.reportDate === report.reportDate, "Дату существующего отчёта нельзя менять. Создайте запись за нужную дату.", 409);
     requireValue(validGrainDate(input.reportDate) && input.reportDate >= (old.actualStart ?? "") && input.reportDate <= today, "Дата отчёта должна быть между началом операции и сегодняшним днём.");
-    requireValue(input.actualMechanic.trim() && input.actualEquipment.trim() && input.actualImplement.trim(), "Укажите механизатора, технику и агрегат.");
-    const mechanic = await selectedMechanic(tx, input.actualMechanicEmployeeId);
     const [previous] = await tx.select().from(fieldOperationProgressTable).where(and(
       eq(fieldOperationProgressTable.operationId, old.id),
       lt(fieldOperationProgressTable.reportDate, report.reportDate),
@@ -589,17 +542,14 @@ router.patch("/agro/fields/operations/:id/progress/:progressId", roles(actualWri
     const progressError = validateFieldProgress(areaAres!, old.actualAreaLimitAres ?? old.plannedAreaAres, previous?.cumulativeAreaAres ?? null, next?.cumulativeAreaAres ?? null);
     requireValue(!progressError, progressError ?? "");
     await tx.update(fieldOperationProgressTable).set({
-      cumulativeAreaAres: areaAres!, actualMechanic: mechanic.fullName, actualMechanicEmployeeId: mechanic.id,
-      actualEquipment: input.actualEquipment.trim(), actualImplement: input.actualImplement.trim(),
+      cumulativeAreaAres: areaAres!,
       notes: input.notes.trim(), ...stamp(by, report.version),
     }).where(and(eq(fieldOperationProgressTable.id, report.id), eq(fieldOperationProgressTable.version, report.version)));
     const reports = await tx.select().from(fieldOperationProgressTable)
       .where(eq(fieldOperationProgressTable.operationId, old.id)).orderBy(asc(fieldOperationProgressTable.reportDate));
     const latest = reports.at(-1)!;
     const [updated] = await tx.update(fieldOperationsTable).set({
-      actualAreaAres: latest.cumulativeAreaAres, actualMechanic: latest.actualMechanic, actualMechanicEmployeeId: latest.actualMechanicEmployeeId,
-      actualEquipment: latest.actualEquipment, actualImplement: latest.actualImplement,
-      actualNotes: latest.notes, ...stamp(by, old.version),
+      actualAreaAres: latest.cumulativeAreaAres, ...stamp(by, old.version),
     }).where(and(eq(fieldOperationsTable.id, old.id), eq(fieldOperationsTable.version, old.version))).returning();
     requireValue(updated, "Операция была изменена. Обновите страницу и повторите.", 409);
     return updated;

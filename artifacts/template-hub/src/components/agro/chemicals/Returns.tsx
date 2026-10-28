@@ -39,12 +39,13 @@ export function ContainerReturnDrawer({ custody, op, onClose, onDone }: { custod
     if (!f.returnedOn) e.returnedOn = "Укажите дату сдачи";
     else if (f.returnedOn < f.reportDate) e.returnedOn = "Не раньше рабочего дня";
     else if (f.returnedOn > today) e.returnedOn = "Не позже сегодняшней даты";
+    if (f.reportDate && !day) e.reportDate = "За этот день нет площади от диспетчера — принять тару нельзя";
     if (!INT_RE.test(f.count.trim()) || count < 1) e.count = "Целое число больше 0";
     else if (count > max) e.count = `Не больше ${max} шт. по остатку на подотчёте`;
     setErrs(e); setSubErr("");
     if (Object.keys(e).length) return;
     m.mutate({ data: { requestId: f.requestId, issueId: custody.issueId, reportDate: f.reportDate, returnedOn: f.returnedOn, containerCount: count, notes: f.notes.trim() } }, {
-      onSuccess: () => { void invalidate(); onDone(`Принято ${count} пуст. тары по ${cqty(vol)} ${custody.unit} «${custody.name}» = ${cqty(quantity)} ${custody.unit}. Ожидает подтверждения диспетчером.`); },
+      onSuccess: () => { void invalidate(); onDone(`Принято ${count} пуст. тары по ${cqty(vol)} ${custody.unit} «${custody.name}» = ${cqty(quantity)} ${custody.unit}. Списано с подотчёта агронома на затраты поля.`); },
       onError: (x) => setSubErr(errorInfo(x).message),
     });
   };
@@ -62,7 +63,7 @@ export function ContainerReturnDrawer({ custody, op, onClose, onDone }: { custod
           <Field label="Рабочий день (факт)" error={errs.reportDate} htmlFor="cr-report"><input id="cr-report" type="date" min={issued} max={today} className="text-input" value={f.reportDate} onChange={(e) => setF({ ...f, reportDate: e.target.value })} data-testid="input-chem-return-report-date" /></Field>
           <Field label="Дата сдачи тары" error={errs.returnedOn} htmlFor="cr-returned"><input id="cr-returned" type="date" min={f.reportDate || issued} max={today} className="text-input" value={f.returnedOn} onChange={(e) => setF({ ...f, returnedOn: e.target.value })} data-testid="input-chem-return-returned-on" /></Field>
         </div>
-        <p className="text-[10.5px] text-muted-foreground" data-testid="text-chem-return-day">{day ? `По дню есть факт: ${cqty(day.dailyAreaHa)} га.` : "Дневного факта по операции за этот день пока нет. Тару можно принять, диспетчер подтвердит после внесения факта."}</p>
+        <p className="text-[10.5px] text-muted-foreground" data-testid="text-chem-return-day">{day ? `По дню есть факт: ${cqty(day.dailyAreaHa)} га.` : "За этот день диспетчер не внёс площадь. Выберите день с фактом."}</p>
         <Field label="Пустых ёмкостей, шт." error={errs.count} htmlFor="cr-count"><input id="cr-count" inputMode="numeric" className="text-input font-mono" value={f.count} onChange={(e) => setF({ ...f, count: e.target.value })} data-testid="input-chem-return-count" /></Field>
         <div className="rounded-lg border border-border px-3 py-2 font-mono text-xs" data-testid="text-chem-return-qty">{count} шт. × {cqty(vol)} {custody.unit} = <b>{cqty(quantity)} {custody.unit}</b></div>
         <Field label="Примечание" htmlFor="cr-notes"><textarea id="cr-notes" className="text-input min-h-16" maxLength={1000} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} data-testid="input-chem-return-notes" /></Field>
@@ -72,7 +73,7 @@ export function ContainerReturnDrawer({ custody, op, onClose, onDone }: { custod
   </Drawer>;
 }
 
-/** History of accepted empty containers: waiting dispatcher vs confirmed. */
+/** History of accepted empty containers. */
 export function ContainerReturnHistory({ data, mineOnly }: { data: ChemicalWorkflow; mineOnly?: boolean }) {
   const ops = new Map(data.operations.map((o) => [o.id, o]));
   const cust = new Map(data.custody.map((c) => [c.issueId, c]));
@@ -85,7 +86,7 @@ export function ContainerReturnHistory({ data, mineOnly }: { data: ChemicalWorkf
       <td className="px-3">{opLabel(ops.get(r.operationId))}</td>
       <td className="px-3 text-right font-mono">{r.containerCount} × {cqty(r.containerVolume)} = <b>{cqty(r.quantity)} {c?.unit ?? ""}</b></td>
       <td className="px-3">{r.acceptedBy}{r.notes && <div className="text-[10px] text-muted-foreground">{r.notes}</div>}</td>
-      <td className="px-3"><span className={cx("rounded-full px-2 py-0.5 text-[10px] font-bold", r.consumptionId == null ? "bg-[hsl(38_90%_90%)] text-[hsl(30_70%_30%)]" : "bg-[hsl(157_45%_92%)] text-[hsl(161_45%_26%)]")} data-testid={`status-chem-return-${r.id}`}>{r.consumptionId == null ? "Ждёт диспетчера" : "Подтверждено"}</span></td>
+      <td className="px-3"><span className={cx("rounded-full px-2 py-0.5 text-[10px] font-bold", r.consumptionId == null ? "bg-[hsl(38_90%_90%)] text-[hsl(30_70%_30%)]" : "bg-[hsl(157_45%_92%)] text-[hsl(161_45%_26%)]")} data-testid={`status-chem-return-${r.id}`}>{r.consumptionId == null ? "Принято до автосписания" : "Списано"}</span></td>
     </tr>; })}</tbody></table></div>;
 }
 
@@ -100,9 +101,9 @@ export function WarehouseReturns({ canEdit, onDone }: { canEdit: boolean; onDone
   const rows = data.custody.filter((c) => c.remaining > 0).sort((a, b) => a.requesterName.localeCompare(b.requesterName, "ru"));
   return <div className="space-y-4">
     <div className="surface-card overflow-x-auto" data-testid="section-chem-return-accept">
-      <div className="border-b border-border px-4 py-2.5 text-[11px] text-muted-foreground">Расход химии подтверждается только по сданной пустой таре: количество = число ёмкостей × объём тары. Приём тары не меняет подотчёт и склад; списание на поле происходит после подтверждения диспетчером.</div>
+      <div className="border-b border-border px-4 py-2.5 text-[11px] text-muted-foreground">Расход химии подтверждается только по сданной пустой таре: количество = число ёмкостей × объём тары. Приём возможен только за день, по которому диспетчер внёс площадь, и сразу списывает химию с подотчёта на затраты поля.</div>
       {rows.length === 0 ? <div className="px-4 py-8 text-center text-xs text-muted-foreground">Химии на подотчёте нет.</div> :
-        <table className="w-full min-w-[820px] text-xs"><thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-[.1em] text-muted-foreground"><th className="px-3 py-2.5">Агроном</th><th className="px-3">Поле · операция</th><th className="px-3">Препарат</th><th className="px-3 text-right">Остаток</th><th className="px-3 text-right">Сдано, ждёт</th><th className="px-3 text-right">Тара</th>{canEdit && <th />}</tr></thead>
+        <table className="w-full min-w-[820px] text-xs"><thead><tr className="border-b border-border text-left text-[10px] uppercase tracking-[.1em] text-muted-foreground"><th className="px-3 py-2.5">Агроном</th><th className="px-3">Поле · операция</th><th className="px-3">Препарат</th><th className="px-3 text-right">Остаток</th><th className="px-3 text-right">Сдано до автосписания</th><th className="px-3 text-right">Тара</th>{canEdit && <th />}</tr></thead>
           <tbody className="divide-y divide-border/70">{rows.map((c) => <tr key={c.issueId} data-testid={`row-chem-return-custody-${c.issueId}`}>
             <td className="px-3 py-2.5 font-bold">{c.requesterName}</td>
             <td className="px-3">{opLabel(ops.get(c.operationId))}</td>

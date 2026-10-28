@@ -9,6 +9,23 @@ import * as zod from 'zod';
 
 
 export const GetChemicalWorkflowResponse = zod.object({
+  "dailyExpectations": zod.array(zod.object({
+  "operationId": zod.number(),
+  "batchId": zod.number(),
+  "fieldNumber": zod.string(),
+  "farm": zod.string(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "reportDate": zod.string(),
+  "dailyAreaHa": zod.number(),
+  "ratePerHa": zod.number(),
+  "expectedQuantity": zod.number(),
+  "containerVolume": zod.number().nullable(),
+  "expectedContainerCount": zod.number().nullable(),
+  "returnedQuantity": zod.number(),
+  "returnedContainerCount": zod.number(),
+  "deviationQuantity": zod.number()
+})).optional(),
   "operations": zod.array(zod.object({
   "id": zod.number(),
   "seasonId": zod.number(),
@@ -292,6 +309,10 @@ export const CreateChemicalIssueResponse = zod.object({
 })
 
 
+export const createUnplannedFieldOperationBodyRequiresChemicalsDefault = false;
+export const createUnplannedFieldOperationBodyChemicalPlanItemRatePerHaMin = 0.001;
+export const createUnplannedFieldOperationBodyChemicalPlanItemRatePerHaMax = 1000000;
+
 
 export const createUnplannedFieldOperationBodyNameMax = 150;
 
@@ -307,6 +328,11 @@ export const createUnplannedFieldOperationBodyNotesMax = 3000;
 
 
 export const CreateUnplannedFieldOperationBody = zod.object({
+  "requiresChemicals": zod.boolean().default(createUnplannedFieldOperationBodyRequiresChemicalsDefault),
+  "chemicalPlan": zod.array(zod.object({
+  "batchId": zod.number().min(1),
+  "ratePerHa": zod.number().min(createUnplannedFieldOperationBodyChemicalPlanItemRatePerHaMin).max(createUnplannedFieldOperationBodyChemicalPlanItemRatePerHaMax)
+})).optional(),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(createUnplannedFieldOperationBodyNameMax),
   "occurredOn": zod.string(),
@@ -317,6 +343,10 @@ export const CreateUnplannedFieldOperationBody = zod.object({
   "implement": zod.string().min(1).max(createUnplannedFieldOperationBodyImplementMax),
   "notes": zod.string().max(createUnplannedFieldOperationBodyNotesMax)
 })
+
+
+export const createUnplannedFieldOperationResponseOneChemicalPlanItemRatePerHaMin = 0.001;
+export const createUnplannedFieldOperationResponseOneChemicalPlanItemRatePerHaMax = 1000000;
 
 
 export const createUnplannedFieldOperationResponseOneNameMax = 150;
@@ -356,6 +386,14 @@ export const createUnplannedFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const CreateUnplannedFieldOperationResponse = zod.object({
+  "chemicalPlan": zod.array(zod.object({
+  "batchId": zod.number().min(1),
+  "ratePerHa": zod.number().min(createUnplannedFieldOperationResponseOneChemicalPlanItemRatePerHaMin).max(createUnplannedFieldOperationResponseOneChemicalPlanItemRatePerHaMax)
+})).optional(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "approvalNote": zod.string().optional(),
+  "completionRequestedOn": zod.string().nullish(),
+  "completionRequestedBy": zod.string().optional(),
   "requiresChemicals": zod.boolean().optional(),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(createUnplannedFieldOperationResponseOneNameMax),
@@ -458,6 +496,10 @@ export const getFieldDashboardResponseSeasonsItemOneOneNotesMax = 3000;
 
 
 
+export const getFieldDashboardResponseOperationsItemOneChemicalPlanItemRatePerHaMin = 0.001;
+export const getFieldDashboardResponseOperationsItemOneChemicalPlanItemRatePerHaMax = 1000000;
+
+
 export const getFieldDashboardResponseOperationsItemOneNameMax = 150;
 
 export const getFieldDashboardResponseOperationsItemOnePlannedAreaHaMin = 0;
@@ -523,6 +565,14 @@ export const GetFieldDashboardResponse = zod.object({
   "updatedAt": zod.string()
 }))),
   "operations": zod.array(zod.object({
+  "chemicalPlan": zod.array(zod.object({
+  "batchId": zod.number().min(1),
+  "ratePerHa": zod.number().min(getFieldDashboardResponseOperationsItemOneChemicalPlanItemRatePerHaMin).max(getFieldDashboardResponseOperationsItemOneChemicalPlanItemRatePerHaMax)
+})).optional(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "approvalNote": zod.string().optional(),
+  "completionRequestedOn": zod.string().nullish(),
+  "completionRequestedBy": zod.string().optional(),
   "requiresChemicals": zod.boolean().optional(),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(getFieldDashboardResponseOperationsItemOneNameMax),
@@ -628,7 +678,115 @@ export const CreateAgroFieldResponse = zod.object({
 }))
 
 
+
+export const getFieldDispatchQueueResponseOperationOneChemicalPlanItemRatePerHaMin = 0.001;
+export const getFieldDispatchQueueResponseOperationOneChemicalPlanItemRatePerHaMax = 1000000;
+
+
+export const getFieldDispatchQueueResponseOperationOneNameMax = 150;
+
+export const getFieldDispatchQueueResponseOperationOnePlannedAreaHaMin = 0;
+export const getFieldDispatchQueueResponseOperationOnePlannedAreaHaMax = 1000000;
+
+export const getFieldDispatchQueueResponseOperationOnePlannedRatePerHaMin = 0;
+export const getFieldDispatchQueueResponseOperationOnePlannedRatePerHaMax = 1000000000;
+
+export const getFieldDispatchQueueResponseOperationOneResponsibleMax = 200;
+
+
+
+export const getFieldDispatchQueueResponseOperationOnePlannedEquipmentMax = 200;
+
+export const getFieldDispatchQueueResponseOperationOnePlannedImplementMax = 200;
+
+export const getFieldDispatchQueueResponseOperationOneNotesMax = 3000;
+
+
+
+export const getFieldDispatchQueueResponseOperationTwoActualAreaHaMin = 0;
+export const getFieldDispatchQueueResponseOperationTwoActualAreaHaMax = 1000000;
+
+export const getFieldDispatchQueueResponseOperationTwoActualOperationNameMax = 150;
+
+export const getFieldDispatchQueueResponseOperationTwoActualMechanicMax = 200;
+
+
+export const getFieldDispatchQueueResponseOperationTwoActualEquipmentMax = 200;
+
+export const getFieldDispatchQueueResponseOperationTwoActualImplementMax = 200;
+
+export const getFieldDispatchQueueResponseOperationTwoActualNotesMax = 3000;
+
+
+
 export const GetFieldDispatchQueueResponseItem = zod.object({
+  "farm": zod.string().optional(),
+  "operation": zod.object({
+  "chemicalPlan": zod.array(zod.object({
+  "batchId": zod.number().min(1),
+  "ratePerHa": zod.number().min(getFieldDispatchQueueResponseOperationOneChemicalPlanItemRatePerHaMin).max(getFieldDispatchQueueResponseOperationOneChemicalPlanItemRatePerHaMax)
+})).optional(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "approvalNote": zod.string().optional(),
+  "completionRequestedOn": zod.string().nullish(),
+  "completionRequestedBy": zod.string().optional(),
+  "requiresChemicals": zod.boolean().optional(),
+  "seasonId": zod.number().min(1),
+  "name": zod.string().min(1).max(getFieldDispatchQueueResponseOperationOneNameMax),
+  "plannedStart": zod.string(),
+  "plannedEnd": zod.string(),
+  "plannedAreaHa": zod.number().min(getFieldDispatchQueueResponseOperationOnePlannedAreaHaMin).max(getFieldDispatchQueueResponseOperationOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(getFieldDispatchQueueResponseOperationOnePlannedRatePerHaMin).max(getFieldDispatchQueueResponseOperationOnePlannedRatePerHaMax),
+  "responsible": zod.string().max(getFieldDispatchQueueResponseOperationOneResponsibleMax),
+  "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
+  "plannedEquipmentId": zod.number().min(1).nullish(),
+  "plannedEquipment": zod.string().max(getFieldDispatchQueueResponseOperationOnePlannedEquipmentMax),
+  "plannedImplement": zod.string().max(getFieldDispatchQueueResponseOperationOnePlannedImplementMax),
+  "notes": zod.string().max(getFieldDispatchQueueResponseOperationOneNotesMax),
+  "version": zod.number().min(1)
+}).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
+  "version": zod.number().min(1),
+  "actualStart": zod.string().nullable(),
+  "actualEnd": zod.string().nullable(),
+  "actualAreaHa": zod.number().min(getFieldDispatchQueueResponseOperationTwoActualAreaHaMin).max(getFieldDispatchQueueResponseOperationTwoActualAreaHaMax),
+  "actualOperationName": zod.string().max(getFieldDispatchQueueResponseOperationTwoActualOperationNameMax),
+  "actualMechanic": zod.string().max(getFieldDispatchQueueResponseOperationTwoActualMechanicMax),
+  "actualMechanicEmployeeId": zod.number().min(1).nullable(),
+  "actualEquipment": zod.string().max(getFieldDispatchQueueResponseOperationTwoActualEquipmentMax),
+  "actualImplement": zod.string().max(getFieldDispatchQueueResponseOperationTwoActualImplementMax),
+  "actualNotes": zod.string().max(getFieldDispatchQueueResponseOperationTwoActualNotesMax)
+})).and(zod.object({
+  "isUnplanned": zod.boolean(),
+  "actualAreaLimitHa": zod.number(),
+  "id": zod.number(),
+  "status": zod.enum(['planned', 'in_progress', 'completed', 'cancelled']),
+  "isOverdue": zod.boolean(),
+  "progressPercent": zod.number(),
+  "progressReports": zod.array(zod.object({
+  "id": zod.number(),
+  "reportDate": zod.string(),
+  "cumulativeAreaHa": zod.number(),
+  "dailyAreaHa": zod.number(),
+  "actualMechanic": zod.string(),
+  "actualMechanicEmployeeId": zod.number().nullable(),
+  "actualEquipment": zod.string(),
+  "actualImplement": zod.string(),
+  "notes": zod.string(),
+  "version": zod.number(),
+  "updatedBy": zod.string(),
+  "updatedAt": zod.string()
+})),
+  "plannedPayAmount": zod.number(),
+  "actualRatePerHa": zod.number().nullable(),
+  "actualPayAmount": zod.number().nullable(),
+  "actualRateSetBy": zod.string(),
+  "actualRateSetAt": zod.string().nullable(),
+  "voidedAt": zod.string().nullable(),
+  "voidReason": zod.string(),
+  "voidedBy": zod.string(),
+  "updatedAt": zod.string(),
+  "updatedBy": zod.string()
+})).optional(),
   "id": zod.number(),
   "version": zod.number(),
   "fieldNumber": zod.string(),
@@ -821,6 +979,10 @@ export const UpdateFieldSeasonResponse = zod.object({
 }))
 
 
+
+export const createFieldOperationBodyChemicalPlanItemRatePerHaMin = 0.001;
+export const createFieldOperationBodyChemicalPlanItemRatePerHaMax = 1000000;
+
 export const createFieldOperationBodyRequiresChemicalsDefault = false;
 export const createFieldOperationBodyNameMax = 150;
 
@@ -843,6 +1005,10 @@ export const createFieldOperationBodyNotesMax = 3000;
 
 
 export const CreateFieldOperationBody = zod.object({
+  "chemicalPlan": zod.array(zod.object({
+  "batchId": zod.number().min(1),
+  "ratePerHa": zod.number().min(createFieldOperationBodyChemicalPlanItemRatePerHaMin).max(createFieldOperationBodyChemicalPlanItemRatePerHaMax)
+})).optional(),
   "requiresChemicals": zod.boolean().default(createFieldOperationBodyRequiresChemicalsDefault),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(createFieldOperationBodyNameMax),
@@ -857,6 +1023,10 @@ export const CreateFieldOperationBody = zod.object({
   "plannedImplement": zod.string().max(createFieldOperationBodyPlannedImplementMax),
   "notes": zod.string().max(createFieldOperationBodyNotesMax)
 })
+
+
+export const createFieldOperationResponseOneChemicalPlanItemRatePerHaMin = 0.001;
+export const createFieldOperationResponseOneChemicalPlanItemRatePerHaMax = 1000000;
 
 
 export const createFieldOperationResponseOneNameMax = 150;
@@ -896,6 +1066,14 @@ export const createFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const CreateFieldOperationResponse = zod.object({
+  "chemicalPlan": zod.array(zod.object({
+  "batchId": zod.number().min(1),
+  "ratePerHa": zod.number().min(createFieldOperationResponseOneChemicalPlanItemRatePerHaMin).max(createFieldOperationResponseOneChemicalPlanItemRatePerHaMax)
+})).optional(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "approvalNote": zod.string().optional(),
+  "completionRequestedOn": zod.string().nullish(),
+  "completionRequestedBy": zod.string().optional(),
   "requiresChemicals": zod.boolean().optional(),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(createFieldOperationResponseOneNameMax),
@@ -959,6 +1137,10 @@ export const UpdateFieldOperationParams = zod.object({
   "id": zod.coerce.number()
 })
 
+
+export const updateFieldOperationBodyOneChemicalPlanItemRatePerHaMin = 0.001;
+export const updateFieldOperationBodyOneChemicalPlanItemRatePerHaMax = 1000000;
+
 export const updateFieldOperationBodyOneRequiresChemicalsDefault = false;
 export const updateFieldOperationBodyOneNameMax = 150;
 
@@ -982,6 +1164,10 @@ export const updateFieldOperationBodyOneNotesMax = 3000;
 
 
 export const UpdateFieldOperationBody = zod.object({
+  "chemicalPlan": zod.array(zod.object({
+  "batchId": zod.number().min(1),
+  "ratePerHa": zod.number().min(updateFieldOperationBodyOneChemicalPlanItemRatePerHaMin).max(updateFieldOperationBodyOneChemicalPlanItemRatePerHaMax)
+})).optional(),
   "requiresChemicals": zod.boolean().default(updateFieldOperationBodyOneRequiresChemicalsDefault),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(updateFieldOperationBodyOneNameMax),
@@ -998,6 +1184,10 @@ export const UpdateFieldOperationBody = zod.object({
 }).and(zod.object({
   "version": zod.number().min(1)
 }))
+
+
+export const updateFieldOperationResponseOneChemicalPlanItemRatePerHaMin = 0.001;
+export const updateFieldOperationResponseOneChemicalPlanItemRatePerHaMax = 1000000;
 
 
 export const updateFieldOperationResponseOneNameMax = 150;
@@ -1037,6 +1227,14 @@ export const updateFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const UpdateFieldOperationResponse = zod.object({
+  "chemicalPlan": zod.array(zod.object({
+  "batchId": zod.number().min(1),
+  "ratePerHa": zod.number().min(updateFieldOperationResponseOneChemicalPlanItemRatePerHaMin).max(updateFieldOperationResponseOneChemicalPlanItemRatePerHaMax)
+})).optional(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "approvalNote": zod.string().optional(),
+  "completionRequestedOn": zod.string().nullish(),
+  "completionRequestedBy": zod.string().optional(),
   "requiresChemicals": zod.boolean().optional(),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(updateFieldOperationResponseOneNameMax),
@@ -1062,6 +1260,131 @@ export const UpdateFieldOperationResponse = zod.object({
   "actualEquipment": zod.string().max(updateFieldOperationResponseTwoActualEquipmentMax),
   "actualImplement": zod.string().max(updateFieldOperationResponseTwoActualImplementMax),
   "actualNotes": zod.string().max(updateFieldOperationResponseTwoActualNotesMax)
+})).and(zod.object({
+  "isUnplanned": zod.boolean(),
+  "actualAreaLimitHa": zod.number(),
+  "id": zod.number(),
+  "status": zod.enum(['planned', 'in_progress', 'completed', 'cancelled']),
+  "isOverdue": zod.boolean(),
+  "progressPercent": zod.number(),
+  "progressReports": zod.array(zod.object({
+  "id": zod.number(),
+  "reportDate": zod.string(),
+  "cumulativeAreaHa": zod.number(),
+  "dailyAreaHa": zod.number(),
+  "actualMechanic": zod.string(),
+  "actualMechanicEmployeeId": zod.number().nullable(),
+  "actualEquipment": zod.string(),
+  "actualImplement": zod.string(),
+  "notes": zod.string(),
+  "version": zod.number(),
+  "updatedBy": zod.string(),
+  "updatedAt": zod.string()
+})),
+  "plannedPayAmount": zod.number(),
+  "actualRatePerHa": zod.number().nullable(),
+  "actualPayAmount": zod.number().nullable(),
+  "actualRateSetBy": zod.string(),
+  "actualRateSetAt": zod.string().nullable(),
+  "voidedAt": zod.string().nullable(),
+  "voidReason": zod.string(),
+  "voidedBy": zod.string(),
+  "updatedAt": zod.string(),
+  "updatedBy": zod.string()
+}))
+
+
+export const TransitionFieldOperationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+export const transitionFieldOperationBodyNoteMax = 1000;
+
+
+
+export const TransitionFieldOperationBody = zod.object({
+  "version": zod.number().min(1),
+  "action": zod.enum(['approve_unplanned', 'reject_unplanned', 'request_completion', 'approve_completion', 'reject_completion']),
+  "date": zod.string().optional(),
+  "note": zod.string().max(transitionFieldOperationBodyNoteMax).optional()
+})
+
+
+export const transitionFieldOperationResponseOneChemicalPlanItemRatePerHaMin = 0.001;
+export const transitionFieldOperationResponseOneChemicalPlanItemRatePerHaMax = 1000000;
+
+
+export const transitionFieldOperationResponseOneNameMax = 150;
+
+export const transitionFieldOperationResponseOnePlannedAreaHaMin = 0;
+export const transitionFieldOperationResponseOnePlannedAreaHaMax = 1000000;
+
+export const transitionFieldOperationResponseOnePlannedRatePerHaMin = 0;
+export const transitionFieldOperationResponseOnePlannedRatePerHaMax = 1000000000;
+
+export const transitionFieldOperationResponseOneResponsibleMax = 200;
+
+
+
+export const transitionFieldOperationResponseOnePlannedEquipmentMax = 200;
+
+export const transitionFieldOperationResponseOnePlannedImplementMax = 200;
+
+export const transitionFieldOperationResponseOneNotesMax = 3000;
+
+
+
+export const transitionFieldOperationResponseTwoActualAreaHaMin = 0;
+export const transitionFieldOperationResponseTwoActualAreaHaMax = 1000000;
+
+export const transitionFieldOperationResponseTwoActualOperationNameMax = 150;
+
+export const transitionFieldOperationResponseTwoActualMechanicMax = 200;
+
+
+export const transitionFieldOperationResponseTwoActualEquipmentMax = 200;
+
+export const transitionFieldOperationResponseTwoActualImplementMax = 200;
+
+export const transitionFieldOperationResponseTwoActualNotesMax = 3000;
+
+
+
+export const TransitionFieldOperationResponse = zod.object({
+  "chemicalPlan": zod.array(zod.object({
+  "batchId": zod.number().min(1),
+  "ratePerHa": zod.number().min(transitionFieldOperationResponseOneChemicalPlanItemRatePerHaMin).max(transitionFieldOperationResponseOneChemicalPlanItemRatePerHaMax)
+})).optional(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "approvalNote": zod.string().optional(),
+  "completionRequestedOn": zod.string().nullish(),
+  "completionRequestedBy": zod.string().optional(),
+  "requiresChemicals": zod.boolean().optional(),
+  "seasonId": zod.number().min(1),
+  "name": zod.string().min(1).max(transitionFieldOperationResponseOneNameMax),
+  "plannedStart": zod.string(),
+  "plannedEnd": zod.string(),
+  "plannedAreaHa": zod.number().min(transitionFieldOperationResponseOnePlannedAreaHaMin).max(transitionFieldOperationResponseOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(transitionFieldOperationResponseOnePlannedRatePerHaMin).max(transitionFieldOperationResponseOnePlannedRatePerHaMax),
+  "responsible": zod.string().max(transitionFieldOperationResponseOneResponsibleMax),
+  "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
+  "plannedEquipmentId": zod.number().min(1).nullish(),
+  "plannedEquipment": zod.string().max(transitionFieldOperationResponseOnePlannedEquipmentMax),
+  "plannedImplement": zod.string().max(transitionFieldOperationResponseOnePlannedImplementMax),
+  "notes": zod.string().max(transitionFieldOperationResponseOneNotesMax),
+  "version": zod.number().min(1)
+}).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
+  "version": zod.number().min(1),
+  "actualStart": zod.string().nullable(),
+  "actualEnd": zod.string().nullable(),
+  "actualAreaHa": zod.number().min(transitionFieldOperationResponseTwoActualAreaHaMin).max(transitionFieldOperationResponseTwoActualAreaHaMax),
+  "actualOperationName": zod.string().max(transitionFieldOperationResponseTwoActualOperationNameMax),
+  "actualMechanic": zod.string().max(transitionFieldOperationResponseTwoActualMechanicMax),
+  "actualMechanicEmployeeId": zod.number().min(1).nullable(),
+  "actualEquipment": zod.string().max(transitionFieldOperationResponseTwoActualEquipmentMax),
+  "actualImplement": zod.string().max(transitionFieldOperationResponseTwoActualImplementMax),
+  "actualNotes": zod.string().max(transitionFieldOperationResponseTwoActualNotesMax)
 })).and(zod.object({
   "isUnplanned": zod.boolean(),
   "actualAreaLimitHa": zod.number(),
@@ -1131,6 +1454,10 @@ export const UpdateFieldOperationActualBody = zod.object({
 })
 
 
+export const updateFieldOperationActualResponseOneChemicalPlanItemRatePerHaMin = 0.001;
+export const updateFieldOperationActualResponseOneChemicalPlanItemRatePerHaMax = 1000000;
+
+
 export const updateFieldOperationActualResponseOneNameMax = 150;
 
 export const updateFieldOperationActualResponseOnePlannedAreaHaMin = 0;
@@ -1168,6 +1495,14 @@ export const updateFieldOperationActualResponseTwoActualNotesMax = 3000;
 
 
 export const UpdateFieldOperationActualResponse = zod.object({
+  "chemicalPlan": zod.array(zod.object({
+  "batchId": zod.number().min(1),
+  "ratePerHa": zod.number().min(updateFieldOperationActualResponseOneChemicalPlanItemRatePerHaMin).max(updateFieldOperationActualResponseOneChemicalPlanItemRatePerHaMax)
+})).optional(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "approvalNote": zod.string().optional(),
+  "completionRequestedOn": zod.string().nullish(),
+  "completionRequestedBy": zod.string().optional(),
   "requiresChemicals": zod.boolean().optional(),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(updateFieldOperationActualResponseOneNameMax),
@@ -1245,7 +1580,115 @@ export const UpdateFieldDispatchRateBody = zod.object({
   "ratePerHa": zod.number().min(updateFieldDispatchRateBodyRatePerHaMin).max(updateFieldDispatchRateBodyRatePerHaMax)
 })
 
+
+export const updateFieldDispatchRateResponseOperationOneChemicalPlanItemRatePerHaMin = 0.001;
+export const updateFieldDispatchRateResponseOperationOneChemicalPlanItemRatePerHaMax = 1000000;
+
+
+export const updateFieldDispatchRateResponseOperationOneNameMax = 150;
+
+export const updateFieldDispatchRateResponseOperationOnePlannedAreaHaMin = 0;
+export const updateFieldDispatchRateResponseOperationOnePlannedAreaHaMax = 1000000;
+
+export const updateFieldDispatchRateResponseOperationOnePlannedRatePerHaMin = 0;
+export const updateFieldDispatchRateResponseOperationOnePlannedRatePerHaMax = 1000000000;
+
+export const updateFieldDispatchRateResponseOperationOneResponsibleMax = 200;
+
+
+
+export const updateFieldDispatchRateResponseOperationOnePlannedEquipmentMax = 200;
+
+export const updateFieldDispatchRateResponseOperationOnePlannedImplementMax = 200;
+
+export const updateFieldDispatchRateResponseOperationOneNotesMax = 3000;
+
+
+
+export const updateFieldDispatchRateResponseOperationTwoActualAreaHaMin = 0;
+export const updateFieldDispatchRateResponseOperationTwoActualAreaHaMax = 1000000;
+
+export const updateFieldDispatchRateResponseOperationTwoActualOperationNameMax = 150;
+
+export const updateFieldDispatchRateResponseOperationTwoActualMechanicMax = 200;
+
+
+export const updateFieldDispatchRateResponseOperationTwoActualEquipmentMax = 200;
+
+export const updateFieldDispatchRateResponseOperationTwoActualImplementMax = 200;
+
+export const updateFieldDispatchRateResponseOperationTwoActualNotesMax = 3000;
+
+
+
 export const UpdateFieldDispatchRateResponse = zod.object({
+  "farm": zod.string().optional(),
+  "operation": zod.object({
+  "chemicalPlan": zod.array(zod.object({
+  "batchId": zod.number().min(1),
+  "ratePerHa": zod.number().min(updateFieldDispatchRateResponseOperationOneChemicalPlanItemRatePerHaMin).max(updateFieldDispatchRateResponseOperationOneChemicalPlanItemRatePerHaMax)
+})).optional(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "approvalNote": zod.string().optional(),
+  "completionRequestedOn": zod.string().nullish(),
+  "completionRequestedBy": zod.string().optional(),
+  "requiresChemicals": zod.boolean().optional(),
+  "seasonId": zod.number().min(1),
+  "name": zod.string().min(1).max(updateFieldDispatchRateResponseOperationOneNameMax),
+  "plannedStart": zod.string(),
+  "plannedEnd": zod.string(),
+  "plannedAreaHa": zod.number().min(updateFieldDispatchRateResponseOperationOnePlannedAreaHaMin).max(updateFieldDispatchRateResponseOperationOnePlannedAreaHaMax),
+  "plannedRatePerHa": zod.number().min(updateFieldDispatchRateResponseOperationOnePlannedRatePerHaMin).max(updateFieldDispatchRateResponseOperationOnePlannedRatePerHaMax),
+  "responsible": zod.string().max(updateFieldDispatchRateResponseOperationOneResponsibleMax),
+  "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
+  "plannedEquipmentId": zod.number().min(1).nullish(),
+  "plannedEquipment": zod.string().max(updateFieldDispatchRateResponseOperationOnePlannedEquipmentMax),
+  "plannedImplement": zod.string().max(updateFieldDispatchRateResponseOperationOnePlannedImplementMax),
+  "notes": zod.string().max(updateFieldDispatchRateResponseOperationOneNotesMax),
+  "version": zod.number().min(1)
+}).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
+  "version": zod.number().min(1),
+  "actualStart": zod.string().nullable(),
+  "actualEnd": zod.string().nullable(),
+  "actualAreaHa": zod.number().min(updateFieldDispatchRateResponseOperationTwoActualAreaHaMin).max(updateFieldDispatchRateResponseOperationTwoActualAreaHaMax),
+  "actualOperationName": zod.string().max(updateFieldDispatchRateResponseOperationTwoActualOperationNameMax),
+  "actualMechanic": zod.string().max(updateFieldDispatchRateResponseOperationTwoActualMechanicMax),
+  "actualMechanicEmployeeId": zod.number().min(1).nullable(),
+  "actualEquipment": zod.string().max(updateFieldDispatchRateResponseOperationTwoActualEquipmentMax),
+  "actualImplement": zod.string().max(updateFieldDispatchRateResponseOperationTwoActualImplementMax),
+  "actualNotes": zod.string().max(updateFieldDispatchRateResponseOperationTwoActualNotesMax)
+})).and(zod.object({
+  "isUnplanned": zod.boolean(),
+  "actualAreaLimitHa": zod.number(),
+  "id": zod.number(),
+  "status": zod.enum(['planned', 'in_progress', 'completed', 'cancelled']),
+  "isOverdue": zod.boolean(),
+  "progressPercent": zod.number(),
+  "progressReports": zod.array(zod.object({
+  "id": zod.number(),
+  "reportDate": zod.string(),
+  "cumulativeAreaHa": zod.number(),
+  "dailyAreaHa": zod.number(),
+  "actualMechanic": zod.string(),
+  "actualMechanicEmployeeId": zod.number().nullable(),
+  "actualEquipment": zod.string(),
+  "actualImplement": zod.string(),
+  "notes": zod.string(),
+  "version": zod.number(),
+  "updatedBy": zod.string(),
+  "updatedAt": zod.string()
+})),
+  "plannedPayAmount": zod.number(),
+  "actualRatePerHa": zod.number().nullable(),
+  "actualPayAmount": zod.number().nullable(),
+  "actualRateSetBy": zod.string(),
+  "actualRateSetAt": zod.string().nullable(),
+  "voidedAt": zod.string().nullable(),
+  "voidReason": zod.string(),
+  "voidedBy": zod.string(),
+  "updatedAt": zod.string(),
+  "updatedBy": zod.string()
+})).optional(),
   "id": zod.number(),
   "version": zod.number(),
   "fieldNumber": zod.string(),
@@ -1293,11 +1736,15 @@ export const CreateFieldOperationProgressBody = zod.object({
   "reportDate": zod.string(),
   "cumulativeAreaHa": zod.number().min(createFieldOperationProgressBodyCumulativeAreaHaMin).max(createFieldOperationProgressBodyCumulativeAreaHaMax),
   "actualMechanic": zod.string().max(createFieldOperationProgressBodyActualMechanicMax),
-  "actualMechanicEmployeeId": zod.number().min(1),
+  "actualMechanicEmployeeId": zod.number().min(1).nullable(),
   "actualEquipment": zod.string().max(createFieldOperationProgressBodyActualEquipmentMax),
   "actualImplement": zod.string().max(createFieldOperationProgressBodyActualImplementMax),
   "notes": zod.string().max(createFieldOperationProgressBodyNotesMax)
 })
+
+
+export const createFieldOperationProgressResponseOneChemicalPlanItemRatePerHaMin = 0.001;
+export const createFieldOperationProgressResponseOneChemicalPlanItemRatePerHaMax = 1000000;
 
 
 export const createFieldOperationProgressResponseOneNameMax = 150;
@@ -1337,6 +1784,14 @@ export const createFieldOperationProgressResponseTwoActualNotesMax = 3000;
 
 
 export const CreateFieldOperationProgressResponse = zod.object({
+  "chemicalPlan": zod.array(zod.object({
+  "batchId": zod.number().min(1),
+  "ratePerHa": zod.number().min(createFieldOperationProgressResponseOneChemicalPlanItemRatePerHaMin).max(createFieldOperationProgressResponseOneChemicalPlanItemRatePerHaMax)
+})).optional(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "approvalNote": zod.string().optional(),
+  "completionRequestedOn": zod.string().nullish(),
+  "completionRequestedBy": zod.string().optional(),
   "requiresChemicals": zod.boolean().optional(),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(createFieldOperationProgressResponseOneNameMax),
@@ -1422,13 +1877,17 @@ export const UpdateFieldOperationProgressBody = zod.object({
   "reportDate": zod.string(),
   "cumulativeAreaHa": zod.number().min(updateFieldOperationProgressBodyOneCumulativeAreaHaMin).max(updateFieldOperationProgressBodyOneCumulativeAreaHaMax),
   "actualMechanic": zod.string().max(updateFieldOperationProgressBodyOneActualMechanicMax),
-  "actualMechanicEmployeeId": zod.number().min(1),
+  "actualMechanicEmployeeId": zod.number().min(1).nullable(),
   "actualEquipment": zod.string().max(updateFieldOperationProgressBodyOneActualEquipmentMax),
   "actualImplement": zod.string().max(updateFieldOperationProgressBodyOneActualImplementMax),
   "notes": zod.string().max(updateFieldOperationProgressBodyOneNotesMax)
 }).and(zod.object({
   "version": zod.number().min(1)
 }))
+
+
+export const updateFieldOperationProgressResponseOneChemicalPlanItemRatePerHaMin = 0.001;
+export const updateFieldOperationProgressResponseOneChemicalPlanItemRatePerHaMax = 1000000;
 
 
 export const updateFieldOperationProgressResponseOneNameMax = 150;
@@ -1468,6 +1927,14 @@ export const updateFieldOperationProgressResponseTwoActualNotesMax = 3000;
 
 
 export const UpdateFieldOperationProgressResponse = zod.object({
+  "chemicalPlan": zod.array(zod.object({
+  "batchId": zod.number().min(1),
+  "ratePerHa": zod.number().min(updateFieldOperationProgressResponseOneChemicalPlanItemRatePerHaMin).max(updateFieldOperationProgressResponseOneChemicalPlanItemRatePerHaMax)
+})).optional(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "approvalNote": zod.string().optional(),
+  "completionRequestedOn": zod.string().nullish(),
+  "completionRequestedBy": zod.string().optional(),
   "requiresChemicals": zod.boolean().optional(),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(updateFieldOperationProgressResponseOneNameMax),
@@ -1543,6 +2010,10 @@ export const VoidFieldOperationBody = zod.object({
 })
 
 
+export const voidFieldOperationResponseOneChemicalPlanItemRatePerHaMin = 0.001;
+export const voidFieldOperationResponseOneChemicalPlanItemRatePerHaMax = 1000000;
+
+
 export const voidFieldOperationResponseOneNameMax = 150;
 
 export const voidFieldOperationResponseOnePlannedAreaHaMin = 0;
@@ -1580,6 +2051,14 @@ export const voidFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const VoidFieldOperationResponse = zod.object({
+  "chemicalPlan": zod.array(zod.object({
+  "batchId": zod.number().min(1),
+  "ratePerHa": zod.number().min(voidFieldOperationResponseOneChemicalPlanItemRatePerHaMin).max(voidFieldOperationResponseOneChemicalPlanItemRatePerHaMax)
+})).optional(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "approvalNote": zod.string().optional(),
+  "completionRequestedOn": zod.string().nullish(),
+  "completionRequestedBy": zod.string().optional(),
   "requiresChemicals": zod.boolean().optional(),
   "seasonId": zod.number().min(1),
   "name": zod.string().min(1).max(voidFieldOperationResponseOneNameMax),

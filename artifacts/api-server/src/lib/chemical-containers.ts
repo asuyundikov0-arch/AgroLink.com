@@ -1,13 +1,13 @@
 import { and, eq, isNull } from "drizzle-orm";
 import {
   chemicalBatchesTable as batches, chemicalIssuesTable as issues,
-  chemicalRequestsTable as requests, chemicalConsumptionsTable as consumptions,
+  chemicalRequestsTable as requests, chemicalConsumptionsTable as consumptions, fieldOperationProgressTable as progress,
   chemicalContainerReturnsTable as returns, fieldOperationsTable as operations, activityTable,
 } from "@workspace/db";
 import type { ChemicalContainerReturnInput, ChemicalPackagingInput } from "@workspace/api-zod";
 import type { RoleAccess } from "../middlewares/auth";
 import { chemicalCheck as check, scaledChemical } from "./chemical-stock";
-import { lockChemicalWorkflow, type ChemicalTx } from "./chemical-workflow";
+import { chemicalFactDays, consumeChemical, lockChemicalWorkflow, type ChemicalTx } from "./chemical-workflow";
 import { grainBusinessDate, validGrainDate } from "./grain-ledger";
 
 function warehouse(access: RoleAccess) {
@@ -54,6 +54,10 @@ export async function acceptChemicalContainers(tx: ChemicalTx, input: ChemicalCo
     check(existing.issueId === input.issueId && existing.containerCount === input.containerCount
       && existing.reportDate === input.reportDate && existing.returnedOn === input.returnedOn,
     "Этот номер запроса уже использован для другой приёмки тары.", 409);
+    const [confirmed] = await tx.select({ id: consumptions.id }).from(consumptions).where(eq(consumptions.containerReturnId, existing.id));
+    if (!confirmed) await consumeChemical(tx, {
+      requestId: `tare-consumption-${existing.id}`, containerReturnId: existing.id, notes: input.notes.trim(),
+    }, access);
     return { id: existing.id };
   }
   const [issue] = await tx.select().from(issues).where(eq(issues.id, input.issueId));
@@ -63,6 +67,9 @@ export async function acceptChemicalContainers(tx: ChemicalTx, input: ChemicalCo
   check(request, "Заявка не найдена.", 404);
   const [operation] = await tx.select().from(operations).where(eq(operations.id, request.operationId));
   check(operation && !operation.voidedAt, "Операция отменена или недоступна.", 409);
+  const reports = await tx.select().from(progress).where(eq(progress.operationId, operation.id));
+  check(chemicalFactDays(operation, reports).some(d => d.date === input.reportDate && d.dailyAreaHa > 0),
+    "Сначала диспетчер должен внести положительный дневной факт работ за выбранную дату.", 409);
   const [batch] = await tx.select().from(batches).where(eq(batches.id, issue.batchId));
   check(batch?.containerVolumeMillis && batch.containerCount, "Сначала укажите объём и количество упаковок исходной партии на складе.", 409);
   const consumed = await tx.select().from(consumptions).where(eq(consumptions.issueId, issue.id));
@@ -73,16 +80,19 @@ export async function acceptChemicalContainers(tx: ChemicalTx, input: ChemicalCo
     - pending.reduce((s, r) => s + r.quantityMillis, 0);
   const quantityMillis = input.containerCount * batch.containerVolumeMillis;
   check(quantityMillis <= available,
-    "Количество тары превышает остаток выдачи с учётом уже принятой тары, ожидающей диспетчера.", 409);
+    "Количество тары превышает остаток выдачи с учётом уже принятой тары.", 409);
   const [receipt] = await tx.insert(returns).values({
     requestId: input.requestId, issueId: issue.id, operationId: request.operationId,
     reportDate: input.reportDate, returnedOn: input.returnedOn, containerCount: input.containerCount,
     containerVolumeMillis: batch.containerVolumeMillis, quantityMillis,
     acceptedBy: `${access.displayName} · ${access.role}`, notes: input.notes.trim(),
   }).returning();
-  await tx.insert(activityTable).values({ action: "Принята пустая тара — ожидает подтверждения диспетчера",
+  await consumeChemical(tx, {
+    requestId: `tare-consumption-${receipt.id}`, containerReturnId: receipt.id, notes: input.notes.trim(),
+  }, access);
+  await tx.insert(activityTable).values({ action: "Принята пустая тара — химия списана с подотчёта в затраты поля",
     templateName: `${request.requesterName} · ${batch.name} · ${input.containerCount} × ${batch.containerVolumeMillis / 1000} ${batch.unit} · ${input.reportDate}`,
     userName: `${access.displayName} · ${access.role}` });
-  // Warehouse stock and agronomist custody remain unchanged until the dispatcher confirms.
+  // Empty containers never increase or decrease physical chemical stock a second time.
   return { id: receipt.id };
 }

@@ -9,11 +9,17 @@ The seasonal agronomy plan must begin with field numbers. Opening a field shows 
 
 **How to apply:** Preserve field history and actual-work flows separately. Keep the selected season and farm in scope, and continue to reserve plan editing for the chief agronomist and general director.
 
-Actual work is entered through its own field-first view, not inside the planning view. Out-of-plan factual operations are explicitly allowed.
+Actual work has its own field-first view, separate from planning. Opening a field shows its plan directly and an unplanned-work request action. Out-of-plan operations are allowed only after the chief agronomist approves the request; approval does not itself start the operation.
 
-**Why:** The user asked to separate planning and factual entry and confirmed “Да, разрешить внеплановые работы”.
+**Why:** The user separated planning from factual entry, then required approval by the chief agronomist before any unplanned work starts.
 
-**How to apply:** Preserve the existing links between planned work, its daily progress and salary accruals. Show unplanned work separately from planned work.
+**How to apply:** Chief agronomist builds the plan. Farm agronomist starts approved planned/unplanned work and changes current mechanic, equipment and implement. Only the dispatcher records daily hectares. Changes of current assignments affect subsequent daily snapshots, never past work or payroll attribution. Show unplanned work separately from planned work.
+
+The dispatcher sees started operations immediately and requests completion. The farm agronomist approves completion before the operation enters completed field history, or returns it for continued work with a reason.
+
+**Why:** The user required dispatcher daily entry, an agronomist resource-change action, and an agronomist's agreement after the dispatcher's completion notice.
+
+**How to apply:** Keep an operation active while completion awaits approval, freeze daily entry during that review, and preserve daily hectares and resource history when completion is accepted. Do not let the old agronomist fact form bypass dispatcher entry or approval.
 
 Partial daily performance of a planned chemical field operation is still work under that plan, not an unplanned operation.
 

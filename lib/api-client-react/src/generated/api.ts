@@ -47,6 +47,7 @@ import type {
   FieldDashboard,
   FieldDispatchItem,
   FieldDispatchRateInput,
+  FieldLifecycleInput,
   FieldOperation,
   FieldOperationInput,
   FieldOperationUpdate,
@@ -1346,6 +1347,72 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getUpdateFieldOperationMutationOptions(options));
+    }
+
+export const getTransitionFieldOperationUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/fields/operations/${id}/lifecycle`
+}
+
+export const transitionFieldOperation = async (id: number,
+    fieldLifecycleInput: FieldLifecycleInput, options?: Parameters<typeof customFetch>[1]): Promise<FieldOperation> => {
+
+  return customFetch<FieldOperation>(getTransitionFieldOperationUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(fieldLifecycleInput)
+  }
+);}
+
+
+
+
+
+export const getTransitionFieldOperationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transitionFieldOperation>>, TError,{id: number;data: BodyType<FieldLifecycleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof transitionFieldOperation>>, TError,{id: number;data: BodyType<FieldLifecycleInput>}, TContext> => {
+
+const mutationKey = ['transitionFieldOperation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof transitionFieldOperation>>, {id: number;data: BodyType<FieldLifecycleInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  transitionFieldOperation(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TransitionFieldOperationMutationResult = NonNullable<Awaited<ReturnType<typeof transitionFieldOperation>>>
+    export type TransitionFieldOperationMutationBody = BodyType<FieldLifecycleInput>
+    export type TransitionFieldOperationMutationError = ErrorType<void>
+
+    export const useTransitionFieldOperation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transitionFieldOperation>>, TError,{id: number;data: BodyType<FieldLifecycleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof transitionFieldOperation>>,
+        TError,
+        {id: number;data: BodyType<FieldLifecycleInput>},
+        TContext
+      > => {
+      return useMutation(getTransitionFieldOperationMutationOptions(options));
     }
 
 export const getUpdateFieldOperationActualUrl = (id: number,) => {

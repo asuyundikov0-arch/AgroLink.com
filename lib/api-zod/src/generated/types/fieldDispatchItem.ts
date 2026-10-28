@@ -5,8 +5,11 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { FieldOperation } from './fieldOperation';
 
 export interface FieldDispatchItem {
+  farm?: string;
+  operation?: FieldOperation;
   id: number;
   version: number;
   fieldNumber: string;
