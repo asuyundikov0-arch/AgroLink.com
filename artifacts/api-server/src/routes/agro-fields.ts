@@ -8,7 +8,7 @@ import {
   CreateUnplannedFieldOperationBody, CreateUnplannedFieldOperationResponse, GetDailySeedingReportResponse,
   TransitionFieldOperationBody, type FieldProgressReport, type FieldOperationInput,
 } from "@workspace/api-zod";
-import { activityTable, agroFieldsTable, employeesTable, fleetEquipmentTable, fieldSeasonsTable, fieldOperationsTable, fieldOperationProgressTable, grainCropsTable, db } from "@workspace/db";
+import { activityTable, agroFieldsTable, employeesTable, fleetEquipmentTable, fieldSeasonsTable, fieldOperationsTable, fieldOperationProgressTable, grainCropsTable, fuelMovementsTable, db } from "@workspace/db";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { grainBusinessDate, validGrainDate } from "../lib/grain-ledger";
 import { fieldNumberKey, fieldOperationState, progressDeltaAres, toAreaAres, validateFieldPlan, validateFieldProgress } from "../lib/field-planning";
@@ -101,7 +101,7 @@ function progressReportsJson(rows: (typeof fieldOperationProgressTable.$inferSel
   });
 }
 export function operationJson(row: typeof fieldOperationsTable.$inferSelect, today = grainBusinessDate(), progressReports: FieldProgressReport[] = []) {
-  const { nameKey: _key, plannedAreaAres, actualAreaAres, plannedRatePerHa, actualRatePerHa, actualRateSetAt, ...rest } = row;
+  const { nameKey: _key, plannedAreaAres, actualAreaAres, plannedRatePerHa, plannedFuelCost, actualRatePerHa, actualRateSetAt, ...rest } = row;
   const plannedAreaHa = plannedAreaAres / 100;
   const actualAreaHa = actualAreaAres / 100;
   const plannedRate = Number(plannedRatePerHa);
@@ -111,6 +111,7 @@ export function operationJson(row: typeof fieldOperationsTable.$inferSelect, tod
     actualAreaLimitHa: (row.actualAreaLimitAres ?? row.plannedAreaAres) / 100,
     isOverdue: !row.isUnplanned && fieldOperationState(row, today).isOverdue,
     plannedRatePerHa: plannedRate,
+    plannedFuelCost: Number(plannedFuelCost),
     plannedPayAmount: Math.round((plannedAreaHa * plannedRate + Number.EPSILON) * 100) / 100,
     actualRatePerHa: actualRate,
     actualPayAmount: actualRate === null ? null : Math.round((actualAreaHa * actualRate + Number.EPSILON) * 100) / 100,
@@ -120,6 +121,11 @@ export function operationJson(row: typeof fieldOperationsTable.$inferSelect, tod
   });
 }
 async function fieldDispatchRows() {
+  const fuelRows = await db.select({
+    operationId: fuelMovementsTable.operationId,
+    cents: sql<string>`coalesce(sum(${fuelMovementsTable.amountCents}), 0)`,
+  }).from(fuelMovementsTable).where(eq(fuelMovementsTable.kind, "issue")).groupBy(fuelMovementsTable.operationId);
+  const fuelByOperation = new Map(fuelRows.map((row) => [row.operationId, Number(row.cents) / 100]));
   const rows = await db.select({ operation: fieldOperationsTable, season: fieldSeasonsTable, field: agroFieldsTable })
     .from(fieldOperationsTable)
     .innerJoin(fieldSeasonsTable, eq(fieldOperationsTable.seasonId, fieldSeasonsTable.id))
@@ -132,6 +138,7 @@ async function fieldDispatchRows() {
     const actualRatePerHa = operation.actualRatePerHa === null ? null : Number(operation.actualRatePerHa);
     return {
       id: operation.id,
+      fuelCost: fuelByOperation.get(operation.id) ?? 0,
       farm: field.unit,
       operation: operationJson(operation, grainBusinessDate(), progressReportsJson(reports.filter(r => r.operationId === operation.id))),
       version: operation.version,
@@ -382,6 +389,7 @@ router.post("/agro/fields/operations", manage, safe(async (req, res) => {
       seasonId: season.id, ...resources, plannedStart: input.plannedStart,
       requiresChemicals: !!input.requiresChemicals, chemicalModeExplicit: true, chemicalPlan,
       plannedEnd: input.plannedEnd, plannedAreaAres: toAreaAres(input.plannedAreaHa)!, plannedRatePerHa: input.plannedRatePerHa.toFixed(2),
+      plannedFuelCost: (input.plannedFuelCost ?? 0).toFixed(2),
       plannedImplement: input.plannedImplement.trim(),
       notes: input.notes.trim(), updatedBy: by,
     }).returning();
@@ -394,6 +402,7 @@ router.patch("/agro/fields/operations/:id", manage, safe(async (req, res) => {
   const by = actor(res.locals.access);
   const row = await mutate("Изменён план полевой операции", by, async (tx) => {
     const old = await getOperation(tx, Number(req.params.id)); revision(old, input.version);
+    requireValue(input.seasonId === old.seasonId, "Поле закреплено за операцией и не может быть изменено.", 409);
     requireValue(!old.actualStart, "Работа уже началась. План сохраняется; агроном может менять только сведения выполнения.", 409);
     requireValue(!old.voidedAt, "Отменённую операцию нельзя редактировать.", 409);
     requireValue(!old.isUnplanned, "Внеплановая работа не является планом. Изменяйте её в фактических работах.", 409);
@@ -414,6 +423,7 @@ router.patch("/agro/fields/operations/:id", manage, safe(async (req, res) => {
       plannedAreaAres: toAreaAres(input.plannedAreaHa)!,
       requiresChemicals: !!input.requiresChemicals, chemicalModeExplicit: true, chemicalPlan,
       plannedRatePerHa: input.plannedRatePerHa.toFixed(2),
+      plannedFuelCost: input.plannedFuelCost === undefined ? old.plannedFuelCost : input.plannedFuelCost.toFixed(2),
       plannedImplement: input.plannedImplement.trim(),
       notes: input.notes.trim(), ...stamp(by, old.version),
     }).where(eq(fieldOperationsTable.id, old.id)).returning();

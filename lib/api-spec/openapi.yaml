@@ -2025,6 +2025,7 @@ components:
         plannedEnd: { type: string }
         plannedAreaHa: { type: number, minimum: 0.01, maximum: 1000000 }
         plannedRatePerHa: { type: number, minimum: 0, maximum: 1000000000 }
+        plannedFuelCost: { type: number, minimum: 0, maximum: 1000000000, multipleOf: 0.01, description: "Плановые затраты на топливо для всей операции, тенге." }
         responsible: { type: string, maxLength: 200 }
         plannedMechanicEmployeeId: { type: ["number", "null"], minimum: 1 }
         plannedEquipmentId: { type: ["number", "null"], minimum: 1 }
@@ -2146,7 +2147,7 @@ components:
     FieldOperationRecordPlan:
       type: object
       description: Stored plan metadata; unplanned actual work has zero planned hectares.
-      required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, plannedRatePerHa, responsible, plannedEquipment, plannedImplement, notes, version]
+      required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, plannedRatePerHa, plannedFuelCost, responsible, plannedEquipment, plannedImplement, notes, version]
       properties:
         chemicalPlan:
           type: array
@@ -2162,6 +2163,7 @@ components:
         plannedEnd: { type: string }
         plannedAreaHa: { type: number, minimum: 0, maximum: 1000000 }
         plannedRatePerHa: { type: number, minimum: 0, maximum: 1000000000 }
+        plannedFuelCost: { type: number, minimum: 0, maximum: 1000000000 }
         responsible: { type: string, maxLength: 200 }
         plannedMechanicEmployeeId: { type: ["number", "null"], minimum: 1 }
         plannedEquipmentId: { type: ["number", "null"], minimum: 1 }
@@ -2203,8 +2205,9 @@ components:
         ratePerHa: { type: number, minimum: 0.01, maximum: 1000000000 }
     FieldDispatchItem:
       type: object
-      required: [id, version, fieldNumber, year, cropName, operationName, plannedStart, plannedEnd, actualStart, actualEnd, actualAreaHa, actualMechanic, actualMechanicEmployeeId, actualEquipment, actualImplement, plannedRatePerHa, actualRatePerHa, actualPayAmount, actualRateSetBy, actualRateSetAt]
+      required: [id, version, fieldNumber, year, cropName, operationName, plannedStart, plannedEnd, actualStart, actualEnd, actualAreaHa, actualMechanic, actualMechanicEmployeeId, actualEquipment, actualImplement, plannedRatePerHa, actualRatePerHa, actualPayAmount, actualRateSetBy, actualRateSetAt, fuelCost]
       properties:
+        fuelCost: { type: number, description: "Фактические затраты на топливо по всей операции из нефтебазы, тенге." }
         farm: { type: string }
         operation: { $ref: "#/components/schemas/FieldOperation" }
         id: { type: number }

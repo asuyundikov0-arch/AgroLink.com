@@ -42,7 +42,7 @@ export function DispatcherActiveWorks({ items, onSaved }: { items: FieldDispatch
         <div className="mt-2 rounded-md border border-border/70 bg-muted/20 px-2.5 py-1"><DailyHistory op={op} lockedThrough={locked} onEdit={waiting ? undefined : (r) => setModal({ k: "daily", op, report: r, title })} /></div>
       </li>;
     })}</ul>
-    {modal?.k === "daily" && <DispatcherDailyForm op={modal.op} report={modal.report} title={modal.title} today={today} onClose={() => setModal(null)} onDone={done} />}
+    {modal?.k === "daily" && <DispatcherDailyForm op={modal.op} report={modal.report} title={modal.title} fieldLabel={`Поле № ${items.find((item) => item.id === modal.op.id)?.fieldNumber ?? "—"}`} fuelCost={items.find((item) => item.id === modal.op.id)?.fuelCost ?? 0} today={today} onClose={() => setModal(null)} onDone={done} />}
     {modal?.k === "complete" && <LifecycleDialog op={modal.op} action="request_completion" title={modal.title} today={today} onClose={() => setModal(null)} onDone={done} />}
   </>;
 }

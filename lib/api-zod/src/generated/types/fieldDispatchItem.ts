@@ -8,6 +8,8 @@
 import type { FieldOperation } from './fieldOperation';
 
 export interface FieldDispatchItem {
+  /** Фактические затраты на топливо по всей операции из нефтебазы, тенге. */
+  fuelCost: number;
   farm?: string;
   operation?: FieldOperation;
   id: number;

@@ -87,11 +87,23 @@ test("HTTP controllers: planned/unplanned approval, dispatcher-only hectares, ta
     const plan = {
       seasonId, name: "Культивация", plannedStart: yesterday, plannedEnd: today, plannedAreaHa: 120,
       plannedRatePerHa: 1100, responsible: employees[0].fullName, plannedMechanicEmployeeId: employeeIds[0],
+      plannedFuelCost: 12345.67,
       plannedEquipmentId: machineIds[0], plannedEquipment: label(0), plannedImplement: "Агрегат 1", notes: "",
       requiresChemicals: true, chemicalPlan: [{ batchId: batch.id, ratePerHa: 0.35 }],
     };
     await call("agronomist", "POST", "/agro/fields/operations", plan, 403);
     let op = await call("chief_agronomist", "POST", "/agro/fields/operations", plan, 201);
+    assert.equal(op.plannedFuelCost, 12345.67);
+    await call("chief_agronomist", "POST", "/agro/fields/operations", { ...plan, plannedFuelCost: -1 }, 400);
+    await call("chief_agronomist", "POST", "/agro/fields/operations", { ...plan, plannedFuelCost: 0.001 }, 400);
+    await call("chief_agronomist", "PATCH", `/agro/fields/operations/${op.id}`, { ...plan, version: op.version, seasonId: seasonId + 1 }, 409);
+    op = await call("chief_agronomist", "PATCH", `/agro/fields/operations/${op.id}`, { ...plan, version: op.version, plannedFuelCost: 23456.78 });
+    assert.equal(op.plannedFuelCost, 23456.78);
+    const { plannedFuelCost: _fuel, ...legacyPlan } = plan;
+    op = await call("chief_agronomist", "PATCH", `/agro/fields/operations/${op.id}`, { ...legacyPlan, version: op.version });
+    assert.equal(op.plannedFuelCost, 23456.78, "Omitted optional fuel budget preserves the existing plan");
+    const dashboard = await call("chief_agronomist", "GET", "/agro/fields");
+    assert.equal(dashboard.operations.find((item: any) => item.id === op.id).plannedFuelCost, 23456.78);
     const actual = (o: any, employee = 0) => ({
       version: o.version, actualStart: o.actualStart || yesterday, actualEnd: null, actualAreaHa: o.actualAreaHa,
       actualOperationName: o.name, actualMechanic: employees[employee].fullName, actualMechanicEmployeeId: employeeIds[employee],
@@ -104,6 +116,7 @@ test("HTTP controllers: planned/unplanned approval, dispatcher-only hectares, ta
     assert.equal(request.quantity, 60);
     const dispatch = await call("dispatcher", "GET", "/agro/fields/dispatch");
     assert.ok(dispatch.some((r: any) => r.id === op.id && r.operation.progressReports.length === 0));
+    assert.equal(dispatch.find((r: any) => r.id === op.id).fuelCost, 0, "Planned fuel budget is not an actual fuel expense");
     const issue = await call("grain_manager", "POST", "/agro/chemicals/issues", {
       requestId: randomUUID(), chemicalRequestId: request.id, quantity: 60, occurredOn: yesterday, notes: "",
     }, 201);

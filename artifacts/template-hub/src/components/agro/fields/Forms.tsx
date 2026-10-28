@@ -250,12 +250,12 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
   const invalidate = useInvalidateFields();
   const e = useErr();
   const fieldById = useMemo(() => new Map(fields.map((x) => [x.id, x])), [fields]);
-  const options = useMemo(() => seasons.filter((s) => s.id === op?.seasonId || fieldById.get(s.fieldId)?.isActive).sort((a, b) => b.year - a.year || (fieldById.get(a.fieldId)?.number ?? "").localeCompare(fieldById.get(b.fieldId)?.number ?? "", "ru", { numeric: true })), [seasons, op, fieldById]);
-  const initSeason = op?.seasonId ?? defaultSeasonId ?? options[0]?.id ?? 0;
+  const initSeason = op?.seasonId ?? defaultSeasonId ?? 0;
   const [f, setF] = useState({
     seasonId: String(initSeason), name: op?.name ?? "", plannedStart: op?.plannedStart?.slice(0, 10) ?? "", plannedEnd: op?.plannedEnd?.slice(0, 10) ?? "",
      area: op ? haStr(op.plannedAreaHa) : (() => { const s = seasons.find((x) => x.id === initSeason); return s ? haStr(s.areaHa) : ""; })(),
      plannedRate: op ? String(op.plannedRatePerHa) : "",
+     plannedFuelCost: op ? String(op.plannedFuelCost) : "",
      responsible: op?.responsible ?? "", responsibleId: op?.plannedMechanicEmployeeId ?? null as number | null,
      plannedEquipmentId: op?.plannedEquipmentId ?? (() => {
        if (!op?.plannedEquipment) return null;
@@ -293,6 +293,9 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
     else if (op && area < op.actualAreaHa) er.area = `Не меньше уже выполненного (${ha(op.actualAreaHa)})`;
     const plannedRate = f.plannedRate.trim() ? Number(f.plannedRate.trim().replace(",", ".")) : null;
     if (plannedRate === null || !Number.isFinite(plannedRate) || plannedRate <= 0 || plannedRate > 1_000_000_000) er.plannedRate = "Укажите положительную расценку за гектар";
+    const fuelText = f.plannedFuelCost.trim().replace(",", ".");
+    const plannedFuelCost = Number(fuelText);
+    if (!/^\d+(?:\.\d{1,2})?$/.test(fuelText) || !Number.isFinite(plannedFuelCost) || plannedFuelCost > 1_000_000_000) er.plannedFuelCost = "Укажите сумму от 0 до 1 000 000 000 ₸, до 2 знаков после запятой";
     if (f.responsible.length > 200) er.responsible = "Не более 200 символов";
     const legacyMech = !!op && op.plannedMechanicEmployeeId == null && f.responsibleId === null && f.responsible === op.responsible;
     const legacyEq = !!op && op.plannedEquipmentId == null && f.plannedEquipmentId === null && f.plannedEquipment === op.plannedEquipment;
@@ -306,7 +309,7 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
     else if (f.requiresChemicals && !chem.plan.length) er.chem = "Укажите хотя бы один препарат и норму расхода на гектар.";
     setErrs(er); e.clear();
     if (Object.keys(er).length) return;
-    const data = { seasonId: Number(f.seasonId), name, plannedStart: f.plannedStart, plannedEnd: f.plannedEnd, plannedAreaHa: area!, plannedRatePerHa: plannedRate!, responsible: f.responsible.trim(), plannedMechanicEmployeeId: f.responsibleId, plannedEquipmentId: f.plannedEquipmentId, plannedEquipment: f.plannedEquipment.trim(), plannedImplement: f.plannedImplement.trim(), notes: f.notes, requiresChemicals: f.requiresChemicals, chemicalPlan: f.requiresChemicals ? chem.plan : [] };
+    const data = { seasonId: initSeason, name, plannedStart: f.plannedStart, plannedEnd: f.plannedEnd, plannedAreaHa: area!, plannedRatePerHa: plannedRate!, plannedFuelCost, responsible: f.responsible.trim(), plannedMechanicEmployeeId: f.responsibleId, plannedEquipmentId: f.plannedEquipmentId, plannedEquipment: f.plannedEquipment.trim(), plannedImplement: f.plannedImplement.trim(), notes: f.notes, requiresChemicals: f.requiresChemicals, chemicalPlan: f.requiresChemicals ? chem.plan : [] };
     try {
       if (op) await update.mutateAsync({ id: op.id, data: { ...data, version: op.version } });
       else await create.mutateAsync({ data });
@@ -322,29 +325,19 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
         <SaveError message={e.saveError} conflict={e.conflict} testId="text-operation-error" />
         {locked && <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] leading-5 text-amber-900" data-testid="text-operation-locked">Работа начата {dateFmt(op!.actualStart)}. План после фактического начала не меняется; текущие ресурсы меняет агроном в фактических работах.</p>}
         {op && op.actualAreaHa > 0 && <p className="rounded-lg border border-border bg-muted/40 p-3 text-[11px] leading-5 text-muted-foreground">По операции уже есть факт ({ha(op.actualAreaHa)}). Сезон и название после начала работ сервер не изменит, план нельзя уменьшить ниже факта. Факт здесь не редактируется.</p>}
-        {options.length === 0 ? <p className="text-xs text-muted-foreground" data-testid="text-operation-no-seasons">Нет сезонов на действующих полях. Сначала запланируйте севооборот.</p> : (
+        {!season ? <p className="text-xs text-muted-foreground" data-testid="text-operation-no-seasons">Поле не выбрано. Откройте нужное поле и сезон, затем добавьте план операции.</p> : (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Сезон поля *" error={errs.seasonId} htmlFor="op-season" wide>
-              <select id="op-season" className="text-input" value={f.seasonId} onChange={(ev) => { const s = seasons.find((x) => x.id === Number(ev.target.value)); setF({ ...f, seasonId: ev.target.value, area: !op && s ? haStr(s.areaHa) : f.area }); }} data-testid="select-operation-season">
-                {options.map((s) => <option key={s.id} value={s.id}>{label(s)}</option>)}
-              </select>
+            <Field label="Поле" hint="Выбрано при открытии плана. Изменить поле здесь нельзя." error={errs.seasonId} htmlFor="op-season" wide>
+              <input id="op-season" className="text-input" value={label(season)} readOnly aria-readonly="true" data-testid="input-operation-field" />
             </Field>
-            <Field label="Операция *" error={errs.name} htmlFor="op-name" wide>
+            <Field label="Плановая площадь, га *" error={errs.area} hint={`Площадь сезона ${ha(season.areaHa)}`} htmlFor="op-area"><input id="op-area" className="text-input font-mono" inputMode="decimal" value={f.area} onChange={(ev) => setF({ ...f, area: ev.target.value })} data-testid="input-operation-area" /></Field>
+            <Field label="Операция *" error={errs.name} htmlFor="op-name">
               <select id="op-name" className="text-input" value={f.name} onChange={(ev) => setF({ ...f, name: ev.target.value })} data-testid="input-operation-name">
                 <option value="">Выберите операцию</option>
                 {nameOptions.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </Field>
-            <label className="flex items-start gap-2 text-xs font-semibold sm:col-span-2" htmlFor="op-chem">
-              <input id="op-chem" type="checkbox" className="mt-0.5" checked={f.requiresChemicals} onChange={(ev) => setF({ ...f, requiresChemicals: ev.target.checked })} data-testid="checkbox-operation-requires-chemicals" />
-              <span>Требуется химия<span className="block text-[10.5px] font-normal text-muted-foreground">Задайте нормы на гектар из партий склада. При начале работы склад автоматически получит заявку на плановую потребность (с округлением до целой тары).</span></span>
-            </label>
-            {f.requiresChemicals && <div className="sm:col-span-2"><ChemicalPlanEditor farm={seasonUnit} areaHa={parseHa(f.area)} rows={chemRows} onChange={setChemRows} error={errs.chem} testId="operation-chem-plan" /></div>}
-            <Field label="Плановое начало *" error={errs.plannedStart} htmlFor="op-ps"><input id="op-ps" type="date" className="text-input" value={f.plannedStart} onChange={(ev) => setF({ ...f, plannedStart: ev.target.value })} data-testid="input-operation-planned-start" /></Field>
-            <Field label="Плановое окончание *" error={errs.plannedEnd} htmlFor="op-pe"><input id="op-pe" type="date" className="text-input" value={f.plannedEnd} onChange={(ev) => setF({ ...f, plannedEnd: ev.target.value })} data-testid="input-operation-planned-end" /></Field>
-            <Field label="Плановая площадь, га *" error={errs.area} hint={season ? `Площадь сезона ${ha(season.areaHa)}` : undefined} htmlFor="op-area"><input id="op-area" className="text-input font-mono" inputMode="decimal" value={f.area} onChange={(ev) => setF({ ...f, area: ev.target.value })} data-testid="input-operation-area" /></Field>
-            <Field label="Плановая расценка, ₸/га *" error={errs.plannedRate} htmlFor="op-rate"><input id="op-rate" type="number" min="0.01" step="0.01" className="text-input font-mono" inputMode="decimal" value={f.plannedRate} onChange={(ev) => setF({ ...f, plannedRate: ev.target.value })} data-testid="input-operation-planned-rate" /></Field>
-            <Field label="Механизатор по плану *" error={errs.responsible} htmlFor="op-resp"><EmployeeSelect id="op-resp" value={{ id: f.responsibleId, name: f.responsible }} onChange={(v) => setF({ ...f, responsibleId: v.id, responsible: v.name })} invalid={Boolean(errs.responsible)} testId="input-operation-responsible" /></Field>
+            <Field label="Сотрудник *" error={errs.responsible} htmlFor="op-resp"><EmployeeSelect id="op-resp" value={{ id: f.responsibleId, name: f.responsible }} onChange={(v) => setF({ ...f, responsibleId: v.id, responsible: v.name })} invalid={Boolean(errs.responsible)} testId="input-operation-responsible" /></Field>
             <Field label="Техника по плану" error={errs.plannedEquipment} hint="Выберите из общего справочника техники" htmlFor="op-equipment"><div className="space-y-1.5">
                 {fleetError && <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-2.5 text-[10px] leading-4 text-destructive" role="alert">Не удалось загрузить справочник техники.<button type="button" className="ml-2 underline" onClick={onRetry} data-testid="select-operation-equipment-retry">Повторить</button></div>}
                 {!fleetLoading && !fleetError && unitFleet.length === 0 && <p className="text-[10px] text-muted-foreground">В справочнике нет техники хозяйства {seasonUnit ?? ""}.</p>}
@@ -357,6 +350,15 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
                 </select>
               </div></Field>
             <Field label="Агрегат по плану" error={errs.plannedImplement} hint="Например, сеялка СЗС-2.1" htmlFor="op-implement"><input id="op-implement" className="text-input" maxLength={200} value={f.plannedImplement} onChange={(ev) => setF({ ...f, plannedImplement: ev.target.value })} data-testid="input-operation-implement" /></Field>
+            <Field label="Плановая расценка, ₸/га *" error={errs.plannedRate} htmlFor="op-rate"><input id="op-rate" type="number" min="0.01" step="0.01" className="text-input font-mono" inputMode="decimal" value={f.plannedRate} onChange={(ev) => setF({ ...f, plannedRate: ev.target.value })} data-testid="input-operation-planned-rate" /></Field>
+            <Field label="Плановые затраты на топливо, ₸ *" error={errs.plannedFuelCost} hint="Общая сумма на операцию, не за гектар. Если затрат нет — укажите 0." htmlFor="op-fuel" wide><input id="op-fuel" className="text-input font-mono" inputMode="decimal" value={f.plannedFuelCost} onChange={(ev) => setF({ ...f, plannedFuelCost: ev.target.value })} data-testid="input-operation-planned-fuel-cost" /></Field>
+            <Field label="Плановое начало *" error={errs.plannedStart} htmlFor="op-ps"><input id="op-ps" type="date" className="text-input" value={f.plannedStart} onChange={(ev) => setF({ ...f, plannedStart: ev.target.value })} data-testid="input-operation-planned-start" /></Field>
+            <Field label="Плановое окончание *" error={errs.plannedEnd} htmlFor="op-pe"><input id="op-pe" type="date" className="text-input" value={f.plannedEnd} onChange={(ev) => setF({ ...f, plannedEnd: ev.target.value })} data-testid="input-operation-planned-end" /></Field>
+            <label className="flex items-start gap-2 text-xs font-semibold sm:col-span-2" htmlFor="op-chem">
+              <input id="op-chem" type="checkbox" className="mt-0.5" checked={f.requiresChemicals} onChange={(ev) => setF({ ...f, requiresChemicals: ev.target.checked })} data-testid="checkbox-operation-requires-chemicals" />
+              <span>Требуется химия<span className="block text-[10.5px] font-normal text-muted-foreground">Задайте нормы на гектар из партий склада. При начале работы склад автоматически получит заявку на плановую потребность (с округлением до целой тары).</span></span>
+            </label>
+            {f.requiresChemicals && <div className="sm:col-span-2"><ChemicalPlanEditor farm={seasonUnit} areaHa={parseHa(f.area)} rows={chemRows} onChange={setChemRows} error={errs.chem} testId="operation-chem-plan" /></div>}
             <Field label="Примечания" htmlFor="op-notes" wide><textarea id="op-notes" className="text-input min-h-[72px]" maxLength={3000} value={f.notes} onChange={(ev) => setF({ ...f, notes: ev.target.value })} data-testid="input-operation-notes" /></Field>
           </div>
         )}

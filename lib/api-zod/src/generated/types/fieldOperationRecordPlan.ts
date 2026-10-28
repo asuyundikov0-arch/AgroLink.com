@@ -38,6 +38,11 @@ export interface FieldOperationRecordPlan {
      * @maximum 1000000000
      */
   plannedRatePerHa: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  plannedFuelCost: number;
   /** @maxLength 200 */
   responsible: string;
   /**

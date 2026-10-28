@@ -9,6 +9,12 @@ The seasonal agronomy plan must begin with field numbers. Opening a field shows 
 
 **How to apply:** Preserve field history and actual-work flows separately. Keep the selected season and farm in scope, and continue to reserve plan editing for the chief agronomist and general director.
 
+The selected field is fixed when entering either a plan or actual work; users must not move the operation to another field from its form. Plan and actual forms should use the same order of business fields, with planned fuel budget separate from actual depot expense.
+
+**Why:** The user explicitly requested a fixed default field, editable area, and matching plan/fact forms. This is a form simplification, not a request to remove the established agronomist/dispatcher division of responsibilities.
+
+**How to apply:** Keep the field context when creating and editing. Area corrections still use the actor authorized for that kind of record; daily actual hectares and rates belong to the dispatcher. A planned fuel amount is only a budget and must not increase actual field costs.
+
 Actual work has its own field-first view, separate from planning. Opening a field shows its plan directly and an unplanned-work request action. Out-of-plan operations are allowed only after the chief agronomist approves the request; approval does not itself start the operation.
 
 **Why:** The user separated planning from factual entry, then required approval by the chief agronomist before any unplanned work starts.

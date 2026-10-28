@@ -18,6 +18,7 @@ import {
   useUpdateFieldOperationProgress,
 } from "@workspace/api-client-react";
 import EmployeeSelect from "../../employees/EmployeeSelect";
+import { ActualFuelField, ActualRateField, AgronomyActualFuelField } from "./ActualCostFields";
 import { Drawer, Field, SaveError, dateFmt, ha, handleSaveError, haStr, parseHa } from "./shared";
 import { useChemicalWorkflow } from "../chemicals/Workflow";
 
@@ -58,8 +59,8 @@ function Foot({ pending, disabled, onCancel, label, prefix }: { pending: boolean
 }
 
 /** Agronomist / GD: start approved work, or change CURRENT mechanic / equipment / implement of active work. */
-export function WorkResourcesForm({ op, unit, title, today, fleet, fleetLoading, fleetError, onRetry, onClose, onDone }: {
-  op: FieldOperation; unit: string; title: string; today: string; fleet: FleetEquipment[]; fleetLoading: boolean; fleetError: boolean;
+export function WorkResourcesForm({ op, unit, title, fieldLabel, today, fleet, fleetLoading, fleetError, onRetry, onClose, onDone }: {
+  op: FieldOperation; unit: string; title: string; fieldLabel: string; today: string; fleet: FleetEquipment[]; fleetLoading: boolean; fleetError: boolean;
   onRetry: () => void; onClose: () => void; onDone: (msg: string) => void;
 }) {
   const mut = useUpdateFieldOperationActual();
@@ -119,8 +120,10 @@ export function WorkResourcesForm({ op, unit, title, today, fleet, fleetLoading,
         </div>
         {!starting && <p className="rounded-lg border border-border bg-card p-3 text-[11px] leading-5 text-muted-foreground">Гектары за день вносит диспетчер. Здесь меняются только текущие механизатор, техника и агрегат — они применяются к следующим дневным записям.</p>}
         <div className="grid gap-3 sm:grid-cols-2">
-          {starting && <Field label="Дата начала *" error={errs.start} htmlFor="wr-start"><input id="wr-start" type="date" max={today} className="text-input" value={f.start} onChange={(ev) => setF({ ...f, start: ev.target.value })} data-testid="input-work-start" /></Field>}
-          <Field label="Механизатор *" error={errs.mechanic} htmlFor="wr-mechanic"><EmployeeSelect id="wr-mechanic" value={{ id: f.mechanicId, name: f.mechanic }} onChange={(v) => setF({ ...f, mechanicId: v.id, mechanic: v.name })} invalid={Boolean(errs.mechanic)} testId="input-work-mechanic" /></Field>
+          <Field label="Поле" hint="Закреплено за работой. Изменение недоступно." htmlFor="wr-field" wide><input id="wr-field" className="text-input" readOnly value={fieldLabel} data-testid="input-work-field" /></Field>
+          <Field label="Фактическая площадь, га" hint="Выполненные гектары вносит и корректирует диспетчер в ежедневных работах." htmlFor="wr-area"><input id="wr-area" className="text-input font-mono" readOnly value={haStr(op.actualAreaHa)} data-testid="input-work-actual-area" /></Field>
+          <Field label="Операция" hint="Из выбранного плана или согласованной внеплановой заявки." htmlFor="wr-operation"><input id="wr-operation" className="text-input" readOnly value={op.actualOperationName || op.name} data-testid="input-work-operation" /></Field>
+          <Field label="Сотрудник *" error={errs.mechanic} htmlFor="wr-mechanic"><EmployeeSelect id="wr-mechanic" value={{ id: f.mechanicId, name: f.mechanic }} onChange={(v) => setF({ ...f, mechanicId: v.id, mechanic: v.name })} invalid={Boolean(errs.mechanic)} testId="input-work-mechanic" /></Field>
           <Field label="Техника *" error={errs.equipment} hint={`Справочник техники · ${unit}`} htmlFor="wr-equipment">
             <div className="space-y-1.5">
               {fleetError && <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-2.5 text-[10px] text-destructive" role="alert">Не удалось загрузить справочник техники.<button type="button" className="ml-2 underline" onClick={onRetry} data-testid="button-work-fleet-retry">Повторить</button></div>}
@@ -132,6 +135,9 @@ export function WorkResourcesForm({ op, unit, title, today, fleet, fleetLoading,
             </div>
           </Field>
           <Field label="Агрегат *" error={errs.implement} htmlFor="wr-implement"><input id="wr-implement" className="text-input" maxLength={200} value={f.implement} onChange={(ev) => setF({ ...f, implement: ev.target.value })} data-testid="input-work-implement" /></Field>
+          <ActualRateField rate={op.actualRatePerHa} prefix="work" />
+          <AgronomyActualFuelField op={op} />
+          {starting && <Field label="Дата начала *" error={errs.start} htmlFor="wr-start"><input id="wr-start" type="date" max={today} className="text-input" value={f.start} onChange={(ev) => setF({ ...f, start: ev.target.value })} data-testid="input-work-start" /></Field>}
           <Field label="Примечание" hint={starting ? undefined : "Только просмотр"} htmlFor="wr-notes" wide><textarea id="wr-notes" className="text-input min-h-[64px]" maxLength={3000} readOnly={!starting} value={f.notes} onChange={(ev) => setF({ ...f, notes: ev.target.value })} data-testid="input-work-notes" /></Field>
         </div>
       </Drawer>
@@ -219,7 +225,7 @@ export function DailyHistory({ op, onEdit, lockedThrough }: { op: FieldOperation
 }
 
 /** Dispatcher / GD: daily hectares of active work. Resources are snapshot by the server from current assignments. */
-export function DispatcherDailyForm({ op, report, title, today, onClose, onDone }: { op: FieldOperation; report: FieldProgressReport | null; title: string; today: string; onClose: () => void; onDone: (msg: string) => void }) {
+export function DispatcherDailyForm({ op, report, title, fieldLabel, fuelCost, today, onClose, onDone }: { op: FieldOperation; report: FieldProgressReport | null; title: string; fieldLabel: string; fuelCost: number; today: string; onClose: () => void; onDone: (msg: string) => void }) {
   const create = useCreateFieldOperationProgress();
   const update = useUpdateFieldOperationProgress();
   const invalidate = useInvalidateWork();
@@ -278,10 +284,17 @@ export function DispatcherDailyForm({ op, report, title, today, onClose, onDone 
         <OpSummary op={op} />
         <p className="text-[10.5px] text-muted-foreground">Механизатор, техника и агрегат сохраняются автоматически по текущим сведениям агронома и в старых записях не меняются.</p>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Дата *" error={errs.date} htmlFor="dd-date"><input id="dd-date" type="date" min={op.actualStart?.slice(0, 10)} max={today} className="text-input" value={date} disabled={!!report} onChange={(ev) => setDate(ev.target.value)} data-testid="input-dispatch-daily-date" /></Field>
+          <Field label="Поле" hint="Закреплено за работой. Изменение недоступно." htmlFor="dd-field" wide><input id="dd-field" className="text-input" readOnly value={fieldLabel} data-testid="input-dispatch-daily-field" /></Field>
           <Field label="Выполнено за день, га *" error={errs.daily} hint={cumulative !== null ? `Итог на дату: ${ha(cumulative)} · осталось ${ha(Math.max(0, limitOf(op) - cumulative))}` : `Предыдущий итог: ${ha(prev?.cumulativeAreaHa ?? 0)}`} htmlFor="dd-daily">
             <input id="dd-daily" className="text-input font-mono" inputMode="decimal" value={daily} readOnly={chemLocked} onChange={(ev) => setDaily(ev.target.value)} data-testid="input-dispatch-daily-area" />
           </Field>
+          <Field label="Операция" htmlFor="dd-operation"><input id="dd-operation" className="text-input" readOnly value={op.actualOperationName || op.name} /></Field>
+          <Field label="Сотрудник" htmlFor="dd-employee"><input id="dd-employee" className="text-input" readOnly value={existing?.actualMechanic ?? op.actualMechanic} /></Field>
+          <Field label="Техника" htmlFor="dd-equipment"><input id="dd-equipment" className="text-input" readOnly value={existing?.actualEquipment ?? op.actualEquipment} /></Field>
+          <Field label="Агрегат" htmlFor="dd-implement"><input id="dd-implement" className="text-input" readOnly value={existing?.actualImplement ?? op.actualImplement} /></Field>
+          <ActualRateField rate={op.actualRatePerHa} prefix="dispatch-daily" />
+          <ActualFuelField amount={fuelCost} planned={op.plannedFuelCost} prefix="dispatch-daily" />
+          <Field label="Дата *" error={errs.date} htmlFor="dd-date"><input id="dd-date" type="date" min={op.actualStart?.slice(0, 10)} max={today} className="text-input" value={date} disabled={!!report} onChange={(ev) => setDate(ev.target.value)} data-testid="input-dispatch-daily-date" /></Field>
           <Field label="Примечание" htmlFor="dd-notes" wide><input id="dd-notes" className="text-input" maxLength={3000} value={notes} onChange={(ev) => setNotes(ev.target.value)} data-testid="input-dispatch-daily-notes" /></Field>
         </div>
         {chemLocked && <p className="text-[10.5px] text-muted-foreground"><Lock size={11} className="mr-1 inline" />Расход химии подтверждён складом по {dateFmt(lastChem)} включительно — можно изменить только примечание.</p>}

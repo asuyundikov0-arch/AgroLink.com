@@ -29,6 +29,12 @@ export interface FieldOperationInput {
      * @maximum 1000000000
      */
   plannedRatePerHa: number;
+  /**
+     * Плановые затраты на топливо для всей операции, тенге.
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  plannedFuelCost?: number;
   /** @maxLength 200 */
   responsible: string;
   /**

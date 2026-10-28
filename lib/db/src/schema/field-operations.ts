@@ -23,6 +23,7 @@ export const fieldOperationsTable = pgTable("field_operations", {
   plannedEnd: date("planned_end", { mode: "string" }).notNull(),
   plannedAreaAres: integer("planned_area_ares").notNull(),
   plannedRatePerHa: numeric("planned_rate_per_ha", { precision: 14, scale: 2 }).notNull().default("0"),
+  plannedFuelCost: numeric("planned_fuel_cost", { precision: 14, scale: 2 }).notNull().default("0"),
   responsible: text("responsible").notNull().default(""),
   plannedMechanicEmployeeId: integer("planned_mechanic_employee_id").references(() => employeesTable.id, { onDelete: "set null" }),
   plannedEquipmentId: integer("planned_equipment_id").references(() => fleetEquipmentTable.id, { onDelete: "set null" }),

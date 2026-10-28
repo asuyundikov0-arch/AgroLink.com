@@ -639,6 +639,12 @@ export interface FieldOperationInput {
      * @maximum 1000000000
      */
   plannedRatePerHa: number;
+  /**
+     * Плановые затраты на топливо для всей операции, тенге.
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  plannedFuelCost?: number;
   /** @maxLength 200 */
   responsible: string;
   /**
@@ -853,6 +859,11 @@ export interface FieldOperationRecordPlan {
      * @maximum 1000000000
      */
   plannedRatePerHa: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  plannedFuelCost: number;
   /** @maxLength 200 */
   responsible: string;
   /**
@@ -920,6 +931,8 @@ export interface FieldDispatchRateInput {
 }
 
 export interface FieldDispatchItem {
+  /** Фактические затраты на топливо по всей операции из нефтебазы, тенге. */
+  fuelCost: number;
   farm?: string;
   operation?: FieldOperation;
   id: number;

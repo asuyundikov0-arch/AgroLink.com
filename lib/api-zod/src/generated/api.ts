@@ -562,6 +562,9 @@ export const createUnplannedFieldOperationResponseOnePlannedAreaHaMax = 1000000;
 export const createUnplannedFieldOperationResponseOnePlannedRatePerHaMin = 0;
 export const createUnplannedFieldOperationResponseOnePlannedRatePerHaMax = 1000000000;
 
+export const createUnplannedFieldOperationResponseOnePlannedFuelCostMin = 0;
+export const createUnplannedFieldOperationResponseOnePlannedFuelCostMax = 1000000000;
+
 export const createUnplannedFieldOperationResponseOneResponsibleMax = 200;
 
 
@@ -606,6 +609,7 @@ export const CreateUnplannedFieldOperationResponse = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(createUnplannedFieldOperationResponseOnePlannedAreaHaMin).max(createUnplannedFieldOperationResponseOnePlannedAreaHaMax),
   "plannedRatePerHa": zod.number().min(createUnplannedFieldOperationResponseOnePlannedRatePerHaMin).max(createUnplannedFieldOperationResponseOnePlannedRatePerHaMax),
+  "plannedFuelCost": zod.number().min(createUnplannedFieldOperationResponseOnePlannedFuelCostMin).max(createUnplannedFieldOperationResponseOnePlannedFuelCostMax),
   "responsible": zod.string().max(createUnplannedFieldOperationResponseOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
@@ -713,6 +717,9 @@ export const getFieldDashboardResponseOperationsItemOnePlannedAreaHaMax = 100000
 export const getFieldDashboardResponseOperationsItemOnePlannedRatePerHaMin = 0;
 export const getFieldDashboardResponseOperationsItemOnePlannedRatePerHaMax = 1000000000;
 
+export const getFieldDashboardResponseOperationsItemOnePlannedFuelCostMin = 0;
+export const getFieldDashboardResponseOperationsItemOnePlannedFuelCostMax = 1000000000;
+
 export const getFieldDashboardResponseOperationsItemOneResponsibleMax = 200;
 
 
@@ -785,6 +792,7 @@ export const GetFieldDashboardResponse = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(getFieldDashboardResponseOperationsItemOnePlannedAreaHaMin).max(getFieldDashboardResponseOperationsItemOnePlannedAreaHaMax),
   "plannedRatePerHa": zod.number().min(getFieldDashboardResponseOperationsItemOnePlannedRatePerHaMin).max(getFieldDashboardResponseOperationsItemOnePlannedRatePerHaMax),
+  "plannedFuelCost": zod.number().min(getFieldDashboardResponseOperationsItemOnePlannedFuelCostMin).max(getFieldDashboardResponseOperationsItemOnePlannedFuelCostMax),
   "responsible": zod.string().max(getFieldDashboardResponseOperationsItemOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
@@ -896,6 +904,9 @@ export const getFieldDispatchQueueResponseOperationOnePlannedAreaHaMax = 1000000
 export const getFieldDispatchQueueResponseOperationOnePlannedRatePerHaMin = 0;
 export const getFieldDispatchQueueResponseOperationOnePlannedRatePerHaMax = 1000000000;
 
+export const getFieldDispatchQueueResponseOperationOnePlannedFuelCostMin = 0;
+export const getFieldDispatchQueueResponseOperationOnePlannedFuelCostMax = 1000000000;
+
 export const getFieldDispatchQueueResponseOperationOneResponsibleMax = 200;
 
 
@@ -925,6 +936,7 @@ export const getFieldDispatchQueueResponseOperationTwoActualNotesMax = 3000;
 
 
 export const GetFieldDispatchQueueResponseItem = zod.object({
+  "fuelCost": zod.number().describe('Фактические затраты на топливо по всей операции из нефтебазы, тенге.'),
   "farm": zod.string().optional(),
   "operation": zod.object({
   "chemicalPlan": zod.array(zod.object({
@@ -942,6 +954,7 @@ export const GetFieldDispatchQueueResponseItem = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(getFieldDispatchQueueResponseOperationOnePlannedAreaHaMin).max(getFieldDispatchQueueResponseOperationOnePlannedAreaHaMax),
   "plannedRatePerHa": zod.number().min(getFieldDispatchQueueResponseOperationOnePlannedRatePerHaMin).max(getFieldDispatchQueueResponseOperationOnePlannedRatePerHaMax),
+  "plannedFuelCost": zod.number().min(getFieldDispatchQueueResponseOperationOnePlannedFuelCostMin).max(getFieldDispatchQueueResponseOperationOnePlannedFuelCostMax),
   "responsible": zod.string().max(getFieldDispatchQueueResponseOperationOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
@@ -1197,6 +1210,10 @@ export const createFieldOperationBodyPlannedAreaHaMax = 1000000;
 export const createFieldOperationBodyPlannedRatePerHaMin = 0;
 export const createFieldOperationBodyPlannedRatePerHaMax = 1000000000;
 
+export const createFieldOperationBodyPlannedFuelCostMin = 0;
+export const createFieldOperationBodyPlannedFuelCostMax = 1000000000;
+export const createFieldOperationBodyPlannedFuelCostMultipleOf = 0.01;
+
 export const createFieldOperationBodyResponsibleMax = 200;
 
 
@@ -1221,6 +1238,7 @@ export const CreateFieldOperationBody = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(createFieldOperationBodyPlannedAreaHaMin).max(createFieldOperationBodyPlannedAreaHaMax),
   "plannedRatePerHa": zod.number().min(createFieldOperationBodyPlannedRatePerHaMin).max(createFieldOperationBodyPlannedRatePerHaMax),
+  "plannedFuelCost": zod.number().min(createFieldOperationBodyPlannedFuelCostMin).max(createFieldOperationBodyPlannedFuelCostMax).multipleOf(createFieldOperationBodyPlannedFuelCostMultipleOf).optional().describe('Плановые затраты на топливо для всей операции, тенге.'),
   "responsible": zod.string().max(createFieldOperationBodyResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
@@ -1241,6 +1259,9 @@ export const createFieldOperationResponseOnePlannedAreaHaMax = 1000000;
 
 export const createFieldOperationResponseOnePlannedRatePerHaMin = 0;
 export const createFieldOperationResponseOnePlannedRatePerHaMax = 1000000000;
+
+export const createFieldOperationResponseOnePlannedFuelCostMin = 0;
+export const createFieldOperationResponseOnePlannedFuelCostMax = 1000000000;
 
 export const createFieldOperationResponseOneResponsibleMax = 200;
 
@@ -1286,6 +1307,7 @@ export const CreateFieldOperationResponse = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(createFieldOperationResponseOnePlannedAreaHaMin).max(createFieldOperationResponseOnePlannedAreaHaMax),
   "plannedRatePerHa": zod.number().min(createFieldOperationResponseOnePlannedRatePerHaMin).max(createFieldOperationResponseOnePlannedRatePerHaMax),
+  "plannedFuelCost": zod.number().min(createFieldOperationResponseOnePlannedFuelCostMin).max(createFieldOperationResponseOnePlannedFuelCostMax),
   "responsible": zod.string().max(createFieldOperationResponseOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
@@ -1355,6 +1377,10 @@ export const updateFieldOperationBodyOnePlannedAreaHaMax = 1000000;
 export const updateFieldOperationBodyOnePlannedRatePerHaMin = 0;
 export const updateFieldOperationBodyOnePlannedRatePerHaMax = 1000000000;
 
+export const updateFieldOperationBodyOnePlannedFuelCostMin = 0;
+export const updateFieldOperationBodyOnePlannedFuelCostMax = 1000000000;
+export const updateFieldOperationBodyOnePlannedFuelCostMultipleOf = 0.01;
+
 export const updateFieldOperationBodyOneResponsibleMax = 200;
 
 
@@ -1380,6 +1406,7 @@ export const UpdateFieldOperationBody = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(updateFieldOperationBodyOnePlannedAreaHaMin).max(updateFieldOperationBodyOnePlannedAreaHaMax),
   "plannedRatePerHa": zod.number().min(updateFieldOperationBodyOnePlannedRatePerHaMin).max(updateFieldOperationBodyOnePlannedRatePerHaMax),
+  "plannedFuelCost": zod.number().min(updateFieldOperationBodyOnePlannedFuelCostMin).max(updateFieldOperationBodyOnePlannedFuelCostMax).multipleOf(updateFieldOperationBodyOnePlannedFuelCostMultipleOf).optional().describe('Плановые затраты на топливо для всей операции, тенге.'),
   "responsible": zod.string().max(updateFieldOperationBodyOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
@@ -1402,6 +1429,9 @@ export const updateFieldOperationResponseOnePlannedAreaHaMax = 1000000;
 
 export const updateFieldOperationResponseOnePlannedRatePerHaMin = 0;
 export const updateFieldOperationResponseOnePlannedRatePerHaMax = 1000000000;
+
+export const updateFieldOperationResponseOnePlannedFuelCostMin = 0;
+export const updateFieldOperationResponseOnePlannedFuelCostMax = 1000000000;
 
 export const updateFieldOperationResponseOneResponsibleMax = 200;
 
@@ -1447,6 +1477,7 @@ export const UpdateFieldOperationResponse = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(updateFieldOperationResponseOnePlannedAreaHaMin).max(updateFieldOperationResponseOnePlannedAreaHaMax),
   "plannedRatePerHa": zod.number().min(updateFieldOperationResponseOnePlannedRatePerHaMin).max(updateFieldOperationResponseOnePlannedRatePerHaMax),
+  "plannedFuelCost": zod.number().min(updateFieldOperationResponseOnePlannedFuelCostMin).max(updateFieldOperationResponseOnePlannedFuelCostMax),
   "responsible": zod.string().max(updateFieldOperationResponseOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
@@ -1528,6 +1559,9 @@ export const transitionFieldOperationResponseOnePlannedAreaHaMax = 1000000;
 export const transitionFieldOperationResponseOnePlannedRatePerHaMin = 0;
 export const transitionFieldOperationResponseOnePlannedRatePerHaMax = 1000000000;
 
+export const transitionFieldOperationResponseOnePlannedFuelCostMin = 0;
+export const transitionFieldOperationResponseOnePlannedFuelCostMax = 1000000000;
+
 export const transitionFieldOperationResponseOneResponsibleMax = 200;
 
 
@@ -1572,6 +1606,7 @@ export const TransitionFieldOperationResponse = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(transitionFieldOperationResponseOnePlannedAreaHaMin).max(transitionFieldOperationResponseOnePlannedAreaHaMax),
   "plannedRatePerHa": zod.number().min(transitionFieldOperationResponseOnePlannedRatePerHaMin).max(transitionFieldOperationResponseOnePlannedRatePerHaMax),
+  "plannedFuelCost": zod.number().min(transitionFieldOperationResponseOnePlannedFuelCostMin).max(transitionFieldOperationResponseOnePlannedFuelCostMax),
   "responsible": zod.string().max(transitionFieldOperationResponseOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
@@ -1671,6 +1706,9 @@ export const updateFieldOperationActualResponseOnePlannedAreaHaMax = 1000000;
 export const updateFieldOperationActualResponseOnePlannedRatePerHaMin = 0;
 export const updateFieldOperationActualResponseOnePlannedRatePerHaMax = 1000000000;
 
+export const updateFieldOperationActualResponseOnePlannedFuelCostMin = 0;
+export const updateFieldOperationActualResponseOnePlannedFuelCostMax = 1000000000;
+
 export const updateFieldOperationActualResponseOneResponsibleMax = 200;
 
 
@@ -1715,6 +1753,7 @@ export const UpdateFieldOperationActualResponse = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(updateFieldOperationActualResponseOnePlannedAreaHaMin).max(updateFieldOperationActualResponseOnePlannedAreaHaMax),
   "plannedRatePerHa": zod.number().min(updateFieldOperationActualResponseOnePlannedRatePerHaMin).max(updateFieldOperationActualResponseOnePlannedRatePerHaMax),
+  "plannedFuelCost": zod.number().min(updateFieldOperationActualResponseOnePlannedFuelCostMin).max(updateFieldOperationActualResponseOnePlannedFuelCostMax),
   "responsible": zod.string().max(updateFieldOperationActualResponseOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
@@ -1798,6 +1837,9 @@ export const updateFieldDispatchRateResponseOperationOnePlannedAreaHaMax = 10000
 export const updateFieldDispatchRateResponseOperationOnePlannedRatePerHaMin = 0;
 export const updateFieldDispatchRateResponseOperationOnePlannedRatePerHaMax = 1000000000;
 
+export const updateFieldDispatchRateResponseOperationOnePlannedFuelCostMin = 0;
+export const updateFieldDispatchRateResponseOperationOnePlannedFuelCostMax = 1000000000;
+
 export const updateFieldDispatchRateResponseOperationOneResponsibleMax = 200;
 
 
@@ -1827,6 +1869,7 @@ export const updateFieldDispatchRateResponseOperationTwoActualNotesMax = 3000;
 
 
 export const UpdateFieldDispatchRateResponse = zod.object({
+  "fuelCost": zod.number().describe('Фактические затраты на топливо по всей операции из нефтебазы, тенге.'),
   "farm": zod.string().optional(),
   "operation": zod.object({
   "chemicalPlan": zod.array(zod.object({
@@ -1844,6 +1887,7 @@ export const UpdateFieldDispatchRateResponse = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(updateFieldDispatchRateResponseOperationOnePlannedAreaHaMin).max(updateFieldDispatchRateResponseOperationOnePlannedAreaHaMax),
   "plannedRatePerHa": zod.number().min(updateFieldDispatchRateResponseOperationOnePlannedRatePerHaMin).max(updateFieldDispatchRateResponseOperationOnePlannedRatePerHaMax),
+  "plannedFuelCost": zod.number().min(updateFieldDispatchRateResponseOperationOnePlannedFuelCostMin).max(updateFieldDispatchRateResponseOperationOnePlannedFuelCostMax),
   "responsible": zod.string().max(updateFieldDispatchRateResponseOperationOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
@@ -1960,6 +2004,9 @@ export const createFieldOperationProgressResponseOnePlannedAreaHaMax = 1000000;
 export const createFieldOperationProgressResponseOnePlannedRatePerHaMin = 0;
 export const createFieldOperationProgressResponseOnePlannedRatePerHaMax = 1000000000;
 
+export const createFieldOperationProgressResponseOnePlannedFuelCostMin = 0;
+export const createFieldOperationProgressResponseOnePlannedFuelCostMax = 1000000000;
+
 export const createFieldOperationProgressResponseOneResponsibleMax = 200;
 
 
@@ -2004,6 +2051,7 @@ export const CreateFieldOperationProgressResponse = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(createFieldOperationProgressResponseOnePlannedAreaHaMin).max(createFieldOperationProgressResponseOnePlannedAreaHaMax),
   "plannedRatePerHa": zod.number().min(createFieldOperationProgressResponseOnePlannedRatePerHaMin).max(createFieldOperationProgressResponseOnePlannedRatePerHaMax),
+  "plannedFuelCost": zod.number().min(createFieldOperationProgressResponseOnePlannedFuelCostMin).max(createFieldOperationProgressResponseOnePlannedFuelCostMax),
   "responsible": zod.string().max(createFieldOperationProgressResponseOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
@@ -2103,6 +2151,9 @@ export const updateFieldOperationProgressResponseOnePlannedAreaHaMax = 1000000;
 export const updateFieldOperationProgressResponseOnePlannedRatePerHaMin = 0;
 export const updateFieldOperationProgressResponseOnePlannedRatePerHaMax = 1000000000;
 
+export const updateFieldOperationProgressResponseOnePlannedFuelCostMin = 0;
+export const updateFieldOperationProgressResponseOnePlannedFuelCostMax = 1000000000;
+
 export const updateFieldOperationProgressResponseOneResponsibleMax = 200;
 
 
@@ -2147,6 +2198,7 @@ export const UpdateFieldOperationProgressResponse = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(updateFieldOperationProgressResponseOnePlannedAreaHaMin).max(updateFieldOperationProgressResponseOnePlannedAreaHaMax),
   "plannedRatePerHa": zod.number().min(updateFieldOperationProgressResponseOnePlannedRatePerHaMin).max(updateFieldOperationProgressResponseOnePlannedRatePerHaMax),
+  "plannedFuelCost": zod.number().min(updateFieldOperationProgressResponseOnePlannedFuelCostMin).max(updateFieldOperationProgressResponseOnePlannedFuelCostMax),
   "responsible": zod.string().max(updateFieldOperationProgressResponseOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
@@ -2227,6 +2279,9 @@ export const voidFieldOperationResponseOnePlannedAreaHaMax = 1000000;
 export const voidFieldOperationResponseOnePlannedRatePerHaMin = 0;
 export const voidFieldOperationResponseOnePlannedRatePerHaMax = 1000000000;
 
+export const voidFieldOperationResponseOnePlannedFuelCostMin = 0;
+export const voidFieldOperationResponseOnePlannedFuelCostMax = 1000000000;
+
 export const voidFieldOperationResponseOneResponsibleMax = 200;
 
 
@@ -2271,6 +2326,7 @@ export const VoidFieldOperationResponse = zod.object({
   "plannedEnd": zod.string(),
   "plannedAreaHa": zod.number().min(voidFieldOperationResponseOnePlannedAreaHaMin).max(voidFieldOperationResponseOnePlannedAreaHaMax),
   "plannedRatePerHa": zod.number().min(voidFieldOperationResponseOnePlannedRatePerHaMin).max(voidFieldOperationResponseOnePlannedRatePerHaMax),
+  "plannedFuelCost": zod.number().min(voidFieldOperationResponseOnePlannedFuelCostMin).max(voidFieldOperationResponseOnePlannedFuelCostMax),
   "responsible": zod.string().max(voidFieldOperationResponseOneResponsibleMax),
   "plannedMechanicEmployeeId": zod.number().min(1).nullish(),
   "plannedEquipmentId": zod.number().min(1).nullish(),
