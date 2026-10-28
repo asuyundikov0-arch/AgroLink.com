@@ -3601,6 +3601,236 @@ export const ResubmitSparePartRequestItemResponse = zod.object({
 })
 
 
+export const listFinancialEntriesQueryYearMin = 2000;
+export const listFinancialEntriesQueryYearMax = 2100;
+
+
+
+export const ListFinancialEntriesQueryParams = zod.object({
+  "year": zod.coerce.number().min(listFinancialEntriesQueryYearMin).max(listFinancialEntriesQueryYearMax)
+})
+
+export const ListFinancialEntriesResponseItem = zod.object({
+  "id": zod.number(),
+  "book": zod.enum(['budget', 'cash_flow']),
+  "basis": zod.enum(['plan', 'actual']),
+  "direction": zod.enum(['income', 'expense']),
+  "date": zod.string(),
+  "unit": zod.string(),
+  "category": zod.string(),
+  "counterparty": zod.string(),
+  "description": zod.string(),
+  "amountKzt": zod.number(),
+  "status": zod.enum(['recorded', 'pending', 'completed', 'voided']),
+  "version": zod.number(),
+  "source": zod.enum(['manual', 'spare_part']),
+  "createdBy": zod.string(),
+  "updatedBy": zod.string(),
+  "completedBy": zod.string(),
+  "completedAt": zod.string().nullable(),
+  "voidReason": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListFinancialEntriesResponse = zod.array(ListFinancialEntriesResponseItem)
+
+
+export const createFinancialEntryBodyOneDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const createFinancialEntryBodyOneUnitMax = 120;
+
+export const createFinancialEntryBodyOneCategoryMax = 120;
+
+export const createFinancialEntryBodyOneCounterpartyMax = 200;
+
+export const createFinancialEntryBodyOneDescriptionMax = 1000;
+
+export const createFinancialEntryBodyOneAmountKztMin = 0.01;
+export const createFinancialEntryBodyOneAmountKztMax = 99999999999.99;
+
+export const createFinancialEntryBodyTwoClientRequestIdMin = 8;
+export const createFinancialEntryBodyTwoClientRequestIdMax = 80;
+
+
+
+export const CreateFinancialEntryBody = zod.object({
+  "book": zod.enum(['budget', 'cash_flow']),
+  "basis": zod.enum(['plan', 'actual']),
+  "direction": zod.enum(['income', 'expense']),
+  "date": zod.string().regex(createFinancialEntryBodyOneDateRegExp),
+  "unit": zod.string().min(1).max(createFinancialEntryBodyOneUnitMax),
+  "category": zod.string().min(1).max(createFinancialEntryBodyOneCategoryMax),
+  "counterparty": zod.string().max(createFinancialEntryBodyOneCounterpartyMax),
+  "description": zod.string().max(createFinancialEntryBodyOneDescriptionMax),
+  "amountKzt": zod.number().min(createFinancialEntryBodyOneAmountKztMin).max(createFinancialEntryBodyOneAmountKztMax)
+}).and(zod.object({
+  "clientRequestId": zod.string().min(createFinancialEntryBodyTwoClientRequestIdMin).max(createFinancialEntryBodyTwoClientRequestIdMax)
+}))
+
+export const CreateFinancialEntryResponse = zod.object({
+  "id": zod.number(),
+  "book": zod.enum(['budget', 'cash_flow']),
+  "basis": zod.enum(['plan', 'actual']),
+  "direction": zod.enum(['income', 'expense']),
+  "date": zod.string(),
+  "unit": zod.string(),
+  "category": zod.string(),
+  "counterparty": zod.string(),
+  "description": zod.string(),
+  "amountKzt": zod.number(),
+  "status": zod.enum(['recorded', 'pending', 'completed', 'voided']),
+  "version": zod.number(),
+  "source": zod.enum(['manual', 'spare_part']),
+  "createdBy": zod.string(),
+  "updatedBy": zod.string(),
+  "completedBy": zod.string(),
+  "completedAt": zod.string().nullable(),
+  "voidReason": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+
+
+
+export const UpdateFinancialEntryParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const updateFinancialEntryBodyOneDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const updateFinancialEntryBodyOneUnitMax = 120;
+
+export const updateFinancialEntryBodyOneCategoryMax = 120;
+
+export const updateFinancialEntryBodyOneCounterpartyMax = 200;
+
+export const updateFinancialEntryBodyOneDescriptionMax = 1000;
+
+export const updateFinancialEntryBodyOneAmountKztMin = 0.01;
+export const updateFinancialEntryBodyOneAmountKztMax = 99999999999.99;
+
+
+
+
+export const UpdateFinancialEntryBody = zod.object({
+  "book": zod.enum(['budget', 'cash_flow']),
+  "basis": zod.enum(['plan', 'actual']),
+  "direction": zod.enum(['income', 'expense']),
+  "date": zod.string().regex(updateFinancialEntryBodyOneDateRegExp),
+  "unit": zod.string().min(1).max(updateFinancialEntryBodyOneUnitMax),
+  "category": zod.string().min(1).max(updateFinancialEntryBodyOneCategoryMax),
+  "counterparty": zod.string().max(updateFinancialEntryBodyOneCounterpartyMax),
+  "description": zod.string().max(updateFinancialEntryBodyOneDescriptionMax),
+  "amountKzt": zod.number().min(updateFinancialEntryBodyOneAmountKztMin).max(updateFinancialEntryBodyOneAmountKztMax)
+}).and(zod.object({
+  "version": zod.number().min(1)
+}))
+
+export const UpdateFinancialEntryResponse = zod.object({
+  "id": zod.number(),
+  "book": zod.enum(['budget', 'cash_flow']),
+  "basis": zod.enum(['plan', 'actual']),
+  "direction": zod.enum(['income', 'expense']),
+  "date": zod.string(),
+  "unit": zod.string(),
+  "category": zod.string(),
+  "counterparty": zod.string(),
+  "description": zod.string(),
+  "amountKzt": zod.number(),
+  "status": zod.enum(['recorded', 'pending', 'completed', 'voided']),
+  "version": zod.number(),
+  "source": zod.enum(['manual', 'spare_part']),
+  "createdBy": zod.string(),
+  "updatedBy": zod.string(),
+  "completedBy": zod.string(),
+  "completedAt": zod.string().nullable(),
+  "voidReason": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+
+
+
+export const CompleteFinancialEntryParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+
+
+
+export const CompleteFinancialEntryBody = zod.object({
+  "version": zod.number().min(1)
+})
+
+export const CompleteFinancialEntryResponse = zod.object({
+  "id": zod.number(),
+  "book": zod.enum(['budget', 'cash_flow']),
+  "basis": zod.enum(['plan', 'actual']),
+  "direction": zod.enum(['income', 'expense']),
+  "date": zod.string(),
+  "unit": zod.string(),
+  "category": zod.string(),
+  "counterparty": zod.string(),
+  "description": zod.string(),
+  "amountKzt": zod.number(),
+  "status": zod.enum(['recorded', 'pending', 'completed', 'voided']),
+  "version": zod.number(),
+  "source": zod.enum(['manual', 'spare_part']),
+  "createdBy": zod.string(),
+  "updatedBy": zod.string(),
+  "completedBy": zod.string(),
+  "completedAt": zod.string().nullable(),
+  "voidReason": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+
+
+
+export const VoidFinancialEntryParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+
+export const voidFinancialEntryBodyTwoReasonMin = 3;
+export const voidFinancialEntryBodyTwoReasonMax = 500;
+
+
+
+export const VoidFinancialEntryBody = zod.object({
+  "version": zod.number().min(1)
+}).and(zod.object({
+  "reason": zod.string().min(voidFinancialEntryBodyTwoReasonMin).max(voidFinancialEntryBodyTwoReasonMax)
+}))
+
+export const VoidFinancialEntryResponse = zod.object({
+  "id": zod.number(),
+  "book": zod.enum(['budget', 'cash_flow']),
+  "basis": zod.enum(['plan', 'actual']),
+  "direction": zod.enum(['income', 'expense']),
+  "date": zod.string(),
+  "unit": zod.string(),
+  "category": zod.string(),
+  "counterparty": zod.string(),
+  "description": zod.string(),
+  "amountKzt": zod.number(),
+  "status": zod.enum(['recorded', 'pending', 'completed', 'voided']),
+  "version": zod.number(),
+  "source": zod.enum(['manual', 'spare_part']),
+  "createdBy": zod.string(),
+  "updatedBy": zod.string(),
+  "completedBy": zod.string(),
+  "completedAt": zod.string().nullable(),
+  "voidReason": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
 export const ListSparePartPaymentRegisterResponseItem = zod.object({
   "id": zod.number(),
   "requestNumber": zod.number(),
@@ -4657,7 +4887,7 @@ export const GetMyRoleRequestResponse = zod.union([zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -4675,7 +4905,7 @@ export const ListRoleRequestsResponseItem = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -4692,7 +4922,7 @@ export const ListRoleRequestsResponse = zod.array(ListRoleRequestsResponseItem)
 
 
 export const CreateRoleRequestBody = zod.object({
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
   "department": zod.string().min(1)
 })
 
@@ -4702,7 +4932,7 @@ export const CreateRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -4729,7 +4959,7 @@ export const ReviewRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -4747,7 +4977,7 @@ export const ListUsersResponseItem = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),

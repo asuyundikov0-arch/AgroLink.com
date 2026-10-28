@@ -3,7 +3,7 @@ name: Salary accrual handoff
 description: Employee-linked daily work orders, mandatory HR approval and cumulative payroll available to the general director.
 ---
 
-Daily work orders must fill automatically from employee-linked field work and grain transport accruals, not from manually typed salary lines. The dispatcher reviews the work and rates, then sends a daily work order to the separate “Отдел кадров” role. HR confirms the accruals; only then do they enter cumulative payroll per employee. The general director retains full access, including the cumulative register after removal of the economist role. This is an accrual handoff, not an actual payment record.
+Daily work orders must fill automatically from employee-linked field work and grain transport accruals, not from manually typed salary lines. The dispatcher reviews the work and rates, then sends a daily work order to the separate “Отдел кадров” role. HR confirms the accruals; only then do they enter cumulative payroll per employee. The general director retains full access, including the cumulative register. Restoring the economist for budget and Cash Flow does not change this HR confirmation handoff or automatically grant payroll-editing rights. This is an accrual handoff, not an actual payment record.
 
 **Why:** The user added mandatory HR confirmation and explicitly chose “Перевозки и полевые работы” for its scope. Dispatcher submission is a daily work order, not yet confirmed salary; it must not be confused with the separate spare-parts payment register.
 

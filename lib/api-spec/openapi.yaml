@@ -847,6 +847,97 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SparePartRequest"
+  /economic/financial-entries:
+    get:
+      operationId: listFinancialEntries
+      tags: [economic]
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema: { type: number, minimum: 2000, maximum: 2100 }
+      responses:
+        "200":
+          description: Manual budget and cash flow records plus read-only paid spare-part payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/FinancialEntry" }
+    post:
+      operationId: createFinancialEntry
+      tags: [economic]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FinancialEntryInput" }
+      responses:
+        "201":
+          description: Saved entry; retries with the same request ID do not duplicate it
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FinancialEntry" }
+  /economic/financial-entries/{id}:
+    patch:
+      operationId: updateFinancialEntry
+      tags: [economic]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FinancialEntryUpdate" }
+      responses:
+        "200":
+          description: Updated uncompleted entry
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FinancialEntry" }
+  /economic/financial-entries/{id}/complete:
+    post:
+      operationId: completeFinancialEntry
+      tags: [economic]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FinancialVersionInput" }
+      responses:
+        "200":
+          description: Economist or general director confirms an actual receipt or payment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FinancialEntry" }
+  /economic/financial-entries/{id}/void:
+    post:
+      operationId: voidFinancialEntry
+      tags: [economic]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FinancialVoidInput" }
+      responses:
+        "200":
+          description: General director voids a manual record with a retained audit trail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FinancialEntry" }
   /economic/payment-register:
     get:
       operationId: listSparePartPaymentRegister
@@ -2643,6 +2734,66 @@ components:
       required: [version]
       properties:
         version: { type: number, minimum: 1 }
+    FinancialEntryFields:
+      type: object
+      required: [book, basis, direction, date, unit, category, counterparty, description, amountKzt]
+      properties:
+        book: { type: string, enum: [budget, cash_flow] }
+        basis: { type: string, enum: [plan, actual] }
+        direction: { type: string, enum: [income, expense] }
+        date: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+        unit: { type: string, minLength: 1, maxLength: 120 }
+        category: { type: string, minLength: 1, maxLength: 120 }
+        counterparty: { type: string, maxLength: 200 }
+        description: { type: string, maxLength: 1000 }
+        amountKzt: { type: number, minimum: 0.01, maximum: 99999999999.99 }
+    FinancialEntryInput:
+      allOf:
+        - $ref: "#/components/schemas/FinancialEntryFields"
+        - type: object
+          required: [clientRequestId]
+          properties:
+            clientRequestId: { type: string, minLength: 8, maxLength: 80 }
+    FinancialEntryUpdate:
+      allOf:
+        - $ref: "#/components/schemas/FinancialEntryFields"
+        - $ref: "#/components/schemas/FinancialVersionInput"
+    FinancialVersionInput:
+      type: object
+      required: [version]
+      properties:
+        version: { type: number, minimum: 1 }
+    FinancialVoidInput:
+      allOf:
+        - $ref: "#/components/schemas/FinancialVersionInput"
+        - type: object
+          required: [reason]
+          properties:
+            reason: { type: string, minLength: 3, maxLength: 500 }
+    FinancialEntry:
+      type: object
+      required: [id, book, basis, direction, date, unit, category, counterparty, description, amountKzt, status, version, source, createdBy, updatedBy, completedBy, completedAt, voidReason, createdAt, updatedAt]
+      properties:
+        id: { type: number }
+        book: { type: string, enum: [budget, cash_flow] }
+        basis: { type: string, enum: [plan, actual] }
+        direction: { type: string, enum: [income, expense] }
+        date: { type: string }
+        unit: { type: string }
+        category: { type: string }
+        counterparty: { type: string }
+        description: { type: string }
+        amountKzt: { type: number }
+        status: { type: string, enum: [recorded, pending, completed, voided] }
+        version: { type: number }
+        source: { type: string, enum: [manual, spare_part] }
+        createdBy: { type: string }
+        updatedBy: { type: string }
+        completedBy: { type: string }
+        completedAt: { type: ["string", "null"] }
+        voidReason: { type: string }
+        createdAt: { type: string }
+        updatedAt: { type: string }
     EmployeePayrollGroupInput:
       type: object
       required: [payrollGroup, expectedGroup]
@@ -3268,7 +3419,7 @@ components:
           type: string
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, engineer, chief_engineer, storekeeper, fuel_manager, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, economist, engineer, chief_engineer, storekeeper, fuel_manager, farm_director, general_director]
         status:
           type: string
           enum: [pending, approved, rejected]
@@ -3297,7 +3448,7 @@ components:
       properties:
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, engineer, chief_engineer, storekeeper, fuel_manager, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, economist, engineer, chief_engineer, storekeeper, fuel_manager, farm_director, general_director]
         department:
           type: string
           minLength: 1

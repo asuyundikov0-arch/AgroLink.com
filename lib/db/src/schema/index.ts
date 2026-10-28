@@ -36,6 +36,7 @@ export * from "./field-operations";
 export * from "./field-operation-progress";
 export * from "./payroll-registers";
 export * from "./employees";
+export * from "./financial-entries";
 export * from "./chemical-warehouse";
 export * from "./fuel-movements";
 

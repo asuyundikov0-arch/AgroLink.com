@@ -27,7 +27,7 @@ import { aggregateSparePartRequestStatus, refreshSparePartRequestStatus } from "
 
 const router: IRouter = Router();
 const allowedRoles = new Set<AppRole>(["engineer", "chief_engineer", "general_director", "storekeeper"]);
-const paymentReaderRoles = new Set<AppRole>(["general_director"]);
+const paymentReaderRoles = new Set<AppRole>(["economist", "general_director"]);
 const protect: RequestHandler = (_req, res, next) => {
   const role = (res.locals.access as RoleAccess).role;
   if (!role || !allowedRoles.has(role)) {
@@ -151,7 +151,7 @@ function requestError(message: string, status: number) {
   return { error: message, status };
 }
 
-async function loadPaymentRegister() {
+export async function loadPaymentRegister() {
   const requests = await loadRequests();
   return requests.flatMap((request) => request.items
     .filter((item) => (item.paymentStatus === "pending" || item.paymentStatus === "paid") && item.paymentAmount !== null)
@@ -192,8 +192,8 @@ router.post("/economic/payment-register/:itemId/pay", async (req, res, next): Pr
   try {
     const params = MarkSparePartPaymentPaidParams.safeParse(req.params);
     const access = res.locals.access as RoleAccess;
-    if (access.role !== "general_director") {
-      res.status(403).json({ error: "Отметить оплату может только генеральный директор." });
+    if (!access.role || !paymentReaderRoles.has(access.role)) {
+      res.status(403).json({ error: "Отметить оплату могут экономист и генеральный директор." });
       return;
     }
     if (!params.success) {

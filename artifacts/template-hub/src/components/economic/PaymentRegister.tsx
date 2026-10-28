@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { BadgeCheck, Banknote, Clock3, FileText } from "lucide-react";
 import {
+  getListFinancialEntriesQueryKey,
   getListSparePartPaymentRegisterQueryKey,
   getListSparePartRequestsQueryKey,
   type SparePartPaymentRegisterItem,
@@ -37,6 +38,7 @@ export default function PaymentRegister({ canMarkPaid }: { canMarkPaid: boolean 
     try {
       await pay.mutateAsync({ itemId: selected.id });
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getListFinancialEntriesQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getListSparePartPaymentRegisterQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getListSparePartRequestsQueryKey() }),
       ]);
@@ -68,7 +70,7 @@ export default function PaymentRegister({ canMarkPaid }: { canMarkPaid: boolean 
           <div>
             <p className="eyebrow">Экономический блок · закупки запчастей</p>
             <h2 className="mt-1 text-xl font-bold tracking-[-0.04em]">Реестр платежей</h2>
-            <p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">Сюда попадают только позиции, одобренные генеральным директором. После фактической оплаты генеральный директор отмечает её здесь; затем позиция становится доступна заведующему складом.</p>
+            <p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">Сюда попадают только позиции, одобренные генеральным директором. После фактической оплаты экономист или генеральный директор отмечает её здесь; затем позиция становится доступна заведующему складом и отражается в Cash Flow.</p>
           </div>
           <div className="inline-flex self-start rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Статус оплаты">
             <button type="button" role="tab" aria-selected={filter === "pending"} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${filter === "pending" ? "bg-foreground text-background" : "text-muted-foreground"}`} onClick={() => setFilter("pending")} data-testid="tab-payment-pending">К оплате ({pending.length})</button>
@@ -100,7 +102,7 @@ export default function PaymentRegister({ canMarkPaid }: { canMarkPaid: boolean 
                     <p className="mt-1 text-xs text-muted-foreground">{entry.fleetKind}{entry.registrationNumber ? ` · ${entry.registrationNumber}` : ""} · {entry.quantity} {entry.unit} × {money(entry.unitPrice)} · заявка №{entry.requestNumber}</p>
                     <p className="mt-1 text-[11px] text-muted-foreground">{entry.requesterName} · {entry.department} · подана {dateTime(entry.submittedAt)}</p>
                     <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground"><FileText size={12} />Согласовал: {entry.approvedByName}{entry.approvedAt ? ` · ${dateTime(entry.approvedAt)}` : ""}</p>
-                    {entry.paymentStatus === "paid" && <p className="mt-1 text-[11px] font-medium text-teal-800">Оплатил: {entry.paidByName || "Генеральный директор"}{entry.paidAt ? ` · ${dateTime(entry.paidAt)}` : ""}</p>}
+                    {entry.paymentStatus === "paid" && <p className="mt-1 text-[11px] font-medium text-teal-800">Отметил оплату: {entry.paidByName || "Не указано"}{entry.paidAt ? ` · ${dateTime(entry.paidAt)}` : ""}</p>}
                   </div>
                   <div className="flex shrink-0 items-center justify-between gap-4 lg:justify-end">
                     <p className="font-mono text-base font-bold">{money(entry.amount)}</p>

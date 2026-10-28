@@ -1491,6 +1491,146 @@ export interface PayrollRegisterSubmitInput {
   version: number;
 }
 
+export type FinancialEntryFieldsBook = typeof FinancialEntryFieldsBook[keyof typeof FinancialEntryFieldsBook];
+
+
+export const FinancialEntryFieldsBook = {
+  budget: 'budget',
+  cash_flow: 'cash_flow',
+} as const;
+
+export type FinancialEntryFieldsBasis = typeof FinancialEntryFieldsBasis[keyof typeof FinancialEntryFieldsBasis];
+
+
+export const FinancialEntryFieldsBasis = {
+  plan: 'plan',
+  actual: 'actual',
+} as const;
+
+export type FinancialEntryFieldsDirection = typeof FinancialEntryFieldsDirection[keyof typeof FinancialEntryFieldsDirection];
+
+
+export const FinancialEntryFieldsDirection = {
+  income: 'income',
+  expense: 'expense',
+} as const;
+
+export interface FinancialEntryFields {
+  book: FinancialEntryFieldsBook;
+  basis: FinancialEntryFieldsBasis;
+  direction: FinancialEntryFieldsDirection;
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  date: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  unit: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  category: string;
+  /** @maxLength 200 */
+  counterparty: string;
+  /** @maxLength 1000 */
+  description: string;
+  /**
+     * @minimum 0.01
+     * @maximum 99999999999.99
+     */
+  amountKzt: number;
+}
+
+export type FinancialEntryInput = FinancialEntryFields & {
+  /**
+     * @minLength 8
+     * @maxLength 80
+     */
+  clientRequestId: string;
+};
+
+export interface FinancialVersionInput {
+  /** @minimum 1 */
+  version: number;
+}
+
+export type FinancialEntryUpdate = FinancialEntryFields & FinancialVersionInput;
+
+export type FinancialVoidInput = FinancialVersionInput & {
+  /**
+     * @minLength 3
+     * @maxLength 500
+     */
+  reason: string;
+};
+
+export type FinancialEntryBook = typeof FinancialEntryBook[keyof typeof FinancialEntryBook];
+
+
+export const FinancialEntryBook = {
+  budget: 'budget',
+  cash_flow: 'cash_flow',
+} as const;
+
+export type FinancialEntryBasis = typeof FinancialEntryBasis[keyof typeof FinancialEntryBasis];
+
+
+export const FinancialEntryBasis = {
+  plan: 'plan',
+  actual: 'actual',
+} as const;
+
+export type FinancialEntryDirection = typeof FinancialEntryDirection[keyof typeof FinancialEntryDirection];
+
+
+export const FinancialEntryDirection = {
+  income: 'income',
+  expense: 'expense',
+} as const;
+
+export type FinancialEntryStatus = typeof FinancialEntryStatus[keyof typeof FinancialEntryStatus];
+
+
+export const FinancialEntryStatus = {
+  recorded: 'recorded',
+  pending: 'pending',
+  completed: 'completed',
+  voided: 'voided',
+} as const;
+
+export type FinancialEntrySource = typeof FinancialEntrySource[keyof typeof FinancialEntrySource];
+
+
+export const FinancialEntrySource = {
+  manual: 'manual',
+  spare_part: 'spare_part',
+} as const;
+
+export interface FinancialEntry {
+  id: number;
+  book: FinancialEntryBook;
+  basis: FinancialEntryBasis;
+  direction: FinancialEntryDirection;
+  date: string;
+  unit: string;
+  category: string;
+  counterparty: string;
+  description: string;
+  amountKzt: number;
+  status: FinancialEntryStatus;
+  version: number;
+  source: FinancialEntrySource;
+  createdBy: string;
+  updatedBy: string;
+  completedBy: string;
+  /** @nullable */
+  completedAt: string | null;
+  voidReason: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type EmployeePayrollGroupInputPayrollGroup = typeof EmployeePayrollGroupInputPayrollGroup[keyof typeof EmployeePayrollGroupInputPayrollGroup];
 
 
@@ -2365,6 +2505,7 @@ export const RoleRequestRequestedRole = {
   weigher: 'weigher',
   dispatcher: 'dispatcher',
   hr: 'hr',
+  economist: 'economist',
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
   storekeeper: 'storekeeper',
@@ -2407,6 +2548,7 @@ export const RoleRequestInputRequestedRole = {
   weigher: 'weigher',
   dispatcher: 'dispatcher',
   hr: 'hr',
+  economist: 'economist',
   engineer: 'engineer',
   chief_engineer: 'chief_engineer',
   storekeeper: 'storekeeper',
@@ -2442,6 +2584,14 @@ unit?: string;
 
 export type ListRepairExpensesParams = {
 fleetId?: number;
+};
+
+export type ListFinancialEntriesParams = {
+/**
+ * @minimum 2000
+ * @maximum 2100
+ */
+year: number;
 };
 
 export type ListEngineeringRepairsParams = {

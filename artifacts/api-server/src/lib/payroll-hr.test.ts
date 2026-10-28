@@ -9,7 +9,7 @@ after(() => pool.end());
 const access: RoleAccess = { userId: "test-hr", role: "hr", displayName: "Отдел кадров", email: "", department: "" };
 test("every canonical role is accepted both at signup and in the current-user response", () => {
   assert.equal(GetMyRoleRequestResponse.safeParse(null).success, true);
-  for (const retiredRole of ["economist", "lawyer"]) {
+  for (const retiredRole of ["lawyer"]) {
     assert.equal((appRoles as readonly string[]).includes(retiredRole), false);
     assert.equal(CreateRoleRequestBody.safeParse({ requestedRole: retiredRole, department: "Хозяйство" }).success, false);
     assert.equal(GetMyRoleRequestResponse.safeParse({

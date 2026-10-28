@@ -45,6 +45,7 @@ import EmployeeDirectory from "@/components/employees/EmployeeDirectory";
 import { ChemicalBalanceCard } from "@/components/agro/chemicals/Custody";
 import HRWorkspace from "@/components/hr/HRWorkspace";
 import PayrollRegisterWorkspace from "@/components/economic/PayrollRegisterWorkspace";
+import FinancialWorkspace from "@/components/economic/FinancialWorkspace";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import companyEmblem from "@assets/IMG_0731_1787404427367.jpeg";
@@ -69,6 +70,7 @@ const roleLabels = {
   storekeeper: "Заведующий складом",
   fuel_manager: "Заведующий нефтебазой",
   hr: "Отдел кадров",
+  economist: "Экономист",
 } as const;
 type AppRole = keyof typeof roleLabels;
 const appRoles = Object.keys(roleLabels) as AppRole[];
@@ -198,6 +200,7 @@ const demoRoleScenarios: Record<AppRole, { workspace: string; title: string; des
   storekeeper: { workspace: "Инженерный блок", title: "Приёмка запчастей", description: "Проверьте одобренные заявки, внесите фактическое поступление по накладной и пополните склад.", document: "Заявка на покупку запчастей · Инженерная служба", action: "Оприходовать накладную", result: "Демо: поступление по заявке оприходовано на складе." },
   fuel_manager: { workspace: "Инженерный блок", title: "Учёт нефтебазы", description: "Внесите приход топлива по накладной и выдачу на технику с указанием поля и операции.", document: "Выдача ДТ · К-744 · поле № 14", action: "Провести выдачу", result: "Демо: выдача топлива учтена, остаток нефтебазы уменьшен." },
   hr: { workspace: "Отдел кадров", title: "Подтверждение ежедневных нарядов", description: "Проверьте дневной наряд диспетчера по всем сотрудникам и подтвердите начисления.", document: "Ежедневный наряд · АФ Веденовка", action: "Подтвердить начисления", result: "Демо: наряд подтверждён и передан в накопительный зарплатный реестр." },
+  economist: { workspace: "Экономический блок", title: "Производственный бюджет и Cash Flow", description: "Внесите помесячный план и фактические затраты, поступления и выплаты.", document: "Бюджет и движение денег", action: "Сохранить запись", result: "Демо: запись учтена в помесячной таблице." },
 };
 
 function PublicDemo() {
@@ -337,7 +340,7 @@ function Shell({
   const isHrVisible = isHr || role === "general_director";
   const isAgroVisible = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "dispatcher", "general_director"].includes(role);
   const isEngineeringVisible = ["engineer", "chief_engineer", "storekeeper", "fuel_manager", "general_director"].includes(role);
-  const isEconomicVisible = role === "general_director";
+  const isEconomicVisible = role === "general_director" || role === "economist";
   const isEmployeesVisible = ["general_director", "chief_agronomist", "chief_engineer", "dispatcher"].includes(role);
   const navigation = [
     ...(!isDispatcher && !isHr ? [
@@ -345,7 +348,7 @@ function Shell({
     ] : []),
     ...(isAgroVisible ? [{ id: "agro" as const, label: isDispatcher ? "Диспетчерская" : "АгроБлок", icon: Sprout }] : []),
     ...(isEngineeringVisible ? [{ id: "engineering" as const, label: "Инженерный блок", icon: Wrench }] : []),
-    ...(isEconomicVisible ? [{ id: "economic" as const, label: "Платежи и зарплата", icon: BarChart3 }] : []),
+    ...(isEconomicVisible ? [{ id: "economic" as const, label: "Экономический блок", icon: BarChart3 }] : []),
     ...(isEmployeesVisible ? [{ id: "employees" as const, label: "Сотрудники", icon: Users }] : []),
     ...(isHrVisible ? [{ id: "hr" as const, label: "Отдел кадров", icon: BadgeCheck }] : []),
     { id: "settings" as const, label: "Настройки", icon: SettingsIcon },
@@ -432,15 +435,19 @@ function Cabinet({ role, actualRole, demoRole, onDemoRoleChange }: {
 
 function FinanceBlock({ role, actualRole, demoRole }: { role: AppRole; actualRole: AppRole; demoRole: AppRole | null }) {
   const [tab, setTab] = useState<"payments" | "payroll">("payments");
-  if (role !== "general_director") return <div className="surface-card"><EmptyState title="Раздел недоступен" description="Платежи и зарплатный реестр доступны генеральному директору." /></div>;
-  const canManage = actualRole === "general_director" && !demoRole;
+  if (role !== "general_director" && role !== "economist") return <div className="surface-card"><EmptyState title="Раздел недоступен" description="Экономический блок доступен экономисту и генеральному директору." /></div>;
+  const canManage = ["general_director", "economist"].includes(actualRole) && !demoRole;
   return <div className="animate-page">
-    <div className="mb-7"><p className="eyebrow">Финансы</p><h1 className="mt-2 font-display text-[28px] font-bold tracking-[-0.045em]">Платежи и зарплата</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">Реестр платежей по запчастям и накопительный зарплатный реестр по подтверждённым нарядам.</p></div>
+    <FinancialWorkspace canManage={canManage} canVoid={actualRole === "general_director" && !demoRole} />
+    <details className="surface-card mt-7 p-5" data-testid="economic-existing-registers">
+    <summary className="cursor-pointer text-sm font-semibold">Действующие реестры согласованных платежей{role === "general_director" ? " и зарплаты" : ""}</summary>
+    <p className="my-4 text-xs leading-6 text-muted-foreground">Платежи по запчастям проходят ранее установленное согласование. Оплаченные позиции автоматически отражаются в факте Cash Flow — повторно вручную их вносить не нужно. Затраты в бюджет экономист вносит отдельно.</p>
     <div className="mb-5 inline-flex rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Платежи и зарплата">
       <button type="button" role="tab" aria-selected={tab === "payments"} className={`rounded-md px-3 py-1.5 text-xs font-bold ${tab === "payments" ? "bg-foreground text-background" : "text-muted-foreground"}`} onClick={() => setTab("payments")} data-testid="tab-economic-payments">Реестр платежей</button>
-      <button type="button" role="tab" aria-selected={tab === "payroll"} className={`rounded-md px-3 py-1.5 text-xs font-bold ${tab === "payroll" ? "bg-foreground text-background" : "text-muted-foreground"}`} onClick={() => setTab("payroll")} data-testid="tab-economic-payroll">Зарплатный реестр</button>
+      {role === "general_director" && <button type="button" role="tab" aria-selected={tab === "payroll"} className={`rounded-md px-3 py-1.5 text-xs font-bold ${tab === "payroll" ? "bg-foreground text-background" : "text-muted-foreground"}`} onClick={() => setTab("payroll")} data-testid="tab-economic-payroll">Зарплатный реестр</button>}
     </div>
-    {tab === "payments" ? <PaymentRegister canMarkPaid={canManage} /> : <PayrollRegisterWorkspace canManage={canManage} />}
+    {tab === "payments" || role === "economist" ? <PaymentRegister canMarkPaid={canManage} /> : <PayrollRegisterWorkspace canManage={canManage} />}
+    </details>
   </div>;
 }
 
@@ -478,6 +485,7 @@ function AccessGate() {
   useEffect(() => {
     if (request?.status === "approved" && request.requestedRole === "dispatcher") setSection("agro");
     if (request?.status === "approved" && request.requestedRole === "hr") setSection("hr");
+    if (request?.status === "approved" && request.requestedRole === "economist") setSection("economic");
   }, [request?.requestedRole, request?.status]);
   if (requestQuery.isLoading) return <main className="access-page app-backdrop" style={backdropStyle}><LoadingRows count={2} /></main>;
   if (requestQuery.isError) return <main className="access-page app-backdrop" style={backdropStyle}><ErrorState onRetry={() => requestQuery.refetch()} /></main>;
@@ -487,7 +495,7 @@ function AccessGate() {
   const role = canUseDemo && demoRole ? demoRole : actualRole;
   const changeDemoRole = (nextRole: AppRole | null) => {
     setDemoRole(nextRole);
-    setSection(nextRole === "dispatcher" ? "agro" : nextRole === "hr" ? "hr" : "cabinet");
+    setSection(nextRole === "dispatcher" ? "agro" : nextRole === "hr" ? "hr" : nextRole === "economist" ? "economic" : "cabinet");
     if (nextRole) window.localStorage.setItem("agrolink-role-context", nextRole);
     else window.localStorage.removeItem("agrolink-role-context");
     queryClient.clear();
