@@ -5,6 +5,72 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type TokPayrollInputPayBasis = typeof TokPayrollInputPayBasis[keyof typeof TokPayrollInputPayBasis];
+
+
+export const TokPayrollInputPayBasis = {
+  shift: 'shift',
+  hour: 'hour',
+  ton: 'ton',
+  fixed: 'fixed',
+} as const;
+
+export interface TokPayrollInput {
+  /**
+     * @minLength 10
+     * @maxLength 10
+     */
+  workDate: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  unit: string;
+  /** @minimum 1 */
+  employeeId: number;
+  /**
+     * @minLength 2
+     * @maxLength 200
+     */
+  workType: string;
+  payBasis: TokPayrollInputPayBasis;
+  /**
+     * @maximum 1000000
+     * @exclusiveMinimum 0
+     */
+  quantity: number;
+  /**
+     * @maximum 1000000000
+     * @exclusiveMinimum 0
+     */
+  rateKzt: number;
+  /** @maxLength 2000 */
+  notes?: string;
+}
+
+export type TokPayrollCreateInput = TokPayrollInput & {
+  /**
+     * @minLength 36
+     * @maxLength 36
+     */
+  requestId: string;
+};
+
+export type TokPayrollUpdateInput = TokPayrollInput & {
+  /** @minimum 1 */
+  version: number;
+};
+
+export type TokPayrollEntry = TokPayrollInput & {
+  id: number;
+  version: number;
+  employeeName: string;
+  amountKzt: number;
+  locked: boolean;
+  createdByName: string;
+  createdAt: string;
+};
+
 export type FuelReceiptInputFarm = typeof FuelReceiptInputFarm[keyof typeof FuelReceiptInputFarm];
 
 
@@ -1713,6 +1779,7 @@ export const PayrollAccrualEntrySourceType = {
   grain_trip: 'grain_trip',
   field_progress: 'field_progress',
   field_operation: 'field_operation',
+  tok_work: 'tok_work',
 } as const;
 
 export interface PayrollAccrualEntry {
@@ -1732,6 +1799,7 @@ export const PayrollUnassignedSourceSourceType = {
   grain_trip: 'grain_trip',
   field_progress: 'field_progress',
   field_operation: 'field_operation',
+  tok_work: 'tok_work',
 } as const;
 
 export interface PayrollUnassignedSource {
@@ -1758,6 +1826,7 @@ export type PayrollDailySubmitInputSourceGroup = typeof PayrollDailySubmitInputS
 export const PayrollDailySubmitInputSourceGroup = {
   brigade: 'brigade',
   motor_pool: 'motor_pool',
+  tok: 'tok',
 } as const;
 
 export interface PayrollDailySubmitInput {
@@ -1802,6 +1871,7 @@ export type PayrollRegisterSourceGroup = typeof PayrollRegisterSourceGroup[keyof
 export const PayrollRegisterSourceGroup = {
   brigade: 'brigade',
   motor_pool: 'motor_pool',
+  tok: 'tok',
 } as const;
 
 export type PayrollRegisterStatus = typeof PayrollRegisterStatus[keyof typeof PayrollRegisterStatus];
@@ -2671,6 +2741,7 @@ export type ListPayrollAccrualsSourceGroup = typeof ListPayrollAccrualsSourceGro
 export const ListPayrollAccrualsSourceGroup = {
   brigade: 'brigade',
   motor_pool: 'motor_pool',
+  tok: 'tok',
 } as const;
 
 export type ListPayrollRegistersParams = {
@@ -2683,6 +2754,7 @@ export type ListPayrollRegistersSourceGroup = typeof ListPayrollRegistersSourceG
 export const ListPayrollRegistersSourceGroup = {
   brigade: 'brigade',
   motor_pool: 'motor_pool',
+  tok: 'tok',
 } as const;
 
 export type ListEngineeringRepairsParams = {

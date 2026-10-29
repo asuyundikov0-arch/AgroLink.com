@@ -15,4 +15,5 @@ export type PayrollRegisterSourceGroup = typeof PayrollRegisterSourceGroup[keyof
 export const PayrollRegisterSourceGroup = {
   brigade: 'brigade',
   motor_pool: 'motor_pool',
+  tok: 'tok',
 } as const;

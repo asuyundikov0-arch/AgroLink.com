@@ -10,6 +10,7 @@ import employeesRouter from "./employees";
 import chemicalsRouter from "./chemicals";
 import fuelRouter from "./fuel";
 import financialEntriesRouter from "./financial-entries";
+import tokPayrollRouter from "./tok-payroll";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(employeesRouter);
 router.use(chemicalsRouter);
 router.use(fuelRouter);
 router.use(financialEntriesRouter);
+router.use(tokPayrollRouter);
 
 export default router;

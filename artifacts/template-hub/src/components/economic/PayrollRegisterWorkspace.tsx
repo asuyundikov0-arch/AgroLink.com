@@ -4,6 +4,7 @@ import { AlertTriangle, Check, ClipboardList, Clock3, Hourglass, Lock, RefreshCw
 import {
   getListPayrollAccrualsQueryKey,
   getListPayrollRegistersQueryKey,
+  getListTokPayrollEntriesQueryKey,
   type PayrollAccrualDay,
   type PayrollAccrualEntry,
   type PayrollRegister,
@@ -20,6 +21,7 @@ const sourceLabel: Record<string, string> = {
   field_progress: "Дневной отчёт поля",
   field_operation: "Полевая операция",
   manual: "Ручная строка",
+  tok_work: "Работа на току",
 };
 
 function formatDate(value: string | null) {
@@ -64,13 +66,14 @@ function EmployeeGroups({ groups, testPrefix }: { groups: Group[]; testPrefix: s
 
 type Tab = "queue" | "cumulative" | "history";
 
-export default function PayrollRegisterWorkspace({ canManage, canApprove = false, onApproved, sourceGroup }: { canManage: boolean; canApprove?: boolean; onApproved?: () => void; sourceGroup?: "brigade" | "motor_pool" }) {
+export default function PayrollRegisterWorkspace({ canManage, canApprove = false, onApproved, sourceGroup }: { canManage: boolean; canApprove?: boolean; onApproved?: () => void; sourceGroup?: "brigade" | "motor_pool" | "tok" }) {
   const params = sourceGroup ? { sourceGroup } : undefined;
-  const [managedGroup, setManagedGroup] = useState<"brigade" | "motor_pool">("brigade");
+  const [managedGroup, setManagedGroup] = useState<"brigade" | "motor_pool" | "tok">("brigade");
   const accrualGroup = sourceGroup ?? managedGroup;
   const accrualParams = { sourceGroup: accrualGroup };
   const motor = accrualGroup === "motor_pool";
-  const manager = motor ? "Автобаза" : "Диспетчер";
+  const tok = accrualGroup === "tok";
+  const manager = motor ? "Автобаза" : tok ? "Заведующий током" : "Диспетчер";
   const onApprovedRef = useRef(onApproved);
   onApprovedRef.current = onApproved;
   const queryClient = useQueryClient();
@@ -107,6 +110,7 @@ export default function PayrollRegisterWorkspace({ canManage, canApprove = false
     try {
       await send.mutateAsync({ data: { workDate: day.workDate.slice(0, 10), unit: day.unit, sourceHash: day.sourceHash, sourceGroup: accrualGroup } });
       await refreshAll();
+      if (tok) void queryClient.invalidateQueries({ queryKey: getListTokPayrollEntriesQueryKey() });
       onApprovedRef.current?.();
       setNotice(`Наряд за ${formatDate(day.workDate)} (${day.unit}) отправлен в отдел кадров. Начисления станут зарплатой после подтверждения отдела кадров.`);
     } catch (err) {
@@ -145,9 +149,9 @@ export default function PayrollRegisterWorkspace({ canManage, canApprove = false
   return <section className="space-y-4" data-testid="payroll-register-workspace">
     {!canApprove && <header>
       <p className="eyebrow">{canManage ? `${manager} · отдел кадров · генеральный директор` : "Подтверждено отделом кадров"}</p>
-      <h1 className="mt-1.5 font-display text-2xl font-bold tracking-[-0.045em] sm:text-3xl">{canManage ? (motor ? "Наряды автобазы" : "Ежедневные наряды") : "Зарплатный реестр"}</h1>
+      <h1 className="mt-1.5 font-display text-2xl font-bold tracking-[-0.045em] sm:text-3xl">{canManage ? (motor ? "Наряды автобазы" : tok ? "Наряды тока" : "Ежедневные наряды") : "Зарплатный реестр"}</h1>
       <p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">{canManage
-        ? (motor ? "Суммы собираются из согласованных рейсов зерна с расценкой автобазы." : sourceGroup === "brigade" ? "Суммы собираются из полевых работ с фактической расценкой." : "Суммы собираются из рейсов зерна и полевых работ с фактической расценкой.") + " Наряд за день отправляется в отдел кадров и фиксируется. Зарплатой он становится только после подтверждения отдела кадров."
+        ? (motor ? "Суммы собираются из согласованных рейсов зерна с расценкой автобазы." : tok ? "Суммы собираются из сохранённых начислений сотрудникам тока (раздел «Зарплата тока»)." : sourceGroup === "brigade" ? "Суммы собираются из полевых работ с фактической расценкой." : "Суммы собираются из рейсов зерна и полевых работ с фактической расценкой.") + " Наряд за день отправляется в отдел кадров и фиксируется. Зарплатой он становится только после подтверждения отдела кадров."
         : "Начисления, подтверждённые отделом кадров, и ранее переданные реестры. Только просмотр."}</p>
     </header>}
 
@@ -163,14 +167,14 @@ export default function PayrollRegisterWorkspace({ canManage, canApprove = false
 
     {canManage && <section className="surface-card p-4 sm:p-5" data-testid="payroll-accruals-section">
       {!sourceGroup && <label className="mb-4 block text-xs font-semibold">Источник ежедневных нарядов
-        <select className="text-input mt-2 max-w-xs" value={managedGroup} disabled={send.isPending} onChange={event => { setManagedGroup(event.target.value as "brigade" | "motor_pool"); setError(""); setNotice(""); }} data-testid="select-payroll-source-group">
-          <option value="brigade">Бригада — полевые работы</option><option value="motor_pool">Автобаза — перевозки</option>
+        <select className="text-input mt-2 max-w-xs" value={managedGroup} disabled={send.isPending} onChange={event => { setManagedGroup(event.target.value as "brigade" | "motor_pool" | "tok"); setError(""); setNotice(""); }} data-testid="select-payroll-source-group">
+          <option value="brigade">Бригада — полевые работы</option><option value="motor_pool">Автобаза — перевозки</option><option value="tok">Ток — работы на току</option>
         </select>
       </label>}
       <header className="flex flex-wrap items-end justify-between gap-3"><div><p className="eyebrow">Не отправлены в отдел кадров</p><h2 className="mt-1 text-lg font-bold">Ежедневные наряды</h2></div><span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground"><Clock3 size={12} />Обновление каждые 15 секунд</span></header>
       {accrualsQuery.isLoading ? <div className="mt-4 space-y-3"><div className="skeleton h-24 rounded-lg" /><div className="skeleton h-24 rounded-lg" /></div>
         : accrualsQuery.isError ? <div className="mt-4" role="alert"><p className="text-sm font-semibold text-destructive">{errorInfo(accrualsQuery.error).message}</p><button type="button" className="button button-secondary mt-3 text-xs" onClick={() => void accrualsQuery.refetch()}>Повторить</button></div>
-        : days.length === 0 ? <div className="flex flex-col items-center py-10 text-center" data-testid="payroll-accruals-empty"><div className="empty-icon"><ClipboardList size={20} /></div><p className="mt-3 text-sm font-semibold">Неотправленных нарядов нет</p><p className="mt-1 max-w-md text-xs leading-5 text-muted-foreground">{motor ? "Дни появятся здесь, когда согласованные рейсы получат расценку." : sourceGroup === "brigade" ? "Дни появятся здесь, когда полевые работы получат фактическую расценку." : "Дни появятся здесь, когда рейсы или полевые работы получат фактическую расценку."}</p></div>
+        : days.length === 0 ? <div className="flex flex-col items-center py-10 text-center" data-testid="payroll-accruals-empty"><div className="empty-icon"><ClipboardList size={20} /></div><p className="mt-3 text-sm font-semibold">Неотправленных нарядов нет</p><p className="mt-1 max-w-md text-xs leading-5 text-muted-foreground">{motor ? "Дни появятся здесь, когда согласованные рейсы получат расценку." : tok ? "Дни появятся здесь, когда заведующий током сохранит начисления в разделе «Зарплата тока»." : sourceGroup === "brigade" ? "Дни появятся здесь, когда полевые работы получат фактическую расценку." : "Дни появятся здесь, когда рейсы или полевые работы получат фактическую расценку."}</p></div>
         : <div className="mt-3 divide-y divide-border">{days.map((day) => {
           const key = `${day.workDate}|${day.unit}`;
           const blocked = day.unassignedCount > 0 || day.entries.length === 0;
@@ -203,7 +207,7 @@ export default function PayrollRegisterWorkspace({ canManage, canApprove = false
       <header className="flex flex-wrap items-end justify-between gap-3"><div><p className="eyebrow">{canApprove ? "Очередь отдела кадров" : "Отправлены, ждут подтверждения"}</p><h2 className="mt-1 text-lg font-bold">{canApprove ? "Наряды на подтверждение" : "Ожидают отдел кадров"}</h2><p className="mt-1 max-w-xl text-[11px] leading-5 text-muted-foreground">Суммы в очереди ещё не являются зарплатой и не входят в накопительные начисления.</p></div><span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground"><Clock3 size={12} />Обновление каждые 15 секунд</span></header>
       {registersQuery.isLoading ? <div className="mt-4 space-y-3"><div className="skeleton h-28 rounded-lg" /><div className="skeleton h-28 rounded-lg" /></div>
         : registersQuery.isError ? <div className="mt-4" role="alert"><p className="text-sm font-semibold text-destructive">{errorInfo(registersQuery.error).message}</p><button type="button" className="button button-secondary mt-3 text-xs" onClick={() => void registersQuery.refetch()} data-testid="button-retry-payroll-queue">Повторить</button></div>
-        : pending.length === 0 ? <div className="flex flex-col items-center py-10 text-center" data-testid="payroll-queue-empty"><div className="empty-icon"><ShieldCheck size={20} /></div><p className="mt-3 text-sm font-semibold">{canApprove ? "Нарядов на подтверждение нет" : "Все отправленные наряды подтверждены"}</p><p className="mt-1 max-w-md text-xs leading-5 text-muted-foreground">{canApprove ? `Когда ${motor ? "автобаза" : "диспетчер"} отправит дневной наряд, он появится здесь целиком — по всем сотрудникам.` : "Отправьте наряд из списка выше — он будет ждать здесь решения отдела кадров."}</p></div>
+        : pending.length === 0 ? <div className="flex flex-col items-center py-10 text-center" data-testid="payroll-queue-empty"><div className="empty-icon"><ShieldCheck size={20} /></div><p className="mt-3 text-sm font-semibold">{canApprove ? "Нарядов на подтверждение нет" : "Все отправленные наряды подтверждены"}</p><p className="mt-1 max-w-md text-xs leading-5 text-muted-foreground">{canApprove ? `Когда ${motor ? "автобаза" : tok ? "заведующий током" : "диспетчер"} отправит дневной наряд, он появится здесь целиком — по всем сотрудникам.` : "Отправьте наряд из списка выше — он будет ждать здесь решения отдела кадров."}</p></div>
         : <div className="mt-3 divide-y divide-border" data-testid="payroll-queue-list">{pending.map((register) => <PendingRegister key={register.id} register={register} canApprove={canApprove} approving={approvingId === register.id} disabled={approvingId !== null || approve.isPending} onApprove={() => void approveRegister(register)} />)}</div>}
     </section>
     : tab === "cumulative" ? <CumulativeSection registers={all} loading={registersQuery.isLoading} error={registersQuery.isError ? errorInfo(registersQuery.error).message : ""} onRetry={() => void registersQuery.refetch()} />

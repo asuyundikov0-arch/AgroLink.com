@@ -8,6 +8,201 @@
 import * as zod from 'zod';
 
 
+export const listTokPayrollEntriesResponseOneWorkDateMin = 10;
+export const listTokPayrollEntriesResponseOneWorkDateMax = 10;
+
+export const listTokPayrollEntriesResponseOneUnitMax = 200;
+
+
+export const listTokPayrollEntriesResponseOneWorkTypeMin = 2;
+export const listTokPayrollEntriesResponseOneWorkTypeMax = 200;
+
+export const listTokPayrollEntriesResponseOneQuantityExclusiveMin = 0;
+export const listTokPayrollEntriesResponseOneQuantityMax = 1000000;
+
+export const listTokPayrollEntriesResponseOneRateKztExclusiveMin = 0;
+export const listTokPayrollEntriesResponseOneRateKztMax = 1000000000;
+
+export const listTokPayrollEntriesResponseOneNotesDefault = ``;
+export const listTokPayrollEntriesResponseOneNotesMax = 2000;
+
+
+
+export const ListTokPayrollEntriesResponseItem = zod.object({
+  "workDate": zod.string().min(listTokPayrollEntriesResponseOneWorkDateMin).max(listTokPayrollEntriesResponseOneWorkDateMax),
+  "unit": zod.string().min(1).max(listTokPayrollEntriesResponseOneUnitMax),
+  "employeeId": zod.number().min(1),
+  "workType": zod.string().min(listTokPayrollEntriesResponseOneWorkTypeMin).max(listTokPayrollEntriesResponseOneWorkTypeMax),
+  "payBasis": zod.enum(['shift', 'hour', 'ton', 'fixed']),
+  "quantity": zod.number().gt(listTokPayrollEntriesResponseOneQuantityExclusiveMin).max(listTokPayrollEntriesResponseOneQuantityMax),
+  "rateKzt": zod.number().gt(listTokPayrollEntriesResponseOneRateKztExclusiveMin).max(listTokPayrollEntriesResponseOneRateKztMax),
+  "notes": zod.string().max(listTokPayrollEntriesResponseOneNotesMax).default(listTokPayrollEntriesResponseOneNotesDefault)
+}).and(zod.object({
+  "id": zod.number(),
+  "version": zod.number(),
+  "employeeName": zod.string(),
+  "amountKzt": zod.number(),
+  "locked": zod.boolean(),
+  "createdByName": zod.string(),
+  "createdAt": zod.string()
+}))
+export const ListTokPayrollEntriesResponse = zod.array(ListTokPayrollEntriesResponseItem)
+
+
+export const createTokPayrollEntryBodyOneWorkDateMin = 10;
+export const createTokPayrollEntryBodyOneWorkDateMax = 10;
+
+export const createTokPayrollEntryBodyOneUnitMax = 200;
+
+
+export const createTokPayrollEntryBodyOneWorkTypeMin = 2;
+export const createTokPayrollEntryBodyOneWorkTypeMax = 200;
+
+export const createTokPayrollEntryBodyOneQuantityExclusiveMin = 0;
+export const createTokPayrollEntryBodyOneQuantityMax = 1000000;
+
+export const createTokPayrollEntryBodyOneRateKztExclusiveMin = 0;
+export const createTokPayrollEntryBodyOneRateKztMax = 1000000000;
+
+export const createTokPayrollEntryBodyOneNotesDefault = ``;
+export const createTokPayrollEntryBodyOneNotesMax = 2000;
+
+export const createTokPayrollEntryBodyTwoRequestIdMin = 36;
+export const createTokPayrollEntryBodyTwoRequestIdMax = 36;
+
+
+
+export const CreateTokPayrollEntryBody = zod.object({
+  "workDate": zod.string().min(createTokPayrollEntryBodyOneWorkDateMin).max(createTokPayrollEntryBodyOneWorkDateMax),
+  "unit": zod.string().min(1).max(createTokPayrollEntryBodyOneUnitMax),
+  "employeeId": zod.number().min(1),
+  "workType": zod.string().min(createTokPayrollEntryBodyOneWorkTypeMin).max(createTokPayrollEntryBodyOneWorkTypeMax),
+  "payBasis": zod.enum(['shift', 'hour', 'ton', 'fixed']),
+  "quantity": zod.number().gt(createTokPayrollEntryBodyOneQuantityExclusiveMin).max(createTokPayrollEntryBodyOneQuantityMax),
+  "rateKzt": zod.number().gt(createTokPayrollEntryBodyOneRateKztExclusiveMin).max(createTokPayrollEntryBodyOneRateKztMax),
+  "notes": zod.string().max(createTokPayrollEntryBodyOneNotesMax).default(createTokPayrollEntryBodyOneNotesDefault)
+}).and(zod.object({
+  "requestId": zod.string().min(createTokPayrollEntryBodyTwoRequestIdMin).max(createTokPayrollEntryBodyTwoRequestIdMax)
+}))
+
+export const createTokPayrollEntryResponseOneWorkDateMin = 10;
+export const createTokPayrollEntryResponseOneWorkDateMax = 10;
+
+export const createTokPayrollEntryResponseOneUnitMax = 200;
+
+
+export const createTokPayrollEntryResponseOneWorkTypeMin = 2;
+export const createTokPayrollEntryResponseOneWorkTypeMax = 200;
+
+export const createTokPayrollEntryResponseOneQuantityExclusiveMin = 0;
+export const createTokPayrollEntryResponseOneQuantityMax = 1000000;
+
+export const createTokPayrollEntryResponseOneRateKztExclusiveMin = 0;
+export const createTokPayrollEntryResponseOneRateKztMax = 1000000000;
+
+export const createTokPayrollEntryResponseOneNotesDefault = ``;
+export const createTokPayrollEntryResponseOneNotesMax = 2000;
+
+
+
+export const CreateTokPayrollEntryResponse = zod.object({
+  "workDate": zod.string().min(createTokPayrollEntryResponseOneWorkDateMin).max(createTokPayrollEntryResponseOneWorkDateMax),
+  "unit": zod.string().min(1).max(createTokPayrollEntryResponseOneUnitMax),
+  "employeeId": zod.number().min(1),
+  "workType": zod.string().min(createTokPayrollEntryResponseOneWorkTypeMin).max(createTokPayrollEntryResponseOneWorkTypeMax),
+  "payBasis": zod.enum(['shift', 'hour', 'ton', 'fixed']),
+  "quantity": zod.number().gt(createTokPayrollEntryResponseOneQuantityExclusiveMin).max(createTokPayrollEntryResponseOneQuantityMax),
+  "rateKzt": zod.number().gt(createTokPayrollEntryResponseOneRateKztExclusiveMin).max(createTokPayrollEntryResponseOneRateKztMax),
+  "notes": zod.string().max(createTokPayrollEntryResponseOneNotesMax).default(createTokPayrollEntryResponseOneNotesDefault)
+}).and(zod.object({
+  "id": zod.number(),
+  "version": zod.number(),
+  "employeeName": zod.string(),
+  "amountKzt": zod.number(),
+  "locked": zod.boolean(),
+  "createdByName": zod.string(),
+  "createdAt": zod.string()
+}))
+
+
+export const UpdateTokPayrollEntryParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateTokPayrollEntryBodyOneWorkDateMin = 10;
+export const updateTokPayrollEntryBodyOneWorkDateMax = 10;
+
+export const updateTokPayrollEntryBodyOneUnitMax = 200;
+
+
+export const updateTokPayrollEntryBodyOneWorkTypeMin = 2;
+export const updateTokPayrollEntryBodyOneWorkTypeMax = 200;
+
+export const updateTokPayrollEntryBodyOneQuantityExclusiveMin = 0;
+export const updateTokPayrollEntryBodyOneQuantityMax = 1000000;
+
+export const updateTokPayrollEntryBodyOneRateKztExclusiveMin = 0;
+export const updateTokPayrollEntryBodyOneRateKztMax = 1000000000;
+
+export const updateTokPayrollEntryBodyOneNotesDefault = ``;
+export const updateTokPayrollEntryBodyOneNotesMax = 2000;
+
+
+
+
+export const UpdateTokPayrollEntryBody = zod.object({
+  "workDate": zod.string().min(updateTokPayrollEntryBodyOneWorkDateMin).max(updateTokPayrollEntryBodyOneWorkDateMax),
+  "unit": zod.string().min(1).max(updateTokPayrollEntryBodyOneUnitMax),
+  "employeeId": zod.number().min(1),
+  "workType": zod.string().min(updateTokPayrollEntryBodyOneWorkTypeMin).max(updateTokPayrollEntryBodyOneWorkTypeMax),
+  "payBasis": zod.enum(['shift', 'hour', 'ton', 'fixed']),
+  "quantity": zod.number().gt(updateTokPayrollEntryBodyOneQuantityExclusiveMin).max(updateTokPayrollEntryBodyOneQuantityMax),
+  "rateKzt": zod.number().gt(updateTokPayrollEntryBodyOneRateKztExclusiveMin).max(updateTokPayrollEntryBodyOneRateKztMax),
+  "notes": zod.string().max(updateTokPayrollEntryBodyOneNotesMax).default(updateTokPayrollEntryBodyOneNotesDefault)
+}).and(zod.object({
+  "version": zod.number().min(1)
+}))
+
+export const updateTokPayrollEntryResponseOneWorkDateMin = 10;
+export const updateTokPayrollEntryResponseOneWorkDateMax = 10;
+
+export const updateTokPayrollEntryResponseOneUnitMax = 200;
+
+
+export const updateTokPayrollEntryResponseOneWorkTypeMin = 2;
+export const updateTokPayrollEntryResponseOneWorkTypeMax = 200;
+
+export const updateTokPayrollEntryResponseOneQuantityExclusiveMin = 0;
+export const updateTokPayrollEntryResponseOneQuantityMax = 1000000;
+
+export const updateTokPayrollEntryResponseOneRateKztExclusiveMin = 0;
+export const updateTokPayrollEntryResponseOneRateKztMax = 1000000000;
+
+export const updateTokPayrollEntryResponseOneNotesDefault = ``;
+export const updateTokPayrollEntryResponseOneNotesMax = 2000;
+
+
+
+export const UpdateTokPayrollEntryResponse = zod.object({
+  "workDate": zod.string().min(updateTokPayrollEntryResponseOneWorkDateMin).max(updateTokPayrollEntryResponseOneWorkDateMax),
+  "unit": zod.string().min(1).max(updateTokPayrollEntryResponseOneUnitMax),
+  "employeeId": zod.number().min(1),
+  "workType": zod.string().min(updateTokPayrollEntryResponseOneWorkTypeMin).max(updateTokPayrollEntryResponseOneWorkTypeMax),
+  "payBasis": zod.enum(['shift', 'hour', 'ton', 'fixed']),
+  "quantity": zod.number().gt(updateTokPayrollEntryResponseOneQuantityExclusiveMin).max(updateTokPayrollEntryResponseOneQuantityMax),
+  "rateKzt": zod.number().gt(updateTokPayrollEntryResponseOneRateKztExclusiveMin).max(updateTokPayrollEntryResponseOneRateKztMax),
+  "notes": zod.string().max(updateTokPayrollEntryResponseOneNotesMax).default(updateTokPayrollEntryResponseOneNotesDefault)
+}).and(zod.object({
+  "id": zod.number(),
+  "version": zod.number(),
+  "employeeName": zod.string(),
+  "amountKzt": zod.number(),
+  "locked": zod.boolean(),
+  "createdByName": zod.string(),
+  "createdAt": zod.string()
+}))
+
+
 export const GetFuelWarehouseResponse = zod.object({
   "stocks": zod.array(zod.object({
   "farm": zod.string(),
@@ -4067,7 +4262,7 @@ export const UpdateEmployeePayrollGroupResponse = zod.object({
 
 
 export const ListPayrollAccrualsQueryParams = zod.object({
-  "sourceGroup": zod.enum(['brigade', 'motor_pool']).optional()
+  "sourceGroup": zod.enum(['brigade', 'motor_pool', 'tok']).optional()
 })
 
 export const ListPayrollAccrualsResponseItem = zod.object({
@@ -4076,7 +4271,7 @@ export const ListPayrollAccrualsResponseItem = zod.object({
   "totalAmount": zod.number(),
   "sourceHash": zod.string(),
   "entries": zod.array(zod.object({
-  "sourceType": zod.enum(['grain_trip', 'field_progress', 'field_operation']),
+  "sourceType": zod.enum(['grain_trip', 'field_progress', 'field_operation', 'tok_work']),
   "sourceId": zod.number(),
   "employeeId": zod.number(),
   "employeeName": zod.string(),
@@ -4086,7 +4281,7 @@ export const ListPayrollAccrualsResponseItem = zod.object({
 })),
   "unassignedCount": zod.number(),
   "unassignedSources": zod.array(zod.object({
-  "sourceType": zod.enum(['grain_trip', 'field_progress', 'field_operation']),
+  "sourceType": zod.enum(['grain_trip', 'field_progress', 'field_operation', 'tok_work']),
   "sourceId": zod.number(),
   "employeeName": zod.string(),
   "workType": zod.string(),
@@ -4097,11 +4292,11 @@ export const ListPayrollAccrualsResponse = zod.array(ListPayrollAccrualsResponse
 
 
 export const ListPayrollRegistersQueryParams = zod.object({
-  "sourceGroup": zod.enum(['brigade', 'motor_pool']).optional()
+  "sourceGroup": zod.enum(['brigade', 'motor_pool', 'tok']).optional()
 })
 
 export const ListPayrollRegistersResponseItem = zod.object({
-  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal(null)]).nullish(),
+  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal('tok'),zod.literal(null)]).nullish(),
   "id": zod.number(),
   "workDate": zod.string(),
   "unit": zod.string(),
@@ -4155,7 +4350,7 @@ export const CreatePayrollRegisterBody = zod.object({
 })
 
 export const CreatePayrollRegisterResponse = zod.object({
-  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal(null)]).nullish(),
+  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal('tok'),zod.literal(null)]).nullish(),
   "id": zod.number(),
   "workDate": zod.string(),
   "unit": zod.string(),
@@ -4189,14 +4384,14 @@ export const sendDailyPayrollRegisterBodySourceHashMax = 64;
 
 
 export const SendDailyPayrollRegisterBody = zod.object({
-  "sourceGroup": zod.enum(['brigade', 'motor_pool']).optional(),
+  "sourceGroup": zod.enum(['brigade', 'motor_pool', 'tok']).optional(),
   "workDate": zod.string(),
   "unit": zod.string().min(1).max(sendDailyPayrollRegisterBodyUnitMax),
   "sourceHash": zod.string().min(sendDailyPayrollRegisterBodySourceHashMin).max(sendDailyPayrollRegisterBodySourceHashMax)
 })
 
 export const SendDailyPayrollRegisterResponse = zod.object({
-  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal(null)]).nullish(),
+  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal('tok'),zod.literal(null)]).nullish(),
   "id": zod.number(),
   "workDate": zod.string(),
   "unit": zod.string(),
@@ -4258,7 +4453,7 @@ export const UpdatePayrollRegisterBody = zod.object({
 })
 
 export const UpdatePayrollRegisterResponse = zod.object({
-  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal(null)]).nullish(),
+  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal('tok'),zod.literal(null)]).nullish(),
   "id": zod.number(),
   "workDate": zod.string(),
   "unit": zod.string(),
@@ -4299,7 +4494,7 @@ export const ApproveHrPayrollRegisterBody = zod.object({
 })
 
 export const ApproveHrPayrollRegisterResponse = zod.object({
-  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal(null)]).nullish(),
+  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal('tok'),zod.literal(null)]).nullish(),
   "id": zod.number(),
   "workDate": zod.string(),
   "unit": zod.string(),
@@ -4340,7 +4535,7 @@ export const SendPayrollRegisterBody = zod.object({
 })
 
 export const SendPayrollRegisterResponse = zod.object({
-  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal(null)]).nullish(),
+  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal('tok'),zod.literal(null)]).nullish(),
   "id": zod.number(),
   "workDate": zod.string(),
   "unit": zod.string(),

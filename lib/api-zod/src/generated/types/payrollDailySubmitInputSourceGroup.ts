@@ -12,4 +12,5 @@ export type PayrollDailySubmitInputSourceGroup = typeof PayrollDailySubmitInputS
 export const PayrollDailySubmitInputSourceGroup = {
   brigade: 'brigade',
   motor_pool: 'motor_pool',
+  tok: 'tok',
 } as const;

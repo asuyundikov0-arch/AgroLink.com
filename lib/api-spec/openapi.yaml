@@ -19,6 +19,44 @@ tags:
   - name: uploads
     description: Retired document upload workflow; all endpoints return HTTP 410
 paths:
+  /agro/tok-payroll/entries:
+    get:
+      operationId: listTokPayrollEntries
+      responses:
+        "200":
+          description: Начисления сотрудников тока
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/TokPayrollEntry" } }
+    post:
+      operationId: createTokPayrollEntry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TokPayrollCreateInput" }
+      responses:
+        "201":
+          description: Начисление сохранено
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokPayrollEntry" }
+  /agro/tok-payroll/entries/{id}:
+    patch:
+      operationId: updateTokPayrollEntry
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TokPayrollUpdateInput" }
+      responses:
+        "200":
+          description: Начисление изменено
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokPayrollEntry" }
   /engineering/fuel:
     get:
       operationId: getFuelWarehouse
@@ -1048,7 +1086,7 @@ paths:
   /economic/payroll-accruals:
     get:
       parameters:
-        - { name: sourceGroup, in: query, required: false, schema: { type: string, enum: [brigade, motor_pool] } }
+        - { name: sourceGroup, in: query, required: false, schema: { type: string, enum: [brigade, motor_pool, tok] } }
       operationId: listPayrollAccruals
       tags: [economy]
       responses:
@@ -1062,7 +1100,7 @@ paths:
   /economic/payroll-registers:
     get:
       parameters:
-        - { name: sourceGroup, in: query, required: false, schema: { type: string, enum: [brigade, motor_pool] } }
+        - { name: sourceGroup, in: query, required: false, schema: { type: string, enum: [brigade, motor_pool, tok] } }
       operationId: listPayrollRegisters
       tags: [economy]
       responses:
@@ -1670,6 +1708,45 @@ paths:
           description: User access revoked
 components:
   schemas:
+    TokPayrollCreateInput:
+      allOf:
+        - { $ref: "#/components/schemas/TokPayrollInput" }
+        - type: object
+          required: [requestId]
+          properties:
+            requestId: { type: string, minLength: 36, maxLength: 36 }
+    TokPayrollUpdateInput:
+      allOf:
+        - { $ref: "#/components/schemas/TokPayrollInput" }
+        - type: object
+          required: [version]
+          properties:
+            version: { type: number, minimum: 1 }
+    TokPayrollInput:
+      type: object
+      required: [workDate, unit, employeeId, workType, payBasis, quantity, rateKzt]
+      properties:
+        workDate: { type: string, minLength: 10, maxLength: 10 }
+        unit: { type: string, minLength: 1, maxLength: 200 }
+        employeeId: { type: number, minimum: 1 }
+        workType: { type: string, minLength: 2, maxLength: 200 }
+        payBasis: { type: string, enum: [shift, hour, ton, fixed] }
+        quantity: { type: number, exclusiveMinimum: 0, maximum: 1000000 }
+        rateKzt: { type: number, exclusiveMinimum: 0, maximum: 1000000000 }
+        notes: { type: string, maxLength: 2000, default: "" }
+    TokPayrollEntry:
+      allOf:
+        - { $ref: "#/components/schemas/TokPayrollInput" }
+        - type: object
+          required: [id, version, employeeName, amountKzt, locked, createdByName, createdAt]
+          properties:
+            id: { type: number }
+            version: { type: number }
+            employeeName: { type: string }
+            amountKzt: { type: number }
+            locked: { type: boolean }
+            createdByName: { type: string }
+            createdAt: { type: string }
     FuelReceiptInput:
       type: object
       required: [requestId, farm, fuelType, occurredOn, liters, pricePerLiter, invoiceNumber, supplier, notes]
@@ -2843,7 +2920,7 @@ components:
       type: object
       required: [sourceType, sourceId, employeeId, employeeName, workType, details, amountKzt]
       properties:
-        sourceType: { type: string, enum: [grain_trip, field_progress, field_operation] }
+        sourceType: { type: string, enum: [grain_trip, field_progress, field_operation, tok_work] }
         sourceId: { type: number }
         employeeId: { type: number }
         employeeName: { type: string }
@@ -2854,7 +2931,7 @@ components:
       type: object
       required: [sourceType, sourceId, employeeName, workType, details]
       properties:
-        sourceType: { type: string, enum: [grain_trip, field_progress, field_operation] }
+        sourceType: { type: string, enum: [grain_trip, field_progress, field_operation, tok_work] }
         sourceId: { type: number }
         employeeName: { type: string }
         workType: { type: string }
@@ -2878,7 +2955,7 @@ components:
       type: object
       required: [workDate, unit, sourceHash]
       properties:
-        sourceGroup: { type: string, enum: [brigade, motor_pool] }
+        sourceGroup: { type: string, enum: [brigade, motor_pool, tok] }
         workDate: { type: string }
         unit: { type: string, minLength: 1, maxLength: 200 }
         sourceHash: { type: string, minLength: 64, maxLength: 64 }
@@ -2903,7 +2980,7 @@ components:
       type: object
       required: [id, workDate, unit, status, totalAmount, version, createdByName, submittedByName, createdAt, submittedAt, entries]
       properties:
-        sourceGroup: { type: ["string", "null"], enum: [brigade, motor_pool, null] }
+        sourceGroup: { type: ["string", "null"], enum: [brigade, motor_pool, tok, null] }
         id: { type: number }
         workDate: { type: string }
         unit: { type: string }

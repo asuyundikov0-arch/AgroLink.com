@@ -13,4 +13,5 @@ export const PayrollAccrualEntrySourceType = {
   grain_trip: 'grain_trip',
   field_progress: 'field_progress',
   field_operation: 'field_operation',
+  tok_work: 'tok_work',
 } as const;

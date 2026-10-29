@@ -12,4 +12,5 @@ export type ListPayrollAccrualsSourceGroup = typeof ListPayrollAccrualsSourceGro
 export const ListPayrollAccrualsSourceGroup = {
   brigade: 'brigade',
   motor_pool: 'motor_pool',
+  tok: 'tok',
 } as const;

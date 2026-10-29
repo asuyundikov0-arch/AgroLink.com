@@ -33,20 +33,22 @@ import {
   grainMovementsTable,
   payrollRegisterItemsTable,
   payrollRegistersTable,
+  tokPayrollEntriesTable,
 } from "@workspace/db";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { lockPayrollSources } from "../lib/payroll-source-guard";
 import { approveDailyOrder } from "../lib/payroll-hr";
+import { tokBasisLabels } from "../lib/tok-payroll";
 
 const router: IRouter = Router();
-const readerRoles = new Set(["dispatcher", "motor_pool_manager", "hr", "general_director"]);
+const readerRoles = new Set(["dispatcher", "motor_pool_manager", "grain_manager", "hr", "general_director"]);
 const editorRoles = new Set(["dispatcher", "general_director"]);
-const accrualReaderRoles = new Set(["dispatcher", "motor_pool_manager", "general_director"]);
+const accrualReaderRoles = new Set(["dispatcher", "motor_pool_manager", "grain_manager", "general_director"]);
 const maxRegisterAmount = 999999999999.99;
 const allowed: RequestHandler = (_req, res, next) => {
   const role = (res.locals.access as RoleAccess).role;
   if (!role || !readerRoles.has(role)) {
-    res.status(403).json({ error: "Наряды доступны диспетчеру, заведующему автобазой, отделу кадров и генеральному директору." });
+    res.status(403).json({ error: "Наряды доступны диспетчеру, заведующим автобазой и током, отделу кадров и генеральному директору." });
     return;
   }
   next();
@@ -55,7 +57,7 @@ router.use("/economic/payroll-registers", requireApprovedRole, allowed);
 router.use("/economic/payroll-accruals", requireApprovedRole, (req, res, next) => {
   const access = res.locals.access as RoleAccess;
   if (!access.role || !accrualReaderRoles.has(access.role)) {
-    res.status(403).json({ error: "Начисления доступны диспетчеру, заведующему автобазой и генеральному директору." });
+    res.status(403).json({ error: "Начисления доступны диспетчеру, заведующим автобазой и током и генеральному директору." });
     return;
   }
   next();
@@ -63,7 +65,7 @@ router.use("/economic/payroll-accruals", requireApprovedRole, (req, res, next) =
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type LineInput = { employeeName: string; workType: string; details: string; amountKzt: number };
-type PayrollSourceType = "grain_trip" | "field_progress" | "field_operation";
+type PayrollSourceType = "grain_trip" | "field_progress" | "field_operation" | "tok_work";
 type AutomaticEntry = {
   sourceType: PayrollSourceType;
   sourceId: number;
@@ -112,12 +114,13 @@ const payrollOperationLabels: Record<string, string> = {
   cleaning: "Доставка на зерноочистку",
 };
 
-type SourceGroup = "brigade" | "motor_pool";
+type SourceGroup = "brigade" | "motor_pool" | "tok";
 function sourceGroupFor(role: string | null | undefined): SourceGroup | undefined {
+  if (role === "grain_manager") return "tok";
   return role === "dispatcher" ? "brigade" : role === "motor_pool_manager" ? "motor_pool" : undefined;
 }
 export async function calculateAutomaticAccruals(tx: Tx, sourceGroup?: SourceGroup) {
-  const [movements, crops, locations, employees, fieldRows, progressRows] = await Promise.all([
+  const [movements, crops, locations, employees, fieldRows, progressRows, tokRows] = await Promise.all([
     tx.select().from(grainMovementsTable).where(and(
       eq(grainMovementsTable.approvalStatus, "approved"),
       isNull(grainMovementsTable.voidedAt),
@@ -134,6 +137,7 @@ export async function calculateAutomaticAccruals(tx: Tx, sourceGroup?: SourceGro
       .innerJoin(agroFieldsTable, eq(fieldSeasonsTable.fieldId, agroFieldsTable.id))
       .where(isNull(fieldOperationsTable.voidedAt)),
     tx.select().from(fieldOperationProgressTable).orderBy(asc(fieldOperationProgressTable.reportDate), asc(fieldOperationProgressTable.id)),
+    tx.select().from(tokPayrollEntriesTable),
   ]);
   const employeeById = new Map(employees.map((employee) => [employee.id, employee]));
   const employeesByName = new Map<string, typeof employees>();
@@ -182,7 +186,7 @@ export async function calculateAutomaticAccruals(tx: Tx, sourceGroup?: SourceGro
     details: string;
     amountKzt: number;
   }) => {
-    if (sourceGroup && (source.sourceType === "grain_trip" ? "motor_pool" : "brigade") !== sourceGroup) return;
+    if (sourceGroup && (source.sourceType === "grain_trip" ? "motor_pool" : source.sourceType === "tok_work" ? "tok" : "brigade") !== sourceGroup) return;
     const group = groupFor(source.workDate, source.unit);
     const employee = employeeFor(source.employeeId, source.employeeName);
     if (!employee) {
@@ -281,6 +285,14 @@ export async function calculateAutomaticAccruals(tx: Tx, sourceGroup?: SourceGro
     }
   }
 
+  for (const row of tokRows) {
+    addSource({
+      workDate: row.workDate, unit: row.unit, sourceType: "tok_work", sourceId: row.id,
+      employeeId: row.employeeId, employeeName: row.employeeName, workType: row.workType,
+      details: `${Number(row.quantity)} ${tokBasisLabels[row.payBasis]} × ${Number(row.rateKzt)} ₸ = ${Number(row.amountKzt)} ₸${row.notes ? ` · ${row.notes}` : ""}`,
+      amountKzt: Number(row.amountKzt),
+    });
+  }
   const savedItems = await tx.select({
       sourceType: payrollRegisterItemsTable.sourceType,
       sourceId: payrollRegisterItemsTable.sourceId,
@@ -372,7 +384,7 @@ async function loadRegisters(role: string, sourceGroup?: SourceGroup) {
     if (!sourceGroup) return true;
     if (row.sourceGroup) return row.sourceGroup === sourceGroup;
     const lines = itemsByRegister.get(row.id) ?? [];
-    const belongs = (type: string) => sourceGroup === "motor_pool" ? type === "grain_trip" : ["field_progress", "field_operation"].includes(type);
+    const belongs = (type: string) => sourceGroup === "motor_pool" ? type === "grain_trip" : sourceGroup === "tok" ? type === "tok_work" : ["field_progress", "field_operation"].includes(type);
     return lines.length > 0 && lines.every(line => belongs(line.sourceType));
   }).map((row) => normalizeRegister(row, itemsByRegister.get(row.id) ?? []));
 }
@@ -421,8 +433,8 @@ router.get("/economic/payroll-accruals", async (req, res, next): Promise<void> =
 router.post("/economic/payroll-registers/send-daily", async (req, res, next): Promise<void> => {
   try {
     const access = res.locals.access as RoleAccess;
-    if (!access.role || !["dispatcher", "motor_pool_manager", "general_director"].includes(access.role)) {
-      res.status(403).json({ error: "Наряд отправляет диспетчер или заведующий автобазой." }); return;
+    if (!access.role || !["dispatcher", "motor_pool_manager", "grain_manager", "general_director"].includes(access.role)) {
+      res.status(403).json({ error: "Наряд отправляет диспетчер, заведующий автобазой или заведующий током." }); return;
     }
     const parsed = SendDailyPayrollRegisterBody.safeParse(req.body);
     if (!parsed.success) {

@@ -12,4 +12,5 @@ export type ListPayrollRegistersSourceGroup = typeof ListPayrollRegistersSourceG
 export const ListPayrollRegistersSourceGroup = {
   brigade: 'brigade',
   motor_pool: 'motor_pool',
+  tok: 'tok',
 } as const;

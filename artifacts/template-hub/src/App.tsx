@@ -467,7 +467,7 @@ function Workspace({ role, actualRole, demoRole, request, section, onDemoRoleCha
 }) {
   return <>
     {section === "cabinet" && <Cabinet role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />}
-    {section === "agro" && <AgroWorkspace role={role} />}
+    {section === "agro" && <AgroWorkspace role={role} demo={Boolean(demoRole)} />}
     {section === "engineering" && <EngineeringWorkspace role={role} demoActive={Boolean(demoRole)} />}
     {section === "economic" && <FinanceBlock role={role} actualRole={actualRole} demoRole={demoRole} />}
     {section === "employees" && <EmployeeDirectory canManage={["general_director", "chief_agronomist", "chief_engineer", "dispatcher"].includes(role) && !demoRole} />}

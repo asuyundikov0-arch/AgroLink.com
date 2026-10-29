@@ -35,6 +35,7 @@ export * from "./field-seasons";
 export * from "./field-operations";
 export * from "./field-operation-progress";
 export * from "./payroll-registers";
+export * from "./tok-payroll";
 export * from "./employees";
 export * from "./financial-entries";
 export * from "./chemical-warehouse";

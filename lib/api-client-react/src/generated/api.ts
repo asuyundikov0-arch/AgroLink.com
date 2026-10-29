@@ -122,6 +122,9 @@ import type {
   SparePartRequestItemInput,
   Template,
   TemplateInput,
+  TokPayrollCreateInput,
+  TokPayrollEntry,
+  TokPayrollUpdateInput,
   UnplannedFieldOperationInput
 } from './api.schemas';
 
@@ -151,6 +154,208 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getListTokPayrollEntriesUrl = () => {
+
+
+
+
+  return `/api/agro/tok-payroll/entries`
+}
+
+export const listTokPayrollEntries = async ( options?: Parameters<typeof customFetch>[1]): Promise<TokPayrollEntry[]> => {
+
+  return customFetch<TokPayrollEntry[]>(getListTokPayrollEntriesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListTokPayrollEntriesQueryKey = () => {
+    return [
+    `/api/agro/tok-payroll/entries`
+    ] as const;
+    }
+
+
+export const getListTokPayrollEntriesQueryOptions = <TData = Awaited<ReturnType<typeof listTokPayrollEntries>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTokPayrollEntries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListTokPayrollEntriesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTokPayrollEntries>>> = ({ signal }) => listTokPayrollEntries({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listTokPayrollEntries>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListTokPayrollEntriesQueryResult = NonNullable<Awaited<ReturnType<typeof listTokPayrollEntries>>>
+export type ListTokPayrollEntriesQueryError = ErrorType<unknown>
+
+
+
+export function useListTokPayrollEntries<TData = Awaited<ReturnType<typeof listTokPayrollEntries>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTokPayrollEntries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListTokPayrollEntriesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateTokPayrollEntryUrl = () => {
+
+
+
+
+  return `/api/agro/tok-payroll/entries`
+}
+
+export const createTokPayrollEntry = async (tokPayrollCreateInput: TokPayrollCreateInput, options?: Parameters<typeof customFetch>[1]): Promise<TokPayrollEntry> => {
+
+  return customFetch<TokPayrollEntry>(getCreateTokPayrollEntryUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(tokPayrollCreateInput)
+  }
+);}
+
+
+
+
+
+export const getCreateTokPayrollEntryMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTokPayrollEntry>>, TError,{data: BodyType<TokPayrollCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createTokPayrollEntry>>, TError,{data: BodyType<TokPayrollCreateInput>}, TContext> => {
+
+const mutationKey = ['createTokPayrollEntry'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createTokPayrollEntry>>, {data: BodyType<TokPayrollCreateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createTokPayrollEntry(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateTokPayrollEntryMutationResult = NonNullable<Awaited<ReturnType<typeof createTokPayrollEntry>>>
+    export type CreateTokPayrollEntryMutationBody = BodyType<TokPayrollCreateInput>
+    export type CreateTokPayrollEntryMutationError = ErrorType<unknown>
+
+    export const useCreateTokPayrollEntry = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTokPayrollEntry>>, TError,{data: BodyType<TokPayrollCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createTokPayrollEntry>>,
+        TError,
+        {data: BodyType<TokPayrollCreateInput>},
+        TContext
+      > => {
+      return useMutation(getCreateTokPayrollEntryMutationOptions(options));
+    }
+
+export const getUpdateTokPayrollEntryUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/tok-payroll/entries/${id}`
+}
+
+export const updateTokPayrollEntry = async (id: number,
+    tokPayrollUpdateInput: TokPayrollUpdateInput, options?: Parameters<typeof customFetch>[1]): Promise<TokPayrollEntry> => {
+
+  return customFetch<TokPayrollEntry>(getUpdateTokPayrollEntryUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(tokPayrollUpdateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateTokPayrollEntryMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTokPayrollEntry>>, TError,{id: number;data: BodyType<TokPayrollUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateTokPayrollEntry>>, TError,{id: number;data: BodyType<TokPayrollUpdateInput>}, TContext> => {
+
+const mutationKey = ['updateTokPayrollEntry'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateTokPayrollEntry>>, {id: number;data: BodyType<TokPayrollUpdateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateTokPayrollEntry(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateTokPayrollEntryMutationResult = NonNullable<Awaited<ReturnType<typeof updateTokPayrollEntry>>>
+    export type UpdateTokPayrollEntryMutationBody = BodyType<TokPayrollUpdateInput>
+    export type UpdateTokPayrollEntryMutationError = ErrorType<unknown>
+
+    export const useUpdateTokPayrollEntry = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTokPayrollEntry>>, TError,{id: number;data: BodyType<TokPayrollUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateTokPayrollEntry>>,
+        TError,
+        {id: number;data: BodyType<TokPayrollUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateTokPayrollEntryMutationOptions(options));
+    }
 
 export const getGetFuelWarehouseUrl = () => {
 
