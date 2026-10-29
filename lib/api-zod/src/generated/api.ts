@@ -641,6 +641,7 @@ export const CreateUnplannedFieldOperationResponse = zod.object({
   "reportDate": zod.string(),
   "cumulativeAreaHa": zod.number(),
   "dailyAreaHa": zod.number(),
+  "actualRatePerHa": zod.number().nullish(),
   "actualMechanic": zod.string(),
   "actualMechanicEmployeeId": zod.number().nullable(),
   "actualEquipment": zod.string(),
@@ -824,6 +825,7 @@ export const GetFieldDashboardResponse = zod.object({
   "reportDate": zod.string(),
   "cumulativeAreaHa": zod.number(),
   "dailyAreaHa": zod.number(),
+  "actualRatePerHa": zod.number().nullish(),
   "actualMechanic": zod.string(),
   "actualMechanicEmployeeId": zod.number().nullable(),
   "actualEquipment": zod.string(),
@@ -986,6 +988,7 @@ export const GetFieldDispatchQueueResponseItem = zod.object({
   "reportDate": zod.string(),
   "cumulativeAreaHa": zod.number(),
   "dailyAreaHa": zod.number(),
+  "actualRatePerHa": zod.number().nullish(),
   "actualMechanic": zod.string(),
   "actualMechanicEmployeeId": zod.number().nullable(),
   "actualEquipment": zod.string(),
@@ -1339,6 +1342,7 @@ export const CreateFieldOperationResponse = zod.object({
   "reportDate": zod.string(),
   "cumulativeAreaHa": zod.number(),
   "dailyAreaHa": zod.number(),
+  "actualRatePerHa": zod.number().nullish(),
   "actualMechanic": zod.string(),
   "actualMechanicEmployeeId": zod.number().nullable(),
   "actualEquipment": zod.string(),
@@ -1509,6 +1513,7 @@ export const UpdateFieldOperationResponse = zod.object({
   "reportDate": zod.string(),
   "cumulativeAreaHa": zod.number(),
   "dailyAreaHa": zod.number(),
+  "actualRatePerHa": zod.number().nullish(),
   "actualMechanic": zod.string(),
   "actualMechanicEmployeeId": zod.number().nullable(),
   "actualEquipment": zod.string(),
@@ -1638,6 +1643,7 @@ export const TransitionFieldOperationResponse = zod.object({
   "reportDate": zod.string(),
   "cumulativeAreaHa": zod.number(),
   "dailyAreaHa": zod.number(),
+  "actualRatePerHa": zod.number().nullish(),
   "actualMechanic": zod.string(),
   "actualMechanicEmployeeId": zod.number().nullable(),
   "actualEquipment": zod.string(),
@@ -1785,6 +1791,7 @@ export const UpdateFieldOperationActualResponse = zod.object({
   "reportDate": zod.string(),
   "cumulativeAreaHa": zod.number(),
   "dailyAreaHa": zod.number(),
+  "actualRatePerHa": zod.number().nullish(),
   "actualMechanic": zod.string(),
   "actualMechanicEmployeeId": zod.number().nullable(),
   "actualEquipment": zod.string(),
@@ -1919,6 +1926,7 @@ export const UpdateFieldDispatchRateResponse = zod.object({
   "reportDate": zod.string(),
   "cumulativeAreaHa": zod.number(),
   "dailyAreaHa": zod.number(),
+  "actualRatePerHa": zod.number().nullish(),
   "actualMechanic": zod.string(),
   "actualMechanicEmployeeId": zod.number().nullable(),
   "actualEquipment": zod.string(),
@@ -1970,6 +1978,10 @@ export const CreateFieldOperationProgressParams = zod.object({
 export const createFieldOperationProgressBodyCumulativeAreaHaMin = 0;
 export const createFieldOperationProgressBodyCumulativeAreaHaMax = 1000000;
 
+export const createFieldOperationProgressBodyActualRatePerHaMin = 0.01;
+export const createFieldOperationProgressBodyActualRatePerHaMax = 1000000000;
+export const createFieldOperationProgressBodyActualRatePerHaMultipleOf = 0.01;
+
 export const createFieldOperationProgressBodyActualMechanicMax = 200;
 
 
@@ -1985,6 +1997,7 @@ export const CreateFieldOperationProgressBody = zod.object({
   "operationVersion": zod.number().min(1),
   "reportDate": zod.string(),
   "cumulativeAreaHa": zod.number().min(createFieldOperationProgressBodyCumulativeAreaHaMin).max(createFieldOperationProgressBodyCumulativeAreaHaMax),
+  "actualRatePerHa": zod.number().min(createFieldOperationProgressBodyActualRatePerHaMin).max(createFieldOperationProgressBodyActualRatePerHaMax).multipleOf(createFieldOperationProgressBodyActualRatePerHaMultipleOf).optional(),
   "actualMechanic": zod.string().max(createFieldOperationProgressBodyActualMechanicMax),
   "actualMechanicEmployeeId": zod.number().min(1).nullable(),
   "actualEquipment": zod.string().max(createFieldOperationProgressBodyActualEquipmentMax),
@@ -2083,6 +2096,7 @@ export const CreateFieldOperationProgressResponse = zod.object({
   "reportDate": zod.string(),
   "cumulativeAreaHa": zod.number(),
   "dailyAreaHa": zod.number(),
+  "actualRatePerHa": zod.number().nullish(),
   "actualMechanic": zod.string(),
   "actualMechanicEmployeeId": zod.number().nullable(),
   "actualEquipment": zod.string(),
@@ -2114,6 +2128,10 @@ export const UpdateFieldOperationProgressParams = zod.object({
 export const updateFieldOperationProgressBodyOneCumulativeAreaHaMin = 0;
 export const updateFieldOperationProgressBodyOneCumulativeAreaHaMax = 1000000;
 
+export const updateFieldOperationProgressBodyOneActualRatePerHaMin = 0.01;
+export const updateFieldOperationProgressBodyOneActualRatePerHaMax = 1000000000;
+export const updateFieldOperationProgressBodyOneActualRatePerHaMultipleOf = 0.01;
+
 export const updateFieldOperationProgressBodyOneActualMechanicMax = 200;
 
 
@@ -2130,6 +2148,7 @@ export const UpdateFieldOperationProgressBody = zod.object({
   "operationVersion": zod.number().min(1),
   "reportDate": zod.string(),
   "cumulativeAreaHa": zod.number().min(updateFieldOperationProgressBodyOneCumulativeAreaHaMin).max(updateFieldOperationProgressBodyOneCumulativeAreaHaMax),
+  "actualRatePerHa": zod.number().min(updateFieldOperationProgressBodyOneActualRatePerHaMin).max(updateFieldOperationProgressBodyOneActualRatePerHaMax).multipleOf(updateFieldOperationProgressBodyOneActualRatePerHaMultipleOf).optional(),
   "actualMechanic": zod.string().max(updateFieldOperationProgressBodyOneActualMechanicMax),
   "actualMechanicEmployeeId": zod.number().min(1).nullable(),
   "actualEquipment": zod.string().max(updateFieldOperationProgressBodyOneActualEquipmentMax),
@@ -2230,6 +2249,7 @@ export const UpdateFieldOperationProgressResponse = zod.object({
   "reportDate": zod.string(),
   "cumulativeAreaHa": zod.number(),
   "dailyAreaHa": zod.number(),
+  "actualRatePerHa": zod.number().nullish(),
   "actualMechanic": zod.string(),
   "actualMechanicEmployeeId": zod.number().nullable(),
   "actualEquipment": zod.string(),
@@ -2358,6 +2378,7 @@ export const VoidFieldOperationResponse = zod.object({
   "reportDate": zod.string(),
   "cumulativeAreaHa": zod.number(),
   "dailyAreaHa": zod.number(),
+  "actualRatePerHa": zod.number().nullish(),
   "actualMechanic": zod.string(),
   "actualMechanicEmployeeId": zod.number().nullable(),
   "actualEquipment": zod.string(),

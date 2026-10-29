@@ -228,15 +228,13 @@ export async function calculateAutomaticAccruals(tx: Tx) {
 
   for (const row of fieldRows) {
     const operation = row.operation;
-    if (operation.actualRatePerHa === null) continue;
     const rate = Number(operation.actualRatePerHa);
-    if (!Number.isFinite(rate) || rate <= 0) continue;
     const workType = `Полевые работы · ${operation.actualOperationName || operation.name}`;
     const reports = progressByOperation.get(operation.id) ?? [];
-    const detailsFor = (areaAres: number, equipment: string) => [
+    const detailsFor = (areaAres: number, equipment: string, actualRate = rate) => [
       `Поле №${row.field.number}`,
       row.season.cropName,
-      `${(areaAres / 100).toLocaleString("ru-RU")} га × ${rate.toLocaleString("ru-RU")} ₸/га`,
+      `${(areaAres / 100).toLocaleString("ru-RU")} га × ${actualRate.toLocaleString("ru-RU")} ₸/га`,
       equipment ? `Техника ${equipment}` : "",
     ].filter(Boolean).join(" · ").slice(0, 500);
     if (reports.length > 0) {
@@ -245,6 +243,8 @@ export async function calculateAutomaticAccruals(tx: Tx) {
         const dailyAreaAres = report.cumulativeAreaAres - previousCumulativeAres;
         previousCumulativeAres = report.cumulativeAreaAres;
         if (dailyAreaAres <= 0) continue;
+        const dailyRate = Number(report.actualRatePerHa ?? operation.actualRatePerHa);
+        if (!Number.isFinite(dailyRate) || dailyRate <= 0) continue;
         addSource({
           workDate: report.reportDate,
           unit: row.field.unit,
@@ -253,11 +253,11 @@ export async function calculateAutomaticAccruals(tx: Tx) {
           employeeId: report.actualMechanicEmployeeId ?? (report.actualMechanic.trim() ? null : operation.actualMechanicEmployeeId),
           employeeName: report.actualMechanic || operation.actualMechanic,
           workType,
-          details: detailsFor(dailyAreaAres, report.actualEquipment || operation.actualEquipment),
-          amountKzt: cents((dailyAreaAres / 100) * rate),
+          details: detailsFor(dailyAreaAres, report.actualEquipment || operation.actualEquipment, dailyRate),
+          amountKzt: cents((dailyAreaAres / 100) * dailyRate),
         });
       }
-    } else if (operation.actualEnd && operation.actualAreaAres > 0) {
+    } else if (operation.actualEnd && operation.actualAreaAres > 0 && Number.isFinite(rate) && rate > 0) {
       addSource({
         workDate: operation.actualEnd,
         unit: row.field.unit,

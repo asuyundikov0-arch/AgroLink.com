@@ -217,7 +217,7 @@ export function DailyHistory({ op, onEdit, lockedThrough }: { op: FieldOperation
   return <ul className="divide-y divide-border/70" data-testid={`list-daily-${op.id}`}>{rows.map((r) => {
     const locked = !!lockedThrough && r.reportDate.slice(0, 10) <= lockedThrough;
     return <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5 text-[10.5px]" data-testid={`row-daily-${r.id}`}>
-      <span><b className="font-mono">{dateFmt(r.reportDate)}</b> · +{ha(r.dailyAreaHa)} · итого {ha(r.cumulativeAreaHa)}<span className="block text-muted-foreground">{r.actualMechanic} · {r.actualEquipment}{r.actualImplement ? ` · ${r.actualImplement}` : ""}{r.notes ? ` · ${r.notes}` : ""}</span></span>
+      <span><b className="font-mono">{dateFmt(r.reportDate)}</b> · +{ha(r.dailyAreaHa)} · итого {ha(r.cumulativeAreaHa)}{r.actualRatePerHa != null && <span className="block font-mono">Ставка {r.actualRatePerHa.toLocaleString("ru-RU")} ₸/га · сумма {(Math.round(r.dailyAreaHa * r.actualRatePerHa * 100) / 100).toLocaleString("ru-RU")} ₸</span>}<span className="block text-muted-foreground">{r.actualMechanic} · {r.actualEquipment}{r.actualImplement ? ` · ${r.actualImplement}` : ""}{r.notes ? ` · ${r.notes}` : ""}</span></span>
       {locked && <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground" title="Площадь закрыта: расход химии подтверждён складом"><Lock size={11} />химия подтверждена</span>}
       {onEdit && (<button type="button" className="button button-secondary !min-h-[26px] !px-2 text-[10px]" onClick={() => onEdit(r)} data-testid={`button-daily-edit-${r.id}`}>{locked ? "Примечание" : "Изменить"}</button>)}
     </li>;
@@ -234,12 +234,16 @@ export function DispatcherDailyForm({ op, report, title, fieldLabel, fuelCost, t
   const reports = useMemo(() => [...op.progressReports].sort((a, b) => a.reportDate.localeCompare(b.reportDate)), [op.progressReports]);
   const [date, setDate] = useState(report?.reportDate.slice(0, 10) ?? today);
   const [daily, setDaily] = useState(report ? haStr(report.dailyAreaHa) : "");
+  const [rate, setRate] = useState(String(report?.actualRatePerHa ?? op.actualRatePerHa ?? ""));
   const [notes, setNotes] = useState(report?.notes ?? "");
   const [errs, setErrs] = useState<Record<string, string>>({});
   const existing = report ?? reports.find((r) => r.reportDate.slice(0, 10) === date) ?? null;
   const prev = reports.filter((r) => r.reportDate.slice(0, 10) < date).at(-1);
   const next = reports.find((r) => r.reportDate.slice(0, 10) > date);
   const d = daily.trim() === "" ? null : parseHa(daily);
+  const actualRate = Number(rate.trim().replace(",", "."));
+  const validRate = rate.trim() !== "" && Number.isFinite(actualRate) && actualRate > 0 && actualRate <= 1_000_000_000
+    && Math.abs(actualRate * 100 - Math.round(actualRate * 100)) < 0.00001;
   const cumulative = d === null ? null : Math.round(((prev?.cumulativeAreaHa ?? 0) + d) * 100) / 100;
   const lastChem = latestChemDate(flow.data?.consumptions ?? [], op.id);
   const chemLocked = !!existing && !!lastChem && existing.reportDate.slice(0, 10) <= lastChem;
@@ -259,10 +263,12 @@ export function DispatcherDailyForm({ op, report, title, fieldLabel, fuelCost, t
     else if (cumulative !== null && next && cumulative > next.cumulativeAreaHa) er.daily = `Итог не может превышать следующую запись (${ha(next.cumulativeAreaHa)} на ${dateFmt(next.reportDate)})`;
     if (!report && lastChem && date <= lastChem) er.date = `Расход химии подтверждён по ${dateFmt(lastChem)} — новые записи только позже`;
     if (chemLocked && d !== null && existing && d !== existing.dailyAreaHa) er.daily = "Расход химии за день подтверждён — площадь не меняется";
+    if (!validRate) er.rate = "Укажите ставку больше нуля с точностью до 0,01 ₸/га";
     setErrs(er); e.clear();
     if (Object.keys(er).length || cumulative === null) return;
     const base = {
       operationVersion: op.version, reportDate: date, cumulativeAreaHa: cumulative,
+      actualRatePerHa: actualRate,
       actualMechanic: existing?.actualMechanic ?? op.actualMechanic, actualMechanicEmployeeId: (existing ? existing.actualMechanicEmployeeId ?? null : op.actualMechanicEmployeeId ?? null),
       actualEquipment: existing?.actualEquipment ?? op.actualEquipment, actualImplement: existing?.actualImplement ?? op.actualImplement, notes: notes.trim(),
     };
@@ -292,12 +298,17 @@ export function DispatcherDailyForm({ op, report, title, fieldLabel, fuelCost, t
           <Field label="Сотрудник" htmlFor="dd-employee"><input id="dd-employee" className="text-input" readOnly value={existing?.actualMechanic ?? op.actualMechanic} /></Field>
           <Field label="Техника" htmlFor="dd-equipment"><input id="dd-equipment" className="text-input" readOnly value={existing?.actualEquipment ?? op.actualEquipment} /></Field>
           <Field label="Агрегат" htmlFor="dd-implement"><input id="dd-implement" className="text-input" readOnly value={existing?.actualImplement ?? op.actualImplement} /></Field>
-          <ActualRateField rate={op.actualRatePerHa} prefix="dispatch-daily" />
+          <Field label="Фактическая расценка, ₸/га *" error={errs.rate} hint="Ставка сохраняется для этого дня и не меняет другие дневные записи." htmlFor="dispatch-daily-rate">
+            <input id="dispatch-daily-rate" className="text-input font-mono" inputMode="decimal" value={rate} onChange={(ev) => setRate(ev.target.value)} data-testid="input-dispatch-daily-actual-rate" />
+          </Field>
+          <Field label="Сумма за день, ₸" htmlFor="dispatch-daily-pay">
+            <input id="dispatch-daily-pay" className="text-input font-mono" readOnly value={validRate && d !== null ? (Math.round(d * actualRate * 100) / 100).toLocaleString("ru-RU") : "—"} data-testid="input-dispatch-daily-pay" />
+          </Field>
           <ActualFuelField amount={fuelCost} planned={op.plannedFuelCost} prefix="dispatch-daily" />
           <Field label="Дата *" error={errs.date} htmlFor="dd-date"><input id="dd-date" type="date" min={op.actualStart?.slice(0, 10)} max={today} className="text-input" value={date} disabled={!!report} onChange={(ev) => setDate(ev.target.value)} data-testid="input-dispatch-daily-date" /></Field>
           <Field label="Примечание" htmlFor="dd-notes" wide><input id="dd-notes" className="text-input" maxLength={3000} value={notes} onChange={(ev) => setNotes(ev.target.value)} data-testid="input-dispatch-daily-notes" /></Field>
         </div>
-        {chemLocked && <p className="text-[10.5px] text-muted-foreground"><Lock size={11} className="mr-1 inline" />Расход химии подтверждён складом по {dateFmt(lastChem)} включительно — можно изменить только примечание.</p>}
+        {chemLocked && <p className="text-[10.5px] text-muted-foreground"><Lock size={11} className="mr-1 inline" />Расход химии подтверждён складом по {dateFmt(lastChem)} включительно — площадь не меняется. Ставку и примечание можно исправить до отправки наряда.</p>}
         <section className="rounded-lg border border-border p-3"><h3 className="mb-1 text-xs font-bold">История записей</h3><DailyHistory op={op} /></section>
       </Drawer>
     </form>

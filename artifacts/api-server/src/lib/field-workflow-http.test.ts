@@ -10,10 +10,12 @@ import {
   fieldOperationProgressTable, fleetEquipmentTable, employeesTable,
   chemicalInvoicesTable, chemicalBatchesTable, chemicalRequestsTable, chemicalIssuesTable,
   chemicalContainerReturnsTable, chemicalConsumptionsTable,
+  payrollRegistersTable, payrollRegisterItemsTable,
 } from "@workspace/db";
 import fieldsRouter from "../routes/agro-fields";
 import chemicalsRouter from "../routes/chemicals";
 import { grainBusinessDate } from "./grain-ledger";
+import { calculateAutomaticAccruals } from "../routes/payroll-registers";
 
 after(() => pool.end());
 
@@ -122,15 +124,29 @@ test("HTTP controllers: planned/unplanned approval, dispatcher-only hectares, ta
     }, 201);
     const daily = (date: string, area: number) => ({
       operationVersion: op.version, reportDate: date, cumulativeAreaHa: area,
+      actualRatePerHa: 1100,
       // Spoofed input must not override the agronomist's current assignments.
       actualMechanic: employees[1].fullName, actualMechanicEmployeeId: employeeIds[1],
       actualEquipment: label(1), actualImplement: "Подмена", notes: "",
     });
     await call("agronomist", "POST", `/agro/fields/operations/${op.id}/progress`, daily(yesterday, 100), 403);
+    for (const invalidRate of [0, -1, 1.001, 1_000_000_001]) {
+      await call("dispatcher", "POST", `/agro/fields/operations/${op.id}/progress`, { ...daily(yesterday, 100), actualRatePerHa: invalidRate }, 400);
+    }
     op = await call("dispatcher", "POST", `/agro/fields/operations/${op.id}/progress`, daily(yesterday, 100), 201);
+    assert.equal(op.progressReports[0].actualRatePerHa, 1100);
+    assert.equal(op.plannedRatePerHa, plan.plannedRatePerHa);
+    const reload = await call("dispatcher", "GET", "/agro/fields/dispatch");
+    assert.equal(reload.find((row: any) => row.id === op.id).operation.progressReports[0].actualRatePerHa, 1100);
     assert.equal(op.progressReports[0].actualMechanicEmployeeId, employeeIds[0]);
     op = await call("agronomist", "PATCH", `/agro/fields/operations/${op.id}/actual`, actual(op, 1));
-    op = await call("dispatcher", "POST", `/agro/fields/operations/${op.id}/progress`, daily(today, 120), 201);
+    op = await call("dispatcher", "POST", `/agro/fields/operations/${op.id}/progress`, { ...daily(today, 120), actualRatePerHa: 1250 }, 201);
+    assert.equal(op.progressReports[0].actualRatePerHa, 1100, "Another day's rate must not change");
+    assert.equal(op.progressReports[1].actualRatePerHa, 1250);
+    const accruals = await db.transaction(tx => calculateAutomaticAccruals(tx));
+    const lines = accruals.flatMap(day => day.entries).filter(line =>
+      line.sourceType === "field_progress" && op.progressReports.some((r: any) => r.id === line.sourceId));
+    assert.deepEqual(lines.map(line => line.amountKzt).sort((a, b) => a - b), [25000, 110000]);
     assert.equal(op.progressReports[0].actualMechanicEmployeeId, employeeIds[0]);
     assert.equal(op.progressReports[1].actualMechanicEmployeeId, employeeIds[1]);
     assert.equal(op.progressReports[1].actualImplement, "Агрегат 2");
@@ -195,8 +211,35 @@ test("HTTP controllers: planned/unplanned approval, dispatcher-only hectares, ta
     });
     unplanned = await call("agronomist", "PATCH", `/agro/fields/operations/${unplanned.id}/actual`, actual(unplanned));
     assert.equal(unplanned.status, "in_progress");
+    unplanned = await call("dispatcher", "POST", `/agro/fields/operations/${unplanned.id}/progress`, {
+      ...daily(yesterday, 20), operationVersion: unplanned.version, actualRatePerHa: 500,
+    }, 201);
+    const savedDay = unplanned.progressReports[0];
+    const [register] = await db.insert(payrollRegistersTable).values({
+      workDate: yesterday, unit: key, status: "awaiting_hr", totalAmount: "10000.00",
+      createdByUserId: key, createdByName: key,
+    }).returning();
+    await db.insert(payrollRegisterItemsTable).values({
+      registerId: register.id, employeeId: employeeIds[0], employeeName: employees[0].fullName,
+      workType: "Полевые работы", amountKzt: "10000.00", sourceType: "field_progress", sourceId: savedDay.id,
+    });
+    await call("dispatcher", "PATCH", `/agro/fields/operations/${unplanned.id}/progress/${savedDay.id}`, {
+      ...daily(yesterday, 20), operationVersion: unplanned.version, version: savedDay.version, actualRatePerHa: 600,
+    }, 409);
+    unplanned = await call("agronomist", "PATCH", `/agro/fields/operations/${unplanned.id}/actual`, actual(unplanned, 1));
+    unplanned = await call("dispatcher", "POST", `/agro/fields/operations/${unplanned.id}/progress`, {
+      ...daily(today, 40), operationVersion: unplanned.version, actualRatePerHa: 600,
+    }, 201);
+    assert.equal(unplanned.progressReports[0].actualRatePerHa, 500);
+    assert.equal(unplanned.progressReports[1].actualRatePerHa, 600);
+    const nextAccruals = await db.transaction(tx => calculateAutomaticAccruals(tx));
+    const nextLine = nextAccruals.flatMap(day => day.entries).find(line =>
+      line.sourceType === "field_progress" && line.sourceId === unplanned.progressReports[1].id);
+    assert.equal(nextLine?.amountKzt, 12000);
+    assert.equal(nextLine?.employeeId, employeeIds[1]);
   } finally {
     await new Promise<void>((resolve, reject) => server.close(err => err ? reject(err) : resolve()));
+    await db.delete(payrollRegistersTable).where(eq(payrollRegistersTable.createdByUserId, key));
     if (seasonId) {
       const ops = await db.select({ id: fieldOperationsTable.id }).from(fieldOperationsTable).where(eq(fieldOperationsTable.seasonId, seasonId));
       const ids = ops.map(o => o.id);

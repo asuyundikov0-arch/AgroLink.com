@@ -27,3 +27,21 @@ export async function fieldPayrollWasSubmitted(tx: Tx, operationId: number) {
     )).limit(1);
   return Boolean(item);
 }
+
+/** Changing an earlier cumulative total would also change a later saved wage line. */
+export async function fieldPayrollLockedThrough(tx: Tx, operationId: number): Promise<string | null> {
+  const rows = await tx.select({
+    sourceType: payrollRegisterItemsTable.sourceType,
+    reportDate: fieldOperationProgressTable.reportDate,
+  }).from(payrollRegisterItemsTable)
+    .leftJoin(fieldOperationProgressTable, and(
+      eq(payrollRegisterItemsTable.sourceType, "field_progress"),
+      eq(payrollRegisterItemsTable.sourceId, fieldOperationProgressTable.id),
+    )).where(or(
+      and(eq(payrollRegisterItemsTable.sourceType, "field_operation"), eq(payrollRegisterItemsTable.sourceId, operationId)),
+      eq(fieldOperationProgressTable.operationId, operationId),
+    ));
+  if (rows.some(row => row.sourceType === "field_operation")) return "9999-12-31";
+  return rows.reduce<string | null>((latest, row) =>
+    row.reportDate && (!latest || row.reportDate > latest) ? row.reportDate : latest, null);
+}

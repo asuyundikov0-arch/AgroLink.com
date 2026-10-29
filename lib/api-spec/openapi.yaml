@@ -2202,6 +2202,7 @@ components:
         operationVersion: { type: number, minimum: 1 }
         reportDate: { type: string }
         cumulativeAreaHa: { type: number, minimum: 0, maximum: 1000000 }
+        actualRatePerHa: { type: number, minimum: 0.01, maximum: 1000000000, multipleOf: 0.01 }
         actualMechanic: { type: string, maxLength: 200 }
         actualMechanicEmployeeId: { type: ["number", "null"], minimum: 1 }
         actualEquipment: { type: string, maxLength: 200 }
@@ -2222,6 +2223,7 @@ components:
         reportDate: { type: string }
         cumulativeAreaHa: { type: number }
         dailyAreaHa: { type: number }
+        actualRatePerHa: { type: ["number", "null"] }
         actualMechanic: { type: string }
         actualMechanicEmployeeId: { type: ["number", "null"] }
         actualEquipment: { type: string }

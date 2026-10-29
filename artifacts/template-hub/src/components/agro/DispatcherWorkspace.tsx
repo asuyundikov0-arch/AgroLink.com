@@ -44,7 +44,10 @@ export default function DispatcherWorkspace() {
   const unratedTrips = grainTrips.filter((trip) => trip.rateKzt === null).length;
   const completedFields = fieldOperations.filter((operation) => !operation.operation || !!operation.operation.actualEnd || !!operation.actualEnd);
   const activeFields = fieldOperations.filter((operation) => operation.operation && !operation.operation.actualEnd && operation.operation.actualStart).length;
-  const unratedFields = completedFields.filter((operation) => operation.actualRatePerHa === null).length;
+  const unratedFields = completedFields.filter((item) => {
+    const reports = item.operation?.progressReports ?? [];
+    return reports.length ? reports.some(r => r.actualRatePerHa == null && item.actualRatePerHa === null) : item.actualRatePerHa === null;
+  }).length;
   const [view, setView] = useState<View>("grain");
   const [notice, setNotice] = useState("");
 
@@ -158,7 +161,12 @@ function FieldOperationRow({ operation, onSaved }: { operation: FieldDispatchIte
   const [error, setError] = useState("");
   useEffect(() => setRate(operation.actualRatePerHa === null ? "" : String(operation.actualRatePerHa)), [operation.id, operation.actualRatePerHa]);
   const parsedRate = parseRate(rate);
-  const amount = parsedRate === null ? null : Math.round((operation.actualAreaHa * parsedRate + Number.EPSILON) * 100) / 100;
+  const reports = operation.operation?.progressReports ?? [];
+  const dailyRated = reports.length > 0 && reports.every(r => r.actualRatePerHa != null);
+  const amount = reports.length > 0
+    ? reports.some(r => r.actualRatePerHa == null && parsedRate === null) ? null
+      : reports.reduce((total, r) => total + Math.round(r.dailyAreaHa * (r.actualRatePerHa ?? parsedRate ?? 0) * 100), 0) / 100
+    : parsedRate === null ? null : Math.round((operation.actualAreaHa * parsedRate + Number.EPSILON) * 100) / 100;
   const save = async () => {
     if (parsedRate === null) { setError("Укажите положительную расценку за гектар."); return; }
     setError("");
@@ -180,7 +188,7 @@ function FieldOperationRow({ operation, onSaved }: { operation: FieldDispatchIte
         <p className="mt-1 text-xs font-semibold">{operation.actualMechanic} · {operation.actualEquipment}{operation.actualImplement ? ` · ${operation.actualImplement}` : ""}</p>
         {operation.actualRateSetBy && <p className="mt-1 text-[10px] text-muted-foreground">Ставку внёс {operation.actualRateSetBy}{operation.actualRateSetAt ? ` · ${dateFmt(operation.actualRateSetAt)}` : ""}</p>}
       </div>
-      <RateEditor
+      {dailyRated ? <div className="text-right text-xs"><p className="text-muted-foreground">Сумма по дневным ставкам</p><strong className="font-mono">{money(amount ?? 0)}</strong></div> : <RateEditor
         value={rate}
         onChange={setRate}
         amount={amount}
@@ -189,7 +197,7 @@ function FieldOperationRow({ operation, onSaved }: { operation: FieldDispatchIte
         error={error}
         onSave={() => void save()}
         testId={`dispatch-field-rate-${operation.id}`}
-      />
+      />}
     </li>
   );
 }

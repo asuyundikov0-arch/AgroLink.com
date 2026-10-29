@@ -11,7 +11,7 @@ import type { RoleAccess } from "../middlewares/auth";
 import { chemicalCheck as check, scaledChemical } from "./chemical-stock";
 import { grainBusinessDate, validGrainDate } from "./grain-ledger";
 import { isChemicalOperation, requestChemical } from "./chemical-workflow";
-import { fieldPayrollWasSubmitted } from "./payroll-source-guard";
+import { fieldPayrollLockedThrough } from "./payroll-source-guard";
 import { toAreaAres } from "./field-planning";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -44,7 +44,7 @@ export async function startOrChangeFieldWork(tx: Tx, old: Operation, input: Fiel
   check(!old.voidedAt && !old.actualEnd && !old.completionRequestedOn,
     "Операция завершена, отменена или ожидает подтверждения завершения.", 409);
   check(old.approvalStatus === "approved", "Внеплановую работу сначала согласовывает главный агроном.", 409);
-  check(!await fieldPayrollWasSubmitted(tx, old.id), "Работа уже включена в отправленный наряд.", 409);
+  check(await fieldPayrollLockedThrough(tx, old.id) !== "9999-12-31", "Работа уже включена в отправленный наряд целиком.", 409);
   check(input.actualEnd === null && toAreaAres(input.actualAreaHa, true) === old.actualAreaAres,
     "Гектары вносит только диспетчер. Завершение выполняется через согласование.", 403);
   check(input.actualOperationName.trim() === (old.actualOperationName || old.name),

@@ -740,6 +740,11 @@ export interface FieldProgressInput {
      * @maximum 1000000
      */
   cumulativeAreaHa: number;
+  /**
+     * @minimum 0.01
+     * @maximum 1000000000
+     */
+  actualRatePerHa?: number;
   /** @maxLength 200 */
   actualMechanic: string;
   /**
@@ -765,6 +770,8 @@ export interface FieldProgressReport {
   reportDate: string;
   cumulativeAreaHa: number;
   dailyAreaHa: number;
+  /** @nullable */
+  actualRatePerHa?: number | null;
   actualMechanic: string;
   /** @nullable */
   actualMechanicEmployeeId: number | null;

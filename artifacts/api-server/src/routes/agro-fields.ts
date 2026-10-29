@@ -12,7 +12,7 @@ import { activityTable, agroFieldsTable, employeesTable, fleetEquipmentTable, fi
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { grainBusinessDate, validGrainDate } from "../lib/grain-ledger";
 import { fieldNumberKey, fieldOperationState, progressDeltaAres, toAreaAres, validateFieldPlan, validateFieldProgress } from "../lib/field-planning";
-import { fieldPayrollWasSubmitted, lockPayrollSources } from "../lib/payroll-source-guard";
+import { fieldPayrollLockedThrough, fieldPayrollWasSubmitted, lockPayrollSources } from "../lib/payroll-source-guard";
 import { fieldOperationSuggestions } from "../lib/field-operation-catalog";
 import { summarizeDailySeeding } from "../lib/daily-seeding";
 import { isChemicalOperation, chemicalRequestsExist, chemicalIssuedForOperation, lastChemicalConfirmation } from "../lib/chemical-workflow";
@@ -94,6 +94,7 @@ function progressReportsJson(rows: (typeof fieldOperationProgressTable.$inferSel
     previousAres = row.cumulativeAreaAres;
     return {
       id: row.id, reportDate: row.reportDate, cumulativeAreaHa: row.cumulativeAreaAres / 100,
+      actualRatePerHa: row.actualRatePerHa === null ? null : Number(row.actualRatePerHa),
       dailyAreaHa: dailyAres / 100, actualMechanic: row.actualMechanic, actualMechanicEmployeeId: row.actualMechanicEmployeeId, actualEquipment: row.actualEquipment,
       actualImplement: row.actualImplement, notes: row.notes, version: row.version, updatedBy: row.updatedBy,
       updatedAt: row.updatedAt.toISOString(),
@@ -486,7 +487,9 @@ router.post("/agro/fields/operations/:id/progress", roles(["dispatcher", "genera
     const old = await getOperation(tx, operationId);
     revision(old, input.operationVersion);
     requireValue(!old.voidedAt && !old.actualEnd && !old.completionRequestedOn, "Отчёт недоступен: работа отменена, завершена или ожидает подтверждения завершения.", 409);
-    requireValue(!await fieldPayrollWasSubmitted(tx, old.id), "Начисления по операции уже включены в отправленный наряд. Изменять дневные отчёты нельзя.", 409);
+    const payrollThrough = await fieldPayrollLockedThrough(tx, old.id);
+    requireValue(!payrollThrough || input.reportDate > payrollThrough,
+      "За этот или последующий день уже сохранён зарплатный наряд. Можно добавить факт только за более поздний день.", 409);
     requireValue(old.actualStart !== null, "Сначала зафиксируйте начало операции.", 409);
     const confirmedThrough = await lastChemicalConfirmation(tx, old.id);
     requireValue(!confirmedThrough || input.reportDate > confirmedThrough,
@@ -513,6 +516,7 @@ router.post("/agro/fields/operations/:id/progress", roles(["dispatcher", "genera
     requireValue(!progressError, progressError ?? "");
     await tx.insert(fieldOperationProgressTable).values({
       operationId: old.id, reportDate: input.reportDate, cumulativeAreaAres: areaAres!,
+      actualRatePerHa: input.actualRatePerHa === undefined ? null : input.actualRatePerHa.toFixed(2),
       actualMechanic: old.actualMechanic, actualMechanicEmployeeId: old.actualMechanicEmployeeId, actualEquipment: old.actualEquipment,
       actualImplement: old.actualImplement, notes: input.notes.trim(), updatedBy: by,
     });
@@ -540,7 +544,9 @@ router.patch("/agro/fields/operations/:id/progress/:progressId", roles(["dispatc
     const old = await getOperation(tx, operationId);
     revision(old, input.operationVersion);
     requireValue(!old.voidedAt && !old.actualEnd && !old.completionRequestedOn, "Отчёт недоступен: работа отменена, завершена или ожидает подтверждения завершения.", 409);
-    requireValue(!await fieldPayrollWasSubmitted(tx, old.id), "Начисления по операции уже включены в отправленный наряд. Изменять дневные отчёты нельзя.", 409);
+    const payrollThrough = await fieldPayrollLockedThrough(tx, old.id);
+    requireValue(!payrollThrough || input.reportDate > payrollThrough,
+      "За этот или последующий день уже сохранён зарплатный наряд. Ставка и площадь этой записи защищены от изменений.", 409);
     const [report] = await tx.select().from(fieldOperationProgressTable).where(and(
       eq(fieldOperationProgressTable.id, progressId),
       eq(fieldOperationProgressTable.operationId, old.id),
@@ -567,6 +573,7 @@ router.patch("/agro/fields/operations/:id/progress/:progressId", roles(["dispatc
     requireValue(!progressError, progressError ?? "");
     await tx.update(fieldOperationProgressTable).set({
       cumulativeAreaAres: areaAres!,
+      actualRatePerHa: input.actualRatePerHa === undefined ? report.actualRatePerHa : input.actualRatePerHa.toFixed(2),
       notes: input.notes.trim(), ...stamp(by, report.version),
     }).where(and(eq(fieldOperationProgressTable.id, report.id), eq(fieldOperationProgressTable.version, report.version)));
     const reports = await tx.select().from(fieldOperationProgressTable)
