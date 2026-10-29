@@ -10,12 +10,13 @@ import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { calculateGrainLedger, grainBusinessDate, grainNameKey, toGrainKg, validGrainDate } from "../lib/grain-ledger";
 import { processingWeights } from "../lib/grain-processing";
 import { grainTripWasSubmitted, lockPayrollSources } from "../lib/payroll-source-guard";
+import { transportPay } from "../lib/transport-pay";
 
 const router: IRouter = Router();
 const readers = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "general_director"];
 const writers = ["weigher", "general_director"];
 const reviewers = ["grain_manager", "general_director"];
-const transportOperations = new Set(["receipt", "transfer", "drying", "cleaning"]);
+const transportOperations = new Set(["receipt", "transfer", "sale", "drying", "cleaning"]);
 function roles(allowed: string[]): RequestHandler {
   return (_req, res, next) => {
     if (!allowed.includes(res.locals.access.role)) { res.status(403).json({ error: "Недостаточно прав для работы с балансом зерна." }); return; }
@@ -34,6 +35,7 @@ const movementJson = (row: typeof grainMovementsTable.$inferSelect) => {
   const { quantityKg, outputKg, deadWasteKg, grainWasteKg, moistureLossKg, transportRate, createdByUserId: _user, ...rest } = row;
   return CreateGrainMovementResponse.parse({
     ...rest, quantityTons: quantityKg / 1000, outputTons: outputKg / 1000, deadWasteTons: deadWasteKg / 1000,
+    distanceKm: Number(row.distanceKm),
     grainWasteTons: grainWasteKg / 1000, moistureLossTons: moistureLossKg / 1000,
     transportRate: transportRate === null ? null : Number(transportRate),
     transportRateSetAt: row.transportRateSetAt?.toISOString() ?? null,
@@ -49,10 +51,16 @@ async function transportTrips() {
   ]);
   const cropById = new Map(crops.map((crop) => [crop.id, crop.name]));
   const locationById = new Map(locations.map((location) => [location.id, location.name]));
-  return movements.filter((row) => transportOperations.has(row.operation) && !row.voidedAt).map((row) => ({
+  return movements.filter((row) => transportOperations.has(row.operation) && !row.voidedAt
+    && (row.operation !== "sale" || !!row.truckNumber || row.driverEmployeeId !== null)).map((row) => ({
     id: row.id,
     unit: row.unit,
-    operation: row.operation as "receipt" | "transfer" | "drying" | "cleaning",
+    operation: row.operation as "receipt" | "transfer" | "sale" | "drying" | "cleaning",
+    transportPayBasis: row.transportPayBasis as "per_trip" | "ton_km",
+    distanceKm: Number(row.distanceKm),
+    tonKm: Number((row.quantityKg * Number(row.distanceKm) / 1000).toFixed(6)),
+    tariffPerTonKm: row.transportTariff === null ? null : Number(row.transportTariff),
+    version: row.transportVersion,
     cropName: cropById.get(row.cropId) ?? "—",
     occurredOn: row.occurredOn,
     quantityTons: row.quantityKg / 1000,
@@ -109,11 +117,11 @@ router.get("/agro/grain", roles(readers), safe(async (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.json(GetGrainDashboardResponse.parse(snapshot));
 }));
-router.get("/agro/grain/transport-trips", roles(["dispatcher", "general_director"]), safe(async (_req, res) => {
+router.get("/agro/grain/transport-trips", roles(["motor_pool_manager", "general_director"]), safe(async (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.json(GetGrainTransportTripsResponse.parse(await transportTrips()));
 }));
-router.patch("/agro/grain/transport-trips/:id/rate", roles(["dispatcher", "general_director"]), safe(async (req, res) => {
+router.patch("/agro/grain/transport-trips/:id/rate", roles(["motor_pool_manager", "general_director"]), safe(async (req, res) => {
   const params = UpdateGrainTransportRateParams.safeParse(req.params);
   const input = UpdateGrainTransportRateBody.safeParse(req.body);
   if (!params.success || !input.success || !validId(params.data.id)) {
@@ -125,6 +133,10 @@ router.patch("/agro/grain/transport-trips/:id/rate", roles(["dispatcher", "gener
     const [row] = await tx.select().from(grainMovementsTable)
       .where(eq(grainMovementsTable.id, params.data.id)).for("update");
     if (!row) return { error: "Рейс не найден.", status: 404 } as const;
+    if (row.approvalStatus !== "approved") return { error: "Сначала заведующий током должен согласовать движение зерна.", status: 409 } as const;
+    if (input.data.version !== undefined && (!Number.isSafeInteger(input.data.version) || input.data.version !== row.transportVersion)) {
+      return { error: "Расценка рейса уже изменена. Обновите данные.", status: 409 } as const;
+    }
     if (!transportOperations.has(row.operation) || row.voidedAt) {
       return { error: "Расценку можно внести только для действующего рейса по зерну.", status: 409 } as const;
     }
@@ -132,14 +144,19 @@ router.patch("/agro/grain/transport-trips/:id/rate", roles(["dispatcher", "gener
       return { error: "Начисление за рейс уже включено в отправленный наряд. Изменять расценку нельзя.", status: 409 } as const;
     }
     const rateSetAt = new Date();
+    let amount: string;
+    try { amount = transportPay(row.transportPayBasis, row.quantityKg, Number(row.distanceKm), input.data); }
+    catch (err) { return { error: (err as Error).message, status: 400 } as const; }
     const [updated] = await tx.update(grainMovementsTable).set({
-      transportRate: input.data.rateKzt.toFixed(2),
+      transportRate: amount,
+      transportTariff: row.transportPayBasis === "ton_km" ? input.data.tariffPerTonKm!.toFixed(4) : null,
+      transportVersion: row.transportVersion + 1,
       transportRateSetBy: `${access.displayName} · ${access.role}`,
       transportRateSetAt: rateSetAt,
     }).where(eq(grainMovementsTable.id, row.id)).returning();
     await tx.insert(activityTable).values({
       action: "Внесена расценка за перевозку зерна",
-      templateName: `Рейс №${row.id} · КамАЗ ${row.truckNumber} · ${input.data.rateKzt.toLocaleString("ru-RU")} ₸`,
+      templateName: `Рейс №${row.id} · КамАЗ ${row.truckNumber} · ${Number(amount).toLocaleString("ru-RU")} ₸`,
       userName: `${access.displayName} · ${access.role}`,
     });
     return { row: updated };
@@ -179,7 +196,14 @@ function validateInput(input: GrainMovementInput): string | null {
   if (!validId(input.cropId) || [input.fromLocationId, input.toLocationId, input.wasteToLocationId].some((id) => id != null && !validId(id))) return "Выберите продукцию и корректные места хранения.";
   if (toGrainKg(input.quantityTons) === null) return "Укажите положительный вес в тоннах с точностью до 0,001 т, не более 1 000 000 т за операцию.";
   if (!validGrainDate(input.occurredOn) || input.occurredOn > grainBusinessDate()) return "Укажите корректную дату, не позднее сегодняшней.";
-  if (transportOperations.has(input.operation) && (!input.truckNumber?.trim() || !validId(input.driverEmployeeId ?? 0))) return "Укажите номер КамАЗа и выберите водителя из справочника сотрудников.";
+  const requiresTransport = transportOperations.has(input.operation)
+    && (input.operation !== "sale" || !!input.truckNumber?.trim() || input.driverEmployeeId != null || input.transportPayBasis === "ton_km");
+  if (requiresTransport && (!input.truckNumber?.trim() || !validId(input.driverEmployeeId ?? 0))) return "Укажите номер КамАЗа и выберите водителя из справочника сотрудников.";
+  const distance = input.distanceKm ?? 0;
+  if (input.transportPayBasis === "ton_km" && (!requiresTransport || !(distance > 0)
+    || Math.abs(distance * 1000 - Math.round(distance * 1000)) > 0.00001)) {
+    return "Для оплаты за тонно-километры укажите расстояние больше нуля с точностью до 0,001 км.";
+  }
   if ((input.truckNumber?.length ?? 0) > 40 || (input.driverName?.length ?? 0) > 200) return "Проверьте длину номера КамАЗа и имени водителя.";
   if (input.operation === "opening" || input.operation === "receipt") {
     if (input.fromLocationId !== null || input.toLocationId === null) return "Для прихода выберите только место размещения.";
@@ -205,10 +229,11 @@ router.post("/agro/grain/movements", write, safe(async (req, res) => {
     // One lock serializes balance-sensitive writes including backdated entries/cancellations.
     await tx.execute(sql`select pg_advisory_xact_lock(718392005)`);
     const [existing] = await tx.select().from(grainMovementsTable).where(eq(grainMovementsTable.requestId, input.requestId));
-    const [driver] = transportOperations.has(input.operation)
+    const transported = transportOperations.has(input.operation) && (input.operation !== "sale" || !!input.driverEmployeeId || !!input.truckNumber?.trim());
+    const [driver] = transported
       ? await tx.select().from(employeesTable).where(eq(employeesTable.id, input.driverEmployeeId!))
       : [];
-    if (transportOperations.has(input.operation) && (!driver || (!driver.isActive && !existing))) {
+    if (transported && (!driver || (!driver.isActive && !existing))) {
       return { status: 400, error: "Выберите действующего водителя из справочника сотрудников." };
     }
     const values = {
@@ -221,6 +246,8 @@ router.post("/agro/grain/movements", write, safe(async (req, res) => {
       fieldName: input.fieldName.trim(), counterparty: input.counterparty.trim(), notes: input.notes.trim(),
       truckNumber: input.truckNumber?.trim() ?? "", driverName: driver?.fullName ?? "",
       driverEmployeeId: driver?.id ?? null,
+      transportPayBasis: input.transportPayBasis ?? "per_trip",
+      distanceKm: input.transportPayBasis === "ton_km" ? input.distanceKm.toFixed(3) : "0.000",
     };
     if (existing) {
       const same = existing.createdByUserId === access.userId && Object.entries(values).every(([key, value]) => existing[key as keyof typeof existing] === value);

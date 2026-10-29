@@ -14,7 +14,7 @@ import "./hr-payroll.css";
 export default function HRWorkspace({ demoActive = false, onExitDemo }: { demoActive?: boolean; onExitDemo?: () => void }) {
   const qc = useQueryClient();
   const employeesQuery = useListEmployees({ query: { queryKey: getListEmployeesQueryKey(), refetchInterval: 15000 } });
-  const registersQuery = useListPayrollRegisters({ query: { queryKey: getListPayrollRegistersQueryKey(), refetchInterval: 15000 } });
+  const registersQuery = useListPayrollRegisters(undefined, { query: { queryKey: getListPayrollRegistersQueryKey(), refetchInterval: 15000 } });
   const changeGroup = useUpdateEmployeePayrollGroup();
   const approve = useApproveHrPayrollRegister();
   const [group, setGroup] = useState<GroupFilter>("brigade");
@@ -77,9 +77,9 @@ export default function HRWorkspace({ demoActive = false, onExitDemo }: { demoAc
     <div className="hr-metrics">
       <article><span>Подтверждено · до удержаний</span><strong data-testid="hr-confirmed-total">{loading || loadError ? "—" : money(total("confirmed"))}</strong><small><BadgeCheck size={13} />Только подтверждённые начисления</small></article>
       <article><span>Ожидает подтверждения</span><strong data-testid="hr-pending-total">{loading || loadError ? "—" : money(total("pending"))}</strong><small>Пока не входит в зарплату</small></article>
-      <article><span>Сотрудников в выбранной группе</span><strong data-testid="hr-member-count">{loading || loadError ? "—" : members.length}</strong><small>{month || "За весь период"} · текущая группа из справочника</small></article>
+      <article><span>Сотрудников в выбранной группе</span><strong data-testid="hr-member-count">{loading || loadError ? "—" : members.length}</strong><small>{month || "За весь период"} · по источнику начисления</small></article>
     </div>
-    <div className="hr-policy"><CircleAlert size={16} /><p><b>Правила оплаты настроим позже.</b> Новые оклады, ставки и табельные начисления пока не вводятся. Существующий порядок сохраняется: плановую расценку задаёт главный агроном, фактическую — диспетчер, начисление подтверждают кадры.</p></div>
+    <div className="hr-policy"><CircleAlert size={16} /><p><b>Бригада — полевые работы диспетчера. Автобаза — рейсы и перевозки.</b> Автобаза рассчитывает оплату за рейс или тонно-километры и отправляет наряд кадрам. Только после подтверждения отдела кадров суммы входят в зарплату. Другие группы и оклады пока работают без новых формул.</p></div>
     {notice && <p className="notice-banner" role="status"><Check size={15} />{notice}</p>}
     {error && <p className="rounded-lg border border-destructive/30 p-3 text-xs text-destructive" role="alert">{error}</p>}
     <nav className="hr-group-tabs" aria-label="Зарплатные подразделения">
@@ -97,7 +97,9 @@ export default function HRWorkspace({ demoActive = false, onExitDemo }: { demoAc
         : visible.length === 0 ? <div className="hr-empty"><Users size={24} /><h3>{search ? "Никого не нашли" : "В этой группе пока нет сотрудников"}</h3><p>{search ? "Измените поиск." : "Существующих сотрудников можно распределить через «Распределить сотрудников». Новые карточки по-прежнему ведут главные специалисты, диспетчер и генеральный директор."}</p>{!search && unassigned > 0 && <button type="button" className="button button-secondary mt-3 text-xs" onClick={() => setGroup("unassigned")}>Распределить сотрудников</button>}</div>
           : <div className="hr-table-scroll"><table className="hr-table"><thead><tr><th>Сотрудник</th><th>Группа</th><th>Подтверждено</th><th>На согласовании</th><th>Расшифровка</th></tr></thead><tbody>{visible.map((row) => <tr key={row.key} data-testid={`hr-row-${row.key}`}>
             <td><b>{row.name}</b><small>{row.employee ? `${row.employee.position || "Должность не указана"}${!row.employee.isActive ? " · неактивен" : ""}` : "Историческая запись · нет однозначной карточки"}</small></td>
-            <td>{row.employee ? <select aria-label={`Группа сотрудника ${row.name}`} value={row.group} disabled={changeGroup.isPending || demoActive} onChange={(event) => void assign(row.employee!, event.target.value as GroupFilter)} data-testid={`hr-assign-${row.employee.id}`}><option value="unassigned">Без группы</option>{PAYROLL_GROUPS.map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select> : <span className="text-xs text-muted-foreground">Без группы</span>}</td>
+            <td>{row.pendingRegisterIds.length > 0 || row.lines.some(line => ["field_progress", "field_operation", "grain_trip"].includes(line.sourceType))
+              ? <span className="text-xs">{groupLabel(row.group)}<small className="block text-muted-foreground">По выполненной работе</small></span>
+              : row.employee ? <select aria-label={`Группа сотрудника ${row.name}`} value={row.group} disabled={changeGroup.isPending || demoActive} onChange={(event) => void assign(row.employee!, event.target.value as GroupFilter)} data-testid={`hr-assign-${row.employee.id}`}><option value="unassigned">Без группы</option>{PAYROLL_GROUPS.map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select> : <span className="text-xs text-muted-foreground">Без группы</span>}</td>
             <td className="hr-money">{money(row.confirmed)}</td><td className="hr-money">{money(row.pending)}</td>
             <td><details className="hr-details"><summary>Показать <ChevronDown size={12} /></summary>{row.lines.length === 0 ? <p>Подтверждённых начислений за выбранный период нет.</p> : row.lines.map((line, index) => <div className="hr-line" key={`${line.registerId}-${line.id}-${index}`}><b>{line.workType} · {money(line.amountKzt)}</b><span>{line.workDate.slice(0, 10)} · {line.unit} · наряд №{line.registerId}</span><span>{line.details || "Без примечаний"}</span></div>)}{row.pendingRegisterIds.map((id) => <button type="button" key={id} className="button button-secondary mt-2 text-xs" onClick={() => setSelectedRegister(id)}>Проверить наряд №{id}</button>)}</details></td>
           </tr>)}</tbody></table></div>}

@@ -1752,7 +1752,16 @@ export interface PayrollAccrualDay {
   unassignedSources: PayrollUnassignedSource[];
 }
 
+export type PayrollDailySubmitInputSourceGroup = typeof PayrollDailySubmitInputSourceGroup[keyof typeof PayrollDailySubmitInputSourceGroup];
+
+
+export const PayrollDailySubmitInputSourceGroup = {
+  brigade: 'brigade',
+  motor_pool: 'motor_pool',
+} as const;
+
 export interface PayrollDailySubmitInput {
+  sourceGroup?: PayrollDailySubmitInputSourceGroup;
   workDate: string;
   /**
      * @minLength 1
@@ -1784,6 +1793,17 @@ export interface HrPayrollApprovalInput {
   version: number;
 }
 
+/**
+ * @nullable
+ */
+export type PayrollRegisterSourceGroup = typeof PayrollRegisterSourceGroup[keyof typeof PayrollRegisterSourceGroup] | null;
+
+
+export const PayrollRegisterSourceGroup = {
+  brigade: 'brigade',
+  motor_pool: 'motor_pool',
+} as const;
+
 export type PayrollRegisterStatus = typeof PayrollRegisterStatus[keyof typeof PayrollRegisterStatus];
 
 
@@ -1794,6 +1814,8 @@ export const PayrollRegisterStatus = {
 } as const;
 
 export interface PayrollRegister {
+  /** @nullable */
+  sourceGroup?: PayrollRegisterSourceGroup;
   id: number;
   workDate: string;
   unit: string;
@@ -1984,6 +2006,14 @@ export type GrainLocation = GrainLocationInput & {
   id: number;
 };
 
+export type GrainMovementInputTransportPayBasis = typeof GrainMovementInputTransportPayBasis[keyof typeof GrainMovementInputTransportPayBasis];
+
+
+export const GrainMovementInputTransportPayBasis = {
+  per_trip: 'per_trip',
+  ton_km: 'ton_km',
+} as const;
+
 export type GrainMovementInputUnit = typeof GrainMovementInputUnit[keyof typeof GrainMovementInputUnit];
 
 
@@ -2013,6 +2043,12 @@ export const GrainMovementInputStockKind = {
 } as const;
 
 export interface GrainMovementInput {
+  transportPayBasis?: GrainMovementInputTransportPayBasis;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  distanceKm?: number;
   /**
      * @minLength 16
      * @maxLength 80
@@ -2134,8 +2170,23 @@ export interface GrainTransportRateInput {
      * @minimum 0.01
      * @maximum 1000000000000
      */
-  rateKzt: number;
+  rateKzt?: number;
+  /**
+     * @minimum 0.0001
+     * @maximum 1000000000
+     */
+  tariffPerTonKm?: number;
+  /** @minimum 1 */
+  version?: number;
 }
+
+export type GrainTransportTripTransportPayBasis = typeof GrainTransportTripTransportPayBasis[keyof typeof GrainTransportTripTransportPayBasis];
+
+
+export const GrainTransportTripTransportPayBasis = {
+  per_trip: 'per_trip',
+  ton_km: 'ton_km',
+} as const;
 
 export type GrainTransportTripOperation = typeof GrainTransportTripOperation[keyof typeof GrainTransportTripOperation];
 
@@ -2143,6 +2194,7 @@ export type GrainTransportTripOperation = typeof GrainTransportTripOperation[key
 export const GrainTransportTripOperation = {
   receipt: 'receipt',
   transfer: 'transfer',
+  sale: 'sale',
   drying: 'drying',
   cleaning: 'cleaning',
 } as const;
@@ -2157,6 +2209,12 @@ export const GrainTransportTripApprovalStatus = {
 } as const;
 
 export interface GrainTransportTrip {
+  transportPayBasis?: GrainTransportTripTransportPayBasis;
+  distanceKm?: number;
+  tonKm?: number;
+  /** @nullable */
+  tariffPerTonKm?: number | null;
+  version?: number;
   id: number;
   unit: string;
   operation: GrainTransportTripOperation;
@@ -2517,6 +2575,7 @@ export const RoleRequestRequestedRole = {
   chief_engineer: 'chief_engineer',
   storekeeper: 'storekeeper',
   fuel_manager: 'fuel_manager',
+  motor_pool_manager: 'motor_pool_manager',
   farm_director: 'farm_director',
   general_director: 'general_director',
 } as const;
@@ -2560,6 +2619,7 @@ export const RoleRequestInputRequestedRole = {
   chief_engineer: 'chief_engineer',
   storekeeper: 'storekeeper',
   fuel_manager: 'fuel_manager',
+  motor_pool_manager: 'motor_pool_manager',
   farm_director: 'farm_director',
   general_director: 'general_director',
 } as const;
@@ -2600,6 +2660,30 @@ export type ListFinancialEntriesParams = {
  */
 year: number;
 };
+
+export type ListPayrollAccrualsParams = {
+sourceGroup?: ListPayrollAccrualsSourceGroup;
+};
+
+export type ListPayrollAccrualsSourceGroup = typeof ListPayrollAccrualsSourceGroup[keyof typeof ListPayrollAccrualsSourceGroup];
+
+
+export const ListPayrollAccrualsSourceGroup = {
+  brigade: 'brigade',
+  motor_pool: 'motor_pool',
+} as const;
+
+export type ListPayrollRegistersParams = {
+sourceGroup?: ListPayrollRegistersSourceGroup;
+};
+
+export type ListPayrollRegistersSourceGroup = typeof ListPayrollRegistersSourceGroup[keyof typeof ListPayrollRegistersSourceGroup];
+
+
+export const ListPayrollRegistersSourceGroup = {
+  brigade: 'brigade',
+  motor_pool: 'motor_pool',
+} as const;
 
 export type ListEngineeringRepairsParams = {
 unit?: ListEngineeringRepairsUnit;

@@ -11,5 +11,12 @@ export interface GrainTransportRateInput {
      * @minimum 0.01
      * @maximum 1000000000000
      */
-  rateKzt: number;
+  rateKzt?: number;
+  /**
+     * @minimum 0.0001
+     * @maximum 1000000000
+     */
+  tariffPerTonKm?: number;
+  /** @minimum 1 */
+  version?: number;
 }

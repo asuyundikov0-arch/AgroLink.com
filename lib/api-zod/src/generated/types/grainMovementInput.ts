@@ -7,9 +7,16 @@
  */
 import type { GrainMovementInputOperation } from './grainMovementInputOperation';
 import type { GrainMovementInputStockKind } from './grainMovementInputStockKind';
+import type { GrainMovementInputTransportPayBasis } from './grainMovementInputTransportPayBasis';
 import type { GrainMovementInputUnit } from './grainMovementInputUnit';
 
 export interface GrainMovementInput {
+  transportPayBasis?: GrainMovementInputTransportPayBasis;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  distanceKm?: number;
   /**
      * @minLength 16
      * @maxLength 80

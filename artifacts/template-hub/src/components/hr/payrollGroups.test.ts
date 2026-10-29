@@ -32,13 +32,13 @@ test("pending, confirmed, drafts and month boundaries never mix", () => {
   assert.deepEqual(rows[0].pendingRegisterIds, [2]);
   assert.equal(rows[0].lines[0].registerId, 1);
 });
-test("group changes affect current grouping only, never source amounts or identity", () => {
+test("field payroll remains in brigade when the employee directory group changes", () => {
   const registers = [sheet(1, [entry(1, "Старое имя", 120)])];
   const before = buildHRRoster([employee(1, "Новое имя", "brigade")], registers)[0];
   const after = buildHRRoster([employee(1, "Новое имя", "workshop")], registers)[0];
   assert.equal(before.key, after.key);
   assert.equal(after.name, "Новое имя");
-  assert.equal(after.group, "workshop");
+  assert.equal(after.group, "brigade");
   assert.equal(after.confirmed, before.confirmed);
   assert.equal(registers[0].entries[0].amountKzt, 120);
 });
@@ -47,11 +47,21 @@ test("inactive staff and unmatched legacy amounts are retained without ambiguous
   const rows = buildHRRoster(staff, [sheet(1, [entry(1, "Иванов", 100), entry(2, "Иванов", 200), entry(null, "Иванов", 300), entry(99, "Нет карточки", 400)])]);
   assert.equal(rows.length, 4);
   assert.equal(rows.reduce((sum, row) => sum + row.confirmed, 0), 1000);
-  assert.equal(rows.filter((row) => row.group === "unassigned").length, 2);
+  assert.equal(rows.filter((row) => row.group === "brigade").length, 4);
 });
 test("unique historical names resolve to stable IDs but no arbitrary department inference occurs", () => {
   const rows = buildHRRoster([employee(1, "Федоров", "grain_floor")], [sheet(1, [entry(null, "  ФЁДОРОВ ", 25)])]);
   assert.equal(rows.length, 1);
-  assert.equal(rows[0].key, "id-1");
+  assert.equal(rows[0].key, "id-1|brigade");
   assert.equal(rows[0].confirmed, 25);
+});
+test("one employee can have separate field and motor-pool lines without double-counting", () => {
+  const transport = { ...entry(1, "А", 300), sourceType: "grain_trip" };
+  const rows = buildHRRoster([employee(1, "А", "workshop")], [
+    sheet(1, [entry(1, "А", 100)]), sheet(2, [transport], "pending_hr"),
+  ]);
+  assert.equal(rows.length, 2);
+  assert.equal(rows.find(row => row.group === "brigade")?.confirmed, 100);
+  assert.equal(rows.find(row => row.group === "motor_pool")?.pending, 300);
+  assert.equal(rows.reduce((sum, row) => sum + row.confirmed + row.pending, 0), 400);
 });

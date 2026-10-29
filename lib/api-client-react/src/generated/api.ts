@@ -87,6 +87,8 @@ import type {
   HrPayrollApprovalInput,
   ListEngineeringRepairsParams,
   ListFinancialEntriesParams,
+  ListPayrollAccrualsParams,
+  ListPayrollRegistersParams,
   ListRepairExpensesParams,
   ListReportsParams,
   ListTemplatesParams,
@@ -4525,17 +4527,24 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getUpdateEmployeePayrollGroupMutationOptions(options));
     }
 
-export const getListPayrollAccrualsUrl = () => {
+export const getListPayrollAccrualsUrl = (params?: ListPayrollAccrualsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/economic/payroll-accruals`
+  return stringifiedParams.length > 0 ? `/api/economic/payroll-accruals?${stringifiedParams}` : `/api/economic/payroll-accruals`
 }
 
-export const listPayrollAccruals = async ( options?: Parameters<typeof customFetch>[1]): Promise<PayrollAccrualDay[]> => {
+export const listPayrollAccruals = async (params?: ListPayrollAccrualsParams, options?: Parameters<typeof customFetch>[1]): Promise<PayrollAccrualDay[]> => {
 
-  return customFetch<PayrollAccrualDay[]>(getListPayrollAccrualsUrl(),
+  return customFetch<PayrollAccrualDay[]>(getListPayrollAccrualsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -4548,23 +4557,23 @@ export const listPayrollAccruals = async ( options?: Parameters<typeof customFet
 
 
 
-export const getListPayrollAccrualsQueryKey = () => {
+export const getListPayrollAccrualsQueryKey = (params?: ListPayrollAccrualsParams,) => {
     return [
-    `/api/economic/payroll-accruals`
+    `/api/economic/payroll-accruals`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListPayrollAccrualsQueryOptions = <TData = Awaited<ReturnType<typeof listPayrollAccruals>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPayrollAccruals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListPayrollAccrualsQueryOptions = <TData = Awaited<ReturnType<typeof listPayrollAccruals>>, TError = ErrorType<unknown>>(params?: ListPayrollAccrualsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPayrollAccruals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListPayrollAccrualsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListPayrollAccrualsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPayrollAccruals>>> = ({ signal }) => listPayrollAccruals({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPayrollAccruals>>> = ({ signal }) => listPayrollAccruals(params, { signal, ...requestOptions });
 
 
 
@@ -4579,11 +4588,11 @@ export type ListPayrollAccrualsQueryError = ErrorType<unknown>
 
 
 export function useListPayrollAccruals<TData = Awaited<ReturnType<typeof listPayrollAccruals>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPayrollAccruals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListPayrollAccrualsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPayrollAccruals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListPayrollAccrualsQueryOptions(options)
+  const queryOptions = getListPayrollAccrualsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -4596,17 +4605,24 @@ export function useListPayrollAccruals<TData = Awaited<ReturnType<typeof listPay
 
 
 
-export const getListPayrollRegistersUrl = () => {
+export const getListPayrollRegistersUrl = (params?: ListPayrollRegistersParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/economic/payroll-registers`
+  return stringifiedParams.length > 0 ? `/api/economic/payroll-registers?${stringifiedParams}` : `/api/economic/payroll-registers`
 }
 
-export const listPayrollRegisters = async ( options?: Parameters<typeof customFetch>[1]): Promise<PayrollRegister[]> => {
+export const listPayrollRegisters = async (params?: ListPayrollRegistersParams, options?: Parameters<typeof customFetch>[1]): Promise<PayrollRegister[]> => {
 
-  return customFetch<PayrollRegister[]>(getListPayrollRegistersUrl(),
+  return customFetch<PayrollRegister[]>(getListPayrollRegistersUrl(params),
   {
     ...options,
     method: 'GET'
@@ -4619,23 +4635,23 @@ export const listPayrollRegisters = async ( options?: Parameters<typeof customFe
 
 
 
-export const getListPayrollRegistersQueryKey = () => {
+export const getListPayrollRegistersQueryKey = (params?: ListPayrollRegistersParams,) => {
     return [
-    `/api/economic/payroll-registers`
+    `/api/economic/payroll-registers`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListPayrollRegistersQueryOptions = <TData = Awaited<ReturnType<typeof listPayrollRegisters>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPayrollRegisters>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListPayrollRegistersQueryOptions = <TData = Awaited<ReturnType<typeof listPayrollRegisters>>, TError = ErrorType<unknown>>(params?: ListPayrollRegistersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPayrollRegisters>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListPayrollRegistersQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListPayrollRegistersQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPayrollRegisters>>> = ({ signal }) => listPayrollRegisters({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPayrollRegisters>>> = ({ signal }) => listPayrollRegisters(params, { signal, ...requestOptions });
 
 
 
@@ -4650,11 +4666,11 @@ export type ListPayrollRegistersQueryError = ErrorType<unknown>
 
 
 export function useListPayrollRegisters<TData = Awaited<ReturnType<typeof listPayrollRegisters>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPayrollRegisters>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListPayrollRegistersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPayrollRegisters>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListPayrollRegistersQueryOptions(options)
+  const queryOptions = getListPayrollRegistersQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

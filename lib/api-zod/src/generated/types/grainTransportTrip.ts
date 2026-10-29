@@ -7,8 +7,15 @@
  */
 import type { GrainTransportTripApprovalStatus } from './grainTransportTripApprovalStatus';
 import type { GrainTransportTripOperation } from './grainTransportTripOperation';
+import type { GrainTransportTripTransportPayBasis } from './grainTransportTripTransportPayBasis';
 
 export interface GrainTransportTrip {
+  transportPayBasis?: GrainTransportTripTransportPayBasis;
+  distanceKm?: number;
+  tonKm?: number;
+  /** @nullable */
+  tariffPerTonKm?: number | null;
+  version?: number;
   id: number;
   unit: string;
   operation: GrainTransportTripOperation;

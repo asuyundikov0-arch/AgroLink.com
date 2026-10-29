@@ -19,7 +19,7 @@ function parseKg(v: string, allowZero: boolean): { kg: number | null; err?: stri
 
 export default function MovementForm({ role, crops, locations, stock, asOfDate, defaultUnit, onClose, onDone }: { role: string; crops: GrainCrop[]; locations: GrainLocation[]; stock: (unit: string, crop: number, loc: number, kind: StockKind) => number; asOfDate: string; defaultUnit: Unit; onClose: () => void; onDone: (message: string) => void }) {
   const [requestId] = useState(uuid);
-  const [f, setF] = useState({ unit: defaultUnit as Unit, operation: "receipt" as Op, stockKind: "grain" as StockKind, cropId: "", occurredOn: asOfDate, qty: "", out: "", dead: "", gw: "", wasteTo: "", from: "", to: "", fieldName: "", truckNumber: "", driverName: "", driverId: null as number | null, counterparty: "", notes: "" });
+  const [f, setF] = useState({ unit: defaultUnit as Unit, operation: "receipt" as Op, stockKind: "grain" as StockKind, cropId: "", occurredOn: asOfDate, qty: "", out: "", dead: "", gw: "", wasteTo: "", from: "", to: "", fieldName: "", truckNumber: "", driverName: "", driverId: null as number | null, counterparty: "", notes: "", payBasis: "per_trip" as "per_trip" | "ton_km", distance: "" });
   const [errs, setErrs] = useState<Record<string, string>>({});
   const [srvErr, setSrvErr] = useState("");
   const create = useCreateGrainMovement();
@@ -43,7 +43,11 @@ export default function MovementForm({ role, crops, locations, stock, asOfDate, 
   const toOpts = isProc || sk === "grain_waste" ? ordinary : locs;
   const needFrom = f.operation === "transfer" || f.operation === "sale" || isProc;
   const needTo = f.operation !== "sale";
-  const needsTransport = ["receipt", "transfer", "drying", "cleaning"].includes(f.operation);
+  const needsTransport = f.operation !== "opening";
+  const tonKm = needsTransport && f.payBasis === "ton_km";
+  const distT = f.distance.trim().replace(",", ".");
+  const distNum = Number(distT);
+  const distErr = !tonKm ? "" : !distT || !Number.isFinite(distNum) || distNum <= 0 ? "Укажите положительное расстояние, км" : distNum > 1e6 ? "Не более 1 000 000 км" : Number(distNum.toFixed(3)) !== distNum ? "Точность до 0,001 км" : "";
   const avail = needFrom && f.cropId && f.from ? stock(f.unit, Number(f.cropId), Number(f.from), sk) : null;
   const toLoc = locs.find((l) => String(l.id) === f.to);
   const sendingToProc = f.operation === "transfer" && toLoc && isProcessor(toLoc.kind);
@@ -63,6 +67,7 @@ export default function MovementForm({ role, crops, locations, stock, asOfDate, 
     if (f.operation === "receipt" && !f.fieldName.trim()) e.fieldName = "Укажите поле";
     if (needsTransport && !f.truckNumber.trim()) e.truckNumber = "Укажите номер КамАЗа";
     if (needsTransport && !f.driverId) e.driverName = "Выберите водителя из справочника";
+    if (distErr) e.distance = distErr;
     if (avail !== null && pin.kg !== null && pin.kg > avail) e.qty = `Больше доступного остатка (${tonsKg(avail)})`;
     if (isProc) {
       if (!f.out.trim()) e.out = "Укажите фактический выход зерна; 0 — только при полной потере";
@@ -87,12 +92,13 @@ export default function MovementForm({ role, crops, locations, stock, asOfDate, 
       truckNumber: needsTransport ? f.truckNumber.trim() : "",
       driverName: needsTransport ? f.driverName.trim() : "",
       driverEmployeeId: needsTransport ? f.driverId : null,
+      transportPayBasis: tonKm ? "ton_km" : "per_trip", distanceKm: tonKm ? distNum : 0,
       counterparty: f.operation === "sale" ? f.counterparty.trim() : "", notes: f.notes.trim(),
     } }, { onSuccess: () => {
       invalidate();
       onDone(role === "weigher"
-        ? "Запись отправлена заведующему током; рейс уже отображается диспетчеру."
-        : "Операция внесена в баланс зерна. Рейс и водитель появились в очереди диспетчера.");
+        ? needsTransport ? "Запись отправлена заведующему током; рейс уже виден автобазе, расценка — после согласования." : "Запись отправлена заведующему током."
+        : needsTransport ? "Операция внесена в баланс зерна. Рейс и водитель появились в очереди автобазы." : "Операция внесена в баланс зерна.");
       onClose();
     }, onError: (err) => setSrvErr(errorInfo(err).message) });
   };
@@ -153,6 +159,10 @@ export default function MovementForm({ role, crops, locations, stock, asOfDate, 
         {needsTransport && <>
           <Field label="Номер КамАЗа *" htmlFor="grain-truck" error={errs.truckNumber}><input id="grain-truck" maxLength={40} className="text-input" value={f.truckNumber} onChange={(e) => set("truckNumber", e.target.value)} placeholder="Например, 123 ABC 01" data-testid="input-movement-truck" /></Field>
           <Field label="Водитель *" htmlFor="grain-driver" error={errs.driverName}><EmployeeSelect id="grain-driver" value={{ id: f.driverId, name: f.driverName }} onChange={(v) => setF((c) => ({ ...c, driverId: v.id, driverName: v.name }))} invalid={Boolean(errs.driverName)} testId="input-movement-driver" /></Field>
+          <Field label="Оплата перевозки" htmlFor="grain-paybasis" hint="Расценку вносит автобаза после согласования"><div id="grain-paybasis" className="grid grid-cols-2 gap-1 rounded-lg border border-border p-0.5" role="group" aria-label="Способ оплаты перевозки">
+            {([["per_trip", "За рейс"], ["ton_km", "За тонно-км"]] as const).map(([k, l]) => <button key={k} type="button" aria-pressed={f.payBasis === k} onClick={() => { setF((p) => ({ ...p, payBasis: k })); setErrs({}); }} data-testid={`button-paybasis-${k}`} className={`rounded-md px-2 py-1.5 text-[11px] font-bold ${f.payBasis === k ? "bg-foreground text-background" : "text-muted-foreground"}`}>{l}</button>)}
+          </div></Field>
+          {tonKm ? <Field label="Расстояние, км *" htmlFor="grain-distance" error={errs.distance} hint={pin.kg !== null && !distErr ? `Тонно-км: ${((pin.kg / 1000) * distNum).toLocaleString("ru-RU", { maximumFractionDigits: 3 })} (вес — количество выше)` : "до 3 знаков после запятой"}><input id="grain-distance" inputMode="decimal" className="text-input font-mono" value={f.distance} onChange={(e) => set("distance", e.target.value)} placeholder="0,000" data-testid="input-movement-distance" /></Field> : <div />}
         </>}
         {f.operation === "sale" && <Field label="Покупатель (необязательно)" htmlFor="grain-cp"><input id="grain-cp" maxLength={200} className="text-input" value={f.counterparty} onChange={(e) => set("counterparty", e.target.value)} data-testid="input-movement-counterparty" /></Field>}
         <Field label="Примечание" htmlFor="grain-notes" wide><textarea id="grain-notes" maxLength={3000} rows={3} className="text-input" value={f.notes} onChange={(e) => set("notes", e.target.value)} data-testid="input-movement-notes" /></Field>

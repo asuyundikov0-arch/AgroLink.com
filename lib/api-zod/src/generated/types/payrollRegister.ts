@@ -6,9 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { PayrollRegisterEntry } from './payrollRegisterEntry';
+import type { PayrollRegisterSourceGroup } from './payrollRegisterSourceGroup';
 import type { PayrollRegisterStatus } from './payrollRegisterStatus';
 
 export interface PayrollRegister {
+  /** @nullable */
+  sourceGroup?: PayrollRegisterSourceGroup;
   id: number;
   workDate: string;
   unit: string;

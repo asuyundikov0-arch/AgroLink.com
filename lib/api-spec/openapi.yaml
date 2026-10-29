@@ -1047,6 +1047,8 @@ paths:
           description: Employee group changed since it was loaded
   /economic/payroll-accruals:
     get:
+      parameters:
+        - { name: sourceGroup, in: query, required: false, schema: { type: string, enum: [brigade, motor_pool] } }
       operationId: listPayrollAccruals
       tags: [economy]
       responses:
@@ -1059,6 +1061,8 @@ paths:
                 items: { $ref: "#/components/schemas/PayrollAccrualDay" }
   /economic/payroll-registers:
     get:
+      parameters:
+        - { name: sourceGroup, in: query, required: false, schema: { type: string, enum: [brigade, motor_pool] } }
       operationId: listPayrollRegisters
       tags: [economy]
       responses:
@@ -2874,6 +2878,7 @@ components:
       type: object
       required: [workDate, unit, sourceHash]
       properties:
+        sourceGroup: { type: string, enum: [brigade, motor_pool] }
         workDate: { type: string }
         unit: { type: string, minLength: 1, maxLength: 200 }
         sourceHash: { type: string, minLength: 64, maxLength: 64 }
@@ -2898,6 +2903,7 @@ components:
       type: object
       required: [id, workDate, unit, status, totalAmount, version, createdByName, submittedByName, createdAt, submittedAt, entries]
       properties:
+        sourceGroup: { type: ["string", "null"], enum: [brigade, motor_pool, null] }
         id: { type: number }
         workDate: { type: string }
         unit: { type: string }
@@ -3016,6 +3022,8 @@ components:
       type: object
       required: [requestId, unit, operation, cropId, occurredOn, quantityTons, fromLocationId, toLocationId, fieldName, counterparty, notes]
       properties:
+        transportPayBasis: { type: string, enum: [per_trip, ton_km], default: per_trip }
+        distanceKm: { type: number, minimum: 0, maximum: 1000000, default: 0 }
         requestId: { type: string, minLength: 16, maxLength: 80 }
         unit: { type: string, enum: ["АПК Арыстан Grain", "АФ Веденовка"] }
         operation: { type: string, enum: [opening, receipt, transfer, sale, drying, cleaning] }
@@ -3058,16 +3066,22 @@ components:
             reviewedAt: { type: ["string", "null"] }
     GrainTransportRateInput:
       type: object
-      required: [rateKzt]
       properties:
         rateKzt: { type: number, minimum: 0.01, maximum: 1000000000000 }
+        tariffPerTonKm: { type: number, minimum: 0.0001, maximum: 1000000000 }
+        version: { type: number, minimum: 1 }
     GrainTransportTrip:
       type: object
       required: [id, unit, operation, cropName, occurredOn, quantityTons, fromLocationName, toLocationName, fieldName, truckNumber, driverName, driverEmployeeId, approvalStatus, rateKzt, rateSetBy, rateSetAt, createdBy]
       properties:
+        transportPayBasis: { type: string, enum: [per_trip, ton_km] }
+        distanceKm: { type: number }
+        tonKm: { type: number }
+        tariffPerTonKm: { type: ["number", "null"] }
+        version: { type: number }
         id: { type: number }
         unit: { type: string }
-        operation: { type: string, enum: [receipt, transfer, drying, cleaning] }
+        operation: { type: string, enum: [receipt, transfer, sale, drying, cleaning] }
         cropName: { type: string }
         occurredOn: { type: string }
         quantityTons: { type: number }
@@ -3421,7 +3435,7 @@ components:
           type: string
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, economist, engineer, chief_engineer, storekeeper, fuel_manager, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, economist, engineer, chief_engineer, storekeeper, fuel_manager, motor_pool_manager, farm_director, general_director]
         status:
           type: string
           enum: [pending, approved, rejected]
@@ -3450,7 +3464,7 @@ components:
       properties:
         requestedRole:
           type: string
-          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, economist, engineer, chief_engineer, storekeeper, fuel_manager, farm_director, general_director]
+          enum: [agronomist, chief_agronomist, grain_manager, weigher, dispatcher, hr, economist, engineer, chief_engineer, storekeeper, fuel_manager, motor_pool_manager, farm_director, general_director]
         department:
           type: string
           minLength: 1

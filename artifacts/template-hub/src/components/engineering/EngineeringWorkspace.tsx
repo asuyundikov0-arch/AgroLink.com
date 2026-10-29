@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Boxes, ClipboardList, Fuel, Wrench } from "lucide-react";
+import { Boxes, ClipboardList, Fuel, Truck, Wrench } from "lucide-react";
 import {
   type FleetEquipment,
   getListFleetEquipmentQueryKey,
@@ -9,23 +9,26 @@ import RepairDashboard from "./RepairDashboard";
 import SparePartsWarehouse from "./SparePartsWarehouse";
 import SparePartRequests from "./SparePartRequests";
 import FuelDepot from "./FuelDepot";
+import MotorPoolWorkspace from "./MotorPoolWorkspace";
 import { POLL_MS, SectionError, errorInfo } from "./repairs/shared";
 
-type EngineeringTab = "repairs" | "warehouse" | "requests" | "petroleum";
+type EngineeringTab = "repairs" | "warehouse" | "requests" | "petroleum" | "motor_pool";
 const PETROLEUM_ROLES = ["fuel_manager", "engineer", "chief_engineer", "general_director"];
 
 export default function EngineeringWorkspace({ role, demoActive = false }: { role: string; demoActive?: boolean }) {
   const storekeeper = role === "storekeeper";
   const fuelOnly = role === "fuel_manager";
-  const [tab, setTab] = useState<EngineeringTab>(fuelOnly ? "petroleum" : storekeeper ? "warehouse" : "repairs");
+  const motorOnly = role === "motor_pool_manager";
+  const [tab, setTab] = useState<EngineeringTab>(motorOnly ? "motor_pool" : fuelOnly ? "petroleum" : storekeeper ? "warehouse" : "repairs");
   const allTabs = [
     { id: "repairs" as const, label: "Ремонт техники", icon: Wrench },
     { id: "warehouse" as const, label: "Склад запчастей", icon: Boxes },
     { id: "requests" as const, label: "Заявки на запчасти", icon: ClipboardList },
     ...(PETROLEUM_ROLES.includes(role) ? [{ id: "petroleum" as const, label: "Нефтебаза", icon: Fuel }] : []),
+    ...(motorOnly || role === "general_director" ? [{ id: "motor_pool" as const, label: "Автобаза", icon: Truck }] : []),
   ];
-  const tabs = fuelOnly ? allTabs.filter((item) => item.id === "petroleum") : allTabs;
-  const active = fuelOnly ? "petroleum" : tab;
+  const tabs = motorOnly ? allTabs.filter((item) => item.id === "motor_pool") : fuelOnly ? allTabs.filter((item) => item.id === "petroleum") : allTabs;
+  const active = motorOnly ? "motor_pool" : fuelOnly ? "petroleum" : tab;
   return (
     <div>
       <div className="mb-7 flex flex-wrap gap-2" role="tablist" aria-label="Разделы инженерного блока">
@@ -36,7 +39,8 @@ export default function EngineeringWorkspace({ role, demoActive = false }: { rol
         </button>)}
       </div>
       <div id="engineering-panel" role="tabpanel">
-        {active === "petroleum" ? <FuelDepot role={role} demoActive={demoActive} />
+        {active === "motor_pool" ? <MotorPoolWorkspace role={role} demoActive={demoActive} />
+          : active === "petroleum" ? <FuelDepot role={role} demoActive={demoActive} />
           : active === "repairs" ? <RepairDashboard role={role} />
             : active === "warehouse" ? <WarehousePanel role={role} />
               : <SparePartRequests role={role as "engineer" | "chief_engineer" | "general_director" | "storekeeper"} />}

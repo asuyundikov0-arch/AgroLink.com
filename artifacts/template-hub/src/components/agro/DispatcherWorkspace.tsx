@@ -1,17 +1,13 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Banknote, Check, Route, Tractor, Wallet } from "lucide-react";
+import { Banknote, Check, Tractor, Wallet } from "lucide-react";
 import {
   getGetFieldDispatchQueueQueryKey,
   getGetFieldDashboardQueryKey,
-  getGetGrainTransportTripsQueryKey,
   getListPayrollAccrualsQueryKey,
   type FieldDispatchItem,
-  type GrainTransportTrip,
   useGetFieldDispatchQueue,
-  useGetGrainTransportTrips,
   useUpdateFieldDispatchRate,
-  useUpdateGrainTransportRate,
 } from "@workspace/api-client-react";
 import { dateFmt, errorInfo, POLL_MS } from "./grain/shared";
 import { money } from "../engineering/repairs/shared";
@@ -19,36 +15,22 @@ import ChemicalConsumptionSection from "./chemicals/Consumption";
 import { DispatcherActiveWorks } from "./fields/DispatcherActive";
 import PayrollRegisterWorkspace from "../economic/PayrollRegisterWorkspace";
 
-type View = "grain" | "fields" | "chemicals" | "payroll";
-const operationLabel: Record<GrainTransportTrip["operation"], string> = {
-  receipt: "Приход с поля",
-  transfer: "Перемещение",
-  drying: "Отправка на сушку",
-  cleaning: "Отправка на очистку",
-};
-const approvalLabel: Record<GrainTransportTrip["approvalStatus"], string> = {
-  pending: "На согласовании",
-  approved: "Согласовано",
-  returned: "Возвращено",
-};
+type View = "fields" | "chemicals" | "payroll";
 const parseRate = (value: string) => {
   const parsed = Number(value.trim().replace(",", "."));
   return value.trim() && Number.isFinite(parsed) && parsed > 0 && parsed <= 1_000_000_000 ? parsed : null;
 };
 
 export default function DispatcherWorkspace() {
-  const grainQuery = useGetGrainTransportTrips({ query: { queryKey: getGetGrainTransportTripsQueryKey(), refetchInterval: POLL_MS } });
   const fieldsQuery = useGetFieldDispatchQueue({ query: { queryKey: getGetFieldDispatchQueueQueryKey(), refetchInterval: POLL_MS } });
-  const grainTrips = grainQuery.data ?? [];
   const fieldOperations = fieldsQuery.data ?? [];
-  const unratedTrips = grainTrips.filter((trip) => trip.rateKzt === null).length;
   const completedFields = fieldOperations.filter((operation) => !operation.operation || !!operation.operation.actualEnd || !!operation.actualEnd);
   const activeFields = fieldOperations.filter((operation) => operation.operation && !operation.operation.actualEnd && operation.operation.actualStart).length;
   const unratedFields = completedFields.filter((item) => {
     const reports = item.operation?.progressReports ?? [];
     return reports.length ? reports.some(r => r.actualRatePerHa == null && item.actualRatePerHa === null) : item.actualRatePerHa === null;
   }).length;
-  const [view, setView] = useState<View>("grain");
+  const [view, setView] = useState<View>("fields");
   const [notice, setNotice] = useState("");
 
   return (
@@ -56,14 +38,10 @@ export default function DispatcherWorkspace() {
       <header>
         <p className="eyebrow">Рабочее пространство</p>
         <h1 className="mt-1.5 font-display text-2xl font-bold tracking-[-0.045em] sm:text-3xl">Диспетчерская</h1>
-        <p className="mt-1 max-w-3xl text-xs leading-5 text-muted-foreground">Управляйте фактическими расценками по рейсам и полевым работам, а также отправляйте ежедневные наряды в отдел кадров на подтверждение.</p>
+        <p className="mt-1 max-w-3xl text-xs leading-5 text-muted-foreground">Управляйте фактическими расценками по полевым работам, а также отправляйте ежедневные наряды в отдел кадров на подтверждение.</p>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-3" aria-label="Очередь диспетчера">
-        <article className="surface-card flex items-center gap-3 p-4">
-          <div className="setting-icon"><Route size={17} /></div>
-          <div><p className="eyebrow">Рейсы без расценки</p><p className="mt-1 text-xl font-bold">{unratedTrips}</p></div>
-        </article>
+      <section className="grid gap-3 sm:grid-cols-2" aria-label="Очередь диспетчера">
         <article className="surface-card flex items-center gap-3 p-4">
           <div className="setting-icon"><Tractor size={17} /></div>
           <div><p className="eyebrow">Выполняемые работы</p><p className="mt-1 text-xl font-bold" data-testid="text-dispatch-active-count">{activeFields}</p></div>
@@ -76,24 +54,12 @@ export default function DispatcherWorkspace() {
 
       {notice && <p className="notice-banner" role="status" data-testid="dispatcher-notice"><Check size={15} />{notice}</p>}
       <div className="inline-flex flex-wrap rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Работа диспетчера">
-        <button type="button" role="tab" aria-selected={view === "grain"} onClick={() => setView("grain")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "grain" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-grain">Перевозка зерна ({grainTrips.length})</button>
         <button type="button" role="tab" aria-selected={view === "fields"} onClick={() => setView("fields")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "fields" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-fields">Полевые работы{activeFields > 0 && <span className="ml-1.5 rounded-full bg-primary px-1.5 py-px text-[10px] text-primary-foreground" data-testid="badge-dispatch-fields-active">{activeFields}</span>}</button>
         <button type="button" role="tab" aria-selected={view === "chemicals"} onClick={() => setView("chemicals")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "chemicals" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-chemicals">Химия по дням</button>
         <button type="button" role="tab" aria-selected={view === "payroll"} onClick={() => setView("payroll")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "payroll" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-payroll"><Wallet size={13} /> Ежедневные наряды</button>
       </div>
 
-      {view === "payroll" ? <PayrollRegisterWorkspace canManage /> : view === "chemicals" ? <ChemicalConsumptionSection onSaved={setNotice} /> : view === "grain" ? (
-        <section className="surface-card p-4 sm:p-5" data-testid="section-dispatch-grain">
-          <header className="flex flex-wrap items-end justify-between gap-3">
-            <div><p className="eyebrow">Транспортные рейсы</p><h2 className="mt-1 text-lg font-bold">Оплата за каждый рейс</h2></div>
-            <button type="button" className="button button-secondary text-xs" onClick={() => void grainQuery.refetch()} disabled={grainQuery.isFetching} data-testid="button-refresh-dispatch-grain">Обновить</button>
-          </header>
-          {grainQuery.isLoading ? <p className="py-8 text-center text-xs text-muted-foreground">Загружаем рейсы…</p>
-            : grainQuery.isError ? <ErrorPanel message={errorInfo(grainQuery.error).message} onRetry={() => void grainQuery.refetch()} testId="dispatch-grain-error" />
-              : grainTrips.length === 0 ? <EmptyPanel title="Рейсов пока нет" detail="Приход, перемещения и отправки на сушку/очистку появятся после их внесения в баланс." testId="dispatch-grain-empty" />
-                : <ul className="mt-3 divide-y divide-border">{grainTrips.map((trip) => <TransportTripRow key={trip.id} trip={trip} onSaved={() => setNotice(`Расценка по рейсу №${trip.id} сохранена.`)} />)}</ul>}
-        </section>
-      ) : (
+      {view === "payroll" ? <PayrollRegisterWorkspace canManage sourceGroup="brigade" /> : view === "chemicals" ? <ChemicalConsumptionSection onSaved={setNotice} /> : (
         <div className="space-y-5">
         <section className="surface-card p-4 sm:p-5" data-testid="section-dispatch-active">
           <header><p className="eyebrow">Выполняемые полевые работы</p><h2 className="mt-1 text-lg font-bold">Площадь за день и завершение</h2><p className="mt-1 text-xs text-muted-foreground">Механизатор, техника и агрегат берутся из текущих сведений агронома. Завершение подтверждает агроном.</p></header>
@@ -112,45 +78,6 @@ export default function DispatcherWorkspace() {
         </div>
       )}
     </div>
-  );
-}
-
-function TransportTripRow({ trip, onSaved }: { trip: GrainTransportTrip; onSaved: () => void }) {
-  const queryClient = useQueryClient();
-  const mutation = useUpdateGrainTransportRate();
-  const [rate, setRate] = useState(trip.rateKzt === null ? "" : String(trip.rateKzt));
-  const [error, setError] = useState("");
-  useEffect(() => setRate(trip.rateKzt === null ? "" : String(trip.rateKzt)), [trip.id, trip.rateKzt]);
-  const save = async () => {
-    const parsed = parseRate(rate);
-    if (parsed === null) { setError("Укажите положительную оплату за рейс."); return; }
-    setError("");
-    try {
-      await mutation.mutateAsync({ id: trip.id, data: { rateKzt: parsed } });
-      await Promise.all([queryClient.invalidateQueries({ queryKey: getGetGrainTransportTripsQueryKey() }), queryClient.invalidateQueries({ queryKey: getListPayrollAccrualsQueryKey() })]);
-      onSaved();
-    } catch (err) { setError(errorInfo(err).message); }
-  };
-  return (
-    <li className="flex flex-col gap-3 py-4 lg:flex-row lg:items-center lg:justify-between" data-testid={`dispatch-grain-row-${trip.id}`}>
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2"><strong className="text-sm">{operationLabel[trip.operation]} · {trip.cropName}</strong><span className="rounded-full bg-muted px-2 py-0.5 text-[10px]">{approvalLabel[trip.approvalStatus]}</span></div>
-        <p className="mt-1 text-xs text-muted-foreground">{trip.unit} · {dateFmt(trip.occurredOn)} · {trip.quantityTons.toLocaleString("ru-RU")} т{trip.fieldName ? ` · поле ${trip.fieldName}` : ""}</p>
-        <p className="mt-1 text-xs font-semibold">КамАЗ {trip.truckNumber} · водитель {trip.driverName}</p>
-        <p className="mt-0.5 text-[11px] text-muted-foreground">{trip.fromLocationName ? `из ${trip.fromLocationName}` : "с поля"}{trip.toLocationName ? ` → ${trip.toLocationName}` : ""}</p>
-        {trip.rateSetBy && <p className="mt-1 text-[10px] text-muted-foreground">Расценку внёс {trip.rateSetBy}{trip.rateSetAt ? ` · ${dateFmt(trip.rateSetAt)}` : ""}</p>}
-      </div>
-      <RateEditor
-        value={rate}
-        onChange={setRate}
-        amount={parseRate(rate)}
-        unitLabel="₸ за рейс"
-        pending={mutation.isPending}
-        error={error}
-        onSave={() => void save()}
-        testId={`dispatch-grain-rate-${trip.id}`}
-      />
-    </li>
   );
 }
 

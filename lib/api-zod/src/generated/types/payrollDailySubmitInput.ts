@@ -5,8 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { PayrollDailySubmitInputSourceGroup } from './payrollDailySubmitInputSourceGroup';
 
 export interface PayrollDailySubmitInput {
+  sourceGroup?: PayrollDailySubmitInputSourceGroup;
   workDate: string;
   /**
      * @minLength 1

@@ -3,7 +3,7 @@ name: Salary accrual handoff
 description: Employee-linked daily work orders, mandatory HR approval and cumulative payroll available to the general director.
 ---
 
-Daily work orders must fill automatically from employee-linked field work and grain transport accruals, not from manually typed salary lines. The dispatcher reviews the work and rates, then sends a daily work order to the separate “Отдел кадров” role. HR confirms the accruals; only then do they enter cumulative payroll per employee. The general director retains full access, including the cumulative register. Restoring the economist for budget and Cash Flow does not change this HR confirmation handoff or automatically grant payroll-editing rights. This is an accrual handoff, not an actual payment record.
+Daily work orders must fill automatically from employee-linked work, not manually typed salary lines. The dispatcher reviews field work and sends its daily order to HR as “Бригада”. The separate motor-pool manager prices grain transport and sends its daily order as “Автобаза”. HR confirms either source; only then do amounts enter cumulative employee payroll. The general director retains full access. Restoring the economist for budget and Cash Flow does not change HR confirmation or automatically grant payroll-editing rights. These are accruals, not actual payment records.
 
 **Why:** The user added mandatory HR confirmation and explicitly chose “Перевозки и полевые работы” for its scope. Dispatcher submission is a daily work order, not yet confirmed salary; it must not be confused with the separate spare-parts payment register.
 
@@ -43,7 +43,7 @@ Sending a work order to HR fixes and reserves its source accruals even before sa
 
 **Why:** Пользователь одобрил демонстрационный экран, но прямо изменил организацию раздела на эти пять групп.
 
-**How to apply:** Показывать сотрудников и реальные начисления внутри групп. Не распределять людей по догадке о должности; неназначенных и неразрешённые исторические записи сохранять видимыми отдельно. Группа относится к текущему составу, а её смена не изменяет начисленные суммы.
+**How to apply:** Показывать сотрудников и реальные начисления внутри групп. Пользователь позднее закрепил полевые начисления за «Бригадой», перевозки — за «Автобазой»: эти суммы группируются по выполненной работе, независимо от группы карточки сотрудника. Остальные виды работы сохраняют группу из справочника. Один сотрудник может иметь строки в обеих группах, без удвоения сумм. Неразрешённые исторические личности не объединять по догадке.
 
 Зарплатная группа не заменяет принадлежность к хозяйству. Распределение по группам не даёт отделу кадров права менять весь общий справочник сотрудников.
 

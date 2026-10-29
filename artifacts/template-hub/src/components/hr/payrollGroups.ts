@@ -17,7 +17,7 @@ export type HRRow = {
   confirmed: number; pending: number; lines: HRLine[]; pendingRegisterIds: number[];
 };
 
-/** Grouping is by current directory membership, never by guessed profession or work source. */
+/** Work source determines field/transport payroll; directory groups remain for other work. */
 export function buildHRRoster(employees: Employee[], registers: PayrollRegister[], month = ""): HRRow[] {
   const aliases = new Map<string, Set<number>>();
   const alias = (name: string, id: number) => {
@@ -31,23 +31,25 @@ export function buildHRRoster(employees: Employee[], registers: PayrollRegister[
   }));
   const directory = new Map(employees.map((employee) => [employee.id, employee]));
   const rows = new Map<string, HRRow>();
-  const getRow = (id: number | null, name: string) => {
-    const key = id !== null ? `id-${id}` : `name-${normalizeEmployeeName(name)}`;
+  const getRow = (id: number | null, name: string, sourceGroup?: PayrollGroup) => {
+    const employee = id !== null ? directory.get(id) : undefined;
+    const group = sourceGroup ?? groupOf(employee);
+    const key = `${id !== null ? `id-${id}` : `name-${normalizeEmployeeName(name)}`}|${group}`;
     let row = rows.get(key);
     if (!row) {
-      const employee = id !== null ? directory.get(id) : undefined;
-      row = { key, employee, name: employee?.fullName ?? name, group: groupOf(employee), confirmed: 0, pending: 0, lines: [], pendingRegisterIds: [] };
+      row = { key, employee, name: employee?.fullName ?? name, group, confirmed: 0, pending: 0, lines: [], pendingRegisterIds: [] };
       rows.set(key, row);
     }
     return row;
   };
-  employees.filter((employee) => employee.isActive).forEach((employee) => getRow(employee.id, employee.fullName));
   for (const register of registers) {
     if (!["pending_hr", "sent_to_economist"].includes(register.status) || (month && register.workDate.slice(0, 7) !== month)) continue;
     for (const entry of register.entries) {
       const candidates = aliases.get(normalizeEmployeeName(entry.employeeName));
       const id = entry.employeeId ?? (candidates?.size === 1 ? [...candidates][0] : null);
-      const row = getRow(id, entry.employeeName);
+      const sourceGroup = entry.sourceType === "grain_trip" ? "motor_pool"
+        : ["field_progress", "field_operation"].includes(entry.sourceType) ? "brigade" : undefined;
+      const row = getRow(id, entry.employeeName, sourceGroup);
       if (register.status === "pending_hr") {
         row.pending = Math.round((row.pending + entry.amountKzt) * 100) / 100;
         if (!row.pendingRegisterIds.includes(register.id)) row.pendingRegisterIds.push(register.id);
@@ -57,5 +59,7 @@ export function buildHRRoster(employees: Employee[], registers: PayrollRegister[
       }
     }
   }
+  employees.filter(employee => employee.isActive && ![...rows.values()].some(row => row.employee?.id === employee.id))
+    .forEach(employee => getRow(employee.id, employee.fullName));
   return [...rows.values()].sort((a, b) => a.name.localeCompare(b.name, "ru") || a.key.localeCompare(b.key));
 }

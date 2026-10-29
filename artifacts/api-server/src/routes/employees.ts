@@ -17,7 +17,7 @@ import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 const router: IRouter = Router();
 const employeeReaders = new Set([
   "agronomist", "chief_agronomist", "grain_manager", "weigher",
-  "dispatcher", "general_director", "chief_engineer", "hr",
+  "dispatcher", "motor_pool_manager", "general_director", "chief_engineer", "hr",
 ]);
 const employeeManagers = new Set(["chief_agronomist", "chief_engineer", "dispatcher", "general_director"]);
 const actor = (access: RoleAccess) => `${access.displayName} · ${access.role}`;

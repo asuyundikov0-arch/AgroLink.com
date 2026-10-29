@@ -21,6 +21,7 @@ export const RoleRequestInputRequestedRole = {
   chief_engineer: 'chief_engineer',
   storekeeper: 'storekeeper',
   fuel_manager: 'fuel_manager',
+  motor_pool_manager: 'motor_pool_manager',
   farm_director: 'farm_director',
   general_director: 'general_director',
 } as const;

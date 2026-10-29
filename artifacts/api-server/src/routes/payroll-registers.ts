@@ -8,6 +8,8 @@ import {
   ApproveHrPayrollRegisterResponse,
   CreatePayrollRegisterResponse,
   ListPayrollAccrualsResponse,
+  ListPayrollAccrualsQueryParams,
+  ListPayrollRegistersQueryParams,
   ListPayrollRegistersResponse,
   SendDailyPayrollRegisterBody,
   SendDailyPayrollRegisterResponse,
@@ -37,14 +39,14 @@ import { lockPayrollSources } from "../lib/payroll-source-guard";
 import { approveDailyOrder } from "../lib/payroll-hr";
 
 const router: IRouter = Router();
-const readerRoles = new Set(["dispatcher", "hr", "general_director"]);
+const readerRoles = new Set(["dispatcher", "motor_pool_manager", "hr", "general_director"]);
 const editorRoles = new Set(["dispatcher", "general_director"]);
-const accrualReaderRoles = new Set(["dispatcher", "general_director"]);
+const accrualReaderRoles = new Set(["dispatcher", "motor_pool_manager", "general_director"]);
 const maxRegisterAmount = 999999999999.99;
 const allowed: RequestHandler = (_req, res, next) => {
   const role = (res.locals.access as RoleAccess).role;
   if (!role || !readerRoles.has(role)) {
-    res.status(403).json({ error: "Наряды и зарплатный реестр доступны диспетчеру, отделу кадров, экономисту и генеральному директору." });
+    res.status(403).json({ error: "Наряды доступны диспетчеру, заведующему автобазой, отделу кадров и генеральному директору." });
     return;
   }
   next();
@@ -53,7 +55,7 @@ router.use("/economic/payroll-registers", requireApprovedRole, allowed);
 router.use("/economic/payroll-accruals", requireApprovedRole, (req, res, next) => {
   const access = res.locals.access as RoleAccess;
   if (!access.role || !accrualReaderRoles.has(access.role)) {
-    res.status(403).json({ error: "Автоматические начисления доступны диспетчеру и генеральному директору." });
+    res.status(403).json({ error: "Начисления доступны диспетчеру, заведующему автобазой и генеральному директору." });
     return;
   }
   next();
@@ -110,7 +112,11 @@ const payrollOperationLabels: Record<string, string> = {
   cleaning: "Доставка на зерноочистку",
 };
 
-export async function calculateAutomaticAccruals(tx: Tx) {
+type SourceGroup = "brigade" | "motor_pool";
+function sourceGroupFor(role: string | null | undefined): SourceGroup | undefined {
+  return role === "dispatcher" ? "brigade" : role === "motor_pool_manager" ? "motor_pool" : undefined;
+}
+export async function calculateAutomaticAccruals(tx: Tx, sourceGroup?: SourceGroup) {
   const [movements, crops, locations, employees, fieldRows, progressRows] = await Promise.all([
     tx.select().from(grainMovementsTable).where(and(
       eq(grainMovementsTable.approvalStatus, "approved"),
@@ -176,6 +182,7 @@ export async function calculateAutomaticAccruals(tx: Tx) {
     details: string;
     amountKzt: number;
   }) => {
+    if (sourceGroup && (source.sourceType === "grain_trip" ? "motor_pool" : "brigade") !== sourceGroup) return;
     const group = groupFor(source.workDate, source.unit);
     const employee = employeeFor(source.employeeId, source.employeeName);
     if (!employee) {
@@ -200,7 +207,7 @@ export async function calculateAutomaticAccruals(tx: Tx) {
   };
 
   for (const movement of movements) {
-    if (!["receipt", "transfer", "drying", "cleaning"].includes(movement.operation)) continue;
+    if (!["receipt", "transfer", "sale", "drying", "cleaning"].includes(movement.operation)) continue;
     if (movement.transportRate === null) continue;
     const crop = cropById.get(movement.cropId) ?? "зерно";
     const from = movement.fromLocationId === null ? "" : locationById.get(movement.fromLocationId) ?? "";
@@ -211,7 +218,9 @@ export async function calculateAutomaticAccruals(tx: Tx) {
       crop,
       movement.fieldName ? `Поле ${movement.fieldName}` : "",
       route,
-      `1 рейс × ${Number(movement.transportRate).toLocaleString("ru-RU")} ₸`,
+      movement.transportPayBasis === "ton_km"
+        ? `${movement.quantityKg / 1000} т × ${Number(movement.distanceKm)} км × ${Number(movement.transportTariff)} ₸/т·км = ${Number(movement.transportRate)} ₸`
+        : `1 рейс × ${Number(movement.transportRate).toLocaleString("ru-RU")} ₸`,
     ].filter(Boolean).join(" · ").slice(0, 500);
     addSource({
       workDate: movement.occurredOn,
@@ -310,6 +319,7 @@ export async function calculateAutomaticAccruals(tx: Tx) {
 function normalizeRegister(register: typeof payrollRegistersTable.$inferSelect, items: (typeof payrollRegisterItemsTable.$inferSelect)[]) {
   return {
     id: register.id,
+    sourceGroup: register.sourceGroup as SourceGroup | null,
     workDate: register.workDate,
     unit: register.unit,
     status: register.status as "draft" | "pending_hr" | "sent_to_economist",
@@ -343,7 +353,7 @@ async function loadRegister(id: number) {
   return normalizeRegister(register, items);
 }
 
-async function loadRegisters(role: string) {
+async function loadRegisters(role: string, sourceGroup?: SourceGroup) {
   const rows = await db.select().from(payrollRegistersTable)
     .where(role === "hr" ? inArray(payrollRegistersTable.status, ["pending_hr", "sent_to_economist"]) : undefined)
     .orderBy(desc(payrollRegistersTable.workDate), desc(payrollRegistersTable.id));
@@ -358,7 +368,13 @@ async function loadRegisters(role: string) {
     group.push(item);
     itemsByRegister.set(item.registerId, group);
   }
-  return rows.map((row) => normalizeRegister(row, itemsByRegister.get(row.id) ?? []));
+  return rows.filter(row => {
+    if (!sourceGroup) return true;
+    if (row.sourceGroup) return row.sourceGroup === sourceGroup;
+    const lines = itemsByRegister.get(row.id) ?? [];
+    const belongs = (type: string) => sourceGroup === "motor_pool" ? type === "grain_trip" : ["field_progress", "field_operation"].includes(type);
+    return lines.length > 0 && lines.every(line => belongs(line.sourceType));
+  }).map((row) => normalizeRegister(row, itemsByRegister.get(row.id) ?? []));
 }
 
 function writeAllowed(access: RoleAccess, res: Parameters<RequestHandler>[1]) {
@@ -367,19 +383,31 @@ function writeAllowed(access: RoleAccess, res: Parameters<RequestHandler>[1]) {
   return false;
 }
 
-router.get("/economic/payroll-registers", async (_req, res, next): Promise<void> => {
+router.get("/economic/payroll-registers", async (req, res, next): Promise<void> => {
   try {
     const access = res.locals.access as RoleAccess;
+    const params = ListPayrollRegistersQueryParams.safeParse(req.query);
+    if (!params.success) { res.status(400).json({ error: "Выберите корректное подразделение начислений." }); return; }
+    const assigned = sourceGroupFor(access.role);
+    if (assigned && params.data.sourceGroup && params.data.sourceGroup !== assigned) {
+      res.status(403).json({ error: "Нет доступа к начислениям другого подразделения." }); return;
+    }
     res.setHeader("Cache-Control", "no-store");
-    res.json(ListPayrollRegistersResponse.parse(await loadRegisters(access.role ?? "")));
+    res.json(ListPayrollRegistersResponse.parse(await loadRegisters(access.role ?? "", assigned ?? params.data.sourceGroup)));
   } catch (error) {
     next(error);
   }
 });
 
-router.get("/economic/payroll-accruals", async (_req, res, next): Promise<void> => {
+router.get("/economic/payroll-accruals", async (req, res, next): Promise<void> => {
   try {
-    const days = await db.transaction((tx) => calculateAutomaticAccruals(tx), {
+    const params = ListPayrollAccrualsQueryParams.safeParse(req.query);
+    if (!params.success) { res.status(400).json({ error: "Выберите корректное подразделение начислений." }); return; }
+    const assigned = sourceGroupFor((res.locals.access as RoleAccess).role);
+    if (assigned && params.data.sourceGroup && params.data.sourceGroup !== assigned) {
+      res.status(403).json({ error: "Нет доступа к начислениям другого подразделения." }); return;
+    }
+    const days = await db.transaction((tx) => calculateAutomaticAccruals(tx, assigned ?? params.data.sourceGroup), {
       isolationLevel: "repeatable read",
       accessMode: "read only",
     });
@@ -393,20 +421,27 @@ router.get("/economic/payroll-accruals", async (_req, res, next): Promise<void> 
 router.post("/economic/payroll-registers/send-daily", async (req, res, next): Promise<void> => {
   try {
     const access = res.locals.access as RoleAccess;
-    if (!writeAllowed(access, res)) return;
+    if (!access.role || !["dispatcher", "motor_pool_manager", "general_director"].includes(access.role)) {
+      res.status(403).json({ error: "Наряд отправляет диспетчер или заведующий автобазой." }); return;
+    }
     const parsed = SendDailyPayrollRegisterBody.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.message });
       return;
     }
     const input = parsed.data;
+    const assigned = sourceGroupFor(access.role);
+    if (assigned && input.sourceGroup && input.sourceGroup !== assigned) {
+      res.status(403).json({ error: "Нельзя отправить начисления другого подразделения." }); return;
+    }
+    const sourceGroup = assigned ?? input.sourceGroup ?? "brigade";
     if (!validDate(input.workDate) || !input.unit.trim()) {
       res.status(400).json({ error: "Укажите корректную дату и подразделение." });
       return;
     }
     const result = await db.transaction(async (tx: Tx) => {
       await lockPayrollSources(tx);
-      const day = (await calculateAutomaticAccruals(tx))
+      const day = (await calculateAutomaticAccruals(tx, sourceGroup))
         .find((candidate) => candidate.workDate === input.workDate && candidate.unit === input.unit.trim());
       if (!day) {
         return { error: "За этот день нет начислений для отправки.", status: 409 as const };
@@ -424,6 +459,7 @@ router.post("/economic/payroll-registers/send-daily", async (req, res, next): Pr
       const [register] = await tx.insert(payrollRegistersTable).values({
         workDate: day.workDate,
         unit: day.unit,
+        sourceGroup,
         status: "pending_hr",
         totalAmount: day.totalAmount.toFixed(2),
         version: 1,

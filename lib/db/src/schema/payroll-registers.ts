@@ -15,6 +15,7 @@ export const payrollRegistersTable = pgTable("payroll_registers", {
   id: serial("id").primaryKey(),
   workDate: date("work_date", { mode: "string" }).notNull(),
   unit: text("unit").notNull(),
+  sourceGroup: text("source_group"),
   status: text("status").notNull().default("draft"),
   totalAmount: numeric("total_amount", { precision: 14, scale: 2 }).notNull().default("0"),
   version: integer("version").notNull().default(1),

@@ -12,6 +12,7 @@ export type GrainTransportTripOperation = typeof GrainTransportTripOperation[key
 export const GrainTransportTripOperation = {
   receipt: 'receipt',
   transfer: 'transfer',
+  sale: 'sale',
   drying: 'drying',
   cleaning: 'cleaning',
 } as const;

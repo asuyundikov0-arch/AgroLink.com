@@ -2405,6 +2405,11 @@ export const getGrainDashboardResponseCropsItemOneNameMax = 100;
 
 export const getGrainDashboardResponseLocationsItemOneNameMax = 100;
 
+export const getGrainDashboardResponseMovementsItemOneTransportPayBasisDefault = `per_trip`;
+export const getGrainDashboardResponseMovementsItemOneDistanceKmDefault = 0;
+export const getGrainDashboardResponseMovementsItemOneDistanceKmMin = 0;
+export const getGrainDashboardResponseMovementsItemOneDistanceKmMax = 1000000;
+
 export const getGrainDashboardResponseMovementsItemOneRequestIdMin = 16;
 export const getGrainDashboardResponseMovementsItemOneRequestIdMax = 80;
 
@@ -2458,6 +2463,8 @@ export const GetGrainDashboardResponse = zod.object({
   "id": zod.number()
 }))),
   "movements": zod.array(zod.object({
+  "transportPayBasis": zod.enum(['per_trip', 'ton_km']).default(getGrainDashboardResponseMovementsItemOneTransportPayBasisDefault),
+  "distanceKm": zod.number().min(getGrainDashboardResponseMovementsItemOneDistanceKmMin).max(getGrainDashboardResponseMovementsItemOneDistanceKmMax).default(getGrainDashboardResponseMovementsItemOneDistanceKmDefault),
   "requestId": zod.string().min(getGrainDashboardResponseMovementsItemOneRequestIdMin).max(getGrainDashboardResponseMovementsItemOneRequestIdMax),
   "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
   "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale', 'drying', 'cleaning']),
@@ -2517,9 +2524,14 @@ export const GetGrainDashboardResponse = zod.object({
 
 
 export const GetGrainTransportTripsResponseItem = zod.object({
+  "transportPayBasis": zod.enum(['per_trip', 'ton_km']).optional(),
+  "distanceKm": zod.number().optional(),
+  "tonKm": zod.number().optional(),
+  "tariffPerTonKm": zod.number().nullish(),
+  "version": zod.number().optional(),
   "id": zod.number(),
   "unit": zod.string(),
-  "operation": zod.enum(['receipt', 'transfer', 'drying', 'cleaning']),
+  "operation": zod.enum(['receipt', 'transfer', 'sale', 'drying', 'cleaning']),
   "cropName": zod.string(),
   "occurredOn": zod.string(),
   "quantityTons": zod.number(),
@@ -2548,16 +2560,27 @@ export const UpdateGrainTransportRateParams = zod.object({
 export const updateGrainTransportRateBodyRateKztMin = 0.01;
 export const updateGrainTransportRateBodyRateKztMax = 1000000000000;
 
+export const updateGrainTransportRateBodyTariffPerTonKmMin = 0.0001;
+export const updateGrainTransportRateBodyTariffPerTonKmMax = 1000000000;
+
+
 
 
 export const UpdateGrainTransportRateBody = zod.object({
-  "rateKzt": zod.number().min(updateGrainTransportRateBodyRateKztMin).max(updateGrainTransportRateBodyRateKztMax)
+  "rateKzt": zod.number().min(updateGrainTransportRateBodyRateKztMin).max(updateGrainTransportRateBodyRateKztMax).optional(),
+  "tariffPerTonKm": zod.number().min(updateGrainTransportRateBodyTariffPerTonKmMin).max(updateGrainTransportRateBodyTariffPerTonKmMax).optional(),
+  "version": zod.number().min(1).optional()
 })
 
 export const UpdateGrainTransportRateResponse = zod.object({
+  "transportPayBasis": zod.enum(['per_trip', 'ton_km']).optional(),
+  "distanceKm": zod.number().optional(),
+  "tonKm": zod.number().optional(),
+  "tariffPerTonKm": zod.number().nullish(),
+  "version": zod.number().optional(),
   "id": zod.number(),
   "unit": zod.string(),
-  "operation": zod.enum(['receipt', 'transfer', 'drying', 'cleaning']),
+  "operation": zod.enum(['receipt', 'transfer', 'sale', 'drying', 'cleaning']),
   "cropName": zod.string(),
   "occurredOn": zod.string(),
   "quantityTons": zod.number(),
@@ -2617,6 +2640,11 @@ export const CreateGrainLocationResponse = zod.object({
 }))
 
 
+export const createGrainMovementBodyTransportPayBasisDefault = `per_trip`;
+export const createGrainMovementBodyDistanceKmDefault = 0;
+export const createGrainMovementBodyDistanceKmMin = 0;
+export const createGrainMovementBodyDistanceKmMax = 1000000;
+
 export const createGrainMovementBodyRequestIdMin = 16;
 export const createGrainMovementBodyRequestIdMax = 80;
 
@@ -2657,6 +2685,8 @@ export const createGrainMovementBodyNotesMax = 3000;
 
 
 export const CreateGrainMovementBody = zod.object({
+  "transportPayBasis": zod.enum(['per_trip', 'ton_km']).default(createGrainMovementBodyTransportPayBasisDefault),
+  "distanceKm": zod.number().min(createGrainMovementBodyDistanceKmMin).max(createGrainMovementBodyDistanceKmMax).default(createGrainMovementBodyDistanceKmDefault),
   "requestId": zod.string().min(createGrainMovementBodyRequestIdMin).max(createGrainMovementBodyRequestIdMax),
   "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
   "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale', 'drying', 'cleaning']),
@@ -2677,6 +2707,11 @@ export const CreateGrainMovementBody = zod.object({
   "counterparty": zod.string().max(createGrainMovementBodyCounterpartyMax),
   "notes": zod.string().max(createGrainMovementBodyNotesMax)
 })
+
+export const createGrainMovementResponseOneTransportPayBasisDefault = `per_trip`;
+export const createGrainMovementResponseOneDistanceKmDefault = 0;
+export const createGrainMovementResponseOneDistanceKmMin = 0;
+export const createGrainMovementResponseOneDistanceKmMax = 1000000;
 
 export const createGrainMovementResponseOneRequestIdMin = 16;
 export const createGrainMovementResponseOneRequestIdMax = 80;
@@ -2718,6 +2753,8 @@ export const createGrainMovementResponseOneNotesMax = 3000;
 
 
 export const CreateGrainMovementResponse = zod.object({
+  "transportPayBasis": zod.enum(['per_trip', 'ton_km']).default(createGrainMovementResponseOneTransportPayBasisDefault),
+  "distanceKm": zod.number().min(createGrainMovementResponseOneDistanceKmMin).max(createGrainMovementResponseOneDistanceKmMax).default(createGrainMovementResponseOneDistanceKmDefault),
   "requestId": zod.string().min(createGrainMovementResponseOneRequestIdMin).max(createGrainMovementResponseOneRequestIdMax),
   "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
   "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale', 'drying', 'cleaning']),
@@ -2769,6 +2806,11 @@ export const ReviewGrainMovementBody = zod.object({
   "reviewComment": zod.string().max(reviewGrainMovementBodyReviewCommentMax)
 })
 
+export const reviewGrainMovementResponseOneTransportPayBasisDefault = `per_trip`;
+export const reviewGrainMovementResponseOneDistanceKmDefault = 0;
+export const reviewGrainMovementResponseOneDistanceKmMin = 0;
+export const reviewGrainMovementResponseOneDistanceKmMax = 1000000;
+
 export const reviewGrainMovementResponseOneRequestIdMin = 16;
 export const reviewGrainMovementResponseOneRequestIdMax = 80;
 
@@ -2809,6 +2851,8 @@ export const reviewGrainMovementResponseOneNotesMax = 3000;
 
 
 export const ReviewGrainMovementResponse = zod.object({
+  "transportPayBasis": zod.enum(['per_trip', 'ton_km']).default(reviewGrainMovementResponseOneTransportPayBasisDefault),
+  "distanceKm": zod.number().min(reviewGrainMovementResponseOneDistanceKmMin).max(reviewGrainMovementResponseOneDistanceKmMax).default(reviewGrainMovementResponseOneDistanceKmDefault),
   "requestId": zod.string().min(reviewGrainMovementResponseOneRequestIdMin).max(reviewGrainMovementResponseOneRequestIdMax),
   "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
   "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale', 'drying', 'cleaning']),
@@ -2860,6 +2904,11 @@ export const VoidGrainMovementBody = zod.object({
   "reason": zod.string().min(voidGrainMovementBodyReasonMin).max(voidGrainMovementBodyReasonMax)
 })
 
+export const voidGrainMovementResponseOneTransportPayBasisDefault = `per_trip`;
+export const voidGrainMovementResponseOneDistanceKmDefault = 0;
+export const voidGrainMovementResponseOneDistanceKmMin = 0;
+export const voidGrainMovementResponseOneDistanceKmMax = 1000000;
+
 export const voidGrainMovementResponseOneRequestIdMin = 16;
 export const voidGrainMovementResponseOneRequestIdMax = 80;
 
@@ -2900,6 +2949,8 @@ export const voidGrainMovementResponseOneNotesMax = 3000;
 
 
 export const VoidGrainMovementResponse = zod.object({
+  "transportPayBasis": zod.enum(['per_trip', 'ton_km']).default(voidGrainMovementResponseOneTransportPayBasisDefault),
+  "distanceKm": zod.number().min(voidGrainMovementResponseOneDistanceKmMin).max(voidGrainMovementResponseOneDistanceKmMax).default(voidGrainMovementResponseOneDistanceKmDefault),
   "requestId": zod.string().min(voidGrainMovementResponseOneRequestIdMin).max(voidGrainMovementResponseOneRequestIdMax),
   "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
   "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale', 'drying', 'cleaning']),
@@ -4015,6 +4066,10 @@ export const UpdateEmployeePayrollGroupResponse = zod.object({
 })
 
 
+export const ListPayrollAccrualsQueryParams = zod.object({
+  "sourceGroup": zod.enum(['brigade', 'motor_pool']).optional()
+})
+
 export const ListPayrollAccrualsResponseItem = zod.object({
   "workDate": zod.string(),
   "unit": zod.string(),
@@ -4041,7 +4096,12 @@ export const ListPayrollAccrualsResponseItem = zod.object({
 export const ListPayrollAccrualsResponse = zod.array(ListPayrollAccrualsResponseItem)
 
 
+export const ListPayrollRegistersQueryParams = zod.object({
+  "sourceGroup": zod.enum(['brigade', 'motor_pool']).optional()
+})
+
 export const ListPayrollRegistersResponseItem = zod.object({
+  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal(null)]).nullish(),
   "id": zod.number(),
   "workDate": zod.string(),
   "unit": zod.string(),
@@ -4095,6 +4155,7 @@ export const CreatePayrollRegisterBody = zod.object({
 })
 
 export const CreatePayrollRegisterResponse = zod.object({
+  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal(null)]).nullish(),
   "id": zod.number(),
   "workDate": zod.string(),
   "unit": zod.string(),
@@ -4128,12 +4189,14 @@ export const sendDailyPayrollRegisterBodySourceHashMax = 64;
 
 
 export const SendDailyPayrollRegisterBody = zod.object({
+  "sourceGroup": zod.enum(['brigade', 'motor_pool']).optional(),
   "workDate": zod.string(),
   "unit": zod.string().min(1).max(sendDailyPayrollRegisterBodyUnitMax),
   "sourceHash": zod.string().min(sendDailyPayrollRegisterBodySourceHashMin).max(sendDailyPayrollRegisterBodySourceHashMax)
 })
 
 export const SendDailyPayrollRegisterResponse = zod.object({
+  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal(null)]).nullish(),
   "id": zod.number(),
   "workDate": zod.string(),
   "unit": zod.string(),
@@ -4195,6 +4258,7 @@ export const UpdatePayrollRegisterBody = zod.object({
 })
 
 export const UpdatePayrollRegisterResponse = zod.object({
+  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal(null)]).nullish(),
   "id": zod.number(),
   "workDate": zod.string(),
   "unit": zod.string(),
@@ -4235,6 +4299,7 @@ export const ApproveHrPayrollRegisterBody = zod.object({
 })
 
 export const ApproveHrPayrollRegisterResponse = zod.object({
+  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal(null)]).nullish(),
   "id": zod.number(),
   "workDate": zod.string(),
   "unit": zod.string(),
@@ -4275,6 +4340,7 @@ export const SendPayrollRegisterBody = zod.object({
 })
 
 export const SendPayrollRegisterResponse = zod.object({
+  "sourceGroup": zod.union([zod.literal('brigade'),zod.literal('motor_pool'),zod.literal(null)]).nullish(),
   "id": zod.number(),
   "workDate": zod.string(),
   "unit": zod.string(),
@@ -4908,7 +4974,7 @@ export const GetMyRoleRequestResponse = zod.union([zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'motor_pool_manager', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -4926,7 +4992,7 @@ export const ListRoleRequestsResponseItem = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'motor_pool_manager', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -4943,7 +5009,7 @@ export const ListRoleRequestsResponse = zod.array(ListRoleRequestsResponseItem)
 
 
 export const CreateRoleRequestBody = zod.object({
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'motor_pool_manager', 'farm_director', 'general_director']),
   "department": zod.string().min(1)
 })
 
@@ -4953,7 +5019,7 @@ export const CreateRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'motor_pool_manager', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -4980,7 +5046,7 @@ export const ReviewRoleRequestResponse = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'motor_pool_manager', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),
@@ -4998,7 +5064,7 @@ export const ListUsersResponseItem = zod.object({
   "email": zod.string(),
   "displayName": zod.string(),
   "department": zod.string(),
-  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'farm_director', 'general_director']),
+  "requestedRole": zod.enum(['agronomist', 'chief_agronomist', 'grain_manager', 'weigher', 'dispatcher', 'hr', 'economist', 'engineer', 'chief_engineer', 'storekeeper', 'fuel_manager', 'motor_pool_manager', 'farm_director', 'general_director']),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "reviewComment": zod.string(),
   "reviewedByName": zod.string(),

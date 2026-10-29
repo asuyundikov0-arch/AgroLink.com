@@ -69,6 +69,7 @@ const roleLabels = {
   chief_engineer: "Главный инженер",
   storekeeper: "Заведующий складом",
   fuel_manager: "Заведующий нефтебазой",
+  motor_pool_manager: "Заведующий автобазой",
   hr: "Отдел кадров",
   economist: "Экономист",
 } as const;
@@ -199,6 +200,7 @@ const demoRoleScenarios: Record<AppRole, { workspace: string; title: string; des
   chief_engineer: { workspace: "Инженерный блок", title: "Проверка заявок на запчасти", description: "Проверьте позиции заявки инженера и направьте их генеральному директору.", document: "Заявка на запчасти · К-744 · Инженерная служба", action: "Согласовать и направить", result: "Демо: заявка согласована и направлена генеральному директору." },
   storekeeper: { workspace: "Инженерный блок", title: "Приёмка запчастей", description: "Проверьте одобренные заявки, внесите фактическое поступление по накладной и пополните склад.", document: "Заявка на покупку запчастей · Инженерная служба", action: "Оприходовать накладную", result: "Демо: поступление по заявке оприходовано на складе." },
   fuel_manager: { workspace: "Инженерный блок", title: "Учёт нефтебазы", description: "Внесите приход топлива по накладной и выдачу на технику с указанием поля и операции.", document: "Выдача ДТ · К-744 · поле № 14", action: "Провести выдачу", result: "Демо: выдача топлива учтена, остаток нефтебазы уменьшен." },
+  motor_pool_manager: { workspace: "Инженерный блок", title: "Автобаза", description: "Рассчитайте зарплату водителей за рейсы и тонно-километры, затем отправьте наряд в отдел кадров.", document: "Рейс КамАЗа на элеватор", action: "Рассчитать зарплату", result: "Демо: сумма рейса рассчитана для отправки в отдел кадров." },
   hr: { workspace: "Отдел кадров", title: "Подтверждение ежедневных нарядов", description: "Проверьте дневной наряд диспетчера по всем сотрудникам и подтвердите начисления.", document: "Ежедневный наряд · АФ Веденовка", action: "Подтвердить начисления", result: "Демо: наряд подтверждён и передан в накопительный зарплатный реестр." },
   economist: { workspace: "Экономический блок", title: "Производственный бюджет и Cash Flow", description: "Внесите помесячный план и фактические затраты, поступления и выплаты.", document: "Бюджет и движение денег", action: "Сохранить запись", result: "Демо: запись учтена в помесячной таблице." },
 };
@@ -339,7 +341,7 @@ function Shell({
   const isHr = role === "hr";
   const isHrVisible = isHr || role === "general_director";
   const isAgroVisible = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "dispatcher", "general_director"].includes(role);
-  const isEngineeringVisible = ["engineer", "chief_engineer", "storekeeper", "fuel_manager", "general_director"].includes(role);
+  const isEngineeringVisible = ["engineer", "chief_engineer", "storekeeper", "fuel_manager", "motor_pool_manager", "general_director"].includes(role);
   const isEconomicVisible = role === "general_director" || role === "economist";
   const isEmployeesVisible = ["general_director", "chief_agronomist", "chief_engineer", "dispatcher"].includes(role);
   const navigation = [
@@ -484,6 +486,7 @@ function AccessGate() {
   const request = (requestQuery.data as RoleRequest | null | undefined) ?? null;
   useEffect(() => {
     if (request?.status === "approved" && request.requestedRole === "dispatcher") setSection("agro");
+    if (request?.status === "approved" && request.requestedRole === "motor_pool_manager") setSection("engineering");
     if (request?.status === "approved" && request.requestedRole === "hr") setSection("hr");
     if (request?.status === "approved" && request.requestedRole === "economist") setSection("economic");
   }, [request?.requestedRole, request?.status]);
@@ -495,7 +498,7 @@ function AccessGate() {
   const role = canUseDemo && demoRole ? demoRole : actualRole;
   const changeDemoRole = (nextRole: AppRole | null) => {
     setDemoRole(nextRole);
-    setSection(nextRole === "dispatcher" ? "agro" : nextRole === "hr" ? "hr" : nextRole === "economist" ? "economic" : "cabinet");
+    setSection(nextRole === "dispatcher" ? "agro" : nextRole === "motor_pool_manager" ? "engineering" : nextRole === "hr" ? "hr" : nextRole === "economist" ? "economic" : "cabinet");
     if (nextRole) window.localStorage.setItem("agrolink-role-context", nextRole);
     else window.localStorage.removeItem("agrolink-role-context");
     queryClient.clear();
