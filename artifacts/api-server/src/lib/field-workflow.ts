@@ -13,6 +13,7 @@ import { grainBusinessDate, validGrainDate } from "./grain-ledger";
 import { isChemicalOperation, requestChemical } from "./chemical-workflow";
 import { fieldPayrollLockedThrough } from "./payroll-source-guard";
 import { toAreaAres } from "./field-planning";
+import { validateSupportingWorks } from "./field-supporting-works";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Operation = typeof operations.$inferSelect;
@@ -58,6 +59,9 @@ export async function startOrChangeFieldWork(tx: Tx, old: Operation, input: Fiel
   const [season] = await tx.select().from(seasons).where(eq(seasons.id, old.seasonId));
   const [field] = await tx.select().from(fields).where(eq(fields.id, season.fieldId));
   check(field.isActive, "Нельзя начать работу по архивному полю.", 409);
+  const actualSupportingWorks = input.actualSupportingWorks === undefined
+    ? (old.actualStart ? old.actualSupportingWorks : old.supportingWorks)
+    : await validateSupportingWorks(tx, input.actualSupportingWorks, field.unit);
   check(Number(input.actualStart.slice(0, 4)) === season.year, "Дата начала должна относиться к сезону поля.");
   check(Number.isSafeInteger(input.actualMechanicEmployeeId) && Number(input.actualMechanicEmployeeId) > 0,
     "Выберите механизатора из справочника.");
@@ -71,7 +75,7 @@ export async function startOrChangeFieldWork(tx: Tx, old: Operation, input: Fiel
     await validateChemicalPlan(tx, old.chemicalPlan, field.unit, true);
   }
   const [updated] = await tx.update(operations).set({
-    actualStart: input.actualStart, actualOperationName: old.actualOperationName || old.name,
+    actualStart: input.actualStart, actualSupportingWorks, actualOperationName: old.actualOperationName || old.name,
     actualMechanic: mechanic.fullName, actualMechanicEmployeeId: mechanic.id,
     actualEquipment: `${machine.kind} · ${machine.registrationNumber || "без госномера"}`,
     actualImplement: input.actualImplement.trim(),

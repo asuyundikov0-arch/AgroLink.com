@@ -76,6 +76,8 @@ export * from './fieldProgressUpdate';
 export * from './fieldSeason';
 export * from './fieldSeasonInput';
 export * from './fieldSeasonUpdate';
+export * from './fieldSupportingWork';
+export * from './fieldSupportingWorkSeedUnit';
 export * from './financialEntry';
 export * from './financialEntryBasis';
 export * from './financialEntryBook';

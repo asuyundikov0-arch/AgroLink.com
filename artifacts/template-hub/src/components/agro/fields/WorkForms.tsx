@@ -19,6 +19,7 @@ import {
 } from "@workspace/api-client-react";
 import EmployeeSelect from "../../employees/EmployeeSelect";
 import { ActualFuelField, ActualRateField, AgronomyActualFuelField } from "./ActualCostFields";
+import { SupportingWorksEditor, SupportingWorksSummary, type SupportRow, supportPlanOf, supportRowsFrom } from "./SupportingWorksEditor";
 import { Drawer, Field, SaveError, dateFmt, ha, handleSaveError, haStr, parseHa } from "./shared";
 import { useChemicalWorkflow } from "../chemicals/Workflow";
 
@@ -76,6 +77,10 @@ export function WorkResourcesForm({ op, unit, title, fieldLabel, today, fleet, f
     implement: (useActual ? op.actualImplement : "") || op.plannedImplement,
     notes: op.actualNotes ?? "",
   });
+  const initialSupport = starting ? op.supportingWorks : op.actualSupportingWorks;
+  const [supportOn, setSupportOn] = useState(!!initialSupport?.length);
+  const [supportRows, setSupportRows] = useState<SupportRow[]>(() => supportRowsFrom(initialSupport));
+  const [supportErrs, setSupportErrs] = useState<Record<string, string>>({});
   const [errs, setErrs] = useState<Record<string, string>>({});
   const unitFleet = useMemo(() => fleet.filter((x) => x.unit === unit), [fleet, unit]);
   const known = unitFleet.some((x) => eqLabel(x) === f.equipment);
@@ -91,10 +96,15 @@ export function WorkResourcesForm({ op, unit, title, fieldLabel, today, fleet, f
     if (!f.mechanicId) er.mechanic = "Выберите механизатора из справочника";
     if (!f.equipment) er.equipment = "Выберите технику хозяйства";
     if (!f.implement.trim()) er.implement = "Укажите агрегат"; else if (f.implement.length > 200) er.implement = "Не более 200 символов";
+    const support = supportPlanOf(supportOn ? supportRows : []);
+    if (supportOn && !supportRows.length) support.errors.general = "Добавьте хотя бы одну работу или снимите отметку";
+    if (Object.keys(support.errors).length) er.support = "Проверьте сопутствующие работы";
+    setSupportErrs(support.errors);
     setErrs(er); e.clear();
     if (Object.keys(er).length) return;
     try {
       await mut.mutateAsync({ id: op.id, data: {
+        actualSupportingWorks: supportOn ? support.works : [],
         version: op.version, actualStart: starting ? f.start : op.actualStart, actualEnd: null, actualAreaHa: op.actualAreaHa,
         actualOperationName: op.actualOperationName || op.name, actualMechanic: f.mechanic.trim(), actualMechanicEmployeeId: f.mechanicId,
         actualEquipment: f.equipment, actualImplement: f.implement.trim(), actualNotes: starting ? f.notes : op.actualNotes ?? "",
@@ -138,6 +148,9 @@ export function WorkResourcesForm({ op, unit, title, fieldLabel, today, fleet, f
           <ActualRateField rate={op.actualRatePerHa} prefix="work" />
           <AgronomyActualFuelField op={op} />
           {starting && <Field label="Дата начала *" error={errs.start} htmlFor="wr-start"><input id="wr-start" type="date" max={today} className="text-input" value={f.start} onChange={(ev) => setF({ ...f, start: ev.target.value })} data-testid="input-work-start" /></Field>}
+          <SupportingWorksEditor enabled={supportOn} onToggle={setSupportOn} rows={supportRows} onChange={setSupportRows} fleet={fleet} fleetLoading={fleetLoading} fleetError={fleetError} onRetry={onRetry} unit={unit} errors={supportErrs} disabled={pending || blocked} testId="work-support"
+            mainBudget={op.isUnplanned ? null : { pay: op.plannedAreaHa * op.plannedRatePerHa, fuel: op.plannedFuelCost }} />
+          {!!op.supportingWorks?.length && <div className="sm:col-span-2"><SupportingWorksSummary works={op.supportingWorks} title="По плану (не меняется)" testId="text-work-support-plan" /></div>}
           <Field label="Примечание" hint={starting ? undefined : "Только просмотр"} htmlFor="wr-notes" wide><textarea id="wr-notes" className="text-input min-h-[64px]" maxLength={3000} readOnly={!starting} value={f.notes} onChange={(ev) => setF({ ...f, notes: ev.target.value })} data-testid="input-work-notes" /></Field>
         </div>
       </Drawer>

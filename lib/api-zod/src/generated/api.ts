@@ -745,6 +745,33 @@ export const CreateUnplannedFieldOperationBody = zod.object({
   "notes": zod.string().max(createUnplannedFieldOperationBodyNotesMax)
 })
 
+export const createUnplannedFieldOperationResponseOneSupportingWorksItemNameMax = 150;
+
+
+export const createUnplannedFieldOperationResponseOneSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const createUnplannedFieldOperationResponseOneSupportingWorksItemEmployeeIdsMax = 30;
+
+export const createUnplannedFieldOperationResponseOneSupportingWorksItemSalaryCostMin = 0;
+export const createUnplannedFieldOperationResponseOneSupportingWorksItemSalaryCostMax = 1000000000;
+export const createUnplannedFieldOperationResponseOneSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const createUnplannedFieldOperationResponseOneSupportingWorksItemFuelCostMin = 0;
+export const createUnplannedFieldOperationResponseOneSupportingWorksItemFuelCostMax = 1000000000;
+export const createUnplannedFieldOperationResponseOneSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const createUnplannedFieldOperationResponseOneSupportingWorksItemSeedNameMax = 200;
+
+export const createUnplannedFieldOperationResponseOneSupportingWorksItemSeedQuantityMin = 0;
+export const createUnplannedFieldOperationResponseOneSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const createUnplannedFieldOperationResponseOneSupportingWorksItemSeedPriceMin = 0;
+export const createUnplannedFieldOperationResponseOneSupportingWorksItemSeedPriceMax = 1000000000;
+export const createUnplannedFieldOperationResponseOneSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const createUnplannedFieldOperationResponseOneSupportingWorksMax = 20;
+
 
 export const createUnplannedFieldOperationResponseOneChemicalPlanItemRatePerHaMin = 0.001;
 export const createUnplannedFieldOperationResponseOneChemicalPlanItemRatePerHaMax = 1000000;
@@ -772,6 +799,33 @@ export const createUnplannedFieldOperationResponseOnePlannedImplementMax = 200;
 export const createUnplannedFieldOperationResponseOneNotesMax = 3000;
 
 
+export const createUnplannedFieldOperationResponseTwoActualSupportingWorksItemNameMax = 150;
+
+
+export const createUnplannedFieldOperationResponseTwoActualSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const createUnplannedFieldOperationResponseTwoActualSupportingWorksItemEmployeeIdsMax = 30;
+
+export const createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMin = 0;
+export const createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMax = 1000000000;
+export const createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const createUnplannedFieldOperationResponseTwoActualSupportingWorksItemFuelCostMin = 0;
+export const createUnplannedFieldOperationResponseTwoActualSupportingWorksItemFuelCostMax = 1000000000;
+export const createUnplannedFieldOperationResponseTwoActualSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSeedNameMax = 200;
+
+export const createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMin = 0;
+export const createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMin = 0;
+export const createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMax = 1000000000;
+export const createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const createUnplannedFieldOperationResponseTwoActualSupportingWorksMax = 20;
+
 
 export const createUnplannedFieldOperationResponseTwoActualAreaHaMin = 0;
 export const createUnplannedFieldOperationResponseTwoActualAreaHaMax = 1000000;
@@ -790,6 +844,19 @@ export const createUnplannedFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const CreateUnplannedFieldOperationResponse = zod.object({
+  "supportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(createUnplannedFieldOperationResponseOneSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(createUnplannedFieldOperationResponseOneSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(createUnplannedFieldOperationResponseOneSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(createUnplannedFieldOperationResponseOneSupportingWorksItemSalaryCostMin).max(createUnplannedFieldOperationResponseOneSupportingWorksItemSalaryCostMax).multipleOf(createUnplannedFieldOperationResponseOneSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(createUnplannedFieldOperationResponseOneSupportingWorksItemFuelCostMin).max(createUnplannedFieldOperationResponseOneSupportingWorksItemFuelCostMax).multipleOf(createUnplannedFieldOperationResponseOneSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(createUnplannedFieldOperationResponseOneSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(createUnplannedFieldOperationResponseOneSupportingWorksItemSeedQuantityMin).max(createUnplannedFieldOperationResponseOneSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(createUnplannedFieldOperationResponseOneSupportingWorksItemSeedPriceMin).max(createUnplannedFieldOperationResponseOneSupportingWorksItemSeedPriceMax).multipleOf(createUnplannedFieldOperationResponseOneSupportingWorksItemSeedPriceMultipleOf)
+})).max(createUnplannedFieldOperationResponseOneSupportingWorksMax).optional(),
   "chemicalPlan": zod.array(zod.object({
   "batchId": zod.number().min(1),
   "ratePerHa": zod.number().min(createUnplannedFieldOperationResponseOneChemicalPlanItemRatePerHaMin).max(createUnplannedFieldOperationResponseOneChemicalPlanItemRatePerHaMax)
@@ -814,6 +881,19 @@ export const CreateUnplannedFieldOperationResponse = zod.object({
   "notes": zod.string().max(createUnplannedFieldOperationResponseOneNotesMax),
   "version": zod.number().min(1)
 }).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
+  "actualSupportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(createUnplannedFieldOperationResponseTwoActualSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(createUnplannedFieldOperationResponseTwoActualSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(createUnplannedFieldOperationResponseTwoActualSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMin).max(createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMax).multipleOf(createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(createUnplannedFieldOperationResponseTwoActualSupportingWorksItemFuelCostMin).max(createUnplannedFieldOperationResponseTwoActualSupportingWorksItemFuelCostMax).multipleOf(createUnplannedFieldOperationResponseTwoActualSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMin).max(createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMin).max(createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMax).multipleOf(createUnplannedFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMultipleOf)
+})).max(createUnplannedFieldOperationResponseTwoActualSupportingWorksMax).optional(),
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -901,6 +981,33 @@ export const getFieldDashboardResponseSeasonsItemOneOneAreaHaMax = 1000000;
 export const getFieldDashboardResponseSeasonsItemOneOneNotesMax = 3000;
 
 
+export const getFieldDashboardResponseOperationsItemOneSupportingWorksItemNameMax = 150;
+
+
+export const getFieldDashboardResponseOperationsItemOneSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const getFieldDashboardResponseOperationsItemOneSupportingWorksItemEmployeeIdsMax = 30;
+
+export const getFieldDashboardResponseOperationsItemOneSupportingWorksItemSalaryCostMin = 0;
+export const getFieldDashboardResponseOperationsItemOneSupportingWorksItemSalaryCostMax = 1000000000;
+export const getFieldDashboardResponseOperationsItemOneSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const getFieldDashboardResponseOperationsItemOneSupportingWorksItemFuelCostMin = 0;
+export const getFieldDashboardResponseOperationsItemOneSupportingWorksItemFuelCostMax = 1000000000;
+export const getFieldDashboardResponseOperationsItemOneSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const getFieldDashboardResponseOperationsItemOneSupportingWorksItemSeedNameMax = 200;
+
+export const getFieldDashboardResponseOperationsItemOneSupportingWorksItemSeedQuantityMin = 0;
+export const getFieldDashboardResponseOperationsItemOneSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const getFieldDashboardResponseOperationsItemOneSupportingWorksItemSeedPriceMin = 0;
+export const getFieldDashboardResponseOperationsItemOneSupportingWorksItemSeedPriceMax = 1000000000;
+export const getFieldDashboardResponseOperationsItemOneSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const getFieldDashboardResponseOperationsItemOneSupportingWorksMax = 20;
+
 
 export const getFieldDashboardResponseOperationsItemOneChemicalPlanItemRatePerHaMin = 0.001;
 export const getFieldDashboardResponseOperationsItemOneChemicalPlanItemRatePerHaMax = 1000000;
@@ -927,6 +1034,33 @@ export const getFieldDashboardResponseOperationsItemOnePlannedImplementMax = 200
 
 export const getFieldDashboardResponseOperationsItemOneNotesMax = 3000;
 
+
+export const getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemNameMax = 150;
+
+
+export const getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemEmployeeIdsMax = 30;
+
+export const getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSalaryCostMin = 0;
+export const getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSalaryCostMax = 1000000000;
+export const getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemFuelCostMin = 0;
+export const getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemFuelCostMax = 1000000000;
+export const getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSeedNameMax = 200;
+
+export const getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSeedQuantityMin = 0;
+export const getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSeedPriceMin = 0;
+export const getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSeedPriceMax = 1000000000;
+export const getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const getFieldDashboardResponseOperationsItemTwoActualSupportingWorksMax = 20;
 
 
 export const getFieldDashboardResponseOperationsItemTwoActualAreaHaMin = 0;
@@ -974,6 +1108,19 @@ export const GetFieldDashboardResponse = zod.object({
   "updatedAt": zod.string()
 }))),
   "operations": zod.array(zod.object({
+  "supportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(getFieldDashboardResponseOperationsItemOneSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(getFieldDashboardResponseOperationsItemOneSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(getFieldDashboardResponseOperationsItemOneSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(getFieldDashboardResponseOperationsItemOneSupportingWorksItemSalaryCostMin).max(getFieldDashboardResponseOperationsItemOneSupportingWorksItemSalaryCostMax).multipleOf(getFieldDashboardResponseOperationsItemOneSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(getFieldDashboardResponseOperationsItemOneSupportingWorksItemFuelCostMin).max(getFieldDashboardResponseOperationsItemOneSupportingWorksItemFuelCostMax).multipleOf(getFieldDashboardResponseOperationsItemOneSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(getFieldDashboardResponseOperationsItemOneSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(getFieldDashboardResponseOperationsItemOneSupportingWorksItemSeedQuantityMin).max(getFieldDashboardResponseOperationsItemOneSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(getFieldDashboardResponseOperationsItemOneSupportingWorksItemSeedPriceMin).max(getFieldDashboardResponseOperationsItemOneSupportingWorksItemSeedPriceMax).multipleOf(getFieldDashboardResponseOperationsItemOneSupportingWorksItemSeedPriceMultipleOf)
+})).max(getFieldDashboardResponseOperationsItemOneSupportingWorksMax).optional(),
   "chemicalPlan": zod.array(zod.object({
   "batchId": zod.number().min(1),
   "ratePerHa": zod.number().min(getFieldDashboardResponseOperationsItemOneChemicalPlanItemRatePerHaMin).max(getFieldDashboardResponseOperationsItemOneChemicalPlanItemRatePerHaMax)
@@ -998,6 +1145,19 @@ export const GetFieldDashboardResponse = zod.object({
   "notes": zod.string().max(getFieldDashboardResponseOperationsItemOneNotesMax),
   "version": zod.number().min(1)
 }).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
+  "actualSupportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSalaryCostMin).max(getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSalaryCostMax).multipleOf(getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemFuelCostMin).max(getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemFuelCostMax).multipleOf(getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSeedQuantityMin).max(getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSeedPriceMin).max(getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSeedPriceMax).multipleOf(getFieldDashboardResponseOperationsItemTwoActualSupportingWorksItemSeedPriceMultipleOf)
+})).max(getFieldDashboardResponseOperationsItemTwoActualSupportingWorksMax).optional(),
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -1089,6 +1249,33 @@ export const CreateAgroFieldResponse = zod.object({
 }))
 
 
+export const getFieldDispatchQueueResponseOperationOneSupportingWorksItemNameMax = 150;
+
+
+export const getFieldDispatchQueueResponseOperationOneSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const getFieldDispatchQueueResponseOperationOneSupportingWorksItemEmployeeIdsMax = 30;
+
+export const getFieldDispatchQueueResponseOperationOneSupportingWorksItemSalaryCostMin = 0;
+export const getFieldDispatchQueueResponseOperationOneSupportingWorksItemSalaryCostMax = 1000000000;
+export const getFieldDispatchQueueResponseOperationOneSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const getFieldDispatchQueueResponseOperationOneSupportingWorksItemFuelCostMin = 0;
+export const getFieldDispatchQueueResponseOperationOneSupportingWorksItemFuelCostMax = 1000000000;
+export const getFieldDispatchQueueResponseOperationOneSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const getFieldDispatchQueueResponseOperationOneSupportingWorksItemSeedNameMax = 200;
+
+export const getFieldDispatchQueueResponseOperationOneSupportingWorksItemSeedQuantityMin = 0;
+export const getFieldDispatchQueueResponseOperationOneSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const getFieldDispatchQueueResponseOperationOneSupportingWorksItemSeedPriceMin = 0;
+export const getFieldDispatchQueueResponseOperationOneSupportingWorksItemSeedPriceMax = 1000000000;
+export const getFieldDispatchQueueResponseOperationOneSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const getFieldDispatchQueueResponseOperationOneSupportingWorksMax = 20;
+
 
 export const getFieldDispatchQueueResponseOperationOneChemicalPlanItemRatePerHaMin = 0.001;
 export const getFieldDispatchQueueResponseOperationOneChemicalPlanItemRatePerHaMax = 1000000;
@@ -1116,6 +1303,33 @@ export const getFieldDispatchQueueResponseOperationOnePlannedImplementMax = 200;
 export const getFieldDispatchQueueResponseOperationOneNotesMax = 3000;
 
 
+export const getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemNameMax = 150;
+
+
+export const getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemEmployeeIdsMax = 30;
+
+export const getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSalaryCostMin = 0;
+export const getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSalaryCostMax = 1000000000;
+export const getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemFuelCostMin = 0;
+export const getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemFuelCostMax = 1000000000;
+export const getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSeedNameMax = 200;
+
+export const getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSeedQuantityMin = 0;
+export const getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSeedPriceMin = 0;
+export const getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSeedPriceMax = 1000000000;
+export const getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const getFieldDispatchQueueResponseOperationTwoActualSupportingWorksMax = 20;
+
 
 export const getFieldDispatchQueueResponseOperationTwoActualAreaHaMin = 0;
 export const getFieldDispatchQueueResponseOperationTwoActualAreaHaMax = 1000000;
@@ -1137,6 +1351,19 @@ export const GetFieldDispatchQueueResponseItem = zod.object({
   "fuelCost": zod.number().describe('Фактические затраты на топливо по всей операции из нефтебазы, тенге.'),
   "farm": zod.string().optional(),
   "operation": zod.object({
+  "supportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(getFieldDispatchQueueResponseOperationOneSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(getFieldDispatchQueueResponseOperationOneSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(getFieldDispatchQueueResponseOperationOneSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(getFieldDispatchQueueResponseOperationOneSupportingWorksItemSalaryCostMin).max(getFieldDispatchQueueResponseOperationOneSupportingWorksItemSalaryCostMax).multipleOf(getFieldDispatchQueueResponseOperationOneSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(getFieldDispatchQueueResponseOperationOneSupportingWorksItemFuelCostMin).max(getFieldDispatchQueueResponseOperationOneSupportingWorksItemFuelCostMax).multipleOf(getFieldDispatchQueueResponseOperationOneSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(getFieldDispatchQueueResponseOperationOneSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(getFieldDispatchQueueResponseOperationOneSupportingWorksItemSeedQuantityMin).max(getFieldDispatchQueueResponseOperationOneSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(getFieldDispatchQueueResponseOperationOneSupportingWorksItemSeedPriceMin).max(getFieldDispatchQueueResponseOperationOneSupportingWorksItemSeedPriceMax).multipleOf(getFieldDispatchQueueResponseOperationOneSupportingWorksItemSeedPriceMultipleOf)
+})).max(getFieldDispatchQueueResponseOperationOneSupportingWorksMax).optional(),
   "chemicalPlan": zod.array(zod.object({
   "batchId": zod.number().min(1),
   "ratePerHa": zod.number().min(getFieldDispatchQueueResponseOperationOneChemicalPlanItemRatePerHaMin).max(getFieldDispatchQueueResponseOperationOneChemicalPlanItemRatePerHaMax)
@@ -1161,6 +1388,19 @@ export const GetFieldDispatchQueueResponseItem = zod.object({
   "notes": zod.string().max(getFieldDispatchQueueResponseOperationOneNotesMax),
   "version": zod.number().min(1)
 }).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
+  "actualSupportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSalaryCostMin).max(getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSalaryCostMax).multipleOf(getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemFuelCostMin).max(getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemFuelCostMax).multipleOf(getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSeedQuantityMin).max(getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSeedPriceMin).max(getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSeedPriceMax).multipleOf(getFieldDispatchQueueResponseOperationTwoActualSupportingWorksItemSeedPriceMultipleOf)
+})).max(getFieldDispatchQueueResponseOperationTwoActualSupportingWorksMax).optional(),
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -1396,6 +1636,33 @@ export const UpdateFieldSeasonResponse = zod.object({
 }))
 
 
+export const createFieldOperationBodySupportingWorksItemNameMax = 150;
+
+
+export const createFieldOperationBodySupportingWorksItemEquipmentNameMax = 200;
+
+
+export const createFieldOperationBodySupportingWorksItemEmployeeIdsMax = 30;
+
+export const createFieldOperationBodySupportingWorksItemSalaryCostMin = 0;
+export const createFieldOperationBodySupportingWorksItemSalaryCostMax = 1000000000;
+export const createFieldOperationBodySupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const createFieldOperationBodySupportingWorksItemFuelCostMin = 0;
+export const createFieldOperationBodySupportingWorksItemFuelCostMax = 1000000000;
+export const createFieldOperationBodySupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const createFieldOperationBodySupportingWorksItemSeedNameMax = 200;
+
+export const createFieldOperationBodySupportingWorksItemSeedQuantityMin = 0;
+export const createFieldOperationBodySupportingWorksItemSeedQuantityMax = 1000000;
+
+export const createFieldOperationBodySupportingWorksItemSeedPriceMin = 0;
+export const createFieldOperationBodySupportingWorksItemSeedPriceMax = 1000000000;
+export const createFieldOperationBodySupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const createFieldOperationBodySupportingWorksMax = 20;
+
 
 export const createFieldOperationBodyChemicalPlanItemRatePerHaMin = 0.001;
 export const createFieldOperationBodyChemicalPlanItemRatePerHaMax = 1000000;
@@ -1426,6 +1693,19 @@ export const createFieldOperationBodyNotesMax = 3000;
 
 
 export const CreateFieldOperationBody = zod.object({
+  "supportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(createFieldOperationBodySupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(createFieldOperationBodySupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(createFieldOperationBodySupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(createFieldOperationBodySupportingWorksItemSalaryCostMin).max(createFieldOperationBodySupportingWorksItemSalaryCostMax).multipleOf(createFieldOperationBodySupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(createFieldOperationBodySupportingWorksItemFuelCostMin).max(createFieldOperationBodySupportingWorksItemFuelCostMax).multipleOf(createFieldOperationBodySupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(createFieldOperationBodySupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(createFieldOperationBodySupportingWorksItemSeedQuantityMin).max(createFieldOperationBodySupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(createFieldOperationBodySupportingWorksItemSeedPriceMin).max(createFieldOperationBodySupportingWorksItemSeedPriceMax).multipleOf(createFieldOperationBodySupportingWorksItemSeedPriceMultipleOf)
+})).max(createFieldOperationBodySupportingWorksMax).optional(),
   "chemicalPlan": zod.array(zod.object({
   "batchId": zod.number().min(1),
   "ratePerHa": zod.number().min(createFieldOperationBodyChemicalPlanItemRatePerHaMin).max(createFieldOperationBodyChemicalPlanItemRatePerHaMax)
@@ -1445,6 +1725,33 @@ export const CreateFieldOperationBody = zod.object({
   "plannedImplement": zod.string().max(createFieldOperationBodyPlannedImplementMax),
   "notes": zod.string().max(createFieldOperationBodyNotesMax)
 })
+
+export const createFieldOperationResponseOneSupportingWorksItemNameMax = 150;
+
+
+export const createFieldOperationResponseOneSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const createFieldOperationResponseOneSupportingWorksItemEmployeeIdsMax = 30;
+
+export const createFieldOperationResponseOneSupportingWorksItemSalaryCostMin = 0;
+export const createFieldOperationResponseOneSupportingWorksItemSalaryCostMax = 1000000000;
+export const createFieldOperationResponseOneSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const createFieldOperationResponseOneSupportingWorksItemFuelCostMin = 0;
+export const createFieldOperationResponseOneSupportingWorksItemFuelCostMax = 1000000000;
+export const createFieldOperationResponseOneSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const createFieldOperationResponseOneSupportingWorksItemSeedNameMax = 200;
+
+export const createFieldOperationResponseOneSupportingWorksItemSeedQuantityMin = 0;
+export const createFieldOperationResponseOneSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const createFieldOperationResponseOneSupportingWorksItemSeedPriceMin = 0;
+export const createFieldOperationResponseOneSupportingWorksItemSeedPriceMax = 1000000000;
+export const createFieldOperationResponseOneSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const createFieldOperationResponseOneSupportingWorksMax = 20;
 
 
 export const createFieldOperationResponseOneChemicalPlanItemRatePerHaMin = 0.001;
@@ -1473,6 +1780,33 @@ export const createFieldOperationResponseOnePlannedImplementMax = 200;
 export const createFieldOperationResponseOneNotesMax = 3000;
 
 
+export const createFieldOperationResponseTwoActualSupportingWorksItemNameMax = 150;
+
+
+export const createFieldOperationResponseTwoActualSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const createFieldOperationResponseTwoActualSupportingWorksItemEmployeeIdsMax = 30;
+
+export const createFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMin = 0;
+export const createFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMax = 1000000000;
+export const createFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const createFieldOperationResponseTwoActualSupportingWorksItemFuelCostMin = 0;
+export const createFieldOperationResponseTwoActualSupportingWorksItemFuelCostMax = 1000000000;
+export const createFieldOperationResponseTwoActualSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const createFieldOperationResponseTwoActualSupportingWorksItemSeedNameMax = 200;
+
+export const createFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMin = 0;
+export const createFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const createFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMin = 0;
+export const createFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMax = 1000000000;
+export const createFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const createFieldOperationResponseTwoActualSupportingWorksMax = 20;
+
 
 export const createFieldOperationResponseTwoActualAreaHaMin = 0;
 export const createFieldOperationResponseTwoActualAreaHaMax = 1000000;
@@ -1491,6 +1825,19 @@ export const createFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const CreateFieldOperationResponse = zod.object({
+  "supportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(createFieldOperationResponseOneSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(createFieldOperationResponseOneSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(createFieldOperationResponseOneSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(createFieldOperationResponseOneSupportingWorksItemSalaryCostMin).max(createFieldOperationResponseOneSupportingWorksItemSalaryCostMax).multipleOf(createFieldOperationResponseOneSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(createFieldOperationResponseOneSupportingWorksItemFuelCostMin).max(createFieldOperationResponseOneSupportingWorksItemFuelCostMax).multipleOf(createFieldOperationResponseOneSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(createFieldOperationResponseOneSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(createFieldOperationResponseOneSupportingWorksItemSeedQuantityMin).max(createFieldOperationResponseOneSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(createFieldOperationResponseOneSupportingWorksItemSeedPriceMin).max(createFieldOperationResponseOneSupportingWorksItemSeedPriceMax).multipleOf(createFieldOperationResponseOneSupportingWorksItemSeedPriceMultipleOf)
+})).max(createFieldOperationResponseOneSupportingWorksMax).optional(),
   "chemicalPlan": zod.array(zod.object({
   "batchId": zod.number().min(1),
   "ratePerHa": zod.number().min(createFieldOperationResponseOneChemicalPlanItemRatePerHaMin).max(createFieldOperationResponseOneChemicalPlanItemRatePerHaMax)
@@ -1515,6 +1862,19 @@ export const CreateFieldOperationResponse = zod.object({
   "notes": zod.string().max(createFieldOperationResponseOneNotesMax),
   "version": zod.number().min(1)
 }).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
+  "actualSupportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(createFieldOperationResponseTwoActualSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(createFieldOperationResponseTwoActualSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(createFieldOperationResponseTwoActualSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(createFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMin).max(createFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMax).multipleOf(createFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(createFieldOperationResponseTwoActualSupportingWorksItemFuelCostMin).max(createFieldOperationResponseTwoActualSupportingWorksItemFuelCostMax).multipleOf(createFieldOperationResponseTwoActualSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(createFieldOperationResponseTwoActualSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(createFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMin).max(createFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(createFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMin).max(createFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMax).multipleOf(createFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMultipleOf)
+})).max(createFieldOperationResponseTwoActualSupportingWorksMax).optional(),
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -1564,6 +1924,33 @@ export const UpdateFieldOperationParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const updateFieldOperationBodyOneSupportingWorksItemNameMax = 150;
+
+
+export const updateFieldOperationBodyOneSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const updateFieldOperationBodyOneSupportingWorksItemEmployeeIdsMax = 30;
+
+export const updateFieldOperationBodyOneSupportingWorksItemSalaryCostMin = 0;
+export const updateFieldOperationBodyOneSupportingWorksItemSalaryCostMax = 1000000000;
+export const updateFieldOperationBodyOneSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const updateFieldOperationBodyOneSupportingWorksItemFuelCostMin = 0;
+export const updateFieldOperationBodyOneSupportingWorksItemFuelCostMax = 1000000000;
+export const updateFieldOperationBodyOneSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const updateFieldOperationBodyOneSupportingWorksItemSeedNameMax = 200;
+
+export const updateFieldOperationBodyOneSupportingWorksItemSeedQuantityMin = 0;
+export const updateFieldOperationBodyOneSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const updateFieldOperationBodyOneSupportingWorksItemSeedPriceMin = 0;
+export const updateFieldOperationBodyOneSupportingWorksItemSeedPriceMax = 1000000000;
+export const updateFieldOperationBodyOneSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const updateFieldOperationBodyOneSupportingWorksMax = 20;
+
 
 export const updateFieldOperationBodyOneChemicalPlanItemRatePerHaMin = 0.001;
 export const updateFieldOperationBodyOneChemicalPlanItemRatePerHaMax = 1000000;
@@ -1595,6 +1982,19 @@ export const updateFieldOperationBodyOneNotesMax = 3000;
 
 
 export const UpdateFieldOperationBody = zod.object({
+  "supportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(updateFieldOperationBodyOneSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(updateFieldOperationBodyOneSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(updateFieldOperationBodyOneSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(updateFieldOperationBodyOneSupportingWorksItemSalaryCostMin).max(updateFieldOperationBodyOneSupportingWorksItemSalaryCostMax).multipleOf(updateFieldOperationBodyOneSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(updateFieldOperationBodyOneSupportingWorksItemFuelCostMin).max(updateFieldOperationBodyOneSupportingWorksItemFuelCostMax).multipleOf(updateFieldOperationBodyOneSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(updateFieldOperationBodyOneSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(updateFieldOperationBodyOneSupportingWorksItemSeedQuantityMin).max(updateFieldOperationBodyOneSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(updateFieldOperationBodyOneSupportingWorksItemSeedPriceMin).max(updateFieldOperationBodyOneSupportingWorksItemSeedPriceMax).multipleOf(updateFieldOperationBodyOneSupportingWorksItemSeedPriceMultipleOf)
+})).max(updateFieldOperationBodyOneSupportingWorksMax).optional(),
   "chemicalPlan": zod.array(zod.object({
   "batchId": zod.number().min(1),
   "ratePerHa": zod.number().min(updateFieldOperationBodyOneChemicalPlanItemRatePerHaMin).max(updateFieldOperationBodyOneChemicalPlanItemRatePerHaMax)
@@ -1616,6 +2016,33 @@ export const UpdateFieldOperationBody = zod.object({
 }).and(zod.object({
   "version": zod.number().min(1)
 }))
+
+export const updateFieldOperationResponseOneSupportingWorksItemNameMax = 150;
+
+
+export const updateFieldOperationResponseOneSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const updateFieldOperationResponseOneSupportingWorksItemEmployeeIdsMax = 30;
+
+export const updateFieldOperationResponseOneSupportingWorksItemSalaryCostMin = 0;
+export const updateFieldOperationResponseOneSupportingWorksItemSalaryCostMax = 1000000000;
+export const updateFieldOperationResponseOneSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const updateFieldOperationResponseOneSupportingWorksItemFuelCostMin = 0;
+export const updateFieldOperationResponseOneSupportingWorksItemFuelCostMax = 1000000000;
+export const updateFieldOperationResponseOneSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const updateFieldOperationResponseOneSupportingWorksItemSeedNameMax = 200;
+
+export const updateFieldOperationResponseOneSupportingWorksItemSeedQuantityMin = 0;
+export const updateFieldOperationResponseOneSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const updateFieldOperationResponseOneSupportingWorksItemSeedPriceMin = 0;
+export const updateFieldOperationResponseOneSupportingWorksItemSeedPriceMax = 1000000000;
+export const updateFieldOperationResponseOneSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const updateFieldOperationResponseOneSupportingWorksMax = 20;
 
 
 export const updateFieldOperationResponseOneChemicalPlanItemRatePerHaMin = 0.001;
@@ -1644,6 +2071,33 @@ export const updateFieldOperationResponseOnePlannedImplementMax = 200;
 export const updateFieldOperationResponseOneNotesMax = 3000;
 
 
+export const updateFieldOperationResponseTwoActualSupportingWorksItemNameMax = 150;
+
+
+export const updateFieldOperationResponseTwoActualSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const updateFieldOperationResponseTwoActualSupportingWorksItemEmployeeIdsMax = 30;
+
+export const updateFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMin = 0;
+export const updateFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMax = 1000000000;
+export const updateFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const updateFieldOperationResponseTwoActualSupportingWorksItemFuelCostMin = 0;
+export const updateFieldOperationResponseTwoActualSupportingWorksItemFuelCostMax = 1000000000;
+export const updateFieldOperationResponseTwoActualSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const updateFieldOperationResponseTwoActualSupportingWorksItemSeedNameMax = 200;
+
+export const updateFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMin = 0;
+export const updateFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const updateFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMin = 0;
+export const updateFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMax = 1000000000;
+export const updateFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const updateFieldOperationResponseTwoActualSupportingWorksMax = 20;
+
 
 export const updateFieldOperationResponseTwoActualAreaHaMin = 0;
 export const updateFieldOperationResponseTwoActualAreaHaMax = 1000000;
@@ -1662,6 +2116,19 @@ export const updateFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const UpdateFieldOperationResponse = zod.object({
+  "supportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(updateFieldOperationResponseOneSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(updateFieldOperationResponseOneSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(updateFieldOperationResponseOneSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(updateFieldOperationResponseOneSupportingWorksItemSalaryCostMin).max(updateFieldOperationResponseOneSupportingWorksItemSalaryCostMax).multipleOf(updateFieldOperationResponseOneSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(updateFieldOperationResponseOneSupportingWorksItemFuelCostMin).max(updateFieldOperationResponseOneSupportingWorksItemFuelCostMax).multipleOf(updateFieldOperationResponseOneSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(updateFieldOperationResponseOneSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(updateFieldOperationResponseOneSupportingWorksItemSeedQuantityMin).max(updateFieldOperationResponseOneSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(updateFieldOperationResponseOneSupportingWorksItemSeedPriceMin).max(updateFieldOperationResponseOneSupportingWorksItemSeedPriceMax).multipleOf(updateFieldOperationResponseOneSupportingWorksItemSeedPriceMultipleOf)
+})).max(updateFieldOperationResponseOneSupportingWorksMax).optional(),
   "chemicalPlan": zod.array(zod.object({
   "batchId": zod.number().min(1),
   "ratePerHa": zod.number().min(updateFieldOperationResponseOneChemicalPlanItemRatePerHaMin).max(updateFieldOperationResponseOneChemicalPlanItemRatePerHaMax)
@@ -1686,6 +2153,19 @@ export const UpdateFieldOperationResponse = zod.object({
   "notes": zod.string().max(updateFieldOperationResponseOneNotesMax),
   "version": zod.number().min(1)
 }).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
+  "actualSupportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(updateFieldOperationResponseTwoActualSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(updateFieldOperationResponseTwoActualSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(updateFieldOperationResponseTwoActualSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(updateFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMin).max(updateFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMax).multipleOf(updateFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(updateFieldOperationResponseTwoActualSupportingWorksItemFuelCostMin).max(updateFieldOperationResponseTwoActualSupportingWorksItemFuelCostMax).multipleOf(updateFieldOperationResponseTwoActualSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(updateFieldOperationResponseTwoActualSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(updateFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMin).max(updateFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(updateFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMin).max(updateFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMax).multipleOf(updateFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMultipleOf)
+})).max(updateFieldOperationResponseTwoActualSupportingWorksMax).optional(),
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -1747,6 +2227,33 @@ export const TransitionFieldOperationBody = zod.object({
   "note": zod.string().max(transitionFieldOperationBodyNoteMax).optional()
 })
 
+export const transitionFieldOperationResponseOneSupportingWorksItemNameMax = 150;
+
+
+export const transitionFieldOperationResponseOneSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const transitionFieldOperationResponseOneSupportingWorksItemEmployeeIdsMax = 30;
+
+export const transitionFieldOperationResponseOneSupportingWorksItemSalaryCostMin = 0;
+export const transitionFieldOperationResponseOneSupportingWorksItemSalaryCostMax = 1000000000;
+export const transitionFieldOperationResponseOneSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const transitionFieldOperationResponseOneSupportingWorksItemFuelCostMin = 0;
+export const transitionFieldOperationResponseOneSupportingWorksItemFuelCostMax = 1000000000;
+export const transitionFieldOperationResponseOneSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const transitionFieldOperationResponseOneSupportingWorksItemSeedNameMax = 200;
+
+export const transitionFieldOperationResponseOneSupportingWorksItemSeedQuantityMin = 0;
+export const transitionFieldOperationResponseOneSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const transitionFieldOperationResponseOneSupportingWorksItemSeedPriceMin = 0;
+export const transitionFieldOperationResponseOneSupportingWorksItemSeedPriceMax = 1000000000;
+export const transitionFieldOperationResponseOneSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const transitionFieldOperationResponseOneSupportingWorksMax = 20;
+
 
 export const transitionFieldOperationResponseOneChemicalPlanItemRatePerHaMin = 0.001;
 export const transitionFieldOperationResponseOneChemicalPlanItemRatePerHaMax = 1000000;
@@ -1774,6 +2281,33 @@ export const transitionFieldOperationResponseOnePlannedImplementMax = 200;
 export const transitionFieldOperationResponseOneNotesMax = 3000;
 
 
+export const transitionFieldOperationResponseTwoActualSupportingWorksItemNameMax = 150;
+
+
+export const transitionFieldOperationResponseTwoActualSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const transitionFieldOperationResponseTwoActualSupportingWorksItemEmployeeIdsMax = 30;
+
+export const transitionFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMin = 0;
+export const transitionFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMax = 1000000000;
+export const transitionFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const transitionFieldOperationResponseTwoActualSupportingWorksItemFuelCostMin = 0;
+export const transitionFieldOperationResponseTwoActualSupportingWorksItemFuelCostMax = 1000000000;
+export const transitionFieldOperationResponseTwoActualSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const transitionFieldOperationResponseTwoActualSupportingWorksItemSeedNameMax = 200;
+
+export const transitionFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMin = 0;
+export const transitionFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const transitionFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMin = 0;
+export const transitionFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMax = 1000000000;
+export const transitionFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const transitionFieldOperationResponseTwoActualSupportingWorksMax = 20;
+
 
 export const transitionFieldOperationResponseTwoActualAreaHaMin = 0;
 export const transitionFieldOperationResponseTwoActualAreaHaMax = 1000000;
@@ -1792,6 +2326,19 @@ export const transitionFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const TransitionFieldOperationResponse = zod.object({
+  "supportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(transitionFieldOperationResponseOneSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(transitionFieldOperationResponseOneSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(transitionFieldOperationResponseOneSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(transitionFieldOperationResponseOneSupportingWorksItemSalaryCostMin).max(transitionFieldOperationResponseOneSupportingWorksItemSalaryCostMax).multipleOf(transitionFieldOperationResponseOneSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(transitionFieldOperationResponseOneSupportingWorksItemFuelCostMin).max(transitionFieldOperationResponseOneSupportingWorksItemFuelCostMax).multipleOf(transitionFieldOperationResponseOneSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(transitionFieldOperationResponseOneSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(transitionFieldOperationResponseOneSupportingWorksItemSeedQuantityMin).max(transitionFieldOperationResponseOneSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(transitionFieldOperationResponseOneSupportingWorksItemSeedPriceMin).max(transitionFieldOperationResponseOneSupportingWorksItemSeedPriceMax).multipleOf(transitionFieldOperationResponseOneSupportingWorksItemSeedPriceMultipleOf)
+})).max(transitionFieldOperationResponseOneSupportingWorksMax).optional(),
   "chemicalPlan": zod.array(zod.object({
   "batchId": zod.number().min(1),
   "ratePerHa": zod.number().min(transitionFieldOperationResponseOneChemicalPlanItemRatePerHaMin).max(transitionFieldOperationResponseOneChemicalPlanItemRatePerHaMax)
@@ -1816,6 +2363,19 @@ export const TransitionFieldOperationResponse = zod.object({
   "notes": zod.string().max(transitionFieldOperationResponseOneNotesMax),
   "version": zod.number().min(1)
 }).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
+  "actualSupportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(transitionFieldOperationResponseTwoActualSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(transitionFieldOperationResponseTwoActualSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(transitionFieldOperationResponseTwoActualSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(transitionFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMin).max(transitionFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMax).multipleOf(transitionFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(transitionFieldOperationResponseTwoActualSupportingWorksItemFuelCostMin).max(transitionFieldOperationResponseTwoActualSupportingWorksItemFuelCostMax).multipleOf(transitionFieldOperationResponseTwoActualSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(transitionFieldOperationResponseTwoActualSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(transitionFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMin).max(transitionFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(transitionFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMin).max(transitionFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMax).multipleOf(transitionFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMultipleOf)
+})).max(transitionFieldOperationResponseTwoActualSupportingWorksMax).optional(),
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -1865,6 +2425,33 @@ export const UpdateFieldOperationActualParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const updateFieldOperationActualBodyActualSupportingWorksItemNameMax = 150;
+
+
+export const updateFieldOperationActualBodyActualSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const updateFieldOperationActualBodyActualSupportingWorksItemEmployeeIdsMax = 30;
+
+export const updateFieldOperationActualBodyActualSupportingWorksItemSalaryCostMin = 0;
+export const updateFieldOperationActualBodyActualSupportingWorksItemSalaryCostMax = 1000000000;
+export const updateFieldOperationActualBodyActualSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const updateFieldOperationActualBodyActualSupportingWorksItemFuelCostMin = 0;
+export const updateFieldOperationActualBodyActualSupportingWorksItemFuelCostMax = 1000000000;
+export const updateFieldOperationActualBodyActualSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const updateFieldOperationActualBodyActualSupportingWorksItemSeedNameMax = 200;
+
+export const updateFieldOperationActualBodyActualSupportingWorksItemSeedQuantityMin = 0;
+export const updateFieldOperationActualBodyActualSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const updateFieldOperationActualBodyActualSupportingWorksItemSeedPriceMin = 0;
+export const updateFieldOperationActualBodyActualSupportingWorksItemSeedPriceMax = 1000000000;
+export const updateFieldOperationActualBodyActualSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const updateFieldOperationActualBodyActualSupportingWorksMax = 20;
+
 
 export const updateFieldOperationActualBodyActualAreaHaMin = 0;
 export const updateFieldOperationActualBodyActualAreaHaMax = 1000000;
@@ -1883,6 +2470,19 @@ export const updateFieldOperationActualBodyActualNotesMax = 3000;
 
 
 export const UpdateFieldOperationActualBody = zod.object({
+  "actualSupportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(updateFieldOperationActualBodyActualSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(updateFieldOperationActualBodyActualSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(updateFieldOperationActualBodyActualSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(updateFieldOperationActualBodyActualSupportingWorksItemSalaryCostMin).max(updateFieldOperationActualBodyActualSupportingWorksItemSalaryCostMax).multipleOf(updateFieldOperationActualBodyActualSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(updateFieldOperationActualBodyActualSupportingWorksItemFuelCostMin).max(updateFieldOperationActualBodyActualSupportingWorksItemFuelCostMax).multipleOf(updateFieldOperationActualBodyActualSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(updateFieldOperationActualBodyActualSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(updateFieldOperationActualBodyActualSupportingWorksItemSeedQuantityMin).max(updateFieldOperationActualBodyActualSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(updateFieldOperationActualBodyActualSupportingWorksItemSeedPriceMin).max(updateFieldOperationActualBodyActualSupportingWorksItemSeedPriceMax).multipleOf(updateFieldOperationActualBodyActualSupportingWorksItemSeedPriceMultipleOf)
+})).max(updateFieldOperationActualBodyActualSupportingWorksMax).optional(),
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -1894,6 +2494,33 @@ export const UpdateFieldOperationActualBody = zod.object({
   "actualImplement": zod.string().max(updateFieldOperationActualBodyActualImplementMax),
   "actualNotes": zod.string().max(updateFieldOperationActualBodyActualNotesMax)
 })
+
+export const updateFieldOperationActualResponseOneSupportingWorksItemNameMax = 150;
+
+
+export const updateFieldOperationActualResponseOneSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const updateFieldOperationActualResponseOneSupportingWorksItemEmployeeIdsMax = 30;
+
+export const updateFieldOperationActualResponseOneSupportingWorksItemSalaryCostMin = 0;
+export const updateFieldOperationActualResponseOneSupportingWorksItemSalaryCostMax = 1000000000;
+export const updateFieldOperationActualResponseOneSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const updateFieldOperationActualResponseOneSupportingWorksItemFuelCostMin = 0;
+export const updateFieldOperationActualResponseOneSupportingWorksItemFuelCostMax = 1000000000;
+export const updateFieldOperationActualResponseOneSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const updateFieldOperationActualResponseOneSupportingWorksItemSeedNameMax = 200;
+
+export const updateFieldOperationActualResponseOneSupportingWorksItemSeedQuantityMin = 0;
+export const updateFieldOperationActualResponseOneSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const updateFieldOperationActualResponseOneSupportingWorksItemSeedPriceMin = 0;
+export const updateFieldOperationActualResponseOneSupportingWorksItemSeedPriceMax = 1000000000;
+export const updateFieldOperationActualResponseOneSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const updateFieldOperationActualResponseOneSupportingWorksMax = 20;
 
 
 export const updateFieldOperationActualResponseOneChemicalPlanItemRatePerHaMin = 0.001;
@@ -1922,6 +2549,33 @@ export const updateFieldOperationActualResponseOnePlannedImplementMax = 200;
 export const updateFieldOperationActualResponseOneNotesMax = 3000;
 
 
+export const updateFieldOperationActualResponseTwoActualSupportingWorksItemNameMax = 150;
+
+
+export const updateFieldOperationActualResponseTwoActualSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const updateFieldOperationActualResponseTwoActualSupportingWorksItemEmployeeIdsMax = 30;
+
+export const updateFieldOperationActualResponseTwoActualSupportingWorksItemSalaryCostMin = 0;
+export const updateFieldOperationActualResponseTwoActualSupportingWorksItemSalaryCostMax = 1000000000;
+export const updateFieldOperationActualResponseTwoActualSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const updateFieldOperationActualResponseTwoActualSupportingWorksItemFuelCostMin = 0;
+export const updateFieldOperationActualResponseTwoActualSupportingWorksItemFuelCostMax = 1000000000;
+export const updateFieldOperationActualResponseTwoActualSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const updateFieldOperationActualResponseTwoActualSupportingWorksItemSeedNameMax = 200;
+
+export const updateFieldOperationActualResponseTwoActualSupportingWorksItemSeedQuantityMin = 0;
+export const updateFieldOperationActualResponseTwoActualSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const updateFieldOperationActualResponseTwoActualSupportingWorksItemSeedPriceMin = 0;
+export const updateFieldOperationActualResponseTwoActualSupportingWorksItemSeedPriceMax = 1000000000;
+export const updateFieldOperationActualResponseTwoActualSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const updateFieldOperationActualResponseTwoActualSupportingWorksMax = 20;
+
 
 export const updateFieldOperationActualResponseTwoActualAreaHaMin = 0;
 export const updateFieldOperationActualResponseTwoActualAreaHaMax = 1000000;
@@ -1940,6 +2594,19 @@ export const updateFieldOperationActualResponseTwoActualNotesMax = 3000;
 
 
 export const UpdateFieldOperationActualResponse = zod.object({
+  "supportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(updateFieldOperationActualResponseOneSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(updateFieldOperationActualResponseOneSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(updateFieldOperationActualResponseOneSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(updateFieldOperationActualResponseOneSupportingWorksItemSalaryCostMin).max(updateFieldOperationActualResponseOneSupportingWorksItemSalaryCostMax).multipleOf(updateFieldOperationActualResponseOneSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(updateFieldOperationActualResponseOneSupportingWorksItemFuelCostMin).max(updateFieldOperationActualResponseOneSupportingWorksItemFuelCostMax).multipleOf(updateFieldOperationActualResponseOneSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(updateFieldOperationActualResponseOneSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(updateFieldOperationActualResponseOneSupportingWorksItemSeedQuantityMin).max(updateFieldOperationActualResponseOneSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(updateFieldOperationActualResponseOneSupportingWorksItemSeedPriceMin).max(updateFieldOperationActualResponseOneSupportingWorksItemSeedPriceMax).multipleOf(updateFieldOperationActualResponseOneSupportingWorksItemSeedPriceMultipleOf)
+})).max(updateFieldOperationActualResponseOneSupportingWorksMax).optional(),
   "chemicalPlan": zod.array(zod.object({
   "batchId": zod.number().min(1),
   "ratePerHa": zod.number().min(updateFieldOperationActualResponseOneChemicalPlanItemRatePerHaMin).max(updateFieldOperationActualResponseOneChemicalPlanItemRatePerHaMax)
@@ -1964,6 +2631,19 @@ export const UpdateFieldOperationActualResponse = zod.object({
   "notes": zod.string().max(updateFieldOperationActualResponseOneNotesMax),
   "version": zod.number().min(1)
 }).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
+  "actualSupportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(updateFieldOperationActualResponseTwoActualSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(updateFieldOperationActualResponseTwoActualSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(updateFieldOperationActualResponseTwoActualSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(updateFieldOperationActualResponseTwoActualSupportingWorksItemSalaryCostMin).max(updateFieldOperationActualResponseTwoActualSupportingWorksItemSalaryCostMax).multipleOf(updateFieldOperationActualResponseTwoActualSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(updateFieldOperationActualResponseTwoActualSupportingWorksItemFuelCostMin).max(updateFieldOperationActualResponseTwoActualSupportingWorksItemFuelCostMax).multipleOf(updateFieldOperationActualResponseTwoActualSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(updateFieldOperationActualResponseTwoActualSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(updateFieldOperationActualResponseTwoActualSupportingWorksItemSeedQuantityMin).max(updateFieldOperationActualResponseTwoActualSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(updateFieldOperationActualResponseTwoActualSupportingWorksItemSeedPriceMin).max(updateFieldOperationActualResponseTwoActualSupportingWorksItemSeedPriceMax).multipleOf(updateFieldOperationActualResponseTwoActualSupportingWorksItemSeedPriceMultipleOf)
+})).max(updateFieldOperationActualResponseTwoActualSupportingWorksMax).optional(),
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -2027,6 +2707,33 @@ export const UpdateFieldDispatchRateBody = zod.object({
   "ratePerHa": zod.number().min(updateFieldDispatchRateBodyRatePerHaMin).max(updateFieldDispatchRateBodyRatePerHaMax)
 })
 
+export const updateFieldDispatchRateResponseOperationOneSupportingWorksItemNameMax = 150;
+
+
+export const updateFieldDispatchRateResponseOperationOneSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const updateFieldDispatchRateResponseOperationOneSupportingWorksItemEmployeeIdsMax = 30;
+
+export const updateFieldDispatchRateResponseOperationOneSupportingWorksItemSalaryCostMin = 0;
+export const updateFieldDispatchRateResponseOperationOneSupportingWorksItemSalaryCostMax = 1000000000;
+export const updateFieldDispatchRateResponseOperationOneSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const updateFieldDispatchRateResponseOperationOneSupportingWorksItemFuelCostMin = 0;
+export const updateFieldDispatchRateResponseOperationOneSupportingWorksItemFuelCostMax = 1000000000;
+export const updateFieldDispatchRateResponseOperationOneSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const updateFieldDispatchRateResponseOperationOneSupportingWorksItemSeedNameMax = 200;
+
+export const updateFieldDispatchRateResponseOperationOneSupportingWorksItemSeedQuantityMin = 0;
+export const updateFieldDispatchRateResponseOperationOneSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const updateFieldDispatchRateResponseOperationOneSupportingWorksItemSeedPriceMin = 0;
+export const updateFieldDispatchRateResponseOperationOneSupportingWorksItemSeedPriceMax = 1000000000;
+export const updateFieldDispatchRateResponseOperationOneSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const updateFieldDispatchRateResponseOperationOneSupportingWorksMax = 20;
+
 
 export const updateFieldDispatchRateResponseOperationOneChemicalPlanItemRatePerHaMin = 0.001;
 export const updateFieldDispatchRateResponseOperationOneChemicalPlanItemRatePerHaMax = 1000000;
@@ -2054,6 +2761,33 @@ export const updateFieldDispatchRateResponseOperationOnePlannedImplementMax = 20
 export const updateFieldDispatchRateResponseOperationOneNotesMax = 3000;
 
 
+export const updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemNameMax = 150;
+
+
+export const updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemEmployeeIdsMax = 30;
+
+export const updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSalaryCostMin = 0;
+export const updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSalaryCostMax = 1000000000;
+export const updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemFuelCostMin = 0;
+export const updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemFuelCostMax = 1000000000;
+export const updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSeedNameMax = 200;
+
+export const updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSeedQuantityMin = 0;
+export const updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSeedPriceMin = 0;
+export const updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSeedPriceMax = 1000000000;
+export const updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const updateFieldDispatchRateResponseOperationTwoActualSupportingWorksMax = 20;
+
 
 export const updateFieldDispatchRateResponseOperationTwoActualAreaHaMin = 0;
 export const updateFieldDispatchRateResponseOperationTwoActualAreaHaMax = 1000000;
@@ -2075,6 +2809,19 @@ export const UpdateFieldDispatchRateResponse = zod.object({
   "fuelCost": zod.number().describe('Фактические затраты на топливо по всей операции из нефтебазы, тенге.'),
   "farm": zod.string().optional(),
   "operation": zod.object({
+  "supportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(updateFieldDispatchRateResponseOperationOneSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(updateFieldDispatchRateResponseOperationOneSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(updateFieldDispatchRateResponseOperationOneSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(updateFieldDispatchRateResponseOperationOneSupportingWorksItemSalaryCostMin).max(updateFieldDispatchRateResponseOperationOneSupportingWorksItemSalaryCostMax).multipleOf(updateFieldDispatchRateResponseOperationOneSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(updateFieldDispatchRateResponseOperationOneSupportingWorksItemFuelCostMin).max(updateFieldDispatchRateResponseOperationOneSupportingWorksItemFuelCostMax).multipleOf(updateFieldDispatchRateResponseOperationOneSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(updateFieldDispatchRateResponseOperationOneSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(updateFieldDispatchRateResponseOperationOneSupportingWorksItemSeedQuantityMin).max(updateFieldDispatchRateResponseOperationOneSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(updateFieldDispatchRateResponseOperationOneSupportingWorksItemSeedPriceMin).max(updateFieldDispatchRateResponseOperationOneSupportingWorksItemSeedPriceMax).multipleOf(updateFieldDispatchRateResponseOperationOneSupportingWorksItemSeedPriceMultipleOf)
+})).max(updateFieldDispatchRateResponseOperationOneSupportingWorksMax).optional(),
   "chemicalPlan": zod.array(zod.object({
   "batchId": zod.number().min(1),
   "ratePerHa": zod.number().min(updateFieldDispatchRateResponseOperationOneChemicalPlanItemRatePerHaMin).max(updateFieldDispatchRateResponseOperationOneChemicalPlanItemRatePerHaMax)
@@ -2099,6 +2846,19 @@ export const UpdateFieldDispatchRateResponse = zod.object({
   "notes": zod.string().max(updateFieldDispatchRateResponseOperationOneNotesMax),
   "version": zod.number().min(1)
 }).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
+  "actualSupportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSalaryCostMin).max(updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSalaryCostMax).multipleOf(updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemFuelCostMin).max(updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemFuelCostMax).multipleOf(updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSeedQuantityMin).max(updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSeedPriceMin).max(updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSeedPriceMax).multipleOf(updateFieldDispatchRateResponseOperationTwoActualSupportingWorksItemSeedPriceMultipleOf)
+})).max(updateFieldDispatchRateResponseOperationTwoActualSupportingWorksMax).optional(),
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -2200,6 +2960,33 @@ export const CreateFieldOperationProgressBody = zod.object({
   "notes": zod.string().max(createFieldOperationProgressBodyNotesMax)
 })
 
+export const createFieldOperationProgressResponseOneSupportingWorksItemNameMax = 150;
+
+
+export const createFieldOperationProgressResponseOneSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const createFieldOperationProgressResponseOneSupportingWorksItemEmployeeIdsMax = 30;
+
+export const createFieldOperationProgressResponseOneSupportingWorksItemSalaryCostMin = 0;
+export const createFieldOperationProgressResponseOneSupportingWorksItemSalaryCostMax = 1000000000;
+export const createFieldOperationProgressResponseOneSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const createFieldOperationProgressResponseOneSupportingWorksItemFuelCostMin = 0;
+export const createFieldOperationProgressResponseOneSupportingWorksItemFuelCostMax = 1000000000;
+export const createFieldOperationProgressResponseOneSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const createFieldOperationProgressResponseOneSupportingWorksItemSeedNameMax = 200;
+
+export const createFieldOperationProgressResponseOneSupportingWorksItemSeedQuantityMin = 0;
+export const createFieldOperationProgressResponseOneSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const createFieldOperationProgressResponseOneSupportingWorksItemSeedPriceMin = 0;
+export const createFieldOperationProgressResponseOneSupportingWorksItemSeedPriceMax = 1000000000;
+export const createFieldOperationProgressResponseOneSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const createFieldOperationProgressResponseOneSupportingWorksMax = 20;
+
 
 export const createFieldOperationProgressResponseOneChemicalPlanItemRatePerHaMin = 0.001;
 export const createFieldOperationProgressResponseOneChemicalPlanItemRatePerHaMax = 1000000;
@@ -2227,6 +3014,33 @@ export const createFieldOperationProgressResponseOnePlannedImplementMax = 200;
 export const createFieldOperationProgressResponseOneNotesMax = 3000;
 
 
+export const createFieldOperationProgressResponseTwoActualSupportingWorksItemNameMax = 150;
+
+
+export const createFieldOperationProgressResponseTwoActualSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const createFieldOperationProgressResponseTwoActualSupportingWorksItemEmployeeIdsMax = 30;
+
+export const createFieldOperationProgressResponseTwoActualSupportingWorksItemSalaryCostMin = 0;
+export const createFieldOperationProgressResponseTwoActualSupportingWorksItemSalaryCostMax = 1000000000;
+export const createFieldOperationProgressResponseTwoActualSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const createFieldOperationProgressResponseTwoActualSupportingWorksItemFuelCostMin = 0;
+export const createFieldOperationProgressResponseTwoActualSupportingWorksItemFuelCostMax = 1000000000;
+export const createFieldOperationProgressResponseTwoActualSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const createFieldOperationProgressResponseTwoActualSupportingWorksItemSeedNameMax = 200;
+
+export const createFieldOperationProgressResponseTwoActualSupportingWorksItemSeedQuantityMin = 0;
+export const createFieldOperationProgressResponseTwoActualSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const createFieldOperationProgressResponseTwoActualSupportingWorksItemSeedPriceMin = 0;
+export const createFieldOperationProgressResponseTwoActualSupportingWorksItemSeedPriceMax = 1000000000;
+export const createFieldOperationProgressResponseTwoActualSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const createFieldOperationProgressResponseTwoActualSupportingWorksMax = 20;
+
 
 export const createFieldOperationProgressResponseTwoActualAreaHaMin = 0;
 export const createFieldOperationProgressResponseTwoActualAreaHaMax = 1000000;
@@ -2245,6 +3059,19 @@ export const createFieldOperationProgressResponseTwoActualNotesMax = 3000;
 
 
 export const CreateFieldOperationProgressResponse = zod.object({
+  "supportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(createFieldOperationProgressResponseOneSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(createFieldOperationProgressResponseOneSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(createFieldOperationProgressResponseOneSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(createFieldOperationProgressResponseOneSupportingWorksItemSalaryCostMin).max(createFieldOperationProgressResponseOneSupportingWorksItemSalaryCostMax).multipleOf(createFieldOperationProgressResponseOneSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(createFieldOperationProgressResponseOneSupportingWorksItemFuelCostMin).max(createFieldOperationProgressResponseOneSupportingWorksItemFuelCostMax).multipleOf(createFieldOperationProgressResponseOneSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(createFieldOperationProgressResponseOneSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(createFieldOperationProgressResponseOneSupportingWorksItemSeedQuantityMin).max(createFieldOperationProgressResponseOneSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(createFieldOperationProgressResponseOneSupportingWorksItemSeedPriceMin).max(createFieldOperationProgressResponseOneSupportingWorksItemSeedPriceMax).multipleOf(createFieldOperationProgressResponseOneSupportingWorksItemSeedPriceMultipleOf)
+})).max(createFieldOperationProgressResponseOneSupportingWorksMax).optional(),
   "chemicalPlan": zod.array(zod.object({
   "batchId": zod.number().min(1),
   "ratePerHa": zod.number().min(createFieldOperationProgressResponseOneChemicalPlanItemRatePerHaMin).max(createFieldOperationProgressResponseOneChemicalPlanItemRatePerHaMax)
@@ -2269,6 +3096,19 @@ export const CreateFieldOperationProgressResponse = zod.object({
   "notes": zod.string().max(createFieldOperationProgressResponseOneNotesMax),
   "version": zod.number().min(1)
 }).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
+  "actualSupportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(createFieldOperationProgressResponseTwoActualSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(createFieldOperationProgressResponseTwoActualSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(createFieldOperationProgressResponseTwoActualSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(createFieldOperationProgressResponseTwoActualSupportingWorksItemSalaryCostMin).max(createFieldOperationProgressResponseTwoActualSupportingWorksItemSalaryCostMax).multipleOf(createFieldOperationProgressResponseTwoActualSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(createFieldOperationProgressResponseTwoActualSupportingWorksItemFuelCostMin).max(createFieldOperationProgressResponseTwoActualSupportingWorksItemFuelCostMax).multipleOf(createFieldOperationProgressResponseTwoActualSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(createFieldOperationProgressResponseTwoActualSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(createFieldOperationProgressResponseTwoActualSupportingWorksItemSeedQuantityMin).max(createFieldOperationProgressResponseTwoActualSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(createFieldOperationProgressResponseTwoActualSupportingWorksItemSeedPriceMin).max(createFieldOperationProgressResponseTwoActualSupportingWorksItemSeedPriceMax).multipleOf(createFieldOperationProgressResponseTwoActualSupportingWorksItemSeedPriceMultipleOf)
+})).max(createFieldOperationProgressResponseTwoActualSupportingWorksMax).optional(),
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -2353,6 +3193,33 @@ export const UpdateFieldOperationProgressBody = zod.object({
   "version": zod.number().min(1)
 }))
 
+export const updateFieldOperationProgressResponseOneSupportingWorksItemNameMax = 150;
+
+
+export const updateFieldOperationProgressResponseOneSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const updateFieldOperationProgressResponseOneSupportingWorksItemEmployeeIdsMax = 30;
+
+export const updateFieldOperationProgressResponseOneSupportingWorksItemSalaryCostMin = 0;
+export const updateFieldOperationProgressResponseOneSupportingWorksItemSalaryCostMax = 1000000000;
+export const updateFieldOperationProgressResponseOneSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const updateFieldOperationProgressResponseOneSupportingWorksItemFuelCostMin = 0;
+export const updateFieldOperationProgressResponseOneSupportingWorksItemFuelCostMax = 1000000000;
+export const updateFieldOperationProgressResponseOneSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const updateFieldOperationProgressResponseOneSupportingWorksItemSeedNameMax = 200;
+
+export const updateFieldOperationProgressResponseOneSupportingWorksItemSeedQuantityMin = 0;
+export const updateFieldOperationProgressResponseOneSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const updateFieldOperationProgressResponseOneSupportingWorksItemSeedPriceMin = 0;
+export const updateFieldOperationProgressResponseOneSupportingWorksItemSeedPriceMax = 1000000000;
+export const updateFieldOperationProgressResponseOneSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const updateFieldOperationProgressResponseOneSupportingWorksMax = 20;
+
 
 export const updateFieldOperationProgressResponseOneChemicalPlanItemRatePerHaMin = 0.001;
 export const updateFieldOperationProgressResponseOneChemicalPlanItemRatePerHaMax = 1000000;
@@ -2380,6 +3247,33 @@ export const updateFieldOperationProgressResponseOnePlannedImplementMax = 200;
 export const updateFieldOperationProgressResponseOneNotesMax = 3000;
 
 
+export const updateFieldOperationProgressResponseTwoActualSupportingWorksItemNameMax = 150;
+
+
+export const updateFieldOperationProgressResponseTwoActualSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const updateFieldOperationProgressResponseTwoActualSupportingWorksItemEmployeeIdsMax = 30;
+
+export const updateFieldOperationProgressResponseTwoActualSupportingWorksItemSalaryCostMin = 0;
+export const updateFieldOperationProgressResponseTwoActualSupportingWorksItemSalaryCostMax = 1000000000;
+export const updateFieldOperationProgressResponseTwoActualSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const updateFieldOperationProgressResponseTwoActualSupportingWorksItemFuelCostMin = 0;
+export const updateFieldOperationProgressResponseTwoActualSupportingWorksItemFuelCostMax = 1000000000;
+export const updateFieldOperationProgressResponseTwoActualSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const updateFieldOperationProgressResponseTwoActualSupportingWorksItemSeedNameMax = 200;
+
+export const updateFieldOperationProgressResponseTwoActualSupportingWorksItemSeedQuantityMin = 0;
+export const updateFieldOperationProgressResponseTwoActualSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const updateFieldOperationProgressResponseTwoActualSupportingWorksItemSeedPriceMin = 0;
+export const updateFieldOperationProgressResponseTwoActualSupportingWorksItemSeedPriceMax = 1000000000;
+export const updateFieldOperationProgressResponseTwoActualSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const updateFieldOperationProgressResponseTwoActualSupportingWorksMax = 20;
+
 
 export const updateFieldOperationProgressResponseTwoActualAreaHaMin = 0;
 export const updateFieldOperationProgressResponseTwoActualAreaHaMax = 1000000;
@@ -2398,6 +3292,19 @@ export const updateFieldOperationProgressResponseTwoActualNotesMax = 3000;
 
 
 export const UpdateFieldOperationProgressResponse = zod.object({
+  "supportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(updateFieldOperationProgressResponseOneSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(updateFieldOperationProgressResponseOneSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(updateFieldOperationProgressResponseOneSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(updateFieldOperationProgressResponseOneSupportingWorksItemSalaryCostMin).max(updateFieldOperationProgressResponseOneSupportingWorksItemSalaryCostMax).multipleOf(updateFieldOperationProgressResponseOneSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(updateFieldOperationProgressResponseOneSupportingWorksItemFuelCostMin).max(updateFieldOperationProgressResponseOneSupportingWorksItemFuelCostMax).multipleOf(updateFieldOperationProgressResponseOneSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(updateFieldOperationProgressResponseOneSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(updateFieldOperationProgressResponseOneSupportingWorksItemSeedQuantityMin).max(updateFieldOperationProgressResponseOneSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(updateFieldOperationProgressResponseOneSupportingWorksItemSeedPriceMin).max(updateFieldOperationProgressResponseOneSupportingWorksItemSeedPriceMax).multipleOf(updateFieldOperationProgressResponseOneSupportingWorksItemSeedPriceMultipleOf)
+})).max(updateFieldOperationProgressResponseOneSupportingWorksMax).optional(),
   "chemicalPlan": zod.array(zod.object({
   "batchId": zod.number().min(1),
   "ratePerHa": zod.number().min(updateFieldOperationProgressResponseOneChemicalPlanItemRatePerHaMin).max(updateFieldOperationProgressResponseOneChemicalPlanItemRatePerHaMax)
@@ -2422,6 +3329,19 @@ export const UpdateFieldOperationProgressResponse = zod.object({
   "notes": zod.string().max(updateFieldOperationProgressResponseOneNotesMax),
   "version": zod.number().min(1)
 }).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
+  "actualSupportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(updateFieldOperationProgressResponseTwoActualSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(updateFieldOperationProgressResponseTwoActualSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(updateFieldOperationProgressResponseTwoActualSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(updateFieldOperationProgressResponseTwoActualSupportingWorksItemSalaryCostMin).max(updateFieldOperationProgressResponseTwoActualSupportingWorksItemSalaryCostMax).multipleOf(updateFieldOperationProgressResponseTwoActualSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(updateFieldOperationProgressResponseTwoActualSupportingWorksItemFuelCostMin).max(updateFieldOperationProgressResponseTwoActualSupportingWorksItemFuelCostMax).multipleOf(updateFieldOperationProgressResponseTwoActualSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(updateFieldOperationProgressResponseTwoActualSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(updateFieldOperationProgressResponseTwoActualSupportingWorksItemSeedQuantityMin).max(updateFieldOperationProgressResponseTwoActualSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(updateFieldOperationProgressResponseTwoActualSupportingWorksItemSeedPriceMin).max(updateFieldOperationProgressResponseTwoActualSupportingWorksItemSeedPriceMax).multipleOf(updateFieldOperationProgressResponseTwoActualSupportingWorksItemSeedPriceMultipleOf)
+})).max(updateFieldOperationProgressResponseTwoActualSupportingWorksMax).optional(),
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),
@@ -2482,6 +3402,33 @@ export const VoidFieldOperationBody = zod.object({
   "reason": zod.string().min(voidFieldOperationBodyReasonMin).max(voidFieldOperationBodyReasonMax)
 })
 
+export const voidFieldOperationResponseOneSupportingWorksItemNameMax = 150;
+
+
+export const voidFieldOperationResponseOneSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const voidFieldOperationResponseOneSupportingWorksItemEmployeeIdsMax = 30;
+
+export const voidFieldOperationResponseOneSupportingWorksItemSalaryCostMin = 0;
+export const voidFieldOperationResponseOneSupportingWorksItemSalaryCostMax = 1000000000;
+export const voidFieldOperationResponseOneSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const voidFieldOperationResponseOneSupportingWorksItemFuelCostMin = 0;
+export const voidFieldOperationResponseOneSupportingWorksItemFuelCostMax = 1000000000;
+export const voidFieldOperationResponseOneSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const voidFieldOperationResponseOneSupportingWorksItemSeedNameMax = 200;
+
+export const voidFieldOperationResponseOneSupportingWorksItemSeedQuantityMin = 0;
+export const voidFieldOperationResponseOneSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const voidFieldOperationResponseOneSupportingWorksItemSeedPriceMin = 0;
+export const voidFieldOperationResponseOneSupportingWorksItemSeedPriceMax = 1000000000;
+export const voidFieldOperationResponseOneSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const voidFieldOperationResponseOneSupportingWorksMax = 20;
+
 
 export const voidFieldOperationResponseOneChemicalPlanItemRatePerHaMin = 0.001;
 export const voidFieldOperationResponseOneChemicalPlanItemRatePerHaMax = 1000000;
@@ -2509,6 +3456,33 @@ export const voidFieldOperationResponseOnePlannedImplementMax = 200;
 export const voidFieldOperationResponseOneNotesMax = 3000;
 
 
+export const voidFieldOperationResponseTwoActualSupportingWorksItemNameMax = 150;
+
+
+export const voidFieldOperationResponseTwoActualSupportingWorksItemEquipmentNameMax = 200;
+
+
+export const voidFieldOperationResponseTwoActualSupportingWorksItemEmployeeIdsMax = 30;
+
+export const voidFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMin = 0;
+export const voidFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMax = 1000000000;
+export const voidFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMultipleOf = 0.01;
+
+export const voidFieldOperationResponseTwoActualSupportingWorksItemFuelCostMin = 0;
+export const voidFieldOperationResponseTwoActualSupportingWorksItemFuelCostMax = 1000000000;
+export const voidFieldOperationResponseTwoActualSupportingWorksItemFuelCostMultipleOf = 0.01;
+
+export const voidFieldOperationResponseTwoActualSupportingWorksItemSeedNameMax = 200;
+
+export const voidFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMin = 0;
+export const voidFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMax = 1000000;
+
+export const voidFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMin = 0;
+export const voidFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMax = 1000000000;
+export const voidFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMultipleOf = 0.01;
+
+export const voidFieldOperationResponseTwoActualSupportingWorksMax = 20;
+
 
 export const voidFieldOperationResponseTwoActualAreaHaMin = 0;
 export const voidFieldOperationResponseTwoActualAreaHaMax = 1000000;
@@ -2527,6 +3501,19 @@ export const voidFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const VoidFieldOperationResponse = zod.object({
+  "supportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(voidFieldOperationResponseOneSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(voidFieldOperationResponseOneSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(voidFieldOperationResponseOneSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(voidFieldOperationResponseOneSupportingWorksItemSalaryCostMin).max(voidFieldOperationResponseOneSupportingWorksItemSalaryCostMax).multipleOf(voidFieldOperationResponseOneSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(voidFieldOperationResponseOneSupportingWorksItemFuelCostMin).max(voidFieldOperationResponseOneSupportingWorksItemFuelCostMax).multipleOf(voidFieldOperationResponseOneSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(voidFieldOperationResponseOneSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(voidFieldOperationResponseOneSupportingWorksItemSeedQuantityMin).max(voidFieldOperationResponseOneSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(voidFieldOperationResponseOneSupportingWorksItemSeedPriceMin).max(voidFieldOperationResponseOneSupportingWorksItemSeedPriceMax).multipleOf(voidFieldOperationResponseOneSupportingWorksItemSeedPriceMultipleOf)
+})).max(voidFieldOperationResponseOneSupportingWorksMax).optional(),
   "chemicalPlan": zod.array(zod.object({
   "batchId": zod.number().min(1),
   "ratePerHa": zod.number().min(voidFieldOperationResponseOneChemicalPlanItemRatePerHaMin).max(voidFieldOperationResponseOneChemicalPlanItemRatePerHaMax)
@@ -2551,6 +3538,19 @@ export const VoidFieldOperationResponse = zod.object({
   "notes": zod.string().max(voidFieldOperationResponseOneNotesMax),
   "version": zod.number().min(1)
 }).describe('Stored plan metadata; unplanned actual work has zero planned hectares.').and(zod.object({
+  "actualSupportingWorks": zod.array(zod.object({
+  "name": zod.string().min(1).max(voidFieldOperationResponseTwoActualSupportingWorksItemNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(voidFieldOperationResponseTwoActualSupportingWorksItemEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(voidFieldOperationResponseTwoActualSupportingWorksItemEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(voidFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMin).max(voidFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMax).multipleOf(voidFieldOperationResponseTwoActualSupportingWorksItemSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(voidFieldOperationResponseTwoActualSupportingWorksItemFuelCostMin).max(voidFieldOperationResponseTwoActualSupportingWorksItemFuelCostMax).multipleOf(voidFieldOperationResponseTwoActualSupportingWorksItemFuelCostMultipleOf),
+  "seedName": zod.string().max(voidFieldOperationResponseTwoActualSupportingWorksItemSeedNameMax),
+  "seedQuantity": zod.number().min(voidFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMin).max(voidFieldOperationResponseTwoActualSupportingWorksItemSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(voidFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMin).max(voidFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMax).multipleOf(voidFieldOperationResponseTwoActualSupportingWorksItemSeedPriceMultipleOf)
+})).max(voidFieldOperationResponseTwoActualSupportingWorksMax).optional(),
   "version": zod.number().min(1),
   "actualStart": zod.string().nullable(),
   "actualEnd": zod.string().nullable(),

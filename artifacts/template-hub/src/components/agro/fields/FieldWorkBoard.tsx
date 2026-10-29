@@ -4,6 +4,7 @@ import { type AgroField, type FieldCosts, type FieldLifecycleInputAction, type F
 import { FieldCostsPanel, OperationCost } from "./FieldCostsPanel";
 import { ChemicalOperationRequests } from "../chemicals/Requests";
 import { Drawer, POLL_MS, Progress, StatusPill, canActual, canManage, cx, dateFmt, ha, isGD } from "./shared";
+import { SupportingWorksSummary } from "./SupportingWorksEditor";
 import { DailyHistory, approvalOf, chemNormsMissing, isPendingCompletion, isPendingUnplanned, limitOf, ReviewButtons } from "./WorkForms";
 
 type Props = {
@@ -123,6 +124,8 @@ function Card({ op: o, cost, costsReady, meta, actions, tone, history, testId }:
         <div className="flex flex-wrap justify-end gap-1.5">{actions}{history && <button type="button" className={btn} onClick={() => setShowHist(!showHist)} data-testid={`button-daily-toggle-${o.id}`}><CalendarRange size={12} />По дням ({o.progressReports.length})</button>}</div>
       </div>
     </div>
+    <SupportingWorksSummary works={o.supportingWorks} title="Сопутствующие работы по плану" testId={`text-support-plan-${o.id}`} />
+    {started && <SupportingWorksSummary works={o.actualSupportingWorks} title="Сопутствующие работы в выполнении" testId={`text-support-actual-${o.id}`} />}
     {costsReady && <OperationCost cost={cost} opId={o.id} />}
     {showHist && <div className="mt-2 rounded-md border border-border/70 bg-muted/20 px-2.5 py-1.5"><DailyHistory op={o} /></div>}
   </article>;

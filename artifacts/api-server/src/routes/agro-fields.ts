@@ -18,6 +18,7 @@ import { summarizeDailySeeding } from "../lib/daily-seeding";
 import { isChemicalOperation, chemicalRequestsExist, chemicalIssuedForOperation, lastChemicalConfirmation } from "../lib/chemical-workflow";
 import { ChemicalError } from "../lib/chemical-stock";
 import { startOrChangeFieldWork, transitionFieldWork, validateChemicalPlan } from "../lib/field-workflow";
+import { validateSupportingWorks } from "../lib/field-supporting-works";
 import { fieldCosts } from "../lib/field-costs";
 import { GetFieldCostsResponse } from "@workspace/api-zod";
 
@@ -385,9 +386,10 @@ router.post("/agro/fields/operations", manage, safe(async (req, res) => {
     requireValue(field.isActive, "Поле в архиве. Новые работы недоступны.", 409);
     const error = validateFieldPlan(input, season.areaAres); requireValue(!error, error ?? "");
     const resources = await plannedResources(tx, input, field.unit);
+    const supportingWorks = await validateSupportingWorks(tx, input.supportingWorks ?? [], field.unit);
     const chemicalPlan = await validateChemicalPlan(tx, input.chemicalPlan ?? [], field.unit, !!input.requiresChemicals);
     const [created] = await tx.insert(fieldOperationsTable).values({
-      seasonId: season.id, ...resources, plannedStart: input.plannedStart,
+      seasonId: season.id, ...resources, supportingWorks, plannedStart: input.plannedStart,
       requiresChemicals: !!input.requiresChemicals, chemicalModeExplicit: true, chemicalPlan,
       plannedEnd: input.plannedEnd, plannedAreaAres: toAreaAres(input.plannedAreaHa)!, plannedRatePerHa: input.plannedRatePerHa.toFixed(2),
       plannedFuelCost: (input.plannedFuelCost ?? 0).toFixed(2),
@@ -417,10 +419,12 @@ router.patch("/agro/fields/operations/:id", manage, safe(async (req, res) => {
     if (input.seasonId !== old.seasonId) requireValue((await getField(tx, season.fieldId)).isActive, "Нельзя переносить работу на архивное поле.", 409);
     requireValue(toAreaAres(input.plannedAreaHa)! >= old.actualAreaAres, "Плановая площадь меньше уже выполненной.", 409);
     const resources = await plannedResources(tx, input, (await getField(tx, season.fieldId)).unit, old);
+    const supportingWorks = await validateSupportingWorks(tx, input.supportingWorks ?? old.supportingWorks,
+      (await getField(tx, season.fieldId)).unit);
     const chemicalPlan = await validateChemicalPlan(tx, input.chemicalPlan ?? old.chemicalPlan,
       (await getField(tx, season.fieldId)).unit, !!input.requiresChemicals);
     const [updated] = await tx.update(fieldOperationsTable).set({
-      seasonId: season.id, ...resources, plannedStart: input.plannedStart, plannedEnd: input.plannedEnd,
+      seasonId: season.id, ...resources, supportingWorks, plannedStart: input.plannedStart, plannedEnd: input.plannedEnd,
       plannedAreaAres: toAreaAres(input.plannedAreaHa)!,
       requiresChemicals: !!input.requiresChemicals, chemicalModeExplicit: true, chemicalPlan,
       plannedRatePerHa: input.plannedRatePerHa.toFixed(2),

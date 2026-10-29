@@ -17,6 +17,7 @@ import {
   useVoidFieldOperation,
 } from "@workspace/api-client-react";
 import EmployeeSelect from "../../employees/EmployeeSelect";
+import { SupportingWorksEditor, type SupportRow, supportPlanOf, supportRowsFrom } from "./SupportingWorksEditor";
 import { ChemicalPlanEditor, type ChemRow, chemPlanOf, chemRowsFrom } from "./ChemicalPlanEditor";
 import { Drawer, Field, SaveError, UNITS, type Unit, dateFmt, errorInfo, ha, handleSaveError, haStr, isGD, parseHa, useInvalidateFields } from "./shared";
 
@@ -267,6 +268,9 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
   });
   const [chemRows, setChemRows] = useState<ChemRow[]>(() => chemRowsFrom(op?.chemicalPlan));
   const locked = !!op?.actualStart;
+  const [supportOn, setSupportOn] = useState(!!op?.supportingWorks?.length);
+  const [supportRows, setSupportRows] = useState<SupportRow[]>(() => supportRowsFrom(op?.supportingWorks));
+  const [supportErrs, setSupportErrs] = useState<Record<string, string>>({});
   const [errs, setErrs] = useState<Record<string, string>>({});
   const pending = create.isPending || update.isPending;
   const close = () => { if (!pending) onClose(); };
@@ -307,9 +311,13 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
     const chem = chemPlanOf(f.requiresChemicals ? chemRows : []);
     if (chem.error) er.chem = chem.error;
     else if (f.requiresChemicals && !chem.plan.length) er.chem = "Укажите хотя бы один препарат и норму расхода на гектар.";
+    const support = supportPlanOf(supportOn ? supportRows : []);
+    if (supportOn && !supportRows.length) support.errors.general = "Добавьте хотя бы одну работу или снимите отметку";
+    if (Object.keys(support.errors).length) er.support = "Проверьте сопутствующие работы";
+    setSupportErrs(support.errors);
     setErrs(er); e.clear();
     if (Object.keys(er).length) return;
-    const data = { seasonId: initSeason, name, plannedStart: f.plannedStart, plannedEnd: f.plannedEnd, plannedAreaHa: area!, plannedRatePerHa: plannedRate!, plannedFuelCost, responsible: f.responsible.trim(), plannedMechanicEmployeeId: f.responsibleId, plannedEquipmentId: f.plannedEquipmentId, plannedEquipment: f.plannedEquipment.trim(), plannedImplement: f.plannedImplement.trim(), notes: f.notes, requiresChemicals: f.requiresChemicals, chemicalPlan: f.requiresChemicals ? chem.plan : [] };
+    const data = { supportingWorks: supportOn ? support.works : [], seasonId: initSeason, name, plannedStart: f.plannedStart, plannedEnd: f.plannedEnd, plannedAreaHa: area!, plannedRatePerHa: plannedRate!, plannedFuelCost, responsible: f.responsible.trim(), plannedMechanicEmployeeId: f.responsibleId, plannedEquipmentId: f.plannedEquipmentId, plannedEquipment: f.plannedEquipment.trim(), plannedImplement: f.plannedImplement.trim(), notes: f.notes, requiresChemicals: f.requiresChemicals, chemicalPlan: f.requiresChemicals ? chem.plan : [] };
     try {
       if (op) await update.mutateAsync({ id: op.id, data: { ...data, version: op.version } });
       else await create.mutateAsync({ data });
@@ -359,6 +367,8 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
               <span>Требуется химия<span className="block text-[10.5px] font-normal text-muted-foreground">Задайте нормы на гектар из партий склада. При начале работы склад автоматически получит заявку на плановую потребность (с округлением до целой тары).</span></span>
             </label>
             {f.requiresChemicals && <div className="sm:col-span-2"><ChemicalPlanEditor farm={seasonUnit} areaHa={parseHa(f.area)} rows={chemRows} onChange={setChemRows} error={errs.chem} testId="operation-chem-plan" /></div>}
+            <SupportingWorksEditor enabled={supportOn} onToggle={setSupportOn} rows={supportRows} onChange={setSupportRows} fleet={fleet} fleetLoading={fleetLoading} fleetError={fleetError} onRetry={onRetry} unit={seasonUnit} errors={supportErrs} disabled={locked || pending} testId="operation-support"
+              mainBudget={(() => { const a = parseHa(f.area) ?? 0; const r = Number(f.plannedRate.trim().replace(",", ".")); const fu = Number(f.plannedFuelCost.trim().replace(",", ".")); return { pay: Number.isFinite(r) ? a * r : 0, fuel: Number.isFinite(fu) ? fu : 0 }; })()} />
             <Field label="Примечания" htmlFor="op-notes" wide><textarea id="op-notes" className="text-input min-h-[72px]" maxLength={3000} value={f.notes} onChange={(ev) => setF({ ...f, notes: ev.target.value })} data-testid="input-operation-notes" /></Field>
           </div>
         )}

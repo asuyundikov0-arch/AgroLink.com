@@ -675,6 +675,58 @@ export type FieldSeason = FieldSeasonUpdate & {
   updatedAt: string;
 };
 
+export type FieldSupportingWorkSeedUnit = typeof FieldSupportingWorkSeedUnit[keyof typeof FieldSupportingWorkSeedUnit];
+
+
+export const FieldSupportingWorkSeedUnit = {
+  kg: 'kg',
+  ton: 'ton',
+} as const;
+
+export interface FieldSupportingWork {
+  /**
+     * @minLength 1
+     * @maxLength 150
+     */
+  name: string;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  equipmentId: number | null;
+  /** @maxLength 200 */
+  equipmentName?: string;
+  /**
+     * @maxItems 30
+     * @items.minimum 1
+     */
+  employeeIds: number[];
+  employeeNames?: string[];
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  salaryCost: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  fuelCost: number;
+  /** @maxLength 200 */
+  seedName: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  seedQuantity: number;
+  seedUnit: FieldSupportingWorkSeedUnit;
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  seedPrice: number;
+}
+
 export interface FieldChemicalPlan {
   /** @minimum 1 */
   batchId: number;
@@ -686,6 +738,8 @@ export interface FieldChemicalPlan {
 }
 
 export interface FieldOperationInput {
+  /** @maxItems 20 */
+  supportingWorks?: FieldSupportingWork[];
   chemicalPlan?: FieldChemicalPlan[];
   requiresChemicals?: boolean;
   /** @minimum 1 */
@@ -759,6 +813,8 @@ export type FieldOperationUpdate = FieldOperationInput & {
 };
 
 export interface FieldActualInput {
+  /** @maxItems 20 */
+  actualSupportingWorks?: FieldSupportingWork[];
   /** @minimum 1 */
   version: number;
   /** @nullable */
@@ -908,6 +964,8 @@ export const FieldOperationRecordPlanApprovalStatus = {
  * Stored plan metadata; unplanned actual work has zero planned hectares.
  */
 export interface FieldOperationRecordPlan {
+  /** @maxItems 20 */
+  supportingWorks?: FieldSupportingWork[];
   chemicalPlan?: FieldChemicalPlan[];
   approvalStatus?: FieldOperationRecordPlanApprovalStatus;
   approvalNote?: string;

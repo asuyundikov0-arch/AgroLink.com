@@ -4,6 +4,13 @@ import { fieldSeasonsTable } from "./field-seasons";
 import { employeesTable } from "./employees";
 import { fleetEquipmentTable } from "./fleet-equipment";
 
+export type FieldSupportingWorkRecord = {
+  name: string; equipmentId: number | null; equipmentName?: string;
+  employeeIds: number[]; employeeNames?: string[];
+  salaryCost: number; fuelCost: number;
+  seedName: string; seedQuantity: number; seedUnit: "kg" | "ton"; seedPrice: number;
+};
+
 export const fieldOperationsTable = pgTable("field_operations", {
   id: serial("id").primaryKey(),
   seasonId: integer("season_id").notNull().references(() => fieldSeasonsTable.id, { onDelete: "restrict" }),
@@ -13,6 +20,8 @@ export const fieldOperationsTable = pgTable("field_operations", {
   requiresChemicals: boolean("requires_chemicals").notNull().default(false),
   chemicalModeExplicit: boolean("chemical_mode_explicit").notNull().default(false),
   chemicalPlan: jsonb("chemical_plan").$type<{ batchId: number; ratePerHa: number }[]>().notNull().default([]),
+  supportingWorks: jsonb("supporting_works").$type<FieldSupportingWorkRecord[]>().notNull().default([]),
+  actualSupportingWorks: jsonb("actual_supporting_works").$type<FieldSupportingWorkRecord[]>().notNull().default([]),
   approvalStatus: text("approval_status").notNull().default("approved"),
   approvalNote: text("approval_note").notNull().default(""),
   startedByUserId: text("started_by_user_id"),

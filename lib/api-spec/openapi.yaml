@@ -2218,6 +2218,10 @@ components:
       type: object
       required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, plannedRatePerHa, responsible, plannedEquipment, plannedImplement, notes]
       properties:
+        supportingWorks:
+          type: array
+          maxItems: 20
+          items: { $ref: "#/components/schemas/FieldSupportingWork" }
         chemicalPlan:
           type: array
           items: { $ref: "#/components/schemas/FieldChemicalPlan" }
@@ -2235,6 +2239,26 @@ components:
         plannedEquipment: { type: string, maxLength: 200 }
         plannedImplement: { type: string, maxLength: 200 }
         notes: { type: string, maxLength: 3000 }
+    FieldSupportingWork:
+      type: object
+      required: [name, equipmentId, employeeIds, salaryCost, fuelCost, seedName, seedQuantity, seedUnit, seedPrice]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 150 }
+        equipmentId: { type: ["number", "null"], minimum: 1 }
+        equipmentName: { type: string, maxLength: 200 }
+        employeeIds:
+          type: array
+          maxItems: 30
+          items: { type: number, minimum: 1 }
+        employeeNames:
+          type: array
+          items: { type: string }
+        salaryCost: { type: number, minimum: 0, maximum: 1000000000, multipleOf: 0.01 }
+        fuelCost: { type: number, minimum: 0, maximum: 1000000000, multipleOf: 0.01 }
+        seedName: { type: string, maxLength: 200 }
+        seedQuantity: { type: number, minimum: 0, maximum: 1000000 }
+        seedUnit: { type: string, enum: [kg, ton] }
+        seedPrice: { type: number, minimum: 0, maximum: 1000000000, multipleOf: 0.01 }
     FieldChemicalPlan:
       type: object
       required: [batchId, ratePerHa]
@@ -2260,6 +2284,10 @@ components:
       type: object
       required: [version, actualStart, actualEnd, actualAreaHa, actualOperationName, actualMechanic, actualMechanicEmployeeId, actualEquipment, actualImplement, actualNotes]
       properties:
+        actualSupportingWorks:
+          type: array
+          maxItems: 20
+          items: { $ref: "#/components/schemas/FieldSupportingWork" }
         version: { type: number, minimum: 1 }
         actualStart: { type: ["string", "null"] }
         actualEnd: { type: ["string", "null"] }
@@ -2354,6 +2382,10 @@ components:
       description: Stored plan metadata; unplanned actual work has zero planned hectares.
       required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, plannedRatePerHa, plannedFuelCost, responsible, plannedEquipment, plannedImplement, notes, version]
       properties:
+        supportingWorks:
+          type: array
+          maxItems: 20
+          items: { $ref: "#/components/schemas/FieldSupportingWork" }
         chemicalPlan:
           type: array
           items: { $ref: "#/components/schemas/FieldChemicalPlan" }

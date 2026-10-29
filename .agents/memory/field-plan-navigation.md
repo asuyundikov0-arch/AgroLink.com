@@ -27,6 +27,12 @@ The selected field is fixed when entering either a plan or actual work; users mu
 
 **How to apply:** Keep the field context when creating and editing. Area corrections still use the actor authorized for that kind of record; daily actual hectares and rates belong to the dispatcher. A planned fuel amount is only a budget and must not increase actual field costs.
 
+К основной агрооперации пользователь хочет добавлять сопутствующие работы: например, при посеве — машину заправки семян и заправщиков, с предполагаемыми затратами на зарплату, ГСМ и семена. При начале факта агроном также должен иметь возможность указать сопутствующие работы на этом поле.
+
+**Why:** Пользователь попросил учитывать обеспечивающие работы в составе основной операции, а не заводить их как независимые гектары плана.
+
+**How to apply:** Сохранять исходный план отдельно от сведений начала факта. Предполагаемые затраты не подменяют подтверждённые начисления и складские списания и не увеличивают выполненные гектары.
+
 Actual work has its own field-first view, separate from planning. Opening a field shows its plan directly and an unplanned-work request action. Out-of-plan operations are allowed only after the chief agronomist approves the request; approval does not itself start the operation.
 
 **Why:** The user separated planning from factual entry, then required approval by the chief agronomist before any unplanned work starts.

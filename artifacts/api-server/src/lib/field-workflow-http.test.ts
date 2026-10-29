@@ -92,9 +92,28 @@ test("HTTP controllers: planned/unplanned approval, dispatcher-only hectares, ta
       plannedFuelCost: 12345.67,
       plannedEquipmentId: machineIds[0], plannedEquipment: label(0), plannedImplement: "Агрегат 1", notes: "",
       requiresChemicals: true, chemicalPlan: [{ batchId: batch.id, ratePerHa: 0.35 }],
+      supportingWorks: [{
+        name: "Заправка семян", equipmentId: machineIds[1], equipmentName: "Подмена",
+        employeeIds: [employeeIds[1]], employeeNames: ["Подмена"],
+        salaryCost: 5000, fuelCost: 3000, seedName: "Пшеница",
+        seedQuantity: 2.5, seedUnit: "ton", seedPrice: 100000,
+      }],
     };
     await call("agronomist", "POST", "/agro/fields/operations", plan, 403);
+    const support = plan.supportingWorks[0];
+    for (const invalid of [
+      { ...support, employeeIds: [employeeIds[0], employeeIds[0]] },
+      { ...support, equipmentId: 999999999 },
+      { ...support, salaryCost: -1 },
+      { ...support, seedName: "" },
+      { ...support, name: " " },
+    ]) {
+      await call("chief_agronomist", "POST", "/agro/fields/operations", { ...plan, supportingWorks: [invalid] }, 400);
+    }
     let op = await call("chief_agronomist", "POST", "/agro/fields/operations", plan, 201);
+    assert.equal(op.supportingWorks[0].equipmentName, label(1), "Machine name is server-owned");
+    assert.deepEqual(op.supportingWorks[0].employeeNames, [employees[1].fullName]);
+    assert.deepEqual(op.actualSupportingWorks, []);
     assert.equal(op.plannedFuelCost, 12345.67);
     await call("chief_agronomist", "POST", "/agro/fields/operations", { ...plan, plannedFuelCost: -1 }, 400);
     await call("chief_agronomist", "POST", "/agro/fields/operations", { ...plan, plannedFuelCost: 0.001 }, 400);
@@ -106,6 +125,7 @@ test("HTTP controllers: planned/unplanned approval, dispatcher-only hectares, ta
     assert.equal(op.plannedFuelCost, 23456.78, "Omitted optional fuel budget preserves the existing plan");
     const dashboard = await call("chief_agronomist", "GET", "/agro/fields");
     assert.equal(dashboard.operations.find((item: any) => item.id === op.id).plannedFuelCost, 23456.78);
+    assert.equal(dashboard.operations.find((item: any) => item.id === op.id).supportingWorks[0].seedQuantity, 2.5);
     const actual = (o: any, employee = 0) => ({
       version: o.version, actualStart: o.actualStart || yesterday, actualEnd: null, actualAreaHa: o.actualAreaHa,
       actualOperationName: o.name, actualMechanic: employees[employee].fullName, actualMechanicEmployeeId: employeeIds[employee],
@@ -113,6 +133,21 @@ test("HTTP controllers: planned/unplanned approval, dispatcher-only hectares, ta
     });
     await call("dispatcher", "PATCH", `/agro/fields/operations/${op.id}/actual`, actual(op), 403);
     op = await call("agronomist", "PATCH", `/agro/fields/operations/${op.id}/actual`, actual(op));
+    assert.deepEqual(op.actualSupportingWorks, op.supportingWorks, "Start defaults to a separate plan snapshot");
+    await call("chief_agronomist", "PATCH", `/agro/fields/operations/${op.id}/actual`,
+      { ...actual(op), actualSupportingWorks: [] }, 403);
+    op = await call("agronomist", "PATCH", `/agro/fields/operations/${op.id}/actual`,
+      { ...actual(op), actualSupportingWorks: [{ ...support, salaryCost: 6000 }] });
+    assert.equal(op.actualSupportingWorks[0].salaryCost, 6000);
+    assert.equal(op.supportingWorks[0].salaryCost, 5000, "Actual assignment must not rewrite plan");
+    const staleSupportVersion = op.version;
+    op = await call("agronomist", "PATCH", `/agro/fields/operations/${op.id}/actual`,
+      { ...actual(op), actualSupportingWorks: [] });
+    assert.deepEqual(op.actualSupportingWorks, [], "Explicit disable clears actual companion works");
+    await call("agronomist", "PATCH", `/agro/fields/operations/${op.id}/actual`,
+      { ...actual(op), version: staleSupportVersion, actualSupportingWorks: [support] }, 409);
+    op = await call("agronomist", "PATCH", `/agro/fields/operations/${op.id}/actual`,
+      { ...actual(op), actualSupportingWorks: [support] });
     let flow = await call("grain_manager", "GET", "/agro/chemicals/workflow");
     const request = flow.requests.find((r: any) => r.operationId === op.id);
     assert.equal(request.quantity, 60);
@@ -140,6 +175,7 @@ test("HTTP controllers: planned/unplanned approval, dispatcher-only hectares, ta
     assert.equal(reload.find((row: any) => row.id === op.id).operation.progressReports[0].actualRatePerHa, 1100);
     assert.equal(op.progressReports[0].actualMechanicEmployeeId, employeeIds[0]);
     op = await call("agronomist", "PATCH", `/agro/fields/operations/${op.id}/actual`, actual(op, 1));
+    assert.equal(op.actualSupportingWorks[0].salaryCost, 5000, "Legacy assignment update preserves supporting works");
     op = await call("dispatcher", "POST", `/agro/fields/operations/${op.id}/progress`, { ...daily(today, 120), actualRatePerHa: 1250 }, 201);
     assert.equal(op.progressReports[0].actualRatePerHa, 1100, "Another day's rate must not change");
     assert.equal(op.progressReports[1].actualRatePerHa, 1250);

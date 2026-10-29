@@ -5,8 +5,11 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { FieldSupportingWork } from './fieldSupportingWork';
 
 export interface FieldActualInput {
+  /** @maxItems 20 */
+  actualSupportingWorks?: FieldSupportingWork[];
   /** @minimum 1 */
   version: number;
   /** @nullable */
