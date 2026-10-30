@@ -16,4 +16,5 @@ export const GrainMovementInputOperation = {
   sale: 'sale',
   drying: 'drying',
   cleaning: 'cleaning',
+  seed_transfer: 'seed_transfer',
 } as const;

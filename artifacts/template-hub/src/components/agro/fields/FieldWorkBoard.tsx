@@ -5,6 +5,7 @@ import { FieldCostsPanel, OperationCost } from "./FieldCostsPanel";
 import { ChemicalOperationRequests } from "../chemicals/Requests";
 import { Drawer, POLL_MS, Progress, StatusPill, canActual, canManage, cx, dateFmt, ha, isGD } from "./shared";
 import { SupportingWorksSummary } from "./SupportingWorksEditor";
+import { SeedPlanSummary } from "./SeedPlanEditor";
 import { DailyHistory, approvalOf, chemNormsMissing, isPendingCompletion, isPendingUnplanned, limitOf, ReviewButtons } from "./WorkForms";
 
 type Props = {
@@ -124,6 +125,7 @@ function Card({ op: o, cost, costsReady, meta, actions, tone, history, testId }:
         <div className="flex flex-wrap justify-end gap-1.5">{actions}{history && <button type="button" className={btn} onClick={() => setShowHist(!showHist)} data-testid={`button-daily-toggle-${o.id}`}><CalendarRange size={12} />По дням ({o.progressReports.length})</button>}</div>
       </div>
     </div>
+    <SeedPlanSummary seeds={o.seeds} opName={o.name} testId={`text-seeds-plan-${o.id}`} />
     <SupportingWorksSummary works={o.supportingWorks} title="Сопутствующие работы по плану" testId={`text-support-plan-${o.id}`} />
     {started && <SupportingWorksSummary works={o.actualSupportingWorks} title="Сопутствующие работы в выполнении" testId={`text-support-actual-${o.id}`} />}
     {costsReady && <OperationCost cost={cost} opId={o.id} />}

@@ -7,12 +7,14 @@
  */
 import type { FieldChemicalPlan } from './fieldChemicalPlan';
 import type { FieldOperationRecordPlanApprovalStatus } from './fieldOperationRecordPlanApprovalStatus';
+import type { FieldSeedPlan } from './fieldSeedPlan';
 import type { FieldSupportingWork } from './fieldSupportingWork';
 
 /**
  * Stored plan metadata; unplanned actual work has zero planned hectares.
  */
 export interface FieldOperationRecordPlan {
+  seeds?: FieldSeedPlan | null;
   /** @maxItems 20 */
   supportingWorks?: FieldSupportingWork[];
   chemicalPlan?: FieldChemicalPlan[];

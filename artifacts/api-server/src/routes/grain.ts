@@ -192,6 +192,7 @@ router.post("/agro/grain/locations", management, safe(async (req, res) => {
 }));
 
 function validateInput(input: GrainMovementInput): string | null {
+  if (input.operation === "seed_transfer") return "Перевод зерна в семена оформляется через раздел «Склад семян».";
   if (!/^[a-zA-Z0-9_-]{16,80}$/.test(input.requestId)) return "Некорректный идентификатор операции. Откройте новую форму.";
   if (!validId(input.cropId) || [input.fromLocationId, input.toLocationId, input.wasteToLocationId].some((id) => id != null && !validId(id))) return "Выберите продукцию и корректные места хранения.";
   if (toGrainKg(input.quantityTons) === null) return "Укажите положительный вес в тоннах с точностью до 0,001 т, не более 1 000 000 т за операцию.";
@@ -305,6 +306,7 @@ router.patch("/agro/grain/movements/:id/review", review, safe(async (req, res) =
     await tx.execute(sql`select pg_advisory_xact_lock(718392005)`);
     const [row] = await tx.select().from(grainMovementsTable).where(eq(grainMovementsTable.id, id));
     if (!row) return { status: 404, error: "Операция не найдена." };
+    if (row.operation === "seed_transfer") return { status: 409, error: "Согласуйте перевод зерна через раздел «Склад семян»." };
     if (row.approvalStatus !== "pending" || row.voidedAt) {
       return { status: 409, error: "Операция уже рассмотрена или отменена." };
     }
@@ -345,6 +347,7 @@ router.post("/agro/grain/movements/:id/void", roles(["general_director"]), safe(
     await tx.execute(sql`select pg_advisory_xact_lock(718392005)`);
     const [row] = await tx.select().from(grainMovementsTable).where(eq(grainMovementsTable.id, id));
     if (!row) return { status: 404, error: "Операция не найдена." };
+    if (row.operation === "seed_transfer") return { status: 409, error: "Перевод зерна в семена связан со складом семян и не отменяется отдельно." };
     if (row.voidedAt) return { row };
     await lockPayrollSources(tx);
     if (await grainTripWasSubmitted(tx, row.id)) return { status: 409, error: "Начисление за рейс уже включено в отправленный наряд. Отмена недоступна." };

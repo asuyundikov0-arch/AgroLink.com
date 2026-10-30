@@ -3,22 +3,23 @@ import {
   chemicalBatchesTable, chemicalConsumptionsTable, chemicalIssuesTable, db, fieldOperationsTable,
   fieldOperationProgressTable, fieldSeasonsTable, fuelMovementsTable, payrollRegisterItemsTable,
   payrollRegistersTable,
+  seedMovementsTable, grainCropsTable,
 } from "@workspace/db";
 import type { FieldCosts, FieldOperationCosts } from "@workspace/api-zod";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 const addMoney = (a: number, b: number) => Math.round((a + b) * 100) / 100;
 const addQuantity = (a: number, b: number) => Math.round((a + b) * 1000) / 1000;
-const emptyTotals = () => ({ chemicalCost: 0, fuelCost: 0, salaryCost: 0, totalCost: 0, fuelLiters: 0 });
+const emptyTotals = () => ({ chemicalCost: 0, fuelCost: 0, salaryCost: 0, seedCost: 0, totalCost: 0, fuelLiters: 0 });
 
 export async function fieldCosts(tx: Tx, seasonId: number): Promise<FieldCosts | null> {
   const [season] = await tx.select().from(fieldSeasonsTable).where(eq(fieldSeasonsTable.id, seasonId));
   if (!season) return null;
   const operations = await tx.select().from(fieldOperationsTable).where(eq(fieldOperationsTable.seasonId, seasonId));
   const result: FieldCosts = {
-    ...emptyTotals(), seasonId, fieldId: season.fieldId, unallocatedChemicalCost: 0,
+    ...emptyTotals(), seasonId, fieldId: season.fieldId, unallocatedChemicalCost: 0, unallocatedSeedCost: 0,
     operations: operations.map((o) => ({ ...emptyTotals(), operationId: o.id,
-      name: o.actualOperationName || o.name, chemicals: [], fuels: [], salaries: [] })),
+      name: o.actualOperationName || o.name, chemicals: [], fuels: [], salaries: [], seedIssues: [] })),
   };
   const byId = new Map<number, FieldOperationCosts>(result.operations.map((o) => [o.operationId, o]));
   const chemistry = await tx.select({ consumption: chemicalConsumptionsTable, batch: chemicalBatchesTable })
@@ -76,14 +77,29 @@ export async function fieldCosts(tx: Tx, seasonId: number): Promise<FieldCosts |
       workDate: register.workDate, amount });
     op.salaryCost = addMoney(op.salaryCost, amount);
   }
+  const seedIssues = await tx.select({ movement: seedMovementsTable, crop: grainCropsTable })
+    .from(seedMovementsTable).innerJoin(grainCropsTable, eq(seedMovementsTable.cropId, grainCropsTable.id))
+    .where(and(eq(seedMovementsTable.seasonId, seasonId), eq(seedMovementsTable.kind, "issue"),
+      eq(seedMovementsTable.approvalStatus, "approved")));
+  for (const { movement, crop } of seedIssues) {
+    const amount = Number(movement.amountCents) / 100;
+    const op = movement.operationId ? byId.get(movement.operationId) : undefined;
+    if (op) {
+      op.seedCost = addMoney(op.seedCost ?? 0, amount);
+      op.seedIssues!.push({ movementId: movement.id, cropName: crop.name, occurredOn: movement.occurredOn,
+        quantityTons: movement.quantityKg / 1000, amount });
+    } else result.unallocatedSeedCost = addMoney(result.unallocatedSeedCost ?? 0, amount);
+  }
   for (const op of result.operations) {
-    op.totalCost = addMoney(addMoney(op.chemicalCost, op.fuelCost), op.salaryCost);
+    op.totalCost = addMoney(addMoney(addMoney(op.chemicalCost, op.fuelCost), op.salaryCost), op.seedCost ?? 0);
+    result.seedCost = addMoney(result.seedCost ?? 0, op.seedCost ?? 0);
     result.chemicalCost = addMoney(result.chemicalCost, op.chemicalCost);
     result.fuelCost = addMoney(result.fuelCost, op.fuelCost);
     result.salaryCost = addMoney(result.salaryCost, op.salaryCost);
     result.fuelLiters = addQuantity(result.fuelLiters, op.fuelLiters);
   }
   result.chemicalCost = addMoney(result.chemicalCost, result.unallocatedChemicalCost);
-  result.totalCost = addMoney(addMoney(result.chemicalCost, result.fuelCost), result.salaryCost);
+  result.seedCost = addMoney(result.seedCost ?? 0, result.unallocatedSeedCost ?? 0);
+  result.totalCost = addMoney(addMoney(addMoney(result.chemicalCost, result.fuelCost), result.salaryCost), result.seedCost);
   return result;
 }

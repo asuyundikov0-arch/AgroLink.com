@@ -17,7 +17,7 @@ export default function Journal({ role, movements, crops, locations }: { role: s
             <li key={m.id} className={cx("flex flex-col gap-2 py-2.5 sm:flex-row sm:items-center", m.voidedAt && "opacity-60")} data-testid={`row-movement-${m.id}`}>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-                  <span>{dateFmt(m.occurredOn)}</span><span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">{OP_LABEL[m.operation]}</span><span>{cn(m.cropId)}</span>{m.stockKind === "grain_waste" && <span className="rounded bg-[hsl(39_100%_52%/.18)] px-1.5 py-0.5 text-[10px]" data-testid={`text-movement-kind-${m.id}`}>{STOCK_LABEL.grain_waste}</span>}
+                  <span>{dateFmt(m.occurredOn)}</span><span className={cx("rounded px-1.5 py-0.5 text-[10px]", m.operation === "seed_transfer" ? "bg-[hsl(152_45%_40%/.2)] text-[hsl(152_45%_75%)]" : "bg-muted")} data-testid={`text-movement-op-${m.id}`}>{OP_LABEL[m.operation]}</span><span>{cn(m.cropId)}</span>{m.stockKind === "grain_waste" && <span className="rounded bg-[hsl(39_100%_52%/.18)] px-1.5 py-0.5 text-[10px]" data-testid={`text-movement-kind-${m.id}`}>{STOCK_LABEL.grain_waste}</span>}
                   {m.approvalStatus === "pending" && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-900" data-testid={`status-pending-${m.id}`}>Ждёт согласования</span>}
                   {m.approvalStatus === "returned" && <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] text-rose-900" data-testid={`status-returned-${m.id}`}>Возвращено</span>}
                   {m.voidedAt && <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] text-destructive" data-testid={`status-voided-${m.id}`}>Отменено — не в остатках</span>}
@@ -30,8 +30,8 @@ export default function Journal({ role, movements, crops, locations }: { role: s
                 {m.reviewComment && <p className="mt-1 text-[11px] text-rose-800">Комментарий заведующего током: {m.reviewComment}</p>}
               </div>
               <div className="flex items-center gap-2">
-                <span className={cx("font-mono text-sm font-bold", m.voidedAt && "line-through")} data-testid={`text-movement-qty-${m.id}`}>{m.operation === "sale" ? "−" : m.operation === "transfer" || m.operation === "drying" || m.operation === "cleaning" ? "↔ " : "+"}{tonsKg(kg(m.quantityTons))}</span>
-                {isGD(role) && !m.voidedAt && <button type="button" className="button button-danger !min-h-[30px] border" onClick={() => setVoiding(m)} data-testid={`button-void-${m.id}`}><Ban size={13} />Отменить</button>}
+                <span className={cx("font-mono text-sm font-bold", m.voidedAt && "line-through")} data-testid={`text-movement-qty-${m.id}`}>{m.operation === "sale" || m.operation === "seed_transfer" ? "−" : m.operation === "transfer" || m.operation === "drying" || m.operation === "cleaning" ? "↔ " : "+"}{tonsKg(kg(m.quantityTons))}</span>
+                {isGD(role) && !m.voidedAt && m.operation !== "seed_transfer" && <button type="button" className="button button-danger !min-h-[30px] border" onClick={() => setVoiding(m)} data-testid={`button-void-${m.id}`}><Ban size={13} />Отменить</button>}
               </div>
             </li>
           ))}

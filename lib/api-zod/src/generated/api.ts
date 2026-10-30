@@ -369,6 +369,7 @@ export const GetFieldCostsParams = zod.object({
 })
 
 export const GetFieldCostsResponse = zod.object({
+  "seedCost": zod.number().optional(),
   "chemicalCost": zod.number(),
   "fuelCost": zod.number(),
   "salaryCost": zod.number(),
@@ -378,13 +379,22 @@ export const GetFieldCostsResponse = zod.object({
   "fieldId": zod.number(),
   "seasonId": zod.number(),
   "unallocatedChemicalCost": zod.number(),
+  "unallocatedSeedCost": zod.number().optional(),
   "operations": zod.array(zod.object({
+  "seedCost": zod.number().optional(),
   "chemicalCost": zod.number(),
   "fuelCost": zod.number(),
   "salaryCost": zod.number(),
   "totalCost": zod.number(),
   "fuelLiters": zod.number()
 }).and(zod.object({
+  "seedIssues": zod.array(zod.object({
+  "movementId": zod.number(),
+  "cropName": zod.string(),
+  "occurredOn": zod.string(),
+  "quantityTons": zod.number(),
+  "amount": zod.number()
+})).optional(),
   "operationId": zod.number(),
   "name": zod.string(),
   "chemicals": zod.array(zod.object({
@@ -710,6 +720,15 @@ export const CreateChemicalIssueResponse = zod.object({
 })
 
 
+export const createUnplannedFieldOperationBodySeedsOneNameMax = 200;
+
+export const createUnplannedFieldOperationBodySeedsOneQuantityMin = 0;
+export const createUnplannedFieldOperationBodySeedsOneQuantityMax = 1000000;
+
+export const createUnplannedFieldOperationBodySeedsOneUnitPriceMin = 0;
+export const createUnplannedFieldOperationBodySeedsOneUnitPriceMax = 1000000000;
+export const createUnplannedFieldOperationBodySeedsOneUnitPriceMultipleOf = 0.01;
+
 export const createUnplannedFieldOperationBodyRequiresChemicalsDefault = false;
 export const createUnplannedFieldOperationBodyChemicalPlanItemRatePerHaMin = 0.001;
 export const createUnplannedFieldOperationBodyChemicalPlanItemRatePerHaMax = 1000000;
@@ -729,6 +748,12 @@ export const createUnplannedFieldOperationBodyNotesMax = 3000;
 
 
 export const CreateUnplannedFieldOperationBody = zod.object({
+  "seeds": zod.union([zod.object({
+  "name": zod.string().min(1).max(createUnplannedFieldOperationBodySeedsOneNameMax),
+  "quantity": zod.number().min(createUnplannedFieldOperationBodySeedsOneQuantityMin).max(createUnplannedFieldOperationBodySeedsOneQuantityMax),
+  "unit": zod.enum(['kg', 'ton']),
+  "unitPrice": zod.number().min(createUnplannedFieldOperationBodySeedsOneUnitPriceMin).max(createUnplannedFieldOperationBodySeedsOneUnitPriceMax).multipleOf(createUnplannedFieldOperationBodySeedsOneUnitPriceMultipleOf)
+}),zod.null()]).optional(),
   "requiresChemicals": zod.boolean().default(createUnplannedFieldOperationBodyRequiresChemicalsDefault),
   "chemicalPlan": zod.array(zod.object({
   "batchId": zod.number().min(1),
@@ -744,6 +769,15 @@ export const CreateUnplannedFieldOperationBody = zod.object({
   "implement": zod.string().min(1).max(createUnplannedFieldOperationBodyImplementMax),
   "notes": zod.string().max(createUnplannedFieldOperationBodyNotesMax)
 })
+
+export const createUnplannedFieldOperationResponseOneSeedsOneNameMax = 200;
+
+export const createUnplannedFieldOperationResponseOneSeedsOneQuantityMin = 0;
+export const createUnplannedFieldOperationResponseOneSeedsOneQuantityMax = 1000000;
+
+export const createUnplannedFieldOperationResponseOneSeedsOneUnitPriceMin = 0;
+export const createUnplannedFieldOperationResponseOneSeedsOneUnitPriceMax = 1000000000;
+export const createUnplannedFieldOperationResponseOneSeedsOneUnitPriceMultipleOf = 0.01;
 
 export const createUnplannedFieldOperationResponseOneSupportingWorksItemNameMax = 150;
 
@@ -844,6 +878,12 @@ export const createUnplannedFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const CreateUnplannedFieldOperationResponse = zod.object({
+  "seeds": zod.union([zod.object({
+  "name": zod.string().min(1).max(createUnplannedFieldOperationResponseOneSeedsOneNameMax),
+  "quantity": zod.number().min(createUnplannedFieldOperationResponseOneSeedsOneQuantityMin).max(createUnplannedFieldOperationResponseOneSeedsOneQuantityMax),
+  "unit": zod.enum(['kg', 'ton']),
+  "unitPrice": zod.number().min(createUnplannedFieldOperationResponseOneSeedsOneUnitPriceMin).max(createUnplannedFieldOperationResponseOneSeedsOneUnitPriceMax).multipleOf(createUnplannedFieldOperationResponseOneSeedsOneUnitPriceMultipleOf)
+}),zod.null()]).optional(),
   "supportingWorks": zod.array(zod.object({
   "name": zod.string().min(1).max(createUnplannedFieldOperationResponseOneSupportingWorksItemNameMax),
   "equipmentId": zod.number().min(1).nullable(),
@@ -981,6 +1021,15 @@ export const getFieldDashboardResponseSeasonsItemOneOneAreaHaMax = 1000000;
 export const getFieldDashboardResponseSeasonsItemOneOneNotesMax = 3000;
 
 
+export const getFieldDashboardResponseOperationsItemOneSeedsOneNameMax = 200;
+
+export const getFieldDashboardResponseOperationsItemOneSeedsOneQuantityMin = 0;
+export const getFieldDashboardResponseOperationsItemOneSeedsOneQuantityMax = 1000000;
+
+export const getFieldDashboardResponseOperationsItemOneSeedsOneUnitPriceMin = 0;
+export const getFieldDashboardResponseOperationsItemOneSeedsOneUnitPriceMax = 1000000000;
+export const getFieldDashboardResponseOperationsItemOneSeedsOneUnitPriceMultipleOf = 0.01;
+
 export const getFieldDashboardResponseOperationsItemOneSupportingWorksItemNameMax = 150;
 
 
@@ -1108,6 +1157,12 @@ export const GetFieldDashboardResponse = zod.object({
   "updatedAt": zod.string()
 }))),
   "operations": zod.array(zod.object({
+  "seeds": zod.union([zod.object({
+  "name": zod.string().min(1).max(getFieldDashboardResponseOperationsItemOneSeedsOneNameMax),
+  "quantity": zod.number().min(getFieldDashboardResponseOperationsItemOneSeedsOneQuantityMin).max(getFieldDashboardResponseOperationsItemOneSeedsOneQuantityMax),
+  "unit": zod.enum(['kg', 'ton']),
+  "unitPrice": zod.number().min(getFieldDashboardResponseOperationsItemOneSeedsOneUnitPriceMin).max(getFieldDashboardResponseOperationsItemOneSeedsOneUnitPriceMax).multipleOf(getFieldDashboardResponseOperationsItemOneSeedsOneUnitPriceMultipleOf)
+}),zod.null()]).optional(),
   "supportingWorks": zod.array(zod.object({
   "name": zod.string().min(1).max(getFieldDashboardResponseOperationsItemOneSupportingWorksItemNameMax),
   "equipmentId": zod.number().min(1).nullable(),
@@ -1249,6 +1304,15 @@ export const CreateAgroFieldResponse = zod.object({
 }))
 
 
+export const getFieldDispatchQueueResponseOperationOneSeedsOneNameMax = 200;
+
+export const getFieldDispatchQueueResponseOperationOneSeedsOneQuantityMin = 0;
+export const getFieldDispatchQueueResponseOperationOneSeedsOneQuantityMax = 1000000;
+
+export const getFieldDispatchQueueResponseOperationOneSeedsOneUnitPriceMin = 0;
+export const getFieldDispatchQueueResponseOperationOneSeedsOneUnitPriceMax = 1000000000;
+export const getFieldDispatchQueueResponseOperationOneSeedsOneUnitPriceMultipleOf = 0.01;
+
 export const getFieldDispatchQueueResponseOperationOneSupportingWorksItemNameMax = 150;
 
 
@@ -1351,6 +1415,12 @@ export const GetFieldDispatchQueueResponseItem = zod.object({
   "fuelCost": zod.number().describe('Фактические затраты на топливо по всей операции из нефтебазы, тенге.'),
   "farm": zod.string().optional(),
   "operation": zod.object({
+  "seeds": zod.union([zod.object({
+  "name": zod.string().min(1).max(getFieldDispatchQueueResponseOperationOneSeedsOneNameMax),
+  "quantity": zod.number().min(getFieldDispatchQueueResponseOperationOneSeedsOneQuantityMin).max(getFieldDispatchQueueResponseOperationOneSeedsOneQuantityMax),
+  "unit": zod.enum(['kg', 'ton']),
+  "unitPrice": zod.number().min(getFieldDispatchQueueResponseOperationOneSeedsOneUnitPriceMin).max(getFieldDispatchQueueResponseOperationOneSeedsOneUnitPriceMax).multipleOf(getFieldDispatchQueueResponseOperationOneSeedsOneUnitPriceMultipleOf)
+}),zod.null()]).optional(),
   "supportingWorks": zod.array(zod.object({
   "name": zod.string().min(1).max(getFieldDispatchQueueResponseOperationOneSupportingWorksItemNameMax),
   "equipmentId": zod.number().min(1).nullable(),
@@ -1636,6 +1706,15 @@ export const UpdateFieldSeasonResponse = zod.object({
 }))
 
 
+export const createFieldOperationBodySeedsOneNameMax = 200;
+
+export const createFieldOperationBodySeedsOneQuantityMin = 0;
+export const createFieldOperationBodySeedsOneQuantityMax = 1000000;
+
+export const createFieldOperationBodySeedsOneUnitPriceMin = 0;
+export const createFieldOperationBodySeedsOneUnitPriceMax = 1000000000;
+export const createFieldOperationBodySeedsOneUnitPriceMultipleOf = 0.01;
+
 export const createFieldOperationBodySupportingWorksItemNameMax = 150;
 
 
@@ -1693,6 +1772,12 @@ export const createFieldOperationBodyNotesMax = 3000;
 
 
 export const CreateFieldOperationBody = zod.object({
+  "seeds": zod.union([zod.object({
+  "name": zod.string().min(1).max(createFieldOperationBodySeedsOneNameMax),
+  "quantity": zod.number().min(createFieldOperationBodySeedsOneQuantityMin).max(createFieldOperationBodySeedsOneQuantityMax),
+  "unit": zod.enum(['kg', 'ton']),
+  "unitPrice": zod.number().min(createFieldOperationBodySeedsOneUnitPriceMin).max(createFieldOperationBodySeedsOneUnitPriceMax).multipleOf(createFieldOperationBodySeedsOneUnitPriceMultipleOf)
+}),zod.null()]).optional(),
   "supportingWorks": zod.array(zod.object({
   "name": zod.string().min(1).max(createFieldOperationBodySupportingWorksItemNameMax),
   "equipmentId": zod.number().min(1).nullable(),
@@ -1725,6 +1810,15 @@ export const CreateFieldOperationBody = zod.object({
   "plannedImplement": zod.string().max(createFieldOperationBodyPlannedImplementMax),
   "notes": zod.string().max(createFieldOperationBodyNotesMax)
 })
+
+export const createFieldOperationResponseOneSeedsOneNameMax = 200;
+
+export const createFieldOperationResponseOneSeedsOneQuantityMin = 0;
+export const createFieldOperationResponseOneSeedsOneQuantityMax = 1000000;
+
+export const createFieldOperationResponseOneSeedsOneUnitPriceMin = 0;
+export const createFieldOperationResponseOneSeedsOneUnitPriceMax = 1000000000;
+export const createFieldOperationResponseOneSeedsOneUnitPriceMultipleOf = 0.01;
 
 export const createFieldOperationResponseOneSupportingWorksItemNameMax = 150;
 
@@ -1825,6 +1919,12 @@ export const createFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const CreateFieldOperationResponse = zod.object({
+  "seeds": zod.union([zod.object({
+  "name": zod.string().min(1).max(createFieldOperationResponseOneSeedsOneNameMax),
+  "quantity": zod.number().min(createFieldOperationResponseOneSeedsOneQuantityMin).max(createFieldOperationResponseOneSeedsOneQuantityMax),
+  "unit": zod.enum(['kg', 'ton']),
+  "unitPrice": zod.number().min(createFieldOperationResponseOneSeedsOneUnitPriceMin).max(createFieldOperationResponseOneSeedsOneUnitPriceMax).multipleOf(createFieldOperationResponseOneSeedsOneUnitPriceMultipleOf)
+}),zod.null()]).optional(),
   "supportingWorks": zod.array(zod.object({
   "name": zod.string().min(1).max(createFieldOperationResponseOneSupportingWorksItemNameMax),
   "equipmentId": zod.number().min(1).nullable(),
@@ -1924,6 +2024,15 @@ export const UpdateFieldOperationParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const updateFieldOperationBodyOneSeedsOneNameMax = 200;
+
+export const updateFieldOperationBodyOneSeedsOneQuantityMin = 0;
+export const updateFieldOperationBodyOneSeedsOneQuantityMax = 1000000;
+
+export const updateFieldOperationBodyOneSeedsOneUnitPriceMin = 0;
+export const updateFieldOperationBodyOneSeedsOneUnitPriceMax = 1000000000;
+export const updateFieldOperationBodyOneSeedsOneUnitPriceMultipleOf = 0.01;
+
 export const updateFieldOperationBodyOneSupportingWorksItemNameMax = 150;
 
 
@@ -1982,6 +2091,12 @@ export const updateFieldOperationBodyOneNotesMax = 3000;
 
 
 export const UpdateFieldOperationBody = zod.object({
+  "seeds": zod.union([zod.object({
+  "name": zod.string().min(1).max(updateFieldOperationBodyOneSeedsOneNameMax),
+  "quantity": zod.number().min(updateFieldOperationBodyOneSeedsOneQuantityMin).max(updateFieldOperationBodyOneSeedsOneQuantityMax),
+  "unit": zod.enum(['kg', 'ton']),
+  "unitPrice": zod.number().min(updateFieldOperationBodyOneSeedsOneUnitPriceMin).max(updateFieldOperationBodyOneSeedsOneUnitPriceMax).multipleOf(updateFieldOperationBodyOneSeedsOneUnitPriceMultipleOf)
+}),zod.null()]).optional(),
   "supportingWorks": zod.array(zod.object({
   "name": zod.string().min(1).max(updateFieldOperationBodyOneSupportingWorksItemNameMax),
   "equipmentId": zod.number().min(1).nullable(),
@@ -2016,6 +2131,15 @@ export const UpdateFieldOperationBody = zod.object({
 }).and(zod.object({
   "version": zod.number().min(1)
 }))
+
+export const updateFieldOperationResponseOneSeedsOneNameMax = 200;
+
+export const updateFieldOperationResponseOneSeedsOneQuantityMin = 0;
+export const updateFieldOperationResponseOneSeedsOneQuantityMax = 1000000;
+
+export const updateFieldOperationResponseOneSeedsOneUnitPriceMin = 0;
+export const updateFieldOperationResponseOneSeedsOneUnitPriceMax = 1000000000;
+export const updateFieldOperationResponseOneSeedsOneUnitPriceMultipleOf = 0.01;
 
 export const updateFieldOperationResponseOneSupportingWorksItemNameMax = 150;
 
@@ -2116,6 +2240,12 @@ export const updateFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const UpdateFieldOperationResponse = zod.object({
+  "seeds": zod.union([zod.object({
+  "name": zod.string().min(1).max(updateFieldOperationResponseOneSeedsOneNameMax),
+  "quantity": zod.number().min(updateFieldOperationResponseOneSeedsOneQuantityMin).max(updateFieldOperationResponseOneSeedsOneQuantityMax),
+  "unit": zod.enum(['kg', 'ton']),
+  "unitPrice": zod.number().min(updateFieldOperationResponseOneSeedsOneUnitPriceMin).max(updateFieldOperationResponseOneSeedsOneUnitPriceMax).multipleOf(updateFieldOperationResponseOneSeedsOneUnitPriceMultipleOf)
+}),zod.null()]).optional(),
   "supportingWorks": zod.array(zod.object({
   "name": zod.string().min(1).max(updateFieldOperationResponseOneSupportingWorksItemNameMax),
   "equipmentId": zod.number().min(1).nullable(),
@@ -2227,6 +2357,15 @@ export const TransitionFieldOperationBody = zod.object({
   "note": zod.string().max(transitionFieldOperationBodyNoteMax).optional()
 })
 
+export const transitionFieldOperationResponseOneSeedsOneNameMax = 200;
+
+export const transitionFieldOperationResponseOneSeedsOneQuantityMin = 0;
+export const transitionFieldOperationResponseOneSeedsOneQuantityMax = 1000000;
+
+export const transitionFieldOperationResponseOneSeedsOneUnitPriceMin = 0;
+export const transitionFieldOperationResponseOneSeedsOneUnitPriceMax = 1000000000;
+export const transitionFieldOperationResponseOneSeedsOneUnitPriceMultipleOf = 0.01;
+
 export const transitionFieldOperationResponseOneSupportingWorksItemNameMax = 150;
 
 
@@ -2326,6 +2465,12 @@ export const transitionFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const TransitionFieldOperationResponse = zod.object({
+  "seeds": zod.union([zod.object({
+  "name": zod.string().min(1).max(transitionFieldOperationResponseOneSeedsOneNameMax),
+  "quantity": zod.number().min(transitionFieldOperationResponseOneSeedsOneQuantityMin).max(transitionFieldOperationResponseOneSeedsOneQuantityMax),
+  "unit": zod.enum(['kg', 'ton']),
+  "unitPrice": zod.number().min(transitionFieldOperationResponseOneSeedsOneUnitPriceMin).max(transitionFieldOperationResponseOneSeedsOneUnitPriceMax).multipleOf(transitionFieldOperationResponseOneSeedsOneUnitPriceMultipleOf)
+}),zod.null()]).optional(),
   "supportingWorks": zod.array(zod.object({
   "name": zod.string().min(1).max(transitionFieldOperationResponseOneSupportingWorksItemNameMax),
   "equipmentId": zod.number().min(1).nullable(),
@@ -2495,6 +2640,15 @@ export const UpdateFieldOperationActualBody = zod.object({
   "actualNotes": zod.string().max(updateFieldOperationActualBodyActualNotesMax)
 })
 
+export const updateFieldOperationActualResponseOneSeedsOneNameMax = 200;
+
+export const updateFieldOperationActualResponseOneSeedsOneQuantityMin = 0;
+export const updateFieldOperationActualResponseOneSeedsOneQuantityMax = 1000000;
+
+export const updateFieldOperationActualResponseOneSeedsOneUnitPriceMin = 0;
+export const updateFieldOperationActualResponseOneSeedsOneUnitPriceMax = 1000000000;
+export const updateFieldOperationActualResponseOneSeedsOneUnitPriceMultipleOf = 0.01;
+
 export const updateFieldOperationActualResponseOneSupportingWorksItemNameMax = 150;
 
 
@@ -2594,6 +2748,12 @@ export const updateFieldOperationActualResponseTwoActualNotesMax = 3000;
 
 
 export const UpdateFieldOperationActualResponse = zod.object({
+  "seeds": zod.union([zod.object({
+  "name": zod.string().min(1).max(updateFieldOperationActualResponseOneSeedsOneNameMax),
+  "quantity": zod.number().min(updateFieldOperationActualResponseOneSeedsOneQuantityMin).max(updateFieldOperationActualResponseOneSeedsOneQuantityMax),
+  "unit": zod.enum(['kg', 'ton']),
+  "unitPrice": zod.number().min(updateFieldOperationActualResponseOneSeedsOneUnitPriceMin).max(updateFieldOperationActualResponseOneSeedsOneUnitPriceMax).multipleOf(updateFieldOperationActualResponseOneSeedsOneUnitPriceMultipleOf)
+}),zod.null()]).optional(),
   "supportingWorks": zod.array(zod.object({
   "name": zod.string().min(1).max(updateFieldOperationActualResponseOneSupportingWorksItemNameMax),
   "equipmentId": zod.number().min(1).nullable(),
@@ -2707,6 +2867,15 @@ export const UpdateFieldDispatchRateBody = zod.object({
   "ratePerHa": zod.number().min(updateFieldDispatchRateBodyRatePerHaMin).max(updateFieldDispatchRateBodyRatePerHaMax)
 })
 
+export const updateFieldDispatchRateResponseOperationOneSeedsOneNameMax = 200;
+
+export const updateFieldDispatchRateResponseOperationOneSeedsOneQuantityMin = 0;
+export const updateFieldDispatchRateResponseOperationOneSeedsOneQuantityMax = 1000000;
+
+export const updateFieldDispatchRateResponseOperationOneSeedsOneUnitPriceMin = 0;
+export const updateFieldDispatchRateResponseOperationOneSeedsOneUnitPriceMax = 1000000000;
+export const updateFieldDispatchRateResponseOperationOneSeedsOneUnitPriceMultipleOf = 0.01;
+
 export const updateFieldDispatchRateResponseOperationOneSupportingWorksItemNameMax = 150;
 
 
@@ -2809,6 +2978,12 @@ export const UpdateFieldDispatchRateResponse = zod.object({
   "fuelCost": zod.number().describe('Фактические затраты на топливо по всей операции из нефтебазы, тенге.'),
   "farm": zod.string().optional(),
   "operation": zod.object({
+  "seeds": zod.union([zod.object({
+  "name": zod.string().min(1).max(updateFieldDispatchRateResponseOperationOneSeedsOneNameMax),
+  "quantity": zod.number().min(updateFieldDispatchRateResponseOperationOneSeedsOneQuantityMin).max(updateFieldDispatchRateResponseOperationOneSeedsOneQuantityMax),
+  "unit": zod.enum(['kg', 'ton']),
+  "unitPrice": zod.number().min(updateFieldDispatchRateResponseOperationOneSeedsOneUnitPriceMin).max(updateFieldDispatchRateResponseOperationOneSeedsOneUnitPriceMax).multipleOf(updateFieldDispatchRateResponseOperationOneSeedsOneUnitPriceMultipleOf)
+}),zod.null()]).optional(),
   "supportingWorks": zod.array(zod.object({
   "name": zod.string().min(1).max(updateFieldDispatchRateResponseOperationOneSupportingWorksItemNameMax),
   "equipmentId": zod.number().min(1).nullable(),
@@ -2960,6 +3135,15 @@ export const CreateFieldOperationProgressBody = zod.object({
   "notes": zod.string().max(createFieldOperationProgressBodyNotesMax)
 })
 
+export const createFieldOperationProgressResponseOneSeedsOneNameMax = 200;
+
+export const createFieldOperationProgressResponseOneSeedsOneQuantityMin = 0;
+export const createFieldOperationProgressResponseOneSeedsOneQuantityMax = 1000000;
+
+export const createFieldOperationProgressResponseOneSeedsOneUnitPriceMin = 0;
+export const createFieldOperationProgressResponseOneSeedsOneUnitPriceMax = 1000000000;
+export const createFieldOperationProgressResponseOneSeedsOneUnitPriceMultipleOf = 0.01;
+
 export const createFieldOperationProgressResponseOneSupportingWorksItemNameMax = 150;
 
 
@@ -3059,6 +3243,12 @@ export const createFieldOperationProgressResponseTwoActualNotesMax = 3000;
 
 
 export const CreateFieldOperationProgressResponse = zod.object({
+  "seeds": zod.union([zod.object({
+  "name": zod.string().min(1).max(createFieldOperationProgressResponseOneSeedsOneNameMax),
+  "quantity": zod.number().min(createFieldOperationProgressResponseOneSeedsOneQuantityMin).max(createFieldOperationProgressResponseOneSeedsOneQuantityMax),
+  "unit": zod.enum(['kg', 'ton']),
+  "unitPrice": zod.number().min(createFieldOperationProgressResponseOneSeedsOneUnitPriceMin).max(createFieldOperationProgressResponseOneSeedsOneUnitPriceMax).multipleOf(createFieldOperationProgressResponseOneSeedsOneUnitPriceMultipleOf)
+}),zod.null()]).optional(),
   "supportingWorks": zod.array(zod.object({
   "name": zod.string().min(1).max(createFieldOperationProgressResponseOneSupportingWorksItemNameMax),
   "equipmentId": zod.number().min(1).nullable(),
@@ -3193,6 +3383,15 @@ export const UpdateFieldOperationProgressBody = zod.object({
   "version": zod.number().min(1)
 }))
 
+export const updateFieldOperationProgressResponseOneSeedsOneNameMax = 200;
+
+export const updateFieldOperationProgressResponseOneSeedsOneQuantityMin = 0;
+export const updateFieldOperationProgressResponseOneSeedsOneQuantityMax = 1000000;
+
+export const updateFieldOperationProgressResponseOneSeedsOneUnitPriceMin = 0;
+export const updateFieldOperationProgressResponseOneSeedsOneUnitPriceMax = 1000000000;
+export const updateFieldOperationProgressResponseOneSeedsOneUnitPriceMultipleOf = 0.01;
+
 export const updateFieldOperationProgressResponseOneSupportingWorksItemNameMax = 150;
 
 
@@ -3292,6 +3491,12 @@ export const updateFieldOperationProgressResponseTwoActualNotesMax = 3000;
 
 
 export const UpdateFieldOperationProgressResponse = zod.object({
+  "seeds": zod.union([zod.object({
+  "name": zod.string().min(1).max(updateFieldOperationProgressResponseOneSeedsOneNameMax),
+  "quantity": zod.number().min(updateFieldOperationProgressResponseOneSeedsOneQuantityMin).max(updateFieldOperationProgressResponseOneSeedsOneQuantityMax),
+  "unit": zod.enum(['kg', 'ton']),
+  "unitPrice": zod.number().min(updateFieldOperationProgressResponseOneSeedsOneUnitPriceMin).max(updateFieldOperationProgressResponseOneSeedsOneUnitPriceMax).multipleOf(updateFieldOperationProgressResponseOneSeedsOneUnitPriceMultipleOf)
+}),zod.null()]).optional(),
   "supportingWorks": zod.array(zod.object({
   "name": zod.string().min(1).max(updateFieldOperationProgressResponseOneSupportingWorksItemNameMax),
   "equipmentId": zod.number().min(1).nullable(),
@@ -3402,6 +3607,15 @@ export const VoidFieldOperationBody = zod.object({
   "reason": zod.string().min(voidFieldOperationBodyReasonMin).max(voidFieldOperationBodyReasonMax)
 })
 
+export const voidFieldOperationResponseOneSeedsOneNameMax = 200;
+
+export const voidFieldOperationResponseOneSeedsOneQuantityMin = 0;
+export const voidFieldOperationResponseOneSeedsOneQuantityMax = 1000000;
+
+export const voidFieldOperationResponseOneSeedsOneUnitPriceMin = 0;
+export const voidFieldOperationResponseOneSeedsOneUnitPriceMax = 1000000000;
+export const voidFieldOperationResponseOneSeedsOneUnitPriceMultipleOf = 0.01;
+
 export const voidFieldOperationResponseOneSupportingWorksItemNameMax = 150;
 
 
@@ -3501,6 +3715,12 @@ export const voidFieldOperationResponseTwoActualNotesMax = 3000;
 
 
 export const VoidFieldOperationResponse = zod.object({
+  "seeds": zod.union([zod.object({
+  "name": zod.string().min(1).max(voidFieldOperationResponseOneSeedsOneNameMax),
+  "quantity": zod.number().min(voidFieldOperationResponseOneSeedsOneQuantityMin).max(voidFieldOperationResponseOneSeedsOneQuantityMax),
+  "unit": zod.enum(['kg', 'ton']),
+  "unitPrice": zod.number().min(voidFieldOperationResponseOneSeedsOneUnitPriceMin).max(voidFieldOperationResponseOneSeedsOneUnitPriceMax).multipleOf(voidFieldOperationResponseOneSeedsOneUnitPriceMultipleOf)
+}),zod.null()]).optional(),
   "supportingWorks": zod.array(zod.object({
   "name": zod.string().min(1).max(voidFieldOperationResponseOneSupportingWorksItemNameMax),
   "equipmentId": zod.number().min(1).nullable(),
@@ -3662,7 +3882,7 @@ export const GetGrainDashboardResponse = zod.object({
   "distanceKm": zod.number().min(getGrainDashboardResponseMovementsItemOneDistanceKmMin).max(getGrainDashboardResponseMovementsItemOneDistanceKmMax).default(getGrainDashboardResponseMovementsItemOneDistanceKmDefault),
   "requestId": zod.string().min(getGrainDashboardResponseMovementsItemOneRequestIdMin).max(getGrainDashboardResponseMovementsItemOneRequestIdMax),
   "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
-  "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale', 'drying', 'cleaning']),
+  "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale', 'drying', 'cleaning', 'seed_transfer']),
   "stockKind": zod.enum(['grain', 'grain_waste']).default(getGrainDashboardResponseMovementsItemOneStockKindDefault),
   "outputTons": zod.number().min(getGrainDashboardResponseMovementsItemOneOutputTonsMin).max(getGrainDashboardResponseMovementsItemOneOutputTonsMax).default(getGrainDashboardResponseMovementsItemOneOutputTonsDefault),
   "deadWasteTons": zod.number().min(getGrainDashboardResponseMovementsItemOneDeadWasteTonsMin).max(getGrainDashboardResponseMovementsItemOneDeadWasteTonsMax).default(getGrainDashboardResponseMovementsItemOneDeadWasteTonsDefault),
@@ -3835,6 +4055,139 @@ export const CreateGrainLocationResponse = zod.object({
 }))
 
 
+export const GetSeedWarehouseResponse = zod.object({
+  "asOfDate": zod.string(),
+  "stocks": zod.array(zod.object({
+  "unit": zod.string(),
+  "cropId": zod.number(),
+  "cropName": zod.string(),
+  "quantityTons": zod.number(),
+  "amount": zod.number(),
+  "pricePerTon": zod.number()
+})),
+  "movements": zod.array(zod.object({
+  "id": zod.number(),
+  "unit": zod.string(),
+  "cropId": zod.number(),
+  "cropName": zod.string(),
+  "kind": zod.enum(['receipt', 'from_grain', 'issue']),
+  "occurredOn": zod.string(),
+  "quantityTons": zod.number(),
+  "pricePerTon": zod.number(),
+  "amount": zod.number(),
+  "invoiceNumber": zod.string(),
+  "supplier": zod.string(),
+  "fromLocationId": zod.number().nullable(),
+  "seasonId": zod.number().nullable(),
+  "operationId": zod.number().nullable(),
+  "fieldNumber": zod.string(),
+  "notes": zod.string(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "createdBy": zod.string(),
+  "reviewedBy": zod.string(),
+  "reviewNote": zod.string()
+}))
+})
+
+
+export const createSeedMovementBodyRequestIdMin = 16;
+export const createSeedMovementBodyRequestIdMax = 80;
+
+
+export const createSeedMovementBodyQuantityTonsMin = 0.001;
+export const createSeedMovementBodyQuantityTonsMax = 1000000;
+
+export const createSeedMovementBodyPricePerTonMin = 0.01;
+export const createSeedMovementBodyPricePerTonMax = 1000000000;
+
+export const createSeedMovementBodyInvoiceNumberMax = 100;
+
+export const createSeedMovementBodySupplierMax = 200;
+
+
+
+
+export const createSeedMovementBodyNotesMax = 3000;
+
+
+
+export const CreateSeedMovementBody = zod.object({
+  "requestId": zod.string().min(createSeedMovementBodyRequestIdMin).max(createSeedMovementBodyRequestIdMax),
+  "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
+  "cropId": zod.number().min(1),
+  "kind": zod.enum(['receipt', 'from_grain', 'issue']),
+  "occurredOn": zod.string(),
+  "quantityTons": zod.number().min(createSeedMovementBodyQuantityTonsMin).max(createSeedMovementBodyQuantityTonsMax),
+  "pricePerTon": zod.number().min(createSeedMovementBodyPricePerTonMin).max(createSeedMovementBodyPricePerTonMax).optional(),
+  "invoiceNumber": zod.string().max(createSeedMovementBodyInvoiceNumberMax).optional(),
+  "supplier": zod.string().max(createSeedMovementBodySupplierMax).optional(),
+  "fromLocationId": zod.number().min(1).nullish(),
+  "seasonId": zod.number().min(1).nullish(),
+  "operationId": zod.number().min(1).nullish(),
+  "notes": zod.string().max(createSeedMovementBodyNotesMax).optional()
+})
+
+export const CreateSeedMovementResponse = zod.object({
+  "id": zod.number(),
+  "unit": zod.string(),
+  "cropId": zod.number(),
+  "cropName": zod.string(),
+  "kind": zod.enum(['receipt', 'from_grain', 'issue']),
+  "occurredOn": zod.string(),
+  "quantityTons": zod.number(),
+  "pricePerTon": zod.number(),
+  "amount": zod.number(),
+  "invoiceNumber": zod.string(),
+  "supplier": zod.string(),
+  "fromLocationId": zod.number().nullable(),
+  "seasonId": zod.number().nullable(),
+  "operationId": zod.number().nullable(),
+  "fieldNumber": zod.string(),
+  "notes": zod.string(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "createdBy": zod.string(),
+  "reviewedBy": zod.string(),
+  "reviewNote": zod.string()
+})
+
+
+export const ReviewSeedMovementParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const reviewSeedMovementBodyNoteMax = 1000;
+
+
+
+export const ReviewSeedMovementBody = zod.object({
+  "decision": zod.enum(['approved', 'rejected']),
+  "note": zod.string().max(reviewSeedMovementBodyNoteMax).optional()
+})
+
+export const ReviewSeedMovementResponse = zod.object({
+  "id": zod.number(),
+  "unit": zod.string(),
+  "cropId": zod.number(),
+  "cropName": zod.string(),
+  "kind": zod.enum(['receipt', 'from_grain', 'issue']),
+  "occurredOn": zod.string(),
+  "quantityTons": zod.number(),
+  "pricePerTon": zod.number(),
+  "amount": zod.number(),
+  "invoiceNumber": zod.string(),
+  "supplier": zod.string(),
+  "fromLocationId": zod.number().nullable(),
+  "seasonId": zod.number().nullable(),
+  "operationId": zod.number().nullable(),
+  "fieldNumber": zod.string(),
+  "notes": zod.string(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "createdBy": zod.string(),
+  "reviewedBy": zod.string(),
+  "reviewNote": zod.string()
+})
+
+
 export const createGrainMovementBodyTransportPayBasisDefault = `per_trip`;
 export const createGrainMovementBodyDistanceKmDefault = 0;
 export const createGrainMovementBodyDistanceKmMin = 0;
@@ -3884,7 +4237,7 @@ export const CreateGrainMovementBody = zod.object({
   "distanceKm": zod.number().min(createGrainMovementBodyDistanceKmMin).max(createGrainMovementBodyDistanceKmMax).default(createGrainMovementBodyDistanceKmDefault),
   "requestId": zod.string().min(createGrainMovementBodyRequestIdMin).max(createGrainMovementBodyRequestIdMax),
   "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
-  "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale', 'drying', 'cleaning']),
+  "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale', 'drying', 'cleaning', 'seed_transfer']),
   "stockKind": zod.enum(['grain', 'grain_waste']).default(createGrainMovementBodyStockKindDefault),
   "outputTons": zod.number().min(createGrainMovementBodyOutputTonsMin).max(createGrainMovementBodyOutputTonsMax).default(createGrainMovementBodyOutputTonsDefault),
   "deadWasteTons": zod.number().min(createGrainMovementBodyDeadWasteTonsMin).max(createGrainMovementBodyDeadWasteTonsMax).default(createGrainMovementBodyDeadWasteTonsDefault),
@@ -3952,7 +4305,7 @@ export const CreateGrainMovementResponse = zod.object({
   "distanceKm": zod.number().min(createGrainMovementResponseOneDistanceKmMin).max(createGrainMovementResponseOneDistanceKmMax).default(createGrainMovementResponseOneDistanceKmDefault),
   "requestId": zod.string().min(createGrainMovementResponseOneRequestIdMin).max(createGrainMovementResponseOneRequestIdMax),
   "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
-  "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale', 'drying', 'cleaning']),
+  "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale', 'drying', 'cleaning', 'seed_transfer']),
   "stockKind": zod.enum(['grain', 'grain_waste']).default(createGrainMovementResponseOneStockKindDefault),
   "outputTons": zod.number().min(createGrainMovementResponseOneOutputTonsMin).max(createGrainMovementResponseOneOutputTonsMax).default(createGrainMovementResponseOneOutputTonsDefault),
   "deadWasteTons": zod.number().min(createGrainMovementResponseOneDeadWasteTonsMin).max(createGrainMovementResponseOneDeadWasteTonsMax).default(createGrainMovementResponseOneDeadWasteTonsDefault),
@@ -4050,7 +4403,7 @@ export const ReviewGrainMovementResponse = zod.object({
   "distanceKm": zod.number().min(reviewGrainMovementResponseOneDistanceKmMin).max(reviewGrainMovementResponseOneDistanceKmMax).default(reviewGrainMovementResponseOneDistanceKmDefault),
   "requestId": zod.string().min(reviewGrainMovementResponseOneRequestIdMin).max(reviewGrainMovementResponseOneRequestIdMax),
   "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
-  "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale', 'drying', 'cleaning']),
+  "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale', 'drying', 'cleaning', 'seed_transfer']),
   "stockKind": zod.enum(['grain', 'grain_waste']).default(reviewGrainMovementResponseOneStockKindDefault),
   "outputTons": zod.number().min(reviewGrainMovementResponseOneOutputTonsMin).max(reviewGrainMovementResponseOneOutputTonsMax).default(reviewGrainMovementResponseOneOutputTonsDefault),
   "deadWasteTons": zod.number().min(reviewGrainMovementResponseOneDeadWasteTonsMin).max(reviewGrainMovementResponseOneDeadWasteTonsMax).default(reviewGrainMovementResponseOneDeadWasteTonsDefault),
@@ -4148,7 +4501,7 @@ export const VoidGrainMovementResponse = zod.object({
   "distanceKm": zod.number().min(voidGrainMovementResponseOneDistanceKmMin).max(voidGrainMovementResponseOneDistanceKmMax).default(voidGrainMovementResponseOneDistanceKmDefault),
   "requestId": zod.string().min(voidGrainMovementResponseOneRequestIdMin).max(voidGrainMovementResponseOneRequestIdMax),
   "unit": zod.enum(['АПК Арыстан Grain', 'АФ Веденовка']),
-  "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale', 'drying', 'cleaning']),
+  "operation": zod.enum(['opening', 'receipt', 'transfer', 'sale', 'drying', 'cleaning', 'seed_transfer']),
   "stockKind": zod.enum(['grain', 'grain_waste']).default(voidGrainMovementResponseOneStockKindDefault),
   "outputTons": zod.number().min(voidGrainMovementResponseOneOutputTonsMin).max(voidGrainMovementResponseOneOutputTonsMax).default(voidGrainMovementResponseOneOutputTonsDefault),
   "deadWasteTons": zod.number().min(voidGrainMovementResponseOneDeadWasteTonsMin).max(voidGrainMovementResponseOneDeadWasteTonsMax).default(voidGrainMovementResponseOneDeadWasteTonsDefault),

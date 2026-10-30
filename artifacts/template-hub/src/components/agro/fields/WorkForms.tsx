@@ -20,6 +20,7 @@ import {
 import EmployeeSelect from "../../employees/EmployeeSelect";
 import { ActualFuelField, ActualRateField, AgronomyActualFuelField } from "./ActualCostFields";
 import { SupportingWorksEditor, SupportingWorksSummary, type SupportRow, supportPlanOf, supportRowsFrom } from "./SupportingWorksEditor";
+import { SeedPlanSummary, isSowing, seedTotal } from "./SeedPlanEditor";
 import { Drawer, Field, SaveError, dateFmt, ha, handleSaveError, haStr, parseHa } from "./shared";
 import { useChemicalWorkflow } from "../chemicals/Workflow";
 
@@ -149,7 +150,8 @@ export function WorkResourcesForm({ op, unit, title, fieldLabel, today, fleet, f
           <AgronomyActualFuelField op={op} />
           {starting && <Field label="Дата начала *" error={errs.start} htmlFor="wr-start"><input id="wr-start" type="date" max={today} className="text-input" value={f.start} onChange={(ev) => setF({ ...f, start: ev.target.value })} data-testid="input-work-start" /></Field>}
           <SupportingWorksEditor enabled={supportOn} onToggle={setSupportOn} rows={supportRows} onChange={setSupportRows} fleet={fleet} fleetLoading={fleetLoading} fleetError={fleetError} onRetry={onRetry} unit={unit} errors={supportErrs} disabled={pending || blocked} testId="work-support"
-            mainBudget={op.isUnplanned ? null : { pay: op.plannedAreaHa * op.plannedRatePerHa, fuel: op.plannedFuelCost }} />
+            mainBudget={op.isUnplanned ? null : { pay: op.plannedAreaHa * op.plannedRatePerHa, fuel: op.plannedFuelCost, seeds: op.seeds && isSowing(op.name) ? seedTotal(op.seeds) : undefined }} />
+          {op.seeds && isSowing(op.name) && <div className="sm:col-span-2"><SeedPlanSummary seeds={op.seeds} opName={op.name} testId="text-work-seeds" /></div>}
           {!!op.supportingWorks?.length && <div className="sm:col-span-2"><SupportingWorksSummary works={op.supportingWorks} title="По плану (не меняется)" testId="text-work-support-plan" /></div>}
           <Field label="Примечание" hint={starting ? undefined : "Только просмотр"} htmlFor="wr-notes" wide><textarea id="wr-notes" className="text-input min-h-[64px]" maxLength={3000} readOnly={!starting} value={f.notes} onChange={(ev) => setF({ ...f, notes: ev.target.value })} data-testid="input-work-notes" /></Field>
         </div>

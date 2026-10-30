@@ -6,8 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { FieldChemicalPlan } from './fieldChemicalPlan';
+import type { FieldSeedPlan } from './fieldSeedPlan';
 
 export interface UnplannedFieldOperationInput {
+  seeds?: FieldSeedPlan | null;
   requiresChemicals?: boolean;
   chemicalPlan?: FieldChemicalPlan[];
   /** @minimum 1 */

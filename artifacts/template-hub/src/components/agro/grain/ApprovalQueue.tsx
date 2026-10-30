@@ -8,7 +8,7 @@ export default function ApprovalQueue({ movements, crops, locations }: {
   crops: GrainCrop[];
   locations: GrainLocation[];
 }) {
-  const pending = movements.filter((movement) => movement.approvalStatus === "pending" && !movement.voidedAt)
+  const pending = movements.filter((movement) => movement.approvalStatus === "pending" && !movement.voidedAt && movement.operation !== "seed_transfer")
     .sort((a, b) => a.occurredOn.localeCompare(b.occurredOn) || a.id - b.id);
   const cropName = (id: number) => crops.find((crop) => crop.id === id)?.name ?? `#${id}`;
   const placeName = (id: number | null) => id === null ? "—" : locations.find((place) => place.id === id)?.name ?? `#${id}`;

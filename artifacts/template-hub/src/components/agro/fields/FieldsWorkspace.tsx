@@ -4,6 +4,7 @@ import { type AgroField, type FieldLifecycleInputAction, type FieldOperation, ty
 import { UnplannedForm } from "./UnplannedForm";
 import { FieldWorkBoard } from "./FieldWorkBoard";
 import { SupportingWorksSummary } from "./SupportingWorksEditor";
+import { SeedPlanSummary } from "./SeedPlanEditor";
 import { LifecycleDialog, WorkResourcesForm, isPendingCompletion, isPendingUnplanned } from "./WorkForms";
 import { type PlanFact, planFactBySeason, planFactSummary } from "./planFact";
 import { FieldForm, OperationForm, SeasonForm, VoidDialog } from "./Forms";
@@ -241,7 +242,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
                     <tbody className="divide-y divide-border/70">{so.map((o) => (
                       <tr key={o.id} data-testid={`row-plan-op-${o.id}`}>
                         <td className="px-4 py-2.5 font-mono text-[11px]">{dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)}</td>
-                        <td><p className="font-bold">{o.name}</p><StatusPill op={o} /><p className="mt-1 text-[10.5px] text-muted-foreground">Расценка: {kzt(o.plannedRatePerHa)}/га<br />План топлива: {kzt(o.plannedFuelCost)}</p><SupportingWorksSummary works={o.supportingWorks} title="Сопутствующие работы по плану" testId={`text-season-support-${o.id}`} /></td>
+                        <td><p className="font-bold">{o.name}</p><StatusPill op={o} /><p className="mt-1 text-[10.5px] text-muted-foreground">Расценка: {kzt(o.plannedRatePerHa)}/га<br />План топлива: {kzt(o.plannedFuelCost)}</p><SeedPlanSummary seeds={o.seeds} opName={o.name} testId={`text-season-seeds-${o.id}`} /><SupportingWorksSummary works={o.supportingWorks} title="Сопутствующие работы по плану" testId={`text-season-support-${o.id}`} /></td>
                         <td className="text-[11px]">{o.plannedEquipment || <span className="text-muted-foreground">не указана</span>}{o.plannedImplement && <p className="text-[10.5px] text-muted-foreground">{o.plannedImplement}</p>}</td>
                         <td className="text-[11px]" data-testid={`text-plan-mechanic-${o.id}`}>{o.responsible || <span className="text-muted-foreground">не указан</span>}</td>
                         <td className="px-4"><div className="flex justify-end">{manage && <button type="button" className="button button-secondary !min-h-[28px] !px-2 text-[10px]" onClick={() => setModal({ k: "op", op: o })} data-testid={`button-plan-edit-op-${o.id}`}><Pencil size={12} />Изменить</button>}</div></td>
@@ -354,6 +355,7 @@ function FieldHistory({ field, role, seasons, ops, onClose, onAddSeason, onAddOp
                     <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{o.name}</span><StatusPill op={o} /></div>
                     {o.isUnplanned && <UnplannedTag />}<p className="font-mono text-[10.5px] text-muted-foreground">{o.isUnplanned ? "вне плана" : `план ${dateFmt(o.plannedStart)} – ${dateFmt(o.plannedEnd)} · ${ha(o.plannedAreaHa)}`} | факт {dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)} · {ha(o.actualAreaHa)}</p>
                     {!o.isUnplanned && <p className="text-[10.5px]">Плановая расценка: {o.plannedRatePerHa > 0 ? `${kzt(o.plannedRatePerHa)}/га · сумма по плану ${kzt(o.plannedPayAmount)}` : "не задана"} · план топлива: {kzt(o.plannedFuelCost)}</p>}
+                    <SeedPlanSummary seeds={o.seeds} opName={o.name} testId={`text-history-seeds-${o.id}`} />
                     <SupportingWorksSummary works={o.supportingWorks} title="Сопутствующие работы по плану" testId={`text-history-support-plan-${o.id}`} />
                     {!!o.actualStart && <SupportingWorksSummary works={o.actualSupportingWorks} title="Сопутствующие работы в выполнении" testId={`text-history-support-actual-${o.id}`} />}
                     {o.actualEnd && <p className="text-[10.5px]">{o.actualRatePerHa === null ? "Ожидает фактической расценки диспетчера" : `Факт: ${kzt(o.actualRatePerHa)}/га · к начислению ${kzt(o.actualPayAmount)}`}</p>}

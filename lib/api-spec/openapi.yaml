@@ -536,6 +536,48 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GrainLocation"
+  /agro/seeds:
+    get:
+      operationId: getSeedWarehouse
+      tags: [grain]
+      responses:
+        "200":
+          description: Seed stocks and movement journal
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedWarehouse" }
+  /agro/seeds/movements:
+    post:
+      operationId: createSeedMovement
+      tags: [grain]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SeedMovementInput" }
+      responses:
+        "201":
+          description: Seed movement submitted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedMovement" }
+  /agro/seeds/movements/{id}/review:
+    post:
+      operationId: reviewSeedMovement
+      tags: [grain]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SeedReviewInput" }
+      responses:
+        "200":
+          description: Seed movement reviewed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedMovement" }
   /agro/grain/movements:
     post:
       operationId: createGrainMovement
@@ -1847,6 +1889,7 @@ components:
       type: object
       required: [chemicalCost, fuelCost, salaryCost, totalCost, fuelLiters]
       properties:
+        seedCost: { type: number }
         chemicalCost: { type: number }
         fuelCost: { type: number }
         salaryCost: { type: number }
@@ -1858,6 +1901,9 @@ components:
         - type: object
           required: [operationId, name, chemicals, fuels, salaries]
           properties:
+            seedIssues:
+              type: array
+              items: { $ref: "#/components/schemas/SeedFieldCost" }
             operationId: { type: number }
             name: { type: string }
             chemicals:
@@ -1899,9 +1945,19 @@ components:
             fieldId: { type: number }
             seasonId: { type: number }
             unallocatedChemicalCost: { type: number }
+            unallocatedSeedCost: { type: number }
             operations:
               type: array
               items: { $ref: "#/components/schemas/FieldOperationCosts" }
+    SeedFieldCost:
+      type: object
+      required: [movementId, cropName, occurredOn, quantityTons, amount]
+      properties:
+        movementId: { type: number }
+        cropName: { type: string }
+        occurredOn: { type: string }
+        quantityTons: { type: number }
+        amount: { type: number }
     ChemicalMutationResult:
       type: object
       required: [id]
@@ -2218,6 +2274,10 @@ components:
       type: object
       required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, plannedRatePerHa, responsible, plannedEquipment, plannedImplement, notes]
       properties:
+        seeds:
+          anyOf:
+            - $ref: "#/components/schemas/FieldSeedPlan"
+            - type: "null"
         supportingWorks:
           type: array
           maxItems: 20
@@ -2239,6 +2299,14 @@ components:
         plannedEquipment: { type: string, maxLength: 200 }
         plannedImplement: { type: string, maxLength: 200 }
         notes: { type: string, maxLength: 3000 }
+    FieldSeedPlan:
+      type: object
+      required: [name, quantity, unit, unitPrice]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        quantity: { type: number, minimum: 0, maximum: 1000000 }
+        unit: { type: string, enum: [kg, ton] }
+        unitPrice: { type: number, minimum: 0, maximum: 1000000000, multipleOf: 0.01 }
     FieldSupportingWork:
       type: object
       required: [name, equipmentId, employeeIds, salaryCost, fuelCost, seedName, seedQuantity, seedUnit, seedPrice]
@@ -2345,6 +2413,10 @@ components:
       type: object
       required: [seasonId, name, occurredOn, areaHa, completed, employeeId, equipmentId, implement, notes]
       properties:
+        seeds:
+          anyOf:
+            - $ref: "#/components/schemas/FieldSeedPlan"
+            - type: "null"
         requiresChemicals: { type: boolean, default: false }
         chemicalPlan:
           type: array
@@ -2382,6 +2454,10 @@ components:
       description: Stored plan metadata; unplanned actual work has zero planned hectares.
       required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, plannedRatePerHa, plannedFuelCost, responsible, plannedEquipment, plannedImplement, notes, version]
       properties:
+        seeds:
+          anyOf:
+            - $ref: "#/components/schemas/FieldSeedPlan"
+            - type: "null"
         supportingWorks:
           type: array
           maxItems: 20
@@ -3127,6 +3203,74 @@ components:
           required: [id]
           properties:
             id: { type: number }
+    SeedMovementInput:
+      type: object
+      required: [requestId, unit, cropId, kind, occurredOn, quantityTons]
+      properties:
+        requestId: { type: string, minLength: 16, maxLength: 80 }
+        unit: { type: string, enum: ["АПК Арыстан Grain", "АФ Веденовка"] }
+        cropId: { type: number, minimum: 1 }
+        kind: { type: string, enum: [receipt, from_grain, issue] }
+        occurredOn: { type: string }
+        quantityTons: { type: number, minimum: 0.001, maximum: 1000000 }
+        pricePerTon: { type: number, minimum: 0.01, maximum: 1000000000 }
+        invoiceNumber: { type: string, maxLength: 100 }
+        supplier: { type: string, maxLength: 200 }
+        fromLocationId: { type: ["number", "null"], minimum: 1 }
+        seasonId: { type: ["number", "null"], minimum: 1 }
+        operationId: { type: ["number", "null"], minimum: 1 }
+        notes: { type: string, maxLength: 3000 }
+    SeedReviewInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [approved, rejected] }
+        note: { type: string, maxLength: 1000 }
+    SeedMovement:
+      type: object
+      required: [id, unit, cropId, cropName, kind, occurredOn, quantityTons, pricePerTon, amount, invoiceNumber, supplier, fromLocationId, seasonId, operationId, fieldNumber, notes, approvalStatus, createdBy, reviewedBy, reviewNote]
+      properties:
+        id: { type: number }
+        unit: { type: string }
+        cropId: { type: number }
+        cropName: { type: string }
+        kind: { type: string, enum: [receipt, from_grain, issue] }
+        occurredOn: { type: string }
+        quantityTons: { type: number }
+        pricePerTon: { type: number }
+        amount: { type: number }
+        invoiceNumber: { type: string }
+        supplier: { type: string }
+        fromLocationId: { type: ["number", "null"] }
+        seasonId: { type: ["number", "null"] }
+        operationId: { type: ["number", "null"] }
+        fieldNumber: { type: string }
+        notes: { type: string }
+        approvalStatus: { type: string, enum: [pending, approved, rejected] }
+        createdBy: { type: string }
+        reviewedBy: { type: string }
+        reviewNote: { type: string }
+    SeedStock:
+      type: object
+      required: [unit, cropId, cropName, quantityTons, amount, pricePerTon]
+      properties:
+        unit: { type: string }
+        cropId: { type: number }
+        cropName: { type: string }
+        quantityTons: { type: number }
+        amount: { type: number }
+        pricePerTon: { type: number }
+    SeedWarehouse:
+      type: object
+      required: [stocks, movements, asOfDate]
+      properties:
+        asOfDate: { type: string }
+        stocks:
+          type: array
+          items: { $ref: "#/components/schemas/SeedStock" }
+        movements:
+          type: array
+          items: { $ref: "#/components/schemas/SeedMovement" }
     GrainMovementInput:
       type: object
       required: [requestId, unit, operation, cropId, occurredOn, quantityTons, fromLocationId, toLocationId, fieldName, counterparty, notes]
@@ -3135,7 +3279,7 @@ components:
         distanceKm: { type: number, minimum: 0, maximum: 1000000, default: 0 }
         requestId: { type: string, minLength: 16, maxLength: 80 }
         unit: { type: string, enum: ["АПК Арыстан Grain", "АФ Веденовка"] }
-        operation: { type: string, enum: [opening, receipt, transfer, sale, drying, cleaning] }
+        operation: { type: string, enum: [opening, receipt, transfer, sale, drying, cleaning, seed_transfer] }
         stockKind: { type: string, enum: [grain, grain_waste], default: grain }
         outputTons: { type: number, minimum: 0, maximum: 1000000, default: 0 }
         deadWasteTons: { type: number, minimum: 0, maximum: 1000000, default: 0 }

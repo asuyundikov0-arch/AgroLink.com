@@ -6,9 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { FieldChemicalPlan } from './fieldChemicalPlan';
+import type { FieldSeedPlan } from './fieldSeedPlan';
 import type { FieldSupportingWork } from './fieldSupportingWork';
 
 export interface FieldOperationInput {
+  seeds?: FieldSeedPlan | null;
   /** @maxItems 20 */
   supportingWorks?: FieldSupportingWork[];
   chemicalPlan?: FieldChemicalPlan[];

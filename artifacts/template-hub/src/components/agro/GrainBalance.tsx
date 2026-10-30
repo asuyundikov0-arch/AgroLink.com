@@ -5,11 +5,12 @@ import Directory from "./grain/Directory";
 import Journal from "./grain/Journal";
 import MovementForm from "./grain/MovementForm";
 import ApprovalQueue from "./grain/ApprovalQueue";
+import SeedWorkspace from "./seeds/SeedWorkspace";
 import ProcessingPanel from "./grain/ProcessingPanel";
 import StockOverview, { type Cell } from "./grain/StockOverview";
 import { POLL_MS, UNITS, type Unit, canManageDir, canRead, canRecord, canReview, cx, dateFmt, errorInfo, isProcessor, kg, n0, type StockKind, tonsKg } from "./grain/shared";
 
-type View = "stock" | "processing" | "journal" | "directory" | "approval";
+type View = "seeds" | "stock" | "processing" | "journal" | "directory" | "approval";
 
 export default function GrainBalance({ role }: { role: string }) {
   const allowed = canRead(role);
@@ -84,16 +85,17 @@ export default function GrainBalance({ role }: { role: string }) {
           </section>
           {!canRecord(role) && <p className="text-[11px] text-muted-foreground" data-testid="text-readonly">Режим просмотра: ваша роль не вносит операции.</p>}
           <div className="inline-flex flex-wrap rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Раздел">
-            {([["stock", "Остатки"], ["processing", "Обработка и отходы"], ["journal", "Журнал"], ["directory", "Справочники"]] as const).map(([k, l]) => (
+            {([["stock", "Остатки"], ["processing", "Обработка и отходы"], ["journal", "Журнал"], ["seeds", "Склад семян"], ["directory", "Справочники"]] as const).map(([k, l]) => (
               <button key={k} type="button" role="tab" aria-selected={view === k} onClick={() => setView(k)} data-testid={`tab-grain-${k}`}
                 className={cx("rounded-md px-3 py-1.5 text-[11px] font-bold", view === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>{l}</button>
             ))}
             {canReview(role) && <button type="button" role="tab" aria-selected={view === "approval"} onClick={() => setView("approval")} data-testid="tab-grain-approval"
-              className={cx("rounded-md px-3 py-1.5 text-[11px] font-bold", view === "approval" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>Согласование ({movements.filter((m) => m.approvalStatus === "pending").length})</button>}
+              className={cx("rounded-md px-3 py-1.5 text-[11px] font-bold", view === "approval" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>Согласование ({movements.filter((m) => m.approvalStatus === "pending" && !m.voidedAt && m.operation !== "seed_transfer").length})</button>}
           </div>
           {view === "stock" && <StockOverview cells={cells} crops={crops} locations={locations} />}
           {view === "processing" && <ProcessingPanel balances={fBal} movements={postedMovements} crops={crops} locations={locations} />}
           {view === "journal" && <Journal role={role} movements={movements} crops={crops} locations={locations} />}
+          {view === "seeds" && <SeedWorkspace role={role} enabled={allowed} crops={crops} locations={locations} balances={d.balances ?? []} asOfDate={d.asOfDate.slice(0, 10)} />}
           {view === "directory" && <Directory crops={crops} locations={locations} canEdit={canManageDir(role)} />}
           {view === "approval" && canReview(role) && <ApprovalQueue movements={movements} crops={crops} locations={locations} />}
           {formOpen && <MovementForm role={role} crops={crops} locations={locations} stock={stock} asOfDate={d.asOfDate.slice(0, 10)} defaultUnit={unit === "all" ? UNITS[0] : unit} onClose={() => setFormOpen(false)} onDone={setNotice} />}

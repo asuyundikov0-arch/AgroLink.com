@@ -237,6 +237,7 @@ export interface FuelWarehouse {
 }
 
 export interface FieldCostTotals {
+  seedCost?: number;
   chemicalCost: number;
   fuelCost: number;
   salaryCost: number;
@@ -266,7 +267,16 @@ export type FieldOperationCostsSalariesItem = {
   amount: number;
 };
 
+export interface SeedFieldCost {
+  movementId: number;
+  cropName: string;
+  occurredOn: string;
+  quantityTons: number;
+  amount: number;
+}
+
 export type FieldOperationCosts = FieldCostTotals & {
+  seedIssues?: SeedFieldCost[];
   operationId: number;
   name: string;
   chemicals: FieldOperationCostsChemicalsItem[];
@@ -278,6 +288,7 @@ export type FieldCosts = FieldCostTotals & {
   fieldId: number;
   seasonId: number;
   unallocatedChemicalCost: number;
+  unallocatedSeedCost?: number;
   operations: FieldOperationCosts[];
 };
 
@@ -675,6 +686,33 @@ export type FieldSeason = FieldSeasonUpdate & {
   updatedAt: string;
 };
 
+export type FieldSeedPlanUnit = typeof FieldSeedPlanUnit[keyof typeof FieldSeedPlanUnit];
+
+
+export const FieldSeedPlanUnit = {
+  kg: 'kg',
+  ton: 'ton',
+} as const;
+
+export interface FieldSeedPlan {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  name: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  quantity: number;
+  unit: FieldSeedPlanUnit;
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  unitPrice: number;
+}
+
 export type FieldSupportingWorkSeedUnit = typeof FieldSupportingWorkSeedUnit[keyof typeof FieldSupportingWorkSeedUnit];
 
 
@@ -738,6 +776,7 @@ export interface FieldChemicalPlan {
 }
 
 export interface FieldOperationInput {
+  seeds?: FieldSeedPlan | null;
   /** @maxItems 20 */
   supportingWorks?: FieldSupportingWork[];
   chemicalPlan?: FieldChemicalPlan[];
@@ -906,6 +945,7 @@ export interface FieldProgressReport {
 }
 
 export interface UnplannedFieldOperationInput {
+  seeds?: FieldSeedPlan | null;
   requiresChemicals?: boolean;
   chemicalPlan?: FieldChemicalPlan[];
   /** @minimum 1 */
@@ -964,6 +1004,7 @@ export const FieldOperationRecordPlanApprovalStatus = {
  * Stored plan metadata; unplanned actual work has zero planned hectares.
  */
 export interface FieldOperationRecordPlan {
+  seeds?: FieldSeedPlan | null;
   /** @maxItems 20 */
   supportingWorks?: FieldSupportingWork[];
   chemicalPlan?: FieldChemicalPlan[];
@@ -2134,6 +2175,140 @@ export type GrainLocation = GrainLocationInput & {
   id: number;
 };
 
+export type SeedMovementInputUnit = typeof SeedMovementInputUnit[keyof typeof SeedMovementInputUnit];
+
+
+export const SeedMovementInputUnit = {
+  АПК_Арыстан_Grain: 'АПК Арыстан Grain',
+  АФ_Веденовка: 'АФ Веденовка',
+} as const;
+
+export type SeedMovementInputKind = typeof SeedMovementInputKind[keyof typeof SeedMovementInputKind];
+
+
+export const SeedMovementInputKind = {
+  receipt: 'receipt',
+  from_grain: 'from_grain',
+  issue: 'issue',
+} as const;
+
+export interface SeedMovementInput {
+  /**
+     * @minLength 16
+     * @maxLength 80
+     */
+  requestId: string;
+  unit: SeedMovementInputUnit;
+  /** @minimum 1 */
+  cropId: number;
+  kind: SeedMovementInputKind;
+  occurredOn: string;
+  /**
+     * @minimum 0.001
+     * @maximum 1000000
+     */
+  quantityTons: number;
+  /**
+     * @minimum 0.01
+     * @maximum 1000000000
+     */
+  pricePerTon?: number;
+  /** @maxLength 100 */
+  invoiceNumber?: string;
+  /** @maxLength 200 */
+  supplier?: string;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  fromLocationId?: number | null;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  seasonId?: number | null;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  operationId?: number | null;
+  /** @maxLength 3000 */
+  notes?: string;
+}
+
+export type SeedReviewInputDecision = typeof SeedReviewInputDecision[keyof typeof SeedReviewInputDecision];
+
+
+export const SeedReviewInputDecision = {
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface SeedReviewInput {
+  decision: SeedReviewInputDecision;
+  /** @maxLength 1000 */
+  note?: string;
+}
+
+export type SeedMovementKind = typeof SeedMovementKind[keyof typeof SeedMovementKind];
+
+
+export const SeedMovementKind = {
+  receipt: 'receipt',
+  from_grain: 'from_grain',
+  issue: 'issue',
+} as const;
+
+export type SeedMovementApprovalStatus = typeof SeedMovementApprovalStatus[keyof typeof SeedMovementApprovalStatus];
+
+
+export const SeedMovementApprovalStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface SeedMovement {
+  id: number;
+  unit: string;
+  cropId: number;
+  cropName: string;
+  kind: SeedMovementKind;
+  occurredOn: string;
+  quantityTons: number;
+  pricePerTon: number;
+  amount: number;
+  invoiceNumber: string;
+  supplier: string;
+  /** @nullable */
+  fromLocationId: number | null;
+  /** @nullable */
+  seasonId: number | null;
+  /** @nullable */
+  operationId: number | null;
+  fieldNumber: string;
+  notes: string;
+  approvalStatus: SeedMovementApprovalStatus;
+  createdBy: string;
+  reviewedBy: string;
+  reviewNote: string;
+}
+
+export interface SeedStock {
+  unit: string;
+  cropId: number;
+  cropName: string;
+  quantityTons: number;
+  amount: number;
+  pricePerTon: number;
+}
+
+export interface SeedWarehouse {
+  asOfDate: string;
+  stocks: SeedStock[];
+  movements: SeedMovement[];
+}
+
 export type GrainMovementInputTransportPayBasis = typeof GrainMovementInputTransportPayBasis[keyof typeof GrainMovementInputTransportPayBasis];
 
 
@@ -2160,6 +2335,7 @@ export const GrainMovementInputOperation = {
   sale: 'sale',
   drying: 'drying',
   cleaning: 'cleaning',
+  seed_transfer: 'seed_transfer',
 } as const;
 
 export type GrainMovementInputStockKind = typeof GrainMovementInputStockKind[keyof typeof GrainMovementInputStockKind];

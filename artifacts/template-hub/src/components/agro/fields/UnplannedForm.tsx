@@ -3,6 +3,7 @@ import { type AgroField, type FieldSeason, type FleetEquipment, useCreateUnplann
 import EmployeeSelect from "../../employees/EmployeeSelect";
 import { Drawer, Field, SaveError, ha, handleSaveError } from "./shared";
 import { useInvalidateWork } from "./WorkForms";
+import { SeedPlanEditor, type SeedRow, isSowing, seedPlanOf, seedRowFrom } from "./SeedPlanEditor";
 import { ChemicalPlanEditor, type ChemRow, chemPlanOf } from "./ChemicalPlanEditor";
 
 /** Agronomist request for unplanned work: goes to chief agronomist for approval, not started yet. */
@@ -15,6 +16,10 @@ export function UnplannedForm({ field, season, today, fleet, fleetLoading, fleet
   const [saveError, setSaveError] = useState("");
   const [f, setF] = useState({ name: "", date: today, employeeId: null as number | null, employee: "", equipmentId: "", implement: "", notes: "", requiresChemicals: false });
   const [chemRows, setChemRows] = useState<ChemRow[]>([]);
+  const [seedOn, setSeedOn] = useState(false);
+  const [seedRow, setSeedRow] = useState<SeedRow>(() => seedRowFrom(null));
+  const [seedErrs, setSeedErrs] = useState<Record<string, string>>({});
+  const sowing = isSowing(f.name);
   const [errs, setErrs] = useState<Record<string, string>>({});
   const unitFleet = useMemo(() => fleet.filter((x) => x.unit === field.unit), [fleet, field.unit]);
   const pending = mut.isPending;
@@ -32,12 +37,15 @@ export function UnplannedForm({ field, season, today, fleet, fleetLoading, fleet
     const chem = chemPlanOf(f.requiresChemicals ? chemRows : []);
     if (chem.error) er.chem = chem.error;
     else if (f.requiresChemicals && !chem.plan.length) er.chem = "Укажите хотя бы один препарат и норму расхода на гектар.";
+    const seed = sowing && seedOn ? seedPlanOf(seedRow) : { plan: null, errors: {} };
+    setSeedErrs(seed.errors);
+    if (Object.keys(seed.errors).length) er.seeds = "Проверьте семена";
     setErrs(er); setSaveError("");
     if (Object.keys(er).length) return;
     try {
       await mut.mutateAsync({ data: {
         seasonId: season.id, name: f.name, occurredOn: f.date, areaHa: 0, completed: false, employeeId: f.employeeId!, equipmentId: Number(f.equipmentId),
-        implement: f.implement.trim(), notes: f.notes, requiresChemicals: f.requiresChemicals, chemicalPlan: f.requiresChemicals ? chem.plan : [],
+        implement: f.implement.trim(), notes: f.notes, requiresChemicals: f.requiresChemicals, chemicalPlan: f.requiresChemicals ? chem.plan : [], seeds: seed.plan,
       } });
       await invalidate();
       onDone(`Заявка на внеплановую работу «${f.name}» по полю № ${field.number} отправлена главному агроному. Начать её можно после согласования.`);
@@ -77,6 +85,7 @@ export function UnplannedForm({ field, season, today, fleet, fleetLoading, fleet
             <span>Требуется химия<span className="block text-[10.5px] font-normal text-muted-foreground">Предложите нормы на гектар — главный агроном согласует их вместе с работой.</span></span>
           </label>
           {f.requiresChemicals && <div className="sm:col-span-2"><ChemicalPlanEditor farm={field.unit} areaHa={season.areaHa} rows={chemRows} onChange={setChemRows} error={errs.chem} testId="unplanned-chem-plan" /></div>}
+          {sowing && <SeedPlanEditor enabled={seedOn} onToggle={setSeedOn} row={seedRow} onChange={setSeedRow} errors={seedErrs} disabled={pending} testId="unplanned-seeds" />}
           <Field label="Обоснование / примечания" htmlFor="un-notes" wide><textarea id="un-notes" className="text-input min-h-[72px]" maxLength={3000} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} data-testid="input-unplanned-notes" /></Field>
         </div>
       </Drawer>

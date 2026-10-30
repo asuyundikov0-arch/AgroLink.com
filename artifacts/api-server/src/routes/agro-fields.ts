@@ -19,6 +19,7 @@ import { isChemicalOperation, chemicalRequestsExist, chemicalIssuedForOperation,
 import { ChemicalError } from "../lib/chemical-stock";
 import { startOrChangeFieldWork, transitionFieldWork, validateChemicalPlan } from "../lib/field-workflow";
 import { validateSupportingWorks } from "../lib/field-supporting-works";
+import { validateFieldSeeds } from "../lib/field-seeds";
 import { fieldCosts } from "../lib/field-costs";
 import { GetFieldCostsResponse } from "@workspace/api-zod";
 
@@ -364,6 +365,7 @@ router.post("/agro/fields/unplanned-operations", roles(actualWriters), safe(asyn
     const chemicalPlan = await validateChemicalPlan(tx, input.chemicalPlan ?? [], field.unit, needsChemicals);
     const [created] = await tx.insert(fieldOperationsTable).values({
       seasonId: season.id, name, nameKey: fieldNumberKey(name), isUnplanned: true,
+      seeds: validateFieldSeeds(name, input.seeds),
       approvalStatus: "pending", requiresChemicals: needsChemicals, chemicalModeExplicit: true, chemicalPlan,
       plannedStart: input.occurredOn, plannedEnd: input.occurredOn, plannedAreaAres: 0,
       actualAreaLimitAres: season.areaAres, actualStart: null,
@@ -389,7 +391,7 @@ router.post("/agro/fields/operations", manage, safe(async (req, res) => {
     const supportingWorks = await validateSupportingWorks(tx, input.supportingWorks ?? [], field.unit);
     const chemicalPlan = await validateChemicalPlan(tx, input.chemicalPlan ?? [], field.unit, !!input.requiresChemicals);
     const [created] = await tx.insert(fieldOperationsTable).values({
-      seasonId: season.id, ...resources, supportingWorks, plannedStart: input.plannedStart,
+      seasonId: season.id, ...resources, supportingWorks, seeds: validateFieldSeeds(input.name, input.seeds), plannedStart: input.plannedStart,
       requiresChemicals: !!input.requiresChemicals, chemicalModeExplicit: true, chemicalPlan,
       plannedEnd: input.plannedEnd, plannedAreaAres: toAreaAres(input.plannedAreaHa)!, plannedRatePerHa: input.plannedRatePerHa.toFixed(2),
       plannedFuelCost: (input.plannedFuelCost ?? 0).toFixed(2),
@@ -424,7 +426,9 @@ router.patch("/agro/fields/operations/:id", manage, safe(async (req, res) => {
     const chemicalPlan = await validateChemicalPlan(tx, input.chemicalPlan ?? old.chemicalPlan,
       (await getField(tx, season.fieldId)).unit, !!input.requiresChemicals);
     const [updated] = await tx.update(fieldOperationsTable).set({
-      seasonId: season.id, ...resources, supportingWorks, plannedStart: input.plannedStart, plannedEnd: input.plannedEnd,
+      seasonId: season.id, ...resources, supportingWorks,
+      seeds: validateFieldSeeds(input.name, input.seeds === undefined ? old.seeds : input.seeds),
+      plannedStart: input.plannedStart, plannedEnd: input.plannedEnd,
       plannedAreaAres: toAreaAres(input.plannedAreaHa)!,
       requiresChemicals: !!input.requiresChemicals, chemicalModeExplicit: true, chemicalPlan,
       plannedRatePerHa: input.plannedRatePerHa.toFixed(2),

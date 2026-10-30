@@ -6,28 +6,29 @@ export const SUPPORT_TOGGLE_LABEL = "Имеются сопутствующие �
 export const MAX_WORKS = 20;
 export const MAX_EMPLOYEES = 30;
 const MAX_MONEY = 1_000_000_000;
-const MAX_QTY = 1_000_000;
+const emptyLegacySeeds = { seedName: "", seedQuantity: 0, seedUnit: "kg" as const, seedPrice: 0 };
 
 export type SupportRow = {
   name: string; equipmentId: number | null; equipmentName: string;
   employees: { id: number; name: string }[];
-  salaryCost: string; fuelCost: string; seedName: string; seedQuantity: string; seedUnit: "kg" | "ton"; seedPrice: string;
+  salaryCost: string; fuelCost: string;
+  // Preserve historical data for API compatibility, without offering or budgeting seeds here.
+  legacySeeds: Pick<FieldSupportingWork, "seedName" | "seedQuantity" | "seedUnit" | "seedPrice">;
 };
 
 const money = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 });
 export const kzt = (v: number) => `${money.format(v)} ₸`;
 const eqLabel = (x: FleetEquipment) => `${x.kind} · ${x.registrationNumber || "без госномера"}`;
-const unitLabel = (u: string) => (u === "ton" ? "т" : "кг");
 const r2 = (v: number) => Math.round(v * 100) / 100;
 
-export const emptySupportRow = (): SupportRow => ({ name: "", equipmentId: null, equipmentName: "", employees: [], salaryCost: "0", fuelCost: "0", seedName: "", seedQuantity: "0", seedUnit: "kg", seedPrice: "0" });
+export const emptySupportRow = (): SupportRow => ({ name: "", equipmentId: null, equipmentName: "", employees: [], salaryCost: "0", fuelCost: "0", legacySeeds: { ...emptyLegacySeeds } });
 
 export function supportRowsFrom(works?: FieldSupportingWork[] | null): SupportRow[] {
   return (works ?? []).map((w) => ({
     name: w.name, equipmentId: w.equipmentId ?? null, equipmentName: w.equipmentName ?? "",
     employees: w.employeeIds.map((id, i) => ({ id, name: w.employeeNames?.[i] ?? `Сотрудник № ${id}` })),
-    salaryCost: String(w.salaryCost), fuelCost: String(w.fuelCost), seedName: w.seedName ?? "",
-    seedQuantity: String(w.seedQuantity), seedUnit: w.seedUnit === "ton" ? "ton" : "kg", seedPrice: String(w.seedPrice),
+    salaryCost: String(w.salaryCost), fuelCost: String(w.fuelCost),
+    legacySeeds: { seedName: w.seedName, seedQuantity: w.seedQuantity, seedUnit: w.seedUnit, seedPrice: w.seedPrice },
   }));
 }
 
@@ -40,14 +41,13 @@ function num(s: string, max: number, decimals: number): number | null {
   return Number.isFinite(v) && v <= max ? v : null;
 }
 
-/** Seed cost = quantity × price per unit (kg or ton). */
-export const workTotal = (w: Pick<FieldSupportingWork, "salaryCost" | "fuelCost" | "seedQuantity" | "seedPrice">) => r2(w.salaryCost + w.fuelCost + w.seedQuantity * w.seedPrice);
+/** Supporting work budgets include only wages and fuel. */
+export const workTotal = (w: Pick<FieldSupportingWork, "salaryCost" | "fuelCost">) => r2(w.salaryCost + w.fuelCost);
 export const worksTotal = (ws?: FieldSupportingWork[] | null) => r2((ws ?? []).reduce((s, w) => s + workTotal(w), 0));
 
 function rowTotals(r: SupportRow) {
   const s = num(r.salaryCost, MAX_MONEY, 2) ?? 0, f = num(r.fuelCost, MAX_MONEY, 2) ?? 0;
-  const q = num(r.seedQuantity, MAX_QTY, 3) ?? 0, p = num(r.seedPrice, MAX_MONEY, 2) ?? 0;
-  return { salary: s, fuel: f, seeds: r2(q * p), total: r2(s + f + q * p) };
+  return { salary: s, fuel: f, total: r2(s + f) };
 }
 
 export type SupportErrors = Record<string, string>;
@@ -63,16 +63,10 @@ export function supportPlanOf(rows: SupportRow[]): { works: FieldSupportingWork[
     if (r.equipmentName.length > 200) errors[`${i}.equipment`] = "Не более 200 символов";
     const salary = num(r.salaryCost, MAX_MONEY, 2); if (salary === null) errors[`${i}.salary`] = "От 0 до 1 000 000 000 ₸, до 2 знаков";
     const fuel = num(r.fuelCost, MAX_MONEY, 2); if (fuel === null) errors[`${i}.fuel`] = "От 0 до 1 000 000 000 ₸, до 2 знаков";
-    const qty = num(r.seedQuantity, MAX_QTY, 3); if (qty === null) errors[`${i}.seedQuantity`] = "От 0 до 1 000 000, до 3 знаков";
-    const price = num(r.seedPrice, MAX_MONEY, 2); if (price === null) errors[`${i}.seedPrice`] = "От 0 до 1 000 000 000 ₸, до 2 знаков";
-    if (qty !== null && price !== null && qty * price > 1e12) errors[`${i}.seedPrice`] = "Стоимость семян не должна превышать 1 000 000 000 000 ₸";
-    const seedName = r.seedName.trim();
-    if (seedName.length > 200) errors[`${i}.seedName`] = "Не более 200 символов";
-    if (qty && qty > 0 && !seedName) errors[`${i}.seedName`] = "Укажите семена для указанного количества";
     return {
       name, equipmentId: r.equipmentId, equipmentName: r.equipmentName,
       employeeIds: r.employees.map((e) => e.id), employeeNames: r.employees.map((e) => e.name),
-      salaryCost: salary ?? 0, fuelCost: fuel ?? 0, seedName, seedQuantity: qty ?? 0, seedUnit: r.seedUnit, seedPrice: price ?? 0,
+      salaryCost: salary ?? 0, fuelCost: fuel ?? 0, ...r.legacySeeds,
     };
   });
   return { works, errors };
@@ -84,12 +78,12 @@ const Err = ({ m, id }: { m?: string; id: string }) => (m ? <span className="mt-
 export function SupportingWorksEditor({ enabled, onToggle, rows, onChange, fleet, fleetLoading, fleetError, onRetry, unit, errors, disabled, mainBudget, testId }: {
   enabled: boolean; onToggle: (v: boolean) => void; rows: SupportRow[]; onChange: (rows: SupportRow[]) => void;
   fleet: FleetEquipment[]; fleetLoading: boolean; fleetError: boolean; onRetry: () => void; unit?: string;
-  errors: SupportErrors; disabled?: boolean; mainBudget?: { pay: number; fuel: number } | null; testId: string;
+  errors: SupportErrors; disabled?: boolean; mainBudget?: { pay: number; fuel: number; seeds?: number } | null; testId: string;
 }) {
   const unitFleet = fleet.filter((x) => !unit || x.unit === unit);
   const set = (i: number, patch: Partial<SupportRow>) => onChange(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   const totals = rows.map(rowTotals);
-  const agg = totals.reduce((a, t) => ({ salary: a.salary + t.salary, fuel: a.fuel + t.fuel, seeds: a.seeds + t.seeds, total: a.total + t.total }), { salary: 0, fuel: 0, seeds: 0, total: 0 });
+  const agg = totals.reduce((a, t) => ({ salary: a.salary + t.salary, fuel: a.fuel + t.fuel, total: a.total + t.total }), { salary: 0, fuel: 0, total: 0 });
   const support = enabled ? r2(agg.total) : 0;
 
   return (
@@ -140,21 +134,9 @@ export function SupportingWorksEditor({ enabled, onToggle, rows, onChange, fleet
                 <label className="block"><Lbl>Топливо (предполагаемо), ₸</Lbl>
                   <input className="text-input font-mono" inputMode="decimal" value={r.fuelCost} disabled={disabled} onChange={(ev) => set(i, { fuelCost: ev.target.value })} data-testid={`input-${testId}-fuel-${i}`} />
                   <Err m={errors[`${i}.fuel`]} id={`error-${testId}-fuel-${i}`} /></label>
-                <label className="block sm:col-span-2"><Lbl>Семена — наименование</Lbl>
-                  <input className="text-input" maxLength={200} placeholder="Не требуются — оставьте пустым" value={r.seedName} disabled={disabled} onChange={(ev) => set(i, { seedName: ev.target.value })} data-testid={`input-${testId}-seed-name-${i}`} />
-                  <Err m={errors[`${i}.seedName`]} id={`error-${testId}-seed-name-${i}`} /></label>
-                <div><Lbl>Количество семян</Lbl>
-                  <div className="flex gap-1.5">
-                    <input className="text-input font-mono" inputMode="decimal" value={r.seedQuantity} disabled={disabled} onChange={(ev) => set(i, { seedQuantity: ev.target.value })} data-testid={`input-${testId}-seed-qty-${i}`} />
-                    <select className="text-input !w-20" value={r.seedUnit} disabled={disabled} onChange={(ev) => set(i, { seedUnit: ev.target.value === "ton" ? "ton" : "kg" })} data-testid={`select-${testId}-seed-unit-${i}`}><option value="kg">кг</option><option value="ton">т</option></select>
-                  </div>
-                  <Err m={errors[`${i}.seedQuantity`]} id={`error-${testId}-seed-qty-${i}`} /></div>
-                <label className="block"><Lbl>{`Цена семян, ₸ за ${unitLabel(r.seedUnit)}`}</Lbl>
-                  <input className="text-input font-mono" inputMode="decimal" value={r.seedPrice} disabled={disabled} onChange={(ev) => set(i, { seedPrice: ev.target.value })} data-testid={`input-${testId}-seed-price-${i}`} />
-                  <Err m={errors[`${i}.seedPrice`]} id={`error-${testId}-seed-price-${i}`} /></label>
               </div>
               <p className="mt-2 border-t border-border/60 pt-2 font-mono text-[10.5px] text-muted-foreground" data-testid={`text-${testId}-total-${i}`}>
-                зарплата {kzt(t.salary)} · топливо {kzt(t.fuel)} · семена {kzt(t.seeds)} · <b className="text-foreground">итого {kzt(t.total)}</b>
+                зарплата {kzt(t.salary)} · топливо {kzt(t.fuel)} · <b className="text-foreground">итого {kzt(t.total)}</b>
               </p>
             </section>
           );
@@ -166,14 +148,16 @@ export function SupportingWorksEditor({ enabled, onToggle, rows, onChange, fleet
   );
 }
 
-function BudgetBox({ mainBudget, support, parts, testId }: { mainBudget?: { pay: number; fuel: number } | null; support: number; parts: { salary: number; fuel: number; seeds: number } | null; testId: string }) {
+function BudgetBox({ mainBudget, support, parts, testId }: { mainBudget?: { pay: number; fuel: number; seeds?: number } | null; support: number; parts: { salary: number; fuel: number } | null; testId: string }) {
   const main = mainBudget ? r2(mainBudget.pay + mainBudget.fuel) : null;
+  const seeds = mainBudget?.seeds != null ? r2(mainBudget.seeds) : null;
   return (
     <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-[11px] leading-5" data-testid={testId}>
       <p className="eyebrow mb-1">Предполагаемые затраты</p>
       {mainBudget && <p className="flex justify-between gap-2"><span>Основная работа (га × расценка + топливо)</span><span className="font-mono">{kzt(main!)}</span></p>}
-      {parts && <p className="flex justify-between gap-2"><span>Сопутствующие: зарплата {kzt(r2(parts.salary))}, топливо {kzt(r2(parts.fuel))}, семена {kzt(r2(parts.seeds))}</span><span className="font-mono">{kzt(support)}</span></p>}
-      {main !== null && <p className="mt-1 flex justify-between gap-2 border-t border-primary/20 pt-1 font-bold"><span>Всего по операции</span><span className="font-mono" data-testid={`${testId}-total`}>{kzt(r2(main + support))}</span></p>}
+      {seeds !== null && <p className="flex justify-between gap-2" data-testid={`${testId}-seeds`}><span>Семена для посева (план)</span><span className="font-mono">{kzt(seeds)}</span></p>}
+      {parts && <p className="flex justify-between gap-2"><span>Сопутствующие: зарплата {kzt(r2(parts.salary))}, топливо {kzt(r2(parts.fuel))}</span><span className="font-mono">{kzt(support)}</span></p>}
+      {main !== null && <p className="mt-1 flex justify-between gap-2 border-t border-primary/20 pt-1 font-bold"><span>Всего по операции</span><span className="font-mono" data-testid={`${testId}-total`}>{kzt(r2(main + support + (seeds ?? 0)))}</span></p>}
       <p className="mt-1 text-[10px] text-muted-foreground">Бюджет-декларация. Не создаёт начислений зарплаты, выдачи топлива или списаний со склада.</p>
     </div>
   );
@@ -189,7 +173,7 @@ export function SupportingWorksSummary({ works, title, testId }: { works?: Field
         <li key={i} className="py-1" data-testid={`${testId}-row-${i}`}>
           <span className="font-semibold">{w.name}</span>
           <span className="text-muted-foreground"> · {w.equipmentName || (w.equipmentId ? `техника № ${w.equipmentId}` : "без техники")} · {w.employeeIds.length ? (w.employeeNames?.length ? w.employeeNames.join(", ") : `${w.employeeIds.length} сотр.`) : "без сотрудников"}</span>
-          <span className="block font-mono text-muted-foreground">зарплата {kzt(w.salaryCost)} · топливо {kzt(w.fuelCost)}{w.seedQuantity > 0 ? ` · ${w.seedName || "семена"} ${money.format(w.seedQuantity)} ${unitLabel(w.seedUnit)} × ${kzt(w.seedPrice)}` : ""} · итого {kzt(workTotal(w))}</span>
+          <span className="block font-mono text-muted-foreground">зарплата {kzt(w.salaryCost)} · топливо {kzt(w.fuelCost)} · итого {kzt(workTotal(w))}</span>
         </li>))}</ul>
     </div>
   );

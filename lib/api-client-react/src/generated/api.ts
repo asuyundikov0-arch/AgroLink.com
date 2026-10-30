@@ -110,6 +110,10 @@ import type {
   RoleRequest,
   RoleRequestDecision,
   RoleRequestInput,
+  SeedMovement,
+  SeedMovementInput,
+  SeedReviewInput,
+  SeedWarehouse,
   SparePart,
   SparePartChiefReviewInput,
   SparePartDirectorReviewInput,
@@ -2574,6 +2578,208 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getCreateGrainLocationMutationOptions(options));
+    }
+
+export const getGetSeedWarehouseUrl = () => {
+
+
+
+
+  return `/api/agro/seeds`
+}
+
+export const getSeedWarehouse = async ( options?: Parameters<typeof customFetch>[1]): Promise<SeedWarehouse> => {
+
+  return customFetch<SeedWarehouse>(getGetSeedWarehouseUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSeedWarehouseQueryKey = () => {
+    return [
+    `/api/agro/seeds`
+    ] as const;
+    }
+
+
+export const getGetSeedWarehouseQueryOptions = <TData = Awaited<ReturnType<typeof getSeedWarehouse>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSeedWarehouse>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSeedWarehouseQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSeedWarehouse>>> = ({ signal }) => getSeedWarehouse({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSeedWarehouse>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSeedWarehouseQueryResult = NonNullable<Awaited<ReturnType<typeof getSeedWarehouse>>>
+export type GetSeedWarehouseQueryError = ErrorType<unknown>
+
+
+
+export function useGetSeedWarehouse<TData = Awaited<ReturnType<typeof getSeedWarehouse>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSeedWarehouse>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSeedWarehouseQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateSeedMovementUrl = () => {
+
+
+
+
+  return `/api/agro/seeds/movements`
+}
+
+export const createSeedMovement = async (seedMovementInput: SeedMovementInput, options?: Parameters<typeof customFetch>[1]): Promise<SeedMovement> => {
+
+  return customFetch<SeedMovement>(getCreateSeedMovementUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(seedMovementInput)
+  }
+);}
+
+
+
+
+
+export const getCreateSeedMovementMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSeedMovement>>, TError,{data: BodyType<SeedMovementInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSeedMovement>>, TError,{data: BodyType<SeedMovementInput>}, TContext> => {
+
+const mutationKey = ['createSeedMovement'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSeedMovement>>, {data: BodyType<SeedMovementInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createSeedMovement(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateSeedMovementMutationResult = NonNullable<Awaited<ReturnType<typeof createSeedMovement>>>
+    export type CreateSeedMovementMutationBody = BodyType<SeedMovementInput>
+    export type CreateSeedMovementMutationError = ErrorType<unknown>
+
+    export const useCreateSeedMovement = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSeedMovement>>, TError,{data: BodyType<SeedMovementInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createSeedMovement>>,
+        TError,
+        {data: BodyType<SeedMovementInput>},
+        TContext
+      > => {
+      return useMutation(getCreateSeedMovementMutationOptions(options));
+    }
+
+export const getReviewSeedMovementUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/seeds/movements/${id}/review`
+}
+
+export const reviewSeedMovement = async (id: number,
+    seedReviewInput: SeedReviewInput, options?: Parameters<typeof customFetch>[1]): Promise<SeedMovement> => {
+
+  return customFetch<SeedMovement>(getReviewSeedMovementUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(seedReviewInput)
+  }
+);}
+
+
+
+
+
+export const getReviewSeedMovementMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewSeedMovement>>, TError,{id: number;data: BodyType<SeedReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewSeedMovement>>, TError,{id: number;data: BodyType<SeedReviewInput>}, TContext> => {
+
+const mutationKey = ['reviewSeedMovement'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewSeedMovement>>, {id: number;data: BodyType<SeedReviewInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reviewSeedMovement(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewSeedMovementMutationResult = NonNullable<Awaited<ReturnType<typeof reviewSeedMovement>>>
+    export type ReviewSeedMovementMutationBody = BodyType<SeedReviewInput>
+    export type ReviewSeedMovementMutationError = ErrorType<unknown>
+
+    export const useReviewSeedMovement = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewSeedMovement>>, TError,{id: number;data: BodyType<SeedReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reviewSeedMovement>>,
+        TError,
+        {id: number;data: BodyType<SeedReviewInput>},
+        TContext
+      > => {
+      return useMutation(getReviewSeedMovementMutationOptions(options));
     }
 
 export const getCreateGrainMovementUrl = () => {

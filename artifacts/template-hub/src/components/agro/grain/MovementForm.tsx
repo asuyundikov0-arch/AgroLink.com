@@ -118,7 +118,7 @@ export default function MovementForm({ role, crops, locations, stock, asOfDate, 
       footer={<><button type="button" className="button button-secondary" onClick={close} disabled={create.isPending} data-testid="button-movement-cancel">Отмена</button>
         <button type="button" className="button button-primary" onClick={submit} disabled={create.isPending} data-testid="button-movement-submit">{create.isPending ? "Отправляем..." : role === "weigher" ? "Отправить на согласование" : "Провести"}</button></>}>
       <div className="grid grid-cols-3 gap-1 rounded-lg border border-border p-0.5" role="group" aria-label="Операция">
-        {(Object.keys(OP_LABEL) as Op[]).map((o) => (
+        {(Object.keys(OP_LABEL) as Op[]).filter((o) => o !== "seed_transfer").map((o) => (
           <button key={o} type="button" aria-pressed={f.operation === o} onClick={() => setOp(o)} data-testid={`button-op-${o}`}
             className={`rounded-md px-2 py-1.5 text-[11px] font-bold ${f.operation === o ? "bg-[hsl(203_87%_33%)] text-white" : "text-muted-foreground"}`}>{OP_LABEL[o]}</button>
         ))}

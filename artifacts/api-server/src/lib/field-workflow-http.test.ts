@@ -100,6 +100,28 @@ test("HTTP controllers: planned/unplanned approval, dispatcher-only hectares, ta
       }],
     };
     await call("agronomist", "POST", "/agro/fields/operations", plan, 403);
+    const seeds = { name: "Пшеница", quantity: 2.5, unit: "ton", unitPrice: 100000 };
+    await call("chief_agronomist", "POST", "/agro/fields/operations", { ...plan, seeds }, 400);
+    const sowingPlan = { ...plan, name: "Посев", requiresChemicals: false, chemicalPlan: [], seeds };
+    let sowing = await call("chief_agronomist", "POST", "/agro/fields/operations", sowingPlan, 201);
+    assert.deepEqual(sowing.seeds, seeds, "Seeds belong to sowing itself, independently of supporting works");
+    for (const invalid of [
+      { ...seeds, quantity: 0.0001 }, { ...seeds, unitPrice: -1 }, { ...seeds, name: " " },
+    ]) {
+      await call("chief_agronomist", "PATCH", `/agro/fields/operations/${sowing.id}`,
+        { ...sowingPlan, seeds: invalid, version: sowing.version }, 400);
+    }
+    const { seeds: _seeds, ...legacySowing } = sowingPlan;
+    sowing = await call("chief_agronomist", "PATCH", `/agro/fields/operations/${sowing.id}`,
+      { ...legacySowing, version: sowing.version });
+    assert.deepEqual(sowing.seeds, seeds, "Legacy updates preserve the stored seed budget");
+    sowing = await call("chief_agronomist", "PATCH", `/agro/fields/operations/${sowing.id}`,
+      { ...sowingPlan, seeds: null, version: sowing.version });
+    assert.equal(sowing.seeds, null, "Seed budget can be explicitly cleared");
+    sowing = await call("chief_agronomist", "PATCH", `/agro/fields/operations/${sowing.id}`,
+      { ...sowingPlan, version: sowing.version });
+    const sowingReload = await call("chief_agronomist", "GET", "/agro/fields");
+    assert.deepEqual(sowingReload.operations.find((item: any) => item.id === sowing.id).seeds, seeds);
     const support = plan.supportingWorks[0];
     for (const invalid of [
       { ...support, employeeIds: [employeeIds[0], employeeIds[0]] },

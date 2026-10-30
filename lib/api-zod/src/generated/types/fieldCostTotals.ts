@@ -7,6 +7,7 @@
  */
 
 export interface FieldCostTotals {
+  seedCost?: number;
   chemicalCost: number;
   fuelCost: number;
   salaryCost: number;

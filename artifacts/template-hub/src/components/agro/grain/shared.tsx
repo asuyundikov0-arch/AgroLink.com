@@ -13,7 +13,7 @@ export const tonsKg = (k: number) => `${tf.format(k / 1000)} т`;
 export const dateFmt = (v?: string | null) => { if (!v) return "—"; const [y, m, d] = v.slice(0, 10).split("-"); return `${d}.${m}.${y}`; };
 export const KIND_LABEL: Record<GrainLocation["kind"], string> = { warehouse: "Склад", yard: "Ток / площадка", elevator: "Элеватор (своё зерно)", dryer: "Сушилка", cleaner: "Очистка (ЗАВ)" };
 export const KIND_ORDER: GrainLocation["kind"][] = ["yard", "warehouse", "elevator", "dryer", "cleaner"];
-export const OP_LABEL: Record<GrainMovement["operation"], string> = { opening: "Начальный остаток", receipt: "Приход с поля", transfer: "Перемещение", sale: "Продажа", drying: "Сушка", cleaning: "Очистка" };
+export const OP_LABEL: Record<GrainMovement["operation"], string> = { opening: "Начальный остаток", receipt: "Приход с поля", transfer: "Перемещение", sale: "Продажа", drying: "Сушка", cleaning: "Очистка", seed_transfer: "В склад семян" };
 export type StockKind = "grain" | "grain_waste";
 export const STOCK_LABEL: Record<StockKind, string> = { grain: "Зерно", grain_waste: "Зерновые отходы" };
 export const isProcessor = (k: GrainLocation["kind"]) => k === "dryer" || k === "cleaner";

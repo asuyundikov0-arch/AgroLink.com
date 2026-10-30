@@ -9,8 +9,10 @@ import type { FieldCostTotals } from './fieldCostTotals';
 import type { FieldOperationCostsChemicalsItem } from './fieldOperationCostsChemicalsItem';
 import type { FieldOperationCostsFuelsItem } from './fieldOperationCostsFuelsItem';
 import type { FieldOperationCostsSalariesItem } from './fieldOperationCostsSalariesItem';
+import type { SeedFieldCost } from './seedFieldCost';
 
 export type FieldOperationCosts = FieldCostTotals & {
+  seedIssues?: SeedFieldCost[];
   operationId: number;
   name: string;
   chemicals: FieldOperationCostsChemicalsItem[];

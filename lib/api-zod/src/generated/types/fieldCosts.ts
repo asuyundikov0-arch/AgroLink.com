@@ -12,5 +12,6 @@ export type FieldCosts = FieldCostTotals & {
   fieldId: number;
   seasonId: number;
   unallocatedChemicalCost: number;
+  unallocatedSeedCost?: number;
   operations: FieldOperationCosts[];
 };
