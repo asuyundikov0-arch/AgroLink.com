@@ -28,3 +28,17 @@ mtime_ms = 1793191597822
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:4b35f6c4-e782-4fc6-8c43-a66b98415681/cfcc5395-8572-43d3-a64b-ec7592a67ffa/357f8a36-c8c9-457a-8002-734f24c8883c"
 storage_version_token = "1793191620465012"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "yPRkVxQRaKMZKqaZ5IhU5"
+uri = "file://generated-artifacts/AgroLink_%D0%A1%D0%BE%D0%BF%D1%83%D1%82%D1%81%D1%82%D0%B2%D1%83%D1%8E%D1%89%D0%B8%D0%B5_%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%8B_%D0%BF%D1%80%D0%B5%D0%B4%D0%BB%D0%BE%D0%B6%D0%B5%D0%BD%D0%B8%D0%B5.docx"
+type = "word_document"
+title = "Сопутствующие работы — план и факт в AgroLink"
+description = "Word-документ: предлагаемая схема работы агронома, тока, автобазы, нефтебазы и кадров; пример доставки семян, расчёт затрат и защита от двойного учёта."
+logical_id = "0a319f0d-0971-4ebb-b9f3-56d3e7b1f5f2"
+content_hash = "sha256:b96a2d786aec5f9cac16dbb2a4da2fb557422434d36a63c3382737e9c0aecb9e"
+size = 8082
+mtime_ms = 1793396357872
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:4b35f6c4-e782-4fc6-8c43-a66b98415681/0a319f0d-0971-4ebb-b9f3-56d3e7b1f5f2/85d93328-8088-4ba6-bb81-bc830f46905a"
+storage_version_token = "1793396366600293"
+content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
