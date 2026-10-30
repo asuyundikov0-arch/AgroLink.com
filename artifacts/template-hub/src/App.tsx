@@ -8,6 +8,7 @@ import {
   ChevronDown,
   CircleHelp,
   ClipboardCheck,
+  ClipboardList,
   Clock3,
   LogOut,
   Menu,
@@ -40,6 +41,7 @@ import { Route, Router as WouterRouter, Switch, useLocation } from "wouter";
 import { ErrorBoundary } from "@/components/error-boundary";
 import EngineeringWorkspace from "@/components/engineering/EngineeringWorkspace";
 import AgroWorkspace from "@/components/agro/AgroWorkspace";
+import ReportsWorkspace, { canViewReports } from "@/components/reports/ReportsWorkspace";
 import PaymentRegister from "@/components/economic/PaymentRegister";
 import EmployeeDirectory from "@/components/employees/EmployeeDirectory";
 import { ChemicalBalanceCard } from "@/components/agro/chemicals/Custody";
@@ -151,7 +153,7 @@ function BrandEmblem({ size = "md" }: { size?: "md" | "lg" }) {
   return <img src={companyEmblem} alt="AgroLink operation" className={cn("brand-emblem", size === "lg" ? "brand-emblem-lg" : "brand-emblem-md")} />;
 }
 
-type WorkspaceSection = "cabinet" | "agro" | "engineering" | "economic" | "employees" | "hr" | "settings";
+type WorkspaceSection = "cabinet" | "agro" | "engineering" | "reports" | "economic" | "employees" | "hr" | "settings";
 
 function LoadingRows({ count = 3 }: { count?: number }) {
   return <div className="space-y-3" data-testid="status-loading">{Array.from({ length: count }).map((_, index) => <div className="skeleton-row" key={index}><div className="skeleton h-10 w-10 rounded-lg" /><div className="min-w-0 flex-1 space-y-2"><div className="skeleton h-3.5 w-2/5" /><div className="skeleton h-3 w-1/4" /></div></div>)}</div>;
@@ -350,6 +352,7 @@ function Shell({
     ] : []),
     ...(isAgroVisible ? [{ id: "agro" as const, label: isDispatcher ? "Диспетчерская" : "АгроБлок", icon: Sprout }] : []),
     ...(isEngineeringVisible ? [{ id: "engineering" as const, label: "Инженерный блок", icon: Wrench }] : []),
+    ...(canViewReports(role) ? [{ id: "reports" as const, label: "Отчёты", icon: ClipboardList }] : []),
     ...(isEconomicVisible ? [{ id: "economic" as const, label: "Экономический блок", icon: BarChart3 }] : []),
     ...(isEmployeesVisible ? [{ id: "employees" as const, label: "Сотрудники", icon: Users }] : []),
     ...(isHrVisible ? [{ id: "hr" as const, label: "Отдел кадров", icon: BadgeCheck }] : []),
@@ -468,6 +471,7 @@ function Workspace({ role, actualRole, demoRole, request, section, onDemoRoleCha
   return <>
     {section === "cabinet" && <Cabinet role={role} actualRole={actualRole} demoRole={demoRole} onDemoRoleChange={onDemoRoleChange} />}
     {section === "agro" && <AgroWorkspace role={role} demo={Boolean(demoRole)} />}
+    {section === "reports" && <ReportsWorkspace role={role} />}
     {section === "engineering" && <EngineeringWorkspace role={role} demoActive={Boolean(demoRole)} />}
     {section === "economic" && <FinanceBlock role={role} actualRole={actualRole} demoRole={demoRole} />}
     {section === "employees" && <EmployeeDirectory canManage={["general_director", "chief_agronomist", "chief_engineer", "dispatcher"].includes(role) && !demoRole} />}
