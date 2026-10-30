@@ -8,6 +8,7 @@ import { SupportingWorksSummary } from "./SupportingWorksEditor";
 import { SeedPlanSummary } from "./SeedPlanEditor";
 import { DailyHistory, approvalOf, chemNormsMissing, isPendingCompletion, isPendingUnplanned, limitOf, ReviewButtons } from "./WorkForms";
 import { CropBadge, cropStyle } from "./PlanRegister";
+import { SupportingTasksPanel } from "../supporting-tasks/SupportingTasksPanel";
 
 type Props = {
   field: AgroField; season?: FieldSeason; predecessor?: FieldSeason; year: number; ops: FieldOperation[]; role: string; planFact: ReactNode;
@@ -47,6 +48,7 @@ export function FieldWorkBoard({ field, season, predecessor, year, ops, role, pl
       {!canActual(role) && !chief && <p className="border-b border-border px-4 py-2 text-[11px] text-muted-foreground sm:px-5" data-testid="text-facts-readonly">Режим просмотра.</p>}
       {!season ? <Blank icon={<Layers size={18} />} title={`На ${year} год сезона нет`} text="Сезон и план работ добавляет главный агроном." testId="status-facts-no-season" /> : <div className="divide-y divide-border">
         <FieldCostsPanel costs={costsQuery.data} isLoading={costsQuery.isLoading} isError={costsQuery.isError} onRetry={() => { void costsQuery.refetch(); }} />
+        {(canActual(role) || chief) && <SupportingTasksPanel role={role} fieldId={field.id} seasonId={season.id} year={year} compact />}
 
         {completionReq.length > 0 && <Block title="Запрошено завершение" count={completionReq.length} tone="alert" testId="block-completion-requests">
           {completionReq.map((o) => <Card key={o.id} cost={costByOp.get(o.id)} costsReady={costsReady} op={o} tone="alert" testId={`card-completion-${o.id}`}

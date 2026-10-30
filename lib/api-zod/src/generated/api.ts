@@ -8,6 +8,708 @@
 import * as zod from 'zod';
 
 
+
+
+
+export const ListSupportingTasksQueryParams = zod.object({
+  "operationId": zod.coerce.number().min(1).optional(),
+  "service": zod.enum(['tok', 'motor_pool', 'fuel']).optional()
+})
+
+
+export const listSupportingTasksResponseOneSourceIndexMin = 0;
+export const listSupportingTasksResponseOneSourceIndexMax = 19;
+
+export const listSupportingTasksResponseOneTitleMax = 150;
+
+export const listSupportingTasksResponseOneStartDateMin = 10;
+export const listSupportingTasksResponseOneStartDateMax = 10;
+
+export const listSupportingTasksResponseOneEndDateMin = 10;
+export const listSupportingTasksResponseOneEndDateMax = 10;
+
+
+
+export const listSupportingTasksResponseOneEmployeeIdsMax = 30;
+
+export const listSupportingTasksResponseOneSalaryBudgetMin = 0;
+export const listSupportingTasksResponseOneSalaryBudgetMax = 1000000000;
+
+export const listSupportingTasksResponseOneFuelBudgetMin = 0;
+export const listSupportingTasksResponseOneFuelBudgetMax = 1000000000;
+
+export const listSupportingTasksResponseOneQuantityMin = 0;
+export const listSupportingTasksResponseOneQuantityMax = 1000000;
+
+export const listSupportingTasksResponseOneQuantityUnitMax = 40;
+
+export const listSupportingTasksResponseOneNotesMax = 3000;
+
+export const listSupportingTasksResponseOneServicesMax = 3;
+
+export const listSupportingTasksResponseTwoSourceSnapshotNameMax = 150;
+
+
+export const listSupportingTasksResponseTwoSourceSnapshotEquipmentNameMax = 200;
+
+
+export const listSupportingTasksResponseTwoSourceSnapshotEmployeeIdsMax = 30;
+
+export const listSupportingTasksResponseTwoSourceSnapshotSalaryCostMin = 0;
+export const listSupportingTasksResponseTwoSourceSnapshotSalaryCostMax = 1000000000;
+export const listSupportingTasksResponseTwoSourceSnapshotSalaryCostMultipleOf = 0.01;
+
+export const listSupportingTasksResponseTwoSourceSnapshotFuelCostMin = 0;
+export const listSupportingTasksResponseTwoSourceSnapshotFuelCostMax = 1000000000;
+export const listSupportingTasksResponseTwoSourceSnapshotFuelCostMultipleOf = 0.01;
+
+export const listSupportingTasksResponseTwoSourceSnapshotSeedNameMax = 200;
+
+export const listSupportingTasksResponseTwoSourceSnapshotSeedQuantityMin = 0;
+export const listSupportingTasksResponseTwoSourceSnapshotSeedQuantityMax = 1000000;
+
+export const listSupportingTasksResponseTwoSourceSnapshotSeedPriceMin = 0;
+export const listSupportingTasksResponseTwoSourceSnapshotSeedPriceMax = 1000000000;
+export const listSupportingTasksResponseTwoSourceSnapshotSeedPriceMultipleOf = 0.01;
+
+
+
+export const ListSupportingTasksResponseItem = zod.object({
+  "operationId": zod.number().min(1),
+  "sourceIndex": zod.number().min(listSupportingTasksResponseOneSourceIndexMin).max(listSupportingTasksResponseOneSourceIndexMax),
+  "title": zod.string().min(1).max(listSupportingTasksResponseOneTitleMax),
+  "startDate": zod.string().min(listSupportingTasksResponseOneStartDateMin).max(listSupportingTasksResponseOneStartDateMax),
+  "endDate": zod.string().min(listSupportingTasksResponseOneEndDateMin).max(listSupportingTasksResponseOneEndDateMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "employeeIds": zod.array(zod.number().min(1)).max(listSupportingTasksResponseOneEmployeeIdsMax),
+  "salaryBudget": zod.number().min(listSupportingTasksResponseOneSalaryBudgetMin).max(listSupportingTasksResponseOneSalaryBudgetMax),
+  "fuelBudget": zod.number().min(listSupportingTasksResponseOneFuelBudgetMin).max(listSupportingTasksResponseOneFuelBudgetMax),
+  "quantity": zod.number().min(listSupportingTasksResponseOneQuantityMin).max(listSupportingTasksResponseOneQuantityMax),
+  "quantityUnit": zod.string().max(listSupportingTasksResponseOneQuantityUnitMax),
+  "notes": zod.string().max(listSupportingTasksResponseOneNotesMax),
+  "services": zod.array(zod.enum(['tok', 'motor_pool', 'fuel'])).min(1).max(listSupportingTasksResponseOneServicesMax)
+}).and(zod.object({
+  "id": zod.number(),
+  "version": zod.number(),
+  "status": zod.enum(['draft', 'sent']),
+  "requestId": zod.string(),
+  "sourceSnapshot": zod.object({
+  "name": zod.string().min(1).max(listSupportingTasksResponseTwoSourceSnapshotNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(listSupportingTasksResponseTwoSourceSnapshotEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(listSupportingTasksResponseTwoSourceSnapshotEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(listSupportingTasksResponseTwoSourceSnapshotSalaryCostMin).max(listSupportingTasksResponseTwoSourceSnapshotSalaryCostMax).multipleOf(listSupportingTasksResponseTwoSourceSnapshotSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(listSupportingTasksResponseTwoSourceSnapshotFuelCostMin).max(listSupportingTasksResponseTwoSourceSnapshotFuelCostMax).multipleOf(listSupportingTasksResponseTwoSourceSnapshotFuelCostMultipleOf),
+  "seedName": zod.string().max(listSupportingTasksResponseTwoSourceSnapshotSeedNameMax),
+  "seedQuantity": zod.number().min(listSupportingTasksResponseTwoSourceSnapshotSeedQuantityMin).max(listSupportingTasksResponseTwoSourceSnapshotSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(listSupportingTasksResponseTwoSourceSnapshotSeedPriceMin).max(listSupportingTasksResponseTwoSourceSnapshotSeedPriceMax).multipleOf(listSupportingTasksResponseTwoSourceSnapshotSeedPriceMultipleOf)
+}),
+  "fieldId": zod.number(),
+  "fieldNumber": zod.string(),
+  "farm": zod.string(),
+  "year": zod.number(),
+  "operationName": zod.string(),
+  "equipmentName": zod.string(),
+  "employeeNames": zod.array(zod.string()),
+  "createdBy": zod.string(),
+  "createdByUserId": zod.string(),
+  "createdAt": zod.string(),
+  "sentAt": zod.string().nullable(),
+  "deliveries": zod.array(zod.object({
+  "service": zod.enum(['tok', 'motor_pool', 'fuel']),
+  "status": zod.enum(['sent', 'accepted']),
+  "acceptedBy": zod.string(),
+  "acceptedAt": zod.string().nullable()
+}))
+}))
+export const ListSupportingTasksResponse = zod.array(ListSupportingTasksResponseItem)
+
+
+
+export const createSupportingTaskBodyOneSourceIndexMin = 0;
+export const createSupportingTaskBodyOneSourceIndexMax = 19;
+
+export const createSupportingTaskBodyOneTitleMax = 150;
+
+export const createSupportingTaskBodyOneStartDateMin = 10;
+export const createSupportingTaskBodyOneStartDateMax = 10;
+
+export const createSupportingTaskBodyOneEndDateMin = 10;
+export const createSupportingTaskBodyOneEndDateMax = 10;
+
+
+
+export const createSupportingTaskBodyOneEmployeeIdsMax = 30;
+
+export const createSupportingTaskBodyOneSalaryBudgetMin = 0;
+export const createSupportingTaskBodyOneSalaryBudgetMax = 1000000000;
+
+export const createSupportingTaskBodyOneFuelBudgetMin = 0;
+export const createSupportingTaskBodyOneFuelBudgetMax = 1000000000;
+
+export const createSupportingTaskBodyOneQuantityMin = 0;
+export const createSupportingTaskBodyOneQuantityMax = 1000000;
+
+export const createSupportingTaskBodyOneQuantityUnitMax = 40;
+
+export const createSupportingTaskBodyOneNotesMax = 3000;
+
+export const createSupportingTaskBodyOneServicesMax = 3;
+
+export const createSupportingTaskBodyTwoRequestIdMin = 8;
+export const createSupportingTaskBodyTwoRequestIdMax = 100;
+
+
+
+export const CreateSupportingTaskBody = zod.object({
+  "operationId": zod.number().min(1),
+  "sourceIndex": zod.number().min(createSupportingTaskBodyOneSourceIndexMin).max(createSupportingTaskBodyOneSourceIndexMax),
+  "title": zod.string().min(1).max(createSupportingTaskBodyOneTitleMax),
+  "startDate": zod.string().min(createSupportingTaskBodyOneStartDateMin).max(createSupportingTaskBodyOneStartDateMax),
+  "endDate": zod.string().min(createSupportingTaskBodyOneEndDateMin).max(createSupportingTaskBodyOneEndDateMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "employeeIds": zod.array(zod.number().min(1)).max(createSupportingTaskBodyOneEmployeeIdsMax),
+  "salaryBudget": zod.number().min(createSupportingTaskBodyOneSalaryBudgetMin).max(createSupportingTaskBodyOneSalaryBudgetMax),
+  "fuelBudget": zod.number().min(createSupportingTaskBodyOneFuelBudgetMin).max(createSupportingTaskBodyOneFuelBudgetMax),
+  "quantity": zod.number().min(createSupportingTaskBodyOneQuantityMin).max(createSupportingTaskBodyOneQuantityMax),
+  "quantityUnit": zod.string().max(createSupportingTaskBodyOneQuantityUnitMax),
+  "notes": zod.string().max(createSupportingTaskBodyOneNotesMax),
+  "services": zod.array(zod.enum(['tok', 'motor_pool', 'fuel'])).min(1).max(createSupportingTaskBodyOneServicesMax)
+}).and(zod.object({
+  "requestId": zod.string().min(createSupportingTaskBodyTwoRequestIdMin).max(createSupportingTaskBodyTwoRequestIdMax)
+}))
+
+
+export const createSupportingTaskResponseOneSourceIndexMin = 0;
+export const createSupportingTaskResponseOneSourceIndexMax = 19;
+
+export const createSupportingTaskResponseOneTitleMax = 150;
+
+export const createSupportingTaskResponseOneStartDateMin = 10;
+export const createSupportingTaskResponseOneStartDateMax = 10;
+
+export const createSupportingTaskResponseOneEndDateMin = 10;
+export const createSupportingTaskResponseOneEndDateMax = 10;
+
+
+
+export const createSupportingTaskResponseOneEmployeeIdsMax = 30;
+
+export const createSupportingTaskResponseOneSalaryBudgetMin = 0;
+export const createSupportingTaskResponseOneSalaryBudgetMax = 1000000000;
+
+export const createSupportingTaskResponseOneFuelBudgetMin = 0;
+export const createSupportingTaskResponseOneFuelBudgetMax = 1000000000;
+
+export const createSupportingTaskResponseOneQuantityMin = 0;
+export const createSupportingTaskResponseOneQuantityMax = 1000000;
+
+export const createSupportingTaskResponseOneQuantityUnitMax = 40;
+
+export const createSupportingTaskResponseOneNotesMax = 3000;
+
+export const createSupportingTaskResponseOneServicesMax = 3;
+
+export const createSupportingTaskResponseTwoSourceSnapshotNameMax = 150;
+
+
+export const createSupportingTaskResponseTwoSourceSnapshotEquipmentNameMax = 200;
+
+
+export const createSupportingTaskResponseTwoSourceSnapshotEmployeeIdsMax = 30;
+
+export const createSupportingTaskResponseTwoSourceSnapshotSalaryCostMin = 0;
+export const createSupportingTaskResponseTwoSourceSnapshotSalaryCostMax = 1000000000;
+export const createSupportingTaskResponseTwoSourceSnapshotSalaryCostMultipleOf = 0.01;
+
+export const createSupportingTaskResponseTwoSourceSnapshotFuelCostMin = 0;
+export const createSupportingTaskResponseTwoSourceSnapshotFuelCostMax = 1000000000;
+export const createSupportingTaskResponseTwoSourceSnapshotFuelCostMultipleOf = 0.01;
+
+export const createSupportingTaskResponseTwoSourceSnapshotSeedNameMax = 200;
+
+export const createSupportingTaskResponseTwoSourceSnapshotSeedQuantityMin = 0;
+export const createSupportingTaskResponseTwoSourceSnapshotSeedQuantityMax = 1000000;
+
+export const createSupportingTaskResponseTwoSourceSnapshotSeedPriceMin = 0;
+export const createSupportingTaskResponseTwoSourceSnapshotSeedPriceMax = 1000000000;
+export const createSupportingTaskResponseTwoSourceSnapshotSeedPriceMultipleOf = 0.01;
+
+
+
+export const CreateSupportingTaskResponse = zod.object({
+  "operationId": zod.number().min(1),
+  "sourceIndex": zod.number().min(createSupportingTaskResponseOneSourceIndexMin).max(createSupportingTaskResponseOneSourceIndexMax),
+  "title": zod.string().min(1).max(createSupportingTaskResponseOneTitleMax),
+  "startDate": zod.string().min(createSupportingTaskResponseOneStartDateMin).max(createSupportingTaskResponseOneStartDateMax),
+  "endDate": zod.string().min(createSupportingTaskResponseOneEndDateMin).max(createSupportingTaskResponseOneEndDateMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "employeeIds": zod.array(zod.number().min(1)).max(createSupportingTaskResponseOneEmployeeIdsMax),
+  "salaryBudget": zod.number().min(createSupportingTaskResponseOneSalaryBudgetMin).max(createSupportingTaskResponseOneSalaryBudgetMax),
+  "fuelBudget": zod.number().min(createSupportingTaskResponseOneFuelBudgetMin).max(createSupportingTaskResponseOneFuelBudgetMax),
+  "quantity": zod.number().min(createSupportingTaskResponseOneQuantityMin).max(createSupportingTaskResponseOneQuantityMax),
+  "quantityUnit": zod.string().max(createSupportingTaskResponseOneQuantityUnitMax),
+  "notes": zod.string().max(createSupportingTaskResponseOneNotesMax),
+  "services": zod.array(zod.enum(['tok', 'motor_pool', 'fuel'])).min(1).max(createSupportingTaskResponseOneServicesMax)
+}).and(zod.object({
+  "id": zod.number(),
+  "version": zod.number(),
+  "status": zod.enum(['draft', 'sent']),
+  "requestId": zod.string(),
+  "sourceSnapshot": zod.object({
+  "name": zod.string().min(1).max(createSupportingTaskResponseTwoSourceSnapshotNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(createSupportingTaskResponseTwoSourceSnapshotEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(createSupportingTaskResponseTwoSourceSnapshotEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(createSupportingTaskResponseTwoSourceSnapshotSalaryCostMin).max(createSupportingTaskResponseTwoSourceSnapshotSalaryCostMax).multipleOf(createSupportingTaskResponseTwoSourceSnapshotSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(createSupportingTaskResponseTwoSourceSnapshotFuelCostMin).max(createSupportingTaskResponseTwoSourceSnapshotFuelCostMax).multipleOf(createSupportingTaskResponseTwoSourceSnapshotFuelCostMultipleOf),
+  "seedName": zod.string().max(createSupportingTaskResponseTwoSourceSnapshotSeedNameMax),
+  "seedQuantity": zod.number().min(createSupportingTaskResponseTwoSourceSnapshotSeedQuantityMin).max(createSupportingTaskResponseTwoSourceSnapshotSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(createSupportingTaskResponseTwoSourceSnapshotSeedPriceMin).max(createSupportingTaskResponseTwoSourceSnapshotSeedPriceMax).multipleOf(createSupportingTaskResponseTwoSourceSnapshotSeedPriceMultipleOf)
+}),
+  "fieldId": zod.number(),
+  "fieldNumber": zod.string(),
+  "farm": zod.string(),
+  "year": zod.number(),
+  "operationName": zod.string(),
+  "equipmentName": zod.string(),
+  "employeeNames": zod.array(zod.string()),
+  "createdBy": zod.string(),
+  "createdByUserId": zod.string(),
+  "createdAt": zod.string(),
+  "sentAt": zod.string().nullable(),
+  "deliveries": zod.array(zod.object({
+  "service": zod.enum(['tok', 'motor_pool', 'fuel']),
+  "status": zod.enum(['sent', 'accepted']),
+  "acceptedBy": zod.string(),
+  "acceptedAt": zod.string().nullable()
+}))
+}))
+
+
+
+
+
+export const UpdateSupportingTaskParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+
+export const updateSupportingTaskBodyOneSourceIndexMin = 0;
+export const updateSupportingTaskBodyOneSourceIndexMax = 19;
+
+export const updateSupportingTaskBodyOneTitleMax = 150;
+
+export const updateSupportingTaskBodyOneStartDateMin = 10;
+export const updateSupportingTaskBodyOneStartDateMax = 10;
+
+export const updateSupportingTaskBodyOneEndDateMin = 10;
+export const updateSupportingTaskBodyOneEndDateMax = 10;
+
+
+
+export const updateSupportingTaskBodyOneEmployeeIdsMax = 30;
+
+export const updateSupportingTaskBodyOneSalaryBudgetMin = 0;
+export const updateSupportingTaskBodyOneSalaryBudgetMax = 1000000000;
+
+export const updateSupportingTaskBodyOneFuelBudgetMin = 0;
+export const updateSupportingTaskBodyOneFuelBudgetMax = 1000000000;
+
+export const updateSupportingTaskBodyOneQuantityMin = 0;
+export const updateSupportingTaskBodyOneQuantityMax = 1000000;
+
+export const updateSupportingTaskBodyOneQuantityUnitMax = 40;
+
+export const updateSupportingTaskBodyOneNotesMax = 3000;
+
+export const updateSupportingTaskBodyOneServicesMax = 3;
+
+
+
+
+export const UpdateSupportingTaskBody = zod.object({
+  "operationId": zod.number().min(1),
+  "sourceIndex": zod.number().min(updateSupportingTaskBodyOneSourceIndexMin).max(updateSupportingTaskBodyOneSourceIndexMax),
+  "title": zod.string().min(1).max(updateSupportingTaskBodyOneTitleMax),
+  "startDate": zod.string().min(updateSupportingTaskBodyOneStartDateMin).max(updateSupportingTaskBodyOneStartDateMax),
+  "endDate": zod.string().min(updateSupportingTaskBodyOneEndDateMin).max(updateSupportingTaskBodyOneEndDateMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "employeeIds": zod.array(zod.number().min(1)).max(updateSupportingTaskBodyOneEmployeeIdsMax),
+  "salaryBudget": zod.number().min(updateSupportingTaskBodyOneSalaryBudgetMin).max(updateSupportingTaskBodyOneSalaryBudgetMax),
+  "fuelBudget": zod.number().min(updateSupportingTaskBodyOneFuelBudgetMin).max(updateSupportingTaskBodyOneFuelBudgetMax),
+  "quantity": zod.number().min(updateSupportingTaskBodyOneQuantityMin).max(updateSupportingTaskBodyOneQuantityMax),
+  "quantityUnit": zod.string().max(updateSupportingTaskBodyOneQuantityUnitMax),
+  "notes": zod.string().max(updateSupportingTaskBodyOneNotesMax),
+  "services": zod.array(zod.enum(['tok', 'motor_pool', 'fuel'])).min(1).max(updateSupportingTaskBodyOneServicesMax)
+}).and(zod.object({
+  "version": zod.number().min(1)
+}))
+
+
+export const updateSupportingTaskResponseOneSourceIndexMin = 0;
+export const updateSupportingTaskResponseOneSourceIndexMax = 19;
+
+export const updateSupportingTaskResponseOneTitleMax = 150;
+
+export const updateSupportingTaskResponseOneStartDateMin = 10;
+export const updateSupportingTaskResponseOneStartDateMax = 10;
+
+export const updateSupportingTaskResponseOneEndDateMin = 10;
+export const updateSupportingTaskResponseOneEndDateMax = 10;
+
+
+
+export const updateSupportingTaskResponseOneEmployeeIdsMax = 30;
+
+export const updateSupportingTaskResponseOneSalaryBudgetMin = 0;
+export const updateSupportingTaskResponseOneSalaryBudgetMax = 1000000000;
+
+export const updateSupportingTaskResponseOneFuelBudgetMin = 0;
+export const updateSupportingTaskResponseOneFuelBudgetMax = 1000000000;
+
+export const updateSupportingTaskResponseOneQuantityMin = 0;
+export const updateSupportingTaskResponseOneQuantityMax = 1000000;
+
+export const updateSupportingTaskResponseOneQuantityUnitMax = 40;
+
+export const updateSupportingTaskResponseOneNotesMax = 3000;
+
+export const updateSupportingTaskResponseOneServicesMax = 3;
+
+export const updateSupportingTaskResponseTwoSourceSnapshotNameMax = 150;
+
+
+export const updateSupportingTaskResponseTwoSourceSnapshotEquipmentNameMax = 200;
+
+
+export const updateSupportingTaskResponseTwoSourceSnapshotEmployeeIdsMax = 30;
+
+export const updateSupportingTaskResponseTwoSourceSnapshotSalaryCostMin = 0;
+export const updateSupportingTaskResponseTwoSourceSnapshotSalaryCostMax = 1000000000;
+export const updateSupportingTaskResponseTwoSourceSnapshotSalaryCostMultipleOf = 0.01;
+
+export const updateSupportingTaskResponseTwoSourceSnapshotFuelCostMin = 0;
+export const updateSupportingTaskResponseTwoSourceSnapshotFuelCostMax = 1000000000;
+export const updateSupportingTaskResponseTwoSourceSnapshotFuelCostMultipleOf = 0.01;
+
+export const updateSupportingTaskResponseTwoSourceSnapshotSeedNameMax = 200;
+
+export const updateSupportingTaskResponseTwoSourceSnapshotSeedQuantityMin = 0;
+export const updateSupportingTaskResponseTwoSourceSnapshotSeedQuantityMax = 1000000;
+
+export const updateSupportingTaskResponseTwoSourceSnapshotSeedPriceMin = 0;
+export const updateSupportingTaskResponseTwoSourceSnapshotSeedPriceMax = 1000000000;
+export const updateSupportingTaskResponseTwoSourceSnapshotSeedPriceMultipleOf = 0.01;
+
+
+
+export const UpdateSupportingTaskResponse = zod.object({
+  "operationId": zod.number().min(1),
+  "sourceIndex": zod.number().min(updateSupportingTaskResponseOneSourceIndexMin).max(updateSupportingTaskResponseOneSourceIndexMax),
+  "title": zod.string().min(1).max(updateSupportingTaskResponseOneTitleMax),
+  "startDate": zod.string().min(updateSupportingTaskResponseOneStartDateMin).max(updateSupportingTaskResponseOneStartDateMax),
+  "endDate": zod.string().min(updateSupportingTaskResponseOneEndDateMin).max(updateSupportingTaskResponseOneEndDateMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "employeeIds": zod.array(zod.number().min(1)).max(updateSupportingTaskResponseOneEmployeeIdsMax),
+  "salaryBudget": zod.number().min(updateSupportingTaskResponseOneSalaryBudgetMin).max(updateSupportingTaskResponseOneSalaryBudgetMax),
+  "fuelBudget": zod.number().min(updateSupportingTaskResponseOneFuelBudgetMin).max(updateSupportingTaskResponseOneFuelBudgetMax),
+  "quantity": zod.number().min(updateSupportingTaskResponseOneQuantityMin).max(updateSupportingTaskResponseOneQuantityMax),
+  "quantityUnit": zod.string().max(updateSupportingTaskResponseOneQuantityUnitMax),
+  "notes": zod.string().max(updateSupportingTaskResponseOneNotesMax),
+  "services": zod.array(zod.enum(['tok', 'motor_pool', 'fuel'])).min(1).max(updateSupportingTaskResponseOneServicesMax)
+}).and(zod.object({
+  "id": zod.number(),
+  "version": zod.number(),
+  "status": zod.enum(['draft', 'sent']),
+  "requestId": zod.string(),
+  "sourceSnapshot": zod.object({
+  "name": zod.string().min(1).max(updateSupportingTaskResponseTwoSourceSnapshotNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(updateSupportingTaskResponseTwoSourceSnapshotEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(updateSupportingTaskResponseTwoSourceSnapshotEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(updateSupportingTaskResponseTwoSourceSnapshotSalaryCostMin).max(updateSupportingTaskResponseTwoSourceSnapshotSalaryCostMax).multipleOf(updateSupportingTaskResponseTwoSourceSnapshotSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(updateSupportingTaskResponseTwoSourceSnapshotFuelCostMin).max(updateSupportingTaskResponseTwoSourceSnapshotFuelCostMax).multipleOf(updateSupportingTaskResponseTwoSourceSnapshotFuelCostMultipleOf),
+  "seedName": zod.string().max(updateSupportingTaskResponseTwoSourceSnapshotSeedNameMax),
+  "seedQuantity": zod.number().min(updateSupportingTaskResponseTwoSourceSnapshotSeedQuantityMin).max(updateSupportingTaskResponseTwoSourceSnapshotSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(updateSupportingTaskResponseTwoSourceSnapshotSeedPriceMin).max(updateSupportingTaskResponseTwoSourceSnapshotSeedPriceMax).multipleOf(updateSupportingTaskResponseTwoSourceSnapshotSeedPriceMultipleOf)
+}),
+  "fieldId": zod.number(),
+  "fieldNumber": zod.string(),
+  "farm": zod.string(),
+  "year": zod.number(),
+  "operationName": zod.string(),
+  "equipmentName": zod.string(),
+  "employeeNames": zod.array(zod.string()),
+  "createdBy": zod.string(),
+  "createdByUserId": zod.string(),
+  "createdAt": zod.string(),
+  "sentAt": zod.string().nullable(),
+  "deliveries": zod.array(zod.object({
+  "service": zod.enum(['tok', 'motor_pool', 'fuel']),
+  "status": zod.enum(['sent', 'accepted']),
+  "acceptedBy": zod.string(),
+  "acceptedAt": zod.string().nullable()
+}))
+}))
+
+
+
+
+
+export const SendSupportingTaskParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+
+
+
+export const SendSupportingTaskBody = zod.object({
+  "version": zod.number().min(1)
+})
+
+
+export const sendSupportingTaskResponseOneSourceIndexMin = 0;
+export const sendSupportingTaskResponseOneSourceIndexMax = 19;
+
+export const sendSupportingTaskResponseOneTitleMax = 150;
+
+export const sendSupportingTaskResponseOneStartDateMin = 10;
+export const sendSupportingTaskResponseOneStartDateMax = 10;
+
+export const sendSupportingTaskResponseOneEndDateMin = 10;
+export const sendSupportingTaskResponseOneEndDateMax = 10;
+
+
+
+export const sendSupportingTaskResponseOneEmployeeIdsMax = 30;
+
+export const sendSupportingTaskResponseOneSalaryBudgetMin = 0;
+export const sendSupportingTaskResponseOneSalaryBudgetMax = 1000000000;
+
+export const sendSupportingTaskResponseOneFuelBudgetMin = 0;
+export const sendSupportingTaskResponseOneFuelBudgetMax = 1000000000;
+
+export const sendSupportingTaskResponseOneQuantityMin = 0;
+export const sendSupportingTaskResponseOneQuantityMax = 1000000;
+
+export const sendSupportingTaskResponseOneQuantityUnitMax = 40;
+
+export const sendSupportingTaskResponseOneNotesMax = 3000;
+
+export const sendSupportingTaskResponseOneServicesMax = 3;
+
+export const sendSupportingTaskResponseTwoSourceSnapshotNameMax = 150;
+
+
+export const sendSupportingTaskResponseTwoSourceSnapshotEquipmentNameMax = 200;
+
+
+export const sendSupportingTaskResponseTwoSourceSnapshotEmployeeIdsMax = 30;
+
+export const sendSupportingTaskResponseTwoSourceSnapshotSalaryCostMin = 0;
+export const sendSupportingTaskResponseTwoSourceSnapshotSalaryCostMax = 1000000000;
+export const sendSupportingTaskResponseTwoSourceSnapshotSalaryCostMultipleOf = 0.01;
+
+export const sendSupportingTaskResponseTwoSourceSnapshotFuelCostMin = 0;
+export const sendSupportingTaskResponseTwoSourceSnapshotFuelCostMax = 1000000000;
+export const sendSupportingTaskResponseTwoSourceSnapshotFuelCostMultipleOf = 0.01;
+
+export const sendSupportingTaskResponseTwoSourceSnapshotSeedNameMax = 200;
+
+export const sendSupportingTaskResponseTwoSourceSnapshotSeedQuantityMin = 0;
+export const sendSupportingTaskResponseTwoSourceSnapshotSeedQuantityMax = 1000000;
+
+export const sendSupportingTaskResponseTwoSourceSnapshotSeedPriceMin = 0;
+export const sendSupportingTaskResponseTwoSourceSnapshotSeedPriceMax = 1000000000;
+export const sendSupportingTaskResponseTwoSourceSnapshotSeedPriceMultipleOf = 0.01;
+
+
+
+export const SendSupportingTaskResponse = zod.object({
+  "operationId": zod.number().min(1),
+  "sourceIndex": zod.number().min(sendSupportingTaskResponseOneSourceIndexMin).max(sendSupportingTaskResponseOneSourceIndexMax),
+  "title": zod.string().min(1).max(sendSupportingTaskResponseOneTitleMax),
+  "startDate": zod.string().min(sendSupportingTaskResponseOneStartDateMin).max(sendSupportingTaskResponseOneStartDateMax),
+  "endDate": zod.string().min(sendSupportingTaskResponseOneEndDateMin).max(sendSupportingTaskResponseOneEndDateMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "employeeIds": zod.array(zod.number().min(1)).max(sendSupportingTaskResponseOneEmployeeIdsMax),
+  "salaryBudget": zod.number().min(sendSupportingTaskResponseOneSalaryBudgetMin).max(sendSupportingTaskResponseOneSalaryBudgetMax),
+  "fuelBudget": zod.number().min(sendSupportingTaskResponseOneFuelBudgetMin).max(sendSupportingTaskResponseOneFuelBudgetMax),
+  "quantity": zod.number().min(sendSupportingTaskResponseOneQuantityMin).max(sendSupportingTaskResponseOneQuantityMax),
+  "quantityUnit": zod.string().max(sendSupportingTaskResponseOneQuantityUnitMax),
+  "notes": zod.string().max(sendSupportingTaskResponseOneNotesMax),
+  "services": zod.array(zod.enum(['tok', 'motor_pool', 'fuel'])).min(1).max(sendSupportingTaskResponseOneServicesMax)
+}).and(zod.object({
+  "id": zod.number(),
+  "version": zod.number(),
+  "status": zod.enum(['draft', 'sent']),
+  "requestId": zod.string(),
+  "sourceSnapshot": zod.object({
+  "name": zod.string().min(1).max(sendSupportingTaskResponseTwoSourceSnapshotNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(sendSupportingTaskResponseTwoSourceSnapshotEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(sendSupportingTaskResponseTwoSourceSnapshotEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(sendSupportingTaskResponseTwoSourceSnapshotSalaryCostMin).max(sendSupportingTaskResponseTwoSourceSnapshotSalaryCostMax).multipleOf(sendSupportingTaskResponseTwoSourceSnapshotSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(sendSupportingTaskResponseTwoSourceSnapshotFuelCostMin).max(sendSupportingTaskResponseTwoSourceSnapshotFuelCostMax).multipleOf(sendSupportingTaskResponseTwoSourceSnapshotFuelCostMultipleOf),
+  "seedName": zod.string().max(sendSupportingTaskResponseTwoSourceSnapshotSeedNameMax),
+  "seedQuantity": zod.number().min(sendSupportingTaskResponseTwoSourceSnapshotSeedQuantityMin).max(sendSupportingTaskResponseTwoSourceSnapshotSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(sendSupportingTaskResponseTwoSourceSnapshotSeedPriceMin).max(sendSupportingTaskResponseTwoSourceSnapshotSeedPriceMax).multipleOf(sendSupportingTaskResponseTwoSourceSnapshotSeedPriceMultipleOf)
+}),
+  "fieldId": zod.number(),
+  "fieldNumber": zod.string(),
+  "farm": zod.string(),
+  "year": zod.number(),
+  "operationName": zod.string(),
+  "equipmentName": zod.string(),
+  "employeeNames": zod.array(zod.string()),
+  "createdBy": zod.string(),
+  "createdByUserId": zod.string(),
+  "createdAt": zod.string(),
+  "sentAt": zod.string().nullable(),
+  "deliveries": zod.array(zod.object({
+  "service": zod.enum(['tok', 'motor_pool', 'fuel']),
+  "status": zod.enum(['sent', 'accepted']),
+  "acceptedBy": zod.string(),
+  "acceptedAt": zod.string().nullable()
+}))
+}))
+
+
+
+
+
+export const AcceptSupportingTaskParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+
+
+
+export const AcceptSupportingTaskBody = zod.object({
+  "version": zod.number().min(1)
+}).and(zod.object({
+  "service": zod.enum(['tok', 'motor_pool', 'fuel'])
+}))
+
+
+export const acceptSupportingTaskResponseOneSourceIndexMin = 0;
+export const acceptSupportingTaskResponseOneSourceIndexMax = 19;
+
+export const acceptSupportingTaskResponseOneTitleMax = 150;
+
+export const acceptSupportingTaskResponseOneStartDateMin = 10;
+export const acceptSupportingTaskResponseOneStartDateMax = 10;
+
+export const acceptSupportingTaskResponseOneEndDateMin = 10;
+export const acceptSupportingTaskResponseOneEndDateMax = 10;
+
+
+
+export const acceptSupportingTaskResponseOneEmployeeIdsMax = 30;
+
+export const acceptSupportingTaskResponseOneSalaryBudgetMin = 0;
+export const acceptSupportingTaskResponseOneSalaryBudgetMax = 1000000000;
+
+export const acceptSupportingTaskResponseOneFuelBudgetMin = 0;
+export const acceptSupportingTaskResponseOneFuelBudgetMax = 1000000000;
+
+export const acceptSupportingTaskResponseOneQuantityMin = 0;
+export const acceptSupportingTaskResponseOneQuantityMax = 1000000;
+
+export const acceptSupportingTaskResponseOneQuantityUnitMax = 40;
+
+export const acceptSupportingTaskResponseOneNotesMax = 3000;
+
+export const acceptSupportingTaskResponseOneServicesMax = 3;
+
+export const acceptSupportingTaskResponseTwoSourceSnapshotNameMax = 150;
+
+
+export const acceptSupportingTaskResponseTwoSourceSnapshotEquipmentNameMax = 200;
+
+
+export const acceptSupportingTaskResponseTwoSourceSnapshotEmployeeIdsMax = 30;
+
+export const acceptSupportingTaskResponseTwoSourceSnapshotSalaryCostMin = 0;
+export const acceptSupportingTaskResponseTwoSourceSnapshotSalaryCostMax = 1000000000;
+export const acceptSupportingTaskResponseTwoSourceSnapshotSalaryCostMultipleOf = 0.01;
+
+export const acceptSupportingTaskResponseTwoSourceSnapshotFuelCostMin = 0;
+export const acceptSupportingTaskResponseTwoSourceSnapshotFuelCostMax = 1000000000;
+export const acceptSupportingTaskResponseTwoSourceSnapshotFuelCostMultipleOf = 0.01;
+
+export const acceptSupportingTaskResponseTwoSourceSnapshotSeedNameMax = 200;
+
+export const acceptSupportingTaskResponseTwoSourceSnapshotSeedQuantityMin = 0;
+export const acceptSupportingTaskResponseTwoSourceSnapshotSeedQuantityMax = 1000000;
+
+export const acceptSupportingTaskResponseTwoSourceSnapshotSeedPriceMin = 0;
+export const acceptSupportingTaskResponseTwoSourceSnapshotSeedPriceMax = 1000000000;
+export const acceptSupportingTaskResponseTwoSourceSnapshotSeedPriceMultipleOf = 0.01;
+
+
+
+export const AcceptSupportingTaskResponse = zod.object({
+  "operationId": zod.number().min(1),
+  "sourceIndex": zod.number().min(acceptSupportingTaskResponseOneSourceIndexMin).max(acceptSupportingTaskResponseOneSourceIndexMax),
+  "title": zod.string().min(1).max(acceptSupportingTaskResponseOneTitleMax),
+  "startDate": zod.string().min(acceptSupportingTaskResponseOneStartDateMin).max(acceptSupportingTaskResponseOneStartDateMax),
+  "endDate": zod.string().min(acceptSupportingTaskResponseOneEndDateMin).max(acceptSupportingTaskResponseOneEndDateMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "employeeIds": zod.array(zod.number().min(1)).max(acceptSupportingTaskResponseOneEmployeeIdsMax),
+  "salaryBudget": zod.number().min(acceptSupportingTaskResponseOneSalaryBudgetMin).max(acceptSupportingTaskResponseOneSalaryBudgetMax),
+  "fuelBudget": zod.number().min(acceptSupportingTaskResponseOneFuelBudgetMin).max(acceptSupportingTaskResponseOneFuelBudgetMax),
+  "quantity": zod.number().min(acceptSupportingTaskResponseOneQuantityMin).max(acceptSupportingTaskResponseOneQuantityMax),
+  "quantityUnit": zod.string().max(acceptSupportingTaskResponseOneQuantityUnitMax),
+  "notes": zod.string().max(acceptSupportingTaskResponseOneNotesMax),
+  "services": zod.array(zod.enum(['tok', 'motor_pool', 'fuel'])).min(1).max(acceptSupportingTaskResponseOneServicesMax)
+}).and(zod.object({
+  "id": zod.number(),
+  "version": zod.number(),
+  "status": zod.enum(['draft', 'sent']),
+  "requestId": zod.string(),
+  "sourceSnapshot": zod.object({
+  "name": zod.string().min(1).max(acceptSupportingTaskResponseTwoSourceSnapshotNameMax),
+  "equipmentId": zod.number().min(1).nullable(),
+  "equipmentName": zod.string().max(acceptSupportingTaskResponseTwoSourceSnapshotEquipmentNameMax).optional(),
+  "employeeIds": zod.array(zod.number().min(1)).max(acceptSupportingTaskResponseTwoSourceSnapshotEmployeeIdsMax),
+  "employeeNames": zod.array(zod.string()).optional(),
+  "salaryCost": zod.number().min(acceptSupportingTaskResponseTwoSourceSnapshotSalaryCostMin).max(acceptSupportingTaskResponseTwoSourceSnapshotSalaryCostMax).multipleOf(acceptSupportingTaskResponseTwoSourceSnapshotSalaryCostMultipleOf),
+  "fuelCost": zod.number().min(acceptSupportingTaskResponseTwoSourceSnapshotFuelCostMin).max(acceptSupportingTaskResponseTwoSourceSnapshotFuelCostMax).multipleOf(acceptSupportingTaskResponseTwoSourceSnapshotFuelCostMultipleOf),
+  "seedName": zod.string().max(acceptSupportingTaskResponseTwoSourceSnapshotSeedNameMax),
+  "seedQuantity": zod.number().min(acceptSupportingTaskResponseTwoSourceSnapshotSeedQuantityMin).max(acceptSupportingTaskResponseTwoSourceSnapshotSeedQuantityMax),
+  "seedUnit": zod.enum(['kg', 'ton']),
+  "seedPrice": zod.number().min(acceptSupportingTaskResponseTwoSourceSnapshotSeedPriceMin).max(acceptSupportingTaskResponseTwoSourceSnapshotSeedPriceMax).multipleOf(acceptSupportingTaskResponseTwoSourceSnapshotSeedPriceMultipleOf)
+}),
+  "fieldId": zod.number(),
+  "fieldNumber": zod.string(),
+  "farm": zod.string(),
+  "year": zod.number(),
+  "operationName": zod.string(),
+  "equipmentName": zod.string(),
+  "employeeNames": zod.array(zod.string()),
+  "createdBy": zod.string(),
+  "createdByUserId": zod.string(),
+  "createdAt": zod.string(),
+  "sentAt": zod.string().nullable(),
+  "deliveries": zod.array(zod.object({
+  "service": zod.enum(['tok', 'motor_pool', 'fuel']),
+  "status": zod.enum(['sent', 'accepted']),
+  "acceptedBy": zod.string(),
+  "acceptedAt": zod.string().nullable()
+}))
+}))
+
+
 export const listTokPayrollEntriesResponseOneWorkDateMin = 10;
 export const listTokPayrollEntriesResponseOneWorkDateMax = 10;
 

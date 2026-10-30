@@ -91,6 +91,7 @@ import type {
   ListPayrollRegistersParams,
   ListRepairExpensesParams,
   ListReportsParams,
+  ListSupportingTasksParams,
   ListTemplatesParams,
   PayrollAccrualDay,
   PayrollDailySubmitInput,
@@ -124,6 +125,11 @@ import type {
   SparePartRequest,
   SparePartRequestInput,
   SparePartRequestItemInput,
+  SupportingTask,
+  SupportingTaskAcceptInput,
+  SupportingTaskCreateInput,
+  SupportingTaskUpdateInput,
+  SupportingTaskVersionInput,
   Template,
   TemplateInput,
   TokPayrollCreateInput,
@@ -158,6 +164,347 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getListSupportingTasksUrl = (params?: ListSupportingTasksParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/agro/supporting-tasks?${stringifiedParams}` : `/api/agro/supporting-tasks`
+}
+
+export const listSupportingTasks = async (params?: ListSupportingTasksParams, options?: Parameters<typeof customFetch>[1]): Promise<SupportingTask[]> => {
+
+  return customFetch<SupportingTask[]>(getListSupportingTasksUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSupportingTasksQueryKey = (params?: ListSupportingTasksParams,) => {
+    return [
+    `/api/agro/supporting-tasks`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListSupportingTasksQueryOptions = <TData = Awaited<ReturnType<typeof listSupportingTasks>>, TError = ErrorType<unknown>>(params?: ListSupportingTasksParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSupportingTasks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSupportingTasksQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSupportingTasks>>> = ({ signal }) => listSupportingTasks(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listSupportingTasks>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListSupportingTasksQueryResult = NonNullable<Awaited<ReturnType<typeof listSupportingTasks>>>
+export type ListSupportingTasksQueryError = ErrorType<unknown>
+
+
+
+export function useListSupportingTasks<TData = Awaited<ReturnType<typeof listSupportingTasks>>, TError = ErrorType<unknown>>(
+ params?: ListSupportingTasksParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSupportingTasks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListSupportingTasksQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateSupportingTaskUrl = () => {
+
+
+
+
+  return `/api/agro/supporting-tasks`
+}
+
+export const createSupportingTask = async (supportingTaskCreateInput: SupportingTaskCreateInput, options?: Parameters<typeof customFetch>[1]): Promise<SupportingTask> => {
+
+  return customFetch<SupportingTask>(getCreateSupportingTaskUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(supportingTaskCreateInput)
+  }
+);}
+
+
+
+
+
+export const getCreateSupportingTaskMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSupportingTask>>, TError,{data: BodyType<SupportingTaskCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSupportingTask>>, TError,{data: BodyType<SupportingTaskCreateInput>}, TContext> => {
+
+const mutationKey = ['createSupportingTask'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSupportingTask>>, {data: BodyType<SupportingTaskCreateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createSupportingTask(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateSupportingTaskMutationResult = NonNullable<Awaited<ReturnType<typeof createSupportingTask>>>
+    export type CreateSupportingTaskMutationBody = BodyType<SupportingTaskCreateInput>
+    export type CreateSupportingTaskMutationError = ErrorType<unknown>
+
+    export const useCreateSupportingTask = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSupportingTask>>, TError,{data: BodyType<SupportingTaskCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createSupportingTask>>,
+        TError,
+        {data: BodyType<SupportingTaskCreateInput>},
+        TContext
+      > => {
+      return useMutation(getCreateSupportingTaskMutationOptions(options));
+    }
+
+export const getUpdateSupportingTaskUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/supporting-tasks/${id}`
+}
+
+export const updateSupportingTask = async (id: number,
+    supportingTaskUpdateInput: SupportingTaskUpdateInput, options?: Parameters<typeof customFetch>[1]): Promise<SupportingTask> => {
+
+  return customFetch<SupportingTask>(getUpdateSupportingTaskUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(supportingTaskUpdateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateSupportingTaskMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSupportingTask>>, TError,{id: number;data: BodyType<SupportingTaskUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateSupportingTask>>, TError,{id: number;data: BodyType<SupportingTaskUpdateInput>}, TContext> => {
+
+const mutationKey = ['updateSupportingTask'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateSupportingTask>>, {id: number;data: BodyType<SupportingTaskUpdateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateSupportingTask(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateSupportingTaskMutationResult = NonNullable<Awaited<ReturnType<typeof updateSupportingTask>>>
+    export type UpdateSupportingTaskMutationBody = BodyType<SupportingTaskUpdateInput>
+    export type UpdateSupportingTaskMutationError = ErrorType<unknown>
+
+    export const useUpdateSupportingTask = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSupportingTask>>, TError,{id: number;data: BodyType<SupportingTaskUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateSupportingTask>>,
+        TError,
+        {id: number;data: BodyType<SupportingTaskUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateSupportingTaskMutationOptions(options));
+    }
+
+export const getSendSupportingTaskUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/supporting-tasks/${id}/send`
+}
+
+export const sendSupportingTask = async (id: number,
+    supportingTaskVersionInput: SupportingTaskVersionInput, options?: Parameters<typeof customFetch>[1]): Promise<SupportingTask> => {
+
+  return customFetch<SupportingTask>(getSendSupportingTaskUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(supportingTaskVersionInput)
+  }
+);}
+
+
+
+
+
+export const getSendSupportingTaskMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendSupportingTask>>, TError,{id: number;data: BodyType<SupportingTaskVersionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendSupportingTask>>, TError,{id: number;data: BodyType<SupportingTaskVersionInput>}, TContext> => {
+
+const mutationKey = ['sendSupportingTask'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendSupportingTask>>, {id: number;data: BodyType<SupportingTaskVersionInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  sendSupportingTask(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendSupportingTaskMutationResult = NonNullable<Awaited<ReturnType<typeof sendSupportingTask>>>
+    export type SendSupportingTaskMutationBody = BodyType<SupportingTaskVersionInput>
+    export type SendSupportingTaskMutationError = ErrorType<unknown>
+
+    export const useSendSupportingTask = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendSupportingTask>>, TError,{id: number;data: BodyType<SupportingTaskVersionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendSupportingTask>>,
+        TError,
+        {id: number;data: BodyType<SupportingTaskVersionInput>},
+        TContext
+      > => {
+      return useMutation(getSendSupportingTaskMutationOptions(options));
+    }
+
+export const getAcceptSupportingTaskUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/supporting-tasks/${id}/accept`
+}
+
+export const acceptSupportingTask = async (id: number,
+    supportingTaskAcceptInput: SupportingTaskAcceptInput, options?: Parameters<typeof customFetch>[1]): Promise<SupportingTask> => {
+
+  return customFetch<SupportingTask>(getAcceptSupportingTaskUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(supportingTaskAcceptInput)
+  }
+);}
+
+
+
+
+
+export const getAcceptSupportingTaskMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptSupportingTask>>, TError,{id: number;data: BodyType<SupportingTaskAcceptInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof acceptSupportingTask>>, TError,{id: number;data: BodyType<SupportingTaskAcceptInput>}, TContext> => {
+
+const mutationKey = ['acceptSupportingTask'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptSupportingTask>>, {id: number;data: BodyType<SupportingTaskAcceptInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  acceptSupportingTask(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AcceptSupportingTaskMutationResult = NonNullable<Awaited<ReturnType<typeof acceptSupportingTask>>>
+    export type AcceptSupportingTaskMutationBody = BodyType<SupportingTaskAcceptInput>
+    export type AcceptSupportingTaskMutationError = ErrorType<unknown>
+
+    export const useAcceptSupportingTask = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptSupportingTask>>, TError,{id: number;data: BodyType<SupportingTaskAcceptInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof acceptSupportingTask>>,
+        TError,
+        {id: number;data: BodyType<SupportingTaskAcceptInput>},
+        TContext
+      > => {
+      return useMutation(getAcceptSupportingTaskMutationOptions(options));
+    }
 
 export const getListTokPayrollEntriesUrl = () => {
 

@@ -12,6 +12,7 @@ import fuelRouter from "./fuel";
 import financialEntriesRouter from "./financial-entries";
 import tokPayrollRouter from "./tok-payroll";
 import seedsRouter from "./seeds";
+import supportingTasksRouter from "./supporting-tasks";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use(fuelRouter);
 router.use(financialEntriesRouter);
 router.use(tokPayrollRouter);
 router.use(seedsRouter);
+router.use(supportingTasksRouter);
 
 export default router;

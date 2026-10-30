@@ -5,6 +5,190 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type SupportingService = typeof SupportingService[keyof typeof SupportingService];
+
+
+export const SupportingService = {
+  tok: 'tok',
+  motor_pool: 'motor_pool',
+  fuel: 'fuel',
+} as const;
+
+export interface SupportingTaskInput {
+  /** @minimum 1 */
+  operationId: number;
+  /**
+     * @minimum 0
+     * @maximum 19
+     */
+  sourceIndex: number;
+  /**
+     * @minLength 1
+     * @maxLength 150
+     */
+  title: string;
+  /**
+     * @minLength 10
+     * @maxLength 10
+     */
+  startDate: string;
+  /**
+     * @minLength 10
+     * @maxLength 10
+     */
+  endDate: string;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  equipmentId: number | null;
+  /**
+     * @maxItems 30
+     * @items.minimum 1
+     */
+  employeeIds: number[];
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  salaryBudget: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  fuelBudget: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  quantity: number;
+  /** @maxLength 40 */
+  quantityUnit: string;
+  /** @maxLength 3000 */
+  notes: string;
+  /**
+     * @minItems 1
+     * @maxItems 3
+     */
+  services: SupportingService[];
+}
+
+export type SupportingTaskCreateInput = SupportingTaskInput & {
+  /**
+     * @minLength 8
+     * @maxLength 100
+     */
+  requestId: string;
+};
+
+export interface SupportingTaskVersionInput {
+  /** @minimum 1 */
+  version: number;
+}
+
+export type SupportingTaskUpdateInput = SupportingTaskInput & SupportingTaskVersionInput;
+
+export type SupportingTaskAcceptInput = SupportingTaskVersionInput & {
+  service: SupportingService;
+};
+
+export type SupportingTaskDeliveryStatus = typeof SupportingTaskDeliveryStatus[keyof typeof SupportingTaskDeliveryStatus];
+
+
+export const SupportingTaskDeliveryStatus = {
+  sent: 'sent',
+  accepted: 'accepted',
+} as const;
+
+export interface SupportingTaskDelivery {
+  service: SupportingService;
+  status: SupportingTaskDeliveryStatus;
+  acceptedBy: string;
+  /** @nullable */
+  acceptedAt: string | null;
+}
+
+export type SupportingTaskStatus = typeof SupportingTaskStatus[keyof typeof SupportingTaskStatus];
+
+
+export const SupportingTaskStatus = {
+  draft: 'draft',
+  sent: 'sent',
+} as const;
+
+export type FieldSupportingWorkSeedUnit = typeof FieldSupportingWorkSeedUnit[keyof typeof FieldSupportingWorkSeedUnit];
+
+
+export const FieldSupportingWorkSeedUnit = {
+  kg: 'kg',
+  ton: 'ton',
+} as const;
+
+export interface FieldSupportingWork {
+  /**
+     * @minLength 1
+     * @maxLength 150
+     */
+  name: string;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  equipmentId: number | null;
+  /** @maxLength 200 */
+  equipmentName?: string;
+  /**
+     * @maxItems 30
+     * @items.minimum 1
+     */
+  employeeIds: number[];
+  employeeNames?: string[];
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  salaryCost: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  fuelCost: number;
+  /** @maxLength 200 */
+  seedName: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  seedQuantity: number;
+  seedUnit: FieldSupportingWorkSeedUnit;
+  /**
+     * @minimum 0
+     * @maximum 1000000000
+     */
+  seedPrice: number;
+}
+
+export type SupportingTask = SupportingTaskInput & ({
+  id: number;
+  version: number;
+  status: SupportingTaskStatus;
+  requestId: string;
+  sourceSnapshot: FieldSupportingWork;
+  fieldId: number;
+  fieldNumber: string;
+  farm: string;
+  year: number;
+  operationName: string;
+  equipmentName: string;
+  employeeNames: string[];
+  createdBy: string;
+  createdByUserId: string;
+  createdAt: string;
+  /** @nullable */
+  sentAt: string | null;
+  deliveries: SupportingTaskDelivery[];
+});
+
 export type TokPayrollInputPayBasis = typeof TokPayrollInputPayBasis[keyof typeof TokPayrollInputPayBasis];
 
 
@@ -725,58 +909,6 @@ export interface FieldSeedPlan {
      * @maximum 1000000000
      */
   unitPrice: number;
-}
-
-export type FieldSupportingWorkSeedUnit = typeof FieldSupportingWorkSeedUnit[keyof typeof FieldSupportingWorkSeedUnit];
-
-
-export const FieldSupportingWorkSeedUnit = {
-  kg: 'kg',
-  ton: 'ton',
-} as const;
-
-export interface FieldSupportingWork {
-  /**
-     * @minLength 1
-     * @maxLength 150
-     */
-  name: string;
-  /**
-     * @minimum 1
-     * @nullable
-     */
-  equipmentId: number | null;
-  /** @maxLength 200 */
-  equipmentName?: string;
-  /**
-     * @maxItems 30
-     * @items.minimum 1
-     */
-  employeeIds: number[];
-  employeeNames?: string[];
-  /**
-     * @minimum 0
-     * @maximum 1000000000
-     */
-  salaryCost: number;
-  /**
-     * @minimum 0
-     * @maximum 1000000000
-     */
-  fuelCost: number;
-  /** @maxLength 200 */
-  seedName: string;
-  /**
-     * @minimum 0
-     * @maximum 1000000
-     */
-  seedQuantity: number;
-  seedUnit: FieldSupportingWorkSeedUnit;
-  /**
-     * @minimum 0
-     * @maximum 1000000000
-     */
-  seedPrice: number;
 }
 
 export interface FieldChemicalPlan {
@@ -2988,6 +3120,23 @@ export interface RoleRequestDecision {
   decision: RoleRequestDecisionDecision;
   reviewComment: string;
 }
+
+export type ListSupportingTasksParams = {
+/**
+ * @minimum 1
+ */
+operationId?: number;
+service?: ListSupportingTasksService;
+};
+
+export type ListSupportingTasksService = typeof ListSupportingTasksService[keyof typeof ListSupportingTasksService];
+
+
+export const ListSupportingTasksService = {
+  tok: 'tok',
+  motor_pool: 'motor_pool',
+  fuel: 'fuel',
+} as const;
 
 export type GetDailySeedingReportParams = {
 year: number;

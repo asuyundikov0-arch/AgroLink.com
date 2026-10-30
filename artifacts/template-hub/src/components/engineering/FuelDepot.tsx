@@ -26,6 +26,7 @@ function errText(err: unknown) {
   if (e?.status === 403) return "Недостаточно прав для этого действия.";
   return typeof e?.data?.error === "string" ? e.data.error : e?.message ?? "Не удалось сохранить. Повторите попытку.";
 }
+import { ServiceTaskInbox } from "../agro/supporting-tasks/ServiceTaskInbox";
 
 export default function FuelDepot({ role, demoActive }: { role: string; demoActive: boolean }) {
   const q = useGetFuelWarehouse({ query: { queryKey: getGetFuelWarehouseQueryKey(), refetchInterval: POLL } });
@@ -46,6 +47,8 @@ export default function FuelDepot({ role, demoActive }: { role: string; demoActi
       {canWrite ? <div className="flex gap-2"><button type="button" className="button button-secondary" onClick={() => setForm("receipt")} data-testid="button-fuel-receipt"><ArrowDownToLine size={15} />Приход</button><button type="button" className="button button-primary" onClick={() => setForm("issue")} data-testid="button-fuel-issue"><ArrowUpFromLine size={15} />Выдача</button></div>
         : <span className="meta-chip" data-testid="text-fuel-readonly">{demoActive ? "Демо-просмотр: запись отключена" : "Только просмотр"}</span>}
     </div>
+
+    {(role === "fuel_manager" || role === "general_director") && <ServiceTaskInbox service="fuel" canAccept={canWrite} demo={demoActive} />}
 
     <Stocks data={data} />
 

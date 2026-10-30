@@ -19,6 +19,79 @@ tags:
   - name: uploads
     description: Retired document upload workflow; all endpoints return HTTP 410
 paths:
+  /agro/supporting-tasks:
+    get:
+      operationId: listSupportingTasks
+      parameters:
+        - { name: operationId, in: query, required: false, schema: { type: number, minimum: 1 } }
+        - { name: service, in: query, required: false, schema: { type: string, enum: [tok, motor_pool, fuel] } }
+      responses:
+        "200":
+          description: Role-filtered task outbox or service inbox
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/SupportingTask" } }
+    post:
+      operationId: createSupportingTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SupportingTaskCreateInput" }
+      responses:
+        "201":
+          description: Independent draft copied from planned supporting work
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportingTask" }
+  /agro/supporting-tasks/{id}:
+    patch:
+      operationId: updateSupportingTask
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SupportingTaskUpdateInput" }
+      responses:
+        "200":
+          description: Owned draft changed without changing the chief agronomist plan
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportingTask" }
+  /agro/supporting-tasks/{id}/send:
+    post:
+      operationId: sendSupportingTask
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SupportingTaskVersionInput" }
+      responses:
+        "200":
+          description: Single task dispatched to selected services
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportingTask" }
+  /agro/supporting-tasks/{id}/accept:
+    post:
+      operationId: acceptSupportingTask
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SupportingTaskAcceptInput" }
+      responses:
+        "200":
+          description: Recipient service acknowledged receipt; not completion or an expense
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportingTask" }
   /agro/tok-payroll/entries:
     get:
       operationId: listTokPayrollEntries
@@ -1750,6 +1823,89 @@ paths:
           description: User access revoked
 components:
   schemas:
+    SupportingService:
+      type: string
+      enum: [tok, motor_pool, fuel]
+    SupportingTaskInput:
+      type: object
+      required: [operationId, sourceIndex, title, startDate, endDate, equipmentId, employeeIds, salaryBudget, fuelBudget, quantity, quantityUnit, notes, services]
+      properties:
+        operationId: { type: number, minimum: 1 }
+        sourceIndex: { type: number, minimum: 0, maximum: 19 }
+        title: { type: string, minLength: 1, maxLength: 150 }
+        startDate: { type: string, minLength: 10, maxLength: 10 }
+        endDate: { type: string, minLength: 10, maxLength: 10 }
+        equipmentId: { type: ["number", "null"], minimum: 1 }
+        employeeIds:
+          type: array
+          maxItems: 30
+          items: { type: number, minimum: 1 }
+        salaryBudget: { type: number, minimum: 0, maximum: 1000000000 }
+        fuelBudget: { type: number, minimum: 0, maximum: 1000000000 }
+        quantity: { type: number, minimum: 0, maximum: 1000000 }
+        quantityUnit: { type: string, maxLength: 40 }
+        notes: { type: string, maxLength: 3000 }
+        services:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items: { $ref: "#/components/schemas/SupportingService" }
+    SupportingTaskCreateInput:
+      allOf:
+        - { $ref: "#/components/schemas/SupportingTaskInput" }
+        - type: object
+          required: [requestId]
+          properties:
+            requestId: { type: string, minLength: 8, maxLength: 100 }
+    SupportingTaskUpdateInput:
+      allOf:
+        - { $ref: "#/components/schemas/SupportingTaskInput" }
+        - { $ref: "#/components/schemas/SupportingTaskVersionInput" }
+    SupportingTaskVersionInput:
+      type: object
+      required: [version]
+      properties:
+        version: { type: number, minimum: 1 }
+    SupportingTaskAcceptInput:
+      allOf:
+        - { $ref: "#/components/schemas/SupportingTaskVersionInput" }
+        - type: object
+          required: [service]
+          properties:
+            service: { $ref: "#/components/schemas/SupportingService" }
+    SupportingTaskDelivery:
+      type: object
+      required: [service, status, acceptedBy, acceptedAt]
+      properties:
+        service: { $ref: "#/components/schemas/SupportingService" }
+        status: { type: string, enum: [sent, accepted] }
+        acceptedBy: { type: string }
+        acceptedAt: { type: ["string", "null"] }
+    SupportingTask:
+      allOf:
+        - { $ref: "#/components/schemas/SupportingTaskInput" }
+        - type: object
+          required: [id, version, status, requestId, sourceSnapshot, fieldId, fieldNumber, farm, year, operationName, equipmentName, employeeNames, createdBy, createdByUserId, createdAt, sentAt, deliveries]
+          properties:
+            id: { type: number }
+            version: { type: number }
+            status: { type: string, enum: [draft, sent] }
+            requestId: { type: string }
+            sourceSnapshot: { $ref: "#/components/schemas/FieldSupportingWork" }
+            fieldId: { type: number }
+            fieldNumber: { type: string }
+            farm: { type: string }
+            year: { type: number }
+            operationName: { type: string }
+            equipmentName: { type: string }
+            employeeNames: { type: array, items: { type: string } }
+            createdBy: { type: string }
+            createdByUserId: { type: string }
+            createdAt: { type: string }
+            sentAt: { type: ["string", "null"] }
+            deliveries:
+              type: array
+              items: { $ref: "#/components/schemas/SupportingTaskDelivery" }
     TokPayrollCreateInput:
       allOf:
         - { $ref: "#/components/schemas/TokPayrollInput" }

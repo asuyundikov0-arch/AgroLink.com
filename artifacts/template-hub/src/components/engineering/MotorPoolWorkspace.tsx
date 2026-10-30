@@ -41,6 +41,7 @@ const parsePositive = (value: string, max: number, decimals: number) => {
   if (!t || !Number.isFinite(n) || n <= 0 || n > max) return null;
   return Number(n.toFixed(decimals)) === n ? n : null;
 };
+import { ServiceTaskInbox } from "../agro/supporting-tasks/ServiceTaskInbox";
 
 export default function MotorPoolWorkspace({ role, demoActive = false }: { role: string; demoActive?: boolean }) {
   const allowed = role === "motor_pool_manager" || role === "general_director";
@@ -62,6 +63,7 @@ export default function MotorPoolWorkspace({ role, demoActive = false }: { role:
         <h1 className="mt-1.5 font-display text-2xl font-bold tracking-[-0.045em] sm:text-3xl">Перевозка зерна и оплата водителей</h1>
         <p className="mt-1 max-w-3xl text-xs leading-5 text-muted-foreground">Рейсы с поля, между складами, на элеватор и при продаже. Расценку можно внести только после согласования заведующим током; итог начисления рассчитывает сервер. Дневной наряд автобазы отправляется в отдел кадров.</p>
       </header>
+      {allowed && <ServiceTaskInbox service="motor_pool" canAccept={canEdit} demo={demoActive} />}
 
       {!canEdit ? (
         <section className="surface-card flex flex-col items-center p-8 text-center" data-testid="motor-pool-readonly">

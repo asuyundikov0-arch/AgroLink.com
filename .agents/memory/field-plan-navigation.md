@@ -41,6 +41,12 @@ The selected field is fixed when entering either a plan or actual work; users mu
 
 **How to apply:** Сохранять исходный план отдельно от сведений начала факта. Предполагаемые затраты не подменяют подтверждённые начисления и складские списания и не увеличивают выполненные гектары.
 
+Агроном хозяйства создаёт задания службам на основе сопутствующих работ, заранее запланированных главным агрономом. Сведения задания можно корректировать отдельно от исходного плана. Пользователь выбрал основной AgroLink и получателей: ток, автобаза и нефтебаза, в том числе несколько служб для одного задания.
+
+**Why:** Пользователь прямо попросил перейти от объяснения и отдельного демо к созданию и отправке таких заданий в основном приложении.
+
+**How to apply:** Сохранять исходные плановые сведения и фиксированную привязку к полю и основной операции; корректировка задания не меняет план. Отправка и принятие задания службой сами по себе не означают фактический рейс, складское списание или подтверждённую зарплату.
+
 Actual work has its own field-first view, separate from planning. Opening a field shows its plan directly and an unplanned-work request action. Out-of-plan operations are allowed only after the chief agronomist approves the request; approval does not itself start the operation.
 
 **Why:** The user separated planning from factual entry, then required approval by the chief agronomist before any unplanned work starts.
