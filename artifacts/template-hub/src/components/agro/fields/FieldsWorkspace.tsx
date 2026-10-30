@@ -1,5 +1,5 @@
 import { type ReactNode, useMemo, useState } from "react";
-import { ArrowLeft, ClipboardCheck, CalendarRange, History, LandPlot, Layers, Pencil, Plus, RefreshCw, Sprout, TriangleAlert } from "lucide-react";
+import { ArrowLeft, ChevronRight, ClipboardCheck, CalendarRange, History, LandPlot, Layers, Pencil, Plus, RefreshCw, Sprout, TriangleAlert } from "lucide-react";
 import { type AgroField, type FieldLifecycleInputAction, type FieldOperation, type FieldSeason, getGetFieldDashboardQueryKey, getListFleetEquipmentQueryKey, useGetFieldDashboard, useListFleetEquipment } from "@workspace/api-client-react";
 import { UnplannedForm } from "./UnplannedForm";
 import { MachineAssignmentSummary } from "./MachineAssignments";
@@ -12,7 +12,7 @@ import { LifecycleDialog, WorkResourcesForm, isPendingCompletion, isPendingUnpla
 import { type PlanFact, planFactBySeason, planFactSummary } from "./planFact";
 import { FieldForm, OperationForm, SeasonForm, VoidDialog } from "./Forms";
 import { FieldDirectory } from "./FieldDirectory";
-import { PlanFieldSchedule, PlanFieldsList, predecessorOf } from "./PlanRegister";
+import { CropBadge, PlanFieldSchedule, PlanFieldsList, cropStyle, predecessorOf } from "./PlanRegister";
 import { CropAreaChart } from "./Charts";
 import { ChemicalSeasonCost } from "../ChemicalWarehouse";
 import { Drawer, POLL_MS, Progress, StatusPill, UNITS, type Unit, canActual, canManage, cx, dateFmt, errorInfo, ha, haNum, isGD, pctFmt, sumHa } from "./shared";
@@ -217,7 +217,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
           })()}
 
           {view === "facts" && <FactsView
-            year={year} unitAll={unit === "all"} scopeFields={scopeFields} yearSeasons={yearSeasons} ops={ops} pfBySeason={pfBySeason} role={role}
+            year={year} unitAll={unit === "all"} scopeFields={scopeFields} yearSeasons={yearSeasons} seasons={seasons} ops={ops} pfBySeason={pfBySeason} role={role}
             fieldId={factFieldId !== null && scopeIds.has(factFieldId) ? factFieldId : null} onPick={pickFactField}
             onHistory={(fieldId) => setModal({ k: "history", fieldId })}
             onWork={(op) => setModal({ k: "work", op })} onLifecycle={(op, action) => setModal({ k: "lifecycle", op, action })} onVoid={(op) => setModal({ k: "void", op })}
@@ -397,8 +397,8 @@ function PlanFactBox({ pf, testId }: { pf: PlanFact; testId: string }) {
   );
 }
 
-function FactsView({ year, unitAll, scopeFields, yearSeasons, ops, pfBySeason, role, fieldId, onPick, onHistory, onWork, onLifecycle, onVoid, onUnplanned }: {
-  year: number; unitAll: boolean; scopeFields: AgroField[]; yearSeasons: FieldSeason[]; ops: FieldOperation[]; pfBySeason: Map<number, PlanFact>; role: string;
+export function FactsView({ year, unitAll, scopeFields, yearSeasons, seasons, ops, pfBySeason, role, fieldId, onPick, onHistory, onWork, onLifecycle, onVoid, onUnplanned }: {
+  year: number; unitAll: boolean; scopeFields: AgroField[]; yearSeasons: FieldSeason[]; seasons: FieldSeason[]; ops: FieldOperation[]; pfBySeason: Map<number, PlanFact>; role: string;
   fieldId: number | null; onPick: (id: number | null) => void; onHistory: (fieldId: number) => void;
   onWork: (op: FieldOperation) => void; onLifecycle: (op: FieldOperation, action: FieldLifecycleInputAction) => void; onVoid: (op: FieldOperation) => void; onUnplanned: (fieldId: number, seasonId: number) => void;
 }) {
@@ -409,26 +409,38 @@ function FactsView({ year, unitAll, scopeFields, yearSeasons, ops, pfBySeason, r
     <section className="surface-card overflow-hidden" data-testid="section-facts-fields">
       <SectionHead title={`Фактические работы · ${year}`} text="Выберите поле: план, выполняемые работы, заявки и история по дням." />
       {scopeFields.length === 0 ? <Empty icon={<LandPlot size={18} />} title="Полей нет" text="По выбранному хозяйству поля не внесены." testId="status-facts-fields-empty" /> : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2 p-4 sm:p-5">
+        <div role="table" aria-label={`Фактические работы · ${year}`} className="text-xs">
+          <div role="row" className="hidden grid-cols-[72px_96px_minmax(140px,1.2fr)_minmax(130px,1fr)_minmax(150px,1fr)_160px] gap-3 border-b border-border bg-muted/20 px-4 py-2 text-[10.5px] font-semibold text-muted-foreground xl:grid">
+            <span role="columnheader">№ поля</span><span role="columnheader" className="text-right">Площадь</span><span role="columnheader">Культура</span><span role="columnheader">Предшественник</span><span role="columnheader">План-факт</span><span role="columnheader" />
+          </div>
+          <div className="divide-y divide-border/70">
           {scopeFields.map((x) => {
             const s = yearSeasons.find((y) => y.fieldId === x.id);
-            return <button key={x.id} type="button" onClick={() => onPick(x.id)} data-testid={`button-facts-open-field-${x.id}`}
-              className={cx("rounded-lg border p-2.5 text-left transition-colors hover:border-[hsl(203_87%_33%)]", s ? "border-border bg-card" : "border-dashed border-border bg-muted/20")}>
-              <p className="font-mono text-sm font-bold">№ {x.number}</p>
-              <p className="truncate text-[10.5px] text-muted-foreground">{s ? s.cropName : "нет сезона"}{unitAll ? ` · ${x.unit}` : ""}{x.isActive ? "" : " · архив"}</p>
-              {s && <div className="mt-1"><PlanFactMini pf={pfBySeason.get(s.id)} testId={`text-facts-planfact-${x.id}`} /></div>}
-              {(() => { const so = s ? ops.filter((o) => o.seasonId === s.id) : []; const pc = so.filter(isPendingCompletion).length; const pu = so.filter(isPendingUnplanned).length; return <>
-                {pc > 0 && <span className="mt-1.5 block rounded bg-[hsl(30_80%_40%)] px-1.5 py-0.5 text-[10px] font-bold text-white" data-testid={`badge-facts-completion-${x.id}`}>Завершение: {pc}</span>}
-                {pu > 0 && <span className="mt-1 block rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground" data-testid={`badge-facts-unplanned-${x.id}`}>На согласовании: {pu}</span>}
-              </>; })()}
-            </button>;
+            const p = predecessorOf(seasons, x.id, year);
+            const so = s ? ops.filter((o) => o.seasonId === s.id) : []; const pc = so.filter(isPendingCompletion).length; const pu = so.filter(isPendingUnplanned).length;
+            return <div role="row" key={x.id} data-testid={`row-facts-field-${x.id}`} style={s ? cropStyle(s.cropName).row : { boxShadow: "inset 3px 0 0 hsl(var(--border))" }}
+              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-2.5 xl:grid-cols-[72px_96px_minmax(140px,1.2fr)_minmax(130px,1fr)_minmax(150px,1fr)_160px] xl:gap-3">
+              <div role="cell" className="font-mono text-sm font-bold">№ {x.number}{(unitAll || !x.isActive) && <p className="font-sans text-[10px] font-normal text-muted-foreground">{unitAll ? x.unit : ""}{!x.isActive ? `${unitAll ? " · " : ""}архив` : ""}</p>}</div>
+              <div role="cell" className="order-3 col-span-3 font-mono text-[11px] xl:order-none xl:col-span-1 xl:text-right"><span className="text-muted-foreground xl:hidden">Площадь: </span>{ha(s?.areaHa ?? x.areaHa)}{s && s.areaHa < x.areaHa && <span className="block text-[10px] text-muted-foreground">из {ha(x.areaHa)}</span>}</div>
+              <div role="cell" className="min-w-0">{s ? <><CropBadge crop={s.cropName} />{s.variety && <span className="ml-1.5 text-[10.5px] text-muted-foreground">{s.variety}</span>}</> : <span className="text-[11px] text-muted-foreground">нет сезона</span>}
+                {(pc > 0 || pu > 0) && <div className="mt-1 flex flex-wrap gap-1">
+                  {pc > 0 && <span className="rounded bg-[hsl(30_80%_40%)] px-1.5 py-0.5 text-[10px] font-bold text-white" data-testid={`badge-facts-completion-${x.id}`}>Завершение: {pc}</span>}
+                  {pu > 0 && <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground" data-testid={`badge-facts-unplanned-${x.id}`}>На согласовании: {pu}</span>}
+                </div>}</div>
+              <div role="cell" className="order-4 col-span-3 text-[11px] xl:order-none xl:col-span-1" data-testid={`text-facts-predecessor-${x.id}`}><span className="text-muted-foreground xl:hidden">Предшественник: </span>{p ? <>{p.cropName} <span className="text-muted-foreground">({p.year})</span></> : <span className="text-muted-foreground">Нет данных</span>}</div>
+              <div role="cell" className="order-5 col-span-3 min-w-0 xl:order-none xl:col-span-1">{s ? <PlanFactMini pf={pfBySeason.get(s.id)} testId={`text-facts-planfact-${x.id}`} /> : <span className="text-[11px] text-muted-foreground">—</span>}</div>
+              <div role="cell" className="flex justify-end">
+                <button type="button" onClick={() => onPick(x.id)} data-testid={`button-facts-open-field-${x.id}`} className="button button-secondary !min-h-[30px] !px-2.5 text-[11px]"><span className="hidden sm:inline">Фактические работы</span><span className="sm:hidden">Открыть</span><ChevronRight size={13} /></button>
+              </div>
+            </div>;
           })}
+          </div>
         </div>
       )}
     </section>
   );
   const s = yearSeasons.find((y) => y.fieldId === f.id);
-  return <FieldWorkBoard field={f} season={s} year={year} ops={ops} role={role}
+  return <FieldWorkBoard field={f} season={s} predecessor={predecessorOf(seasons, f.id, year)} year={year} ops={ops} role={role}
     planFact={s ? <PlanFactMini pf={pfBySeason.get(s.id)} testId={`text-facts-field-planfact-${f.id}`} /> : null}
     onBack={() => onPick(null)} onHistory={() => onHistory(f.id)} onUnplanned={() => s && onUnplanned(f.id, s.id)}
     onWork={onWork} onLifecycle={onLifecycle} onVoid={onVoid} />;
