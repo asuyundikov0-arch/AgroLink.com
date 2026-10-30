@@ -4,6 +4,7 @@
 - [Protected document downloads](protected-document-downloads.md) — original files must stream through role-checked API routes, never public URLs.
 - [Engineering repair register](engineering-repairs.md) — preserve repair accounting and line-by-line spare-part approval through warehouse receipt.
 - [Grain ownership at elevators](grain-ownership.md) — elevator grain remains company stock; movement to an elevator is not a sale.
+- [Seed warehouse](seed-warehouse.md) — семена отдельно от товарного зерна: накладные с ценой, перевод урожая по оценке и согласованная выдача на поле.
 - [Processing waste categories](grain-processing-waste.md) — the user requires separate weights for dead impurities and grain waste after drying or cleaning.
 - [Agro rates and dispatcher scope](agro-rates-and-dispatch.md) — chief agronomist plans per-hectare rates; dispatcher records completed-work rates and per-trip transport fees.
 - [Salary accrual handoff](salary-accrual-handoff.md) — dispatcher and motor-pool orders require HR confirmation before entering cumulative employee payroll.

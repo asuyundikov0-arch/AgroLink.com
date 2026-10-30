@@ -5,6 +5,7 @@ import { UnplannedForm } from "./UnplannedForm";
 import { FieldWorkBoard } from "./FieldWorkBoard";
 import { SupportingWorksSummary } from "./SupportingWorksEditor";
 import { SeedPlanSummary } from "./SeedPlanEditor";
+import { HistorySeedCosts } from "./HistorySeedCosts";
 import { LifecycleDialog, WorkResourcesForm, isPendingCompletion, isPendingUnplanned } from "./WorkForms";
 import { type PlanFact, planFactBySeason, planFactSummary } from "./planFact";
 import { FieldForm, OperationForm, SeasonForm, VoidDialog } from "./Forms";
@@ -348,6 +349,7 @@ function FieldHistory({ field, role, seasons, ops, onClose, onAddSeason, onAddOp
               <p className="text-[10.5px] text-muted-foreground">Предшественник: {prev ? `${prev.cropName} (${prev.year})` : "нет записи"} · изм. {dateFmt(s.updatedAt)} · {s.updatedBy}</p>
               {s.notes && <p className="mt-1 text-[11px]">{s.notes}</p>}
               <div className="mt-2"><ChemicalSeasonCost seasonId={s.id} /></div>
+              <HistorySeedCosts seasonId={s.id} />
               {manage && field.isActive && <button type="button" className="button button-secondary mt-2 !min-h-[30px] !px-2 text-[11px]" onClick={() => onAddOperation(s.id)} data-testid={`button-add-operation-history-${s.id}`}><Plus size={13} />План операции</button>}
               {so.length === 0 ? <p className="mt-2 text-[11px] text-muted-foreground">Операций нет.</p> : (
                 <ul className="mt-2 divide-y divide-border/60 border-t border-border/60">{so.map((o) => (
@@ -356,6 +358,7 @@ function FieldHistory({ field, role, seasons, ops, onClose, onAddSeason, onAddOp
                     {o.isUnplanned && <UnplannedTag />}<p className="font-mono text-[10.5px] text-muted-foreground">{o.isUnplanned ? "вне плана" : `план ${dateFmt(o.plannedStart)} – ${dateFmt(o.plannedEnd)} · ${ha(o.plannedAreaHa)}`} | факт {dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)} · {ha(o.actualAreaHa)}</p>
                     {!o.isUnplanned && <p className="text-[10.5px]">Плановая расценка: {o.plannedRatePerHa > 0 ? `${kzt(o.plannedRatePerHa)}/га · сумма по плану ${kzt(o.plannedPayAmount)}` : "не задана"} · план топлива: {kzt(o.plannedFuelCost)}</p>}
                     <SeedPlanSummary seeds={o.seeds} opName={o.name} testId={`text-history-seeds-${o.id}`} />
+                    <HistorySeedCosts seasonId={s.id} operationId={o.id} />
                     <SupportingWorksSummary works={o.supportingWorks} title="Сопутствующие работы по плану" testId={`text-history-support-plan-${o.id}`} />
                     {!!o.actualStart && <SupportingWorksSummary works={o.actualSupportingWorks} title="Сопутствующие работы в выполнении" testId={`text-history-support-actual-${o.id}`} />}
                     {o.actualEnd && <p className="text-[10.5px]">{o.actualRatePerHa === null ? "Ожидает фактической расценки диспетчера" : `Факт: ${kzt(o.actualRatePerHa)}/га · к начислению ${kzt(o.actualPayAmount)}`}</p>}
