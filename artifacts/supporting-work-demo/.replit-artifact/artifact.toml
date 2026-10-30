@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/supporting-work-demo/"
+title = "AgroLink — демо сопутствующих работ"
+description = "Изолированное интерактивное учебное приложение: доставка семян от плана агронома через ток, автобазу, нефтебазу и кадры до фактических затрат поля. Только демонстрационные данные, без подключения к рабочей базе."
+version = "1.0.0"
+id = "artifacts/supporting-work-demo"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/supporting-work-demo/" ]
+localPort = 25494
+
+[services.development]
+run = "pnpm --filter @workspace/supporting-work-demo run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/supporting-work-demo", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/supporting-work-demo/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25494"
+BASE_PATH = "/supporting-work-demo/"
