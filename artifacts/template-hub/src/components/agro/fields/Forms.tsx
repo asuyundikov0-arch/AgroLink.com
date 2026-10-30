@@ -17,6 +17,7 @@ import {
   useVoidFieldOperation,
 } from "@workspace/api-client-react";
 import EmployeeSelect from "../../employees/EmployeeSelect";
+import { ExtraMachinesEditor, assignmentRows, collectAssignments } from "./MachineAssignments";
 import { SupportingWorksEditor, type SupportRow, supportPlanOf, supportRowsFrom } from "./SupportingWorksEditor";
 import { SeedPlanEditor, type SeedRow, isSowing, seedPlanOf, seedRowFrom, seedRowTotal } from "./SeedPlanEditor";
 import { ChemicalPlanEditor, type ChemRow, chemPlanOf, chemRowsFrom } from "./ChemicalPlanEditor";
@@ -268,6 +269,7 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
      requiresChemicals: op?.requiresChemicals ?? false,
   });
   const [chemRows, setChemRows] = useState<ChemRow[]>(() => chemRowsFrom(op?.chemicalPlan));
+  const [extraMachines, setExtraMachines] = useState(() => assignmentRows(op?.plannedAssignments));
   const locked = !!op?.actualStart;
   const [supportOn, setSupportOn] = useState(!!op?.supportingWorks?.length);
   const [supportRows, setSupportRows] = useState<SupportRow[]>(() => supportRowsFrom(op?.supportingWorks));
@@ -325,7 +327,9 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
     if (Object.keys(seed.errors).length) er.seeds = "Проверьте семена";
     setErrs(er); e.clear();
     if (Object.keys(er).length) return;
-    const data = { seeds: seed.plan, supportingWorks: supportOn ? support.works : [], seasonId: initSeason, name, plannedStart: f.plannedStart, plannedEnd: f.plannedEnd, plannedAreaHa: area!, plannedRatePerHa: plannedRate!, plannedFuelCost, responsible: f.responsible.trim(), plannedMechanicEmployeeId: f.responsibleId, plannedEquipmentId: f.plannedEquipmentId, plannedEquipment: f.plannedEquipment.trim(), plannedImplement: f.plannedImplement.trim(), notes: f.notes, requiresChemicals: f.requiresChemicals, chemicalPlan: f.requiresChemicals ? chem.plan : [] };
+    const assignments = collectAssignments({ equipmentId: f.plannedEquipmentId, employeeId: f.responsibleId, employeeName: f.responsible, implement: f.plannedImplement }, extraMachines);
+    if (assignments.error) { setErrs({ ...er, machines: assignments.error }); return; }
+    const data = { plannedAssignments: assignments.rows, seeds: seed.plan, supportingWorks: supportOn ? support.works : [], seasonId: initSeason, name, plannedStart: f.plannedStart, plannedEnd: f.plannedEnd, plannedAreaHa: area!, plannedRatePerHa: plannedRate!, plannedFuelCost, responsible: f.responsible.trim(), plannedMechanicEmployeeId: f.responsibleId, plannedEquipmentId: f.plannedEquipmentId, plannedEquipment: f.plannedEquipment.trim(), plannedImplement: f.plannedImplement.trim(), notes: f.notes, requiresChemicals: f.requiresChemicals, chemicalPlan: f.requiresChemicals ? chem.plan : [] };
     try {
       if (op) await update.mutateAsync({ id: op.id, data: { ...data, version: op.version } });
       else await create.mutateAsync({ data });
@@ -366,6 +370,7 @@ export function OperationForm({ op, seasons, fields, fleet, fleetLoading, fleetE
                 </select>
               </div></Field>
             <Field label="Агрегат по плану" error={errs.plannedImplement} hint="Например, сеялка СЗС-2.1" htmlFor="op-implement"><input id="op-implement" className="text-input" maxLength={200} value={f.plannedImplement} onChange={(ev) => setF({ ...f, plannedImplement: ev.target.value })} data-testid="input-operation-implement" /></Field>
+            <div className="sm:col-span-2"><ExtraMachinesEditor rows={extraMachines} onChange={setExtraMachines} fleet={unitFleet} disabled={pending || locked || fleetLoading || fleetError} error={errs.machines} prefix="plan" /></div>
             <Field label="Плановая расценка, ₸/га *" error={errs.plannedRate} htmlFor="op-rate"><input id="op-rate" type="number" min="0.01" step="0.01" className="text-input font-mono" inputMode="decimal" value={f.plannedRate} onChange={(ev) => setF({ ...f, plannedRate: ev.target.value })} data-testid="input-operation-planned-rate" /></Field>
             <Field label="Плановые затраты на топливо, ₸ *" error={errs.plannedFuelCost} hint="Общая сумма на операцию, не за гектар. Если затрат нет — укажите 0." htmlFor="op-fuel" wide><input id="op-fuel" className="text-input font-mono" inputMode="decimal" value={f.plannedFuelCost} onChange={(ev) => setF({ ...f, plannedFuelCost: ev.target.value })} data-testid="input-operation-planned-fuel-cost" /></Field>
             <Field label="Плановое начало *" error={errs.plannedStart} htmlFor="op-ps"><input id="op-ps" type="date" className="text-input" value={f.plannedStart} onChange={(ev) => setF({ ...f, plannedStart: ev.target.value })} data-testid="input-operation-planned-start" /></Field>

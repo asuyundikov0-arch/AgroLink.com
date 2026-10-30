@@ -7,6 +7,7 @@ import { Drawer, POLL_MS, Progress, StatusPill, canActual, canManage, cx, dateFm
 import { SupportingWorksSummary } from "./SupportingWorksEditor";
 import { SeedPlanSummary } from "./SeedPlanEditor";
 import { DailyHistory, approvalOf, chemNormsMissing, isPendingCompletion, isPendingUnplanned, limitOf, ReviewButtons } from "./WorkForms";
+import { MachineAssignmentSummary } from "./MachineAssignments";
 
 type Props = {
   field: AgroField; season?: FieldSeason; year: number; ops: FieldOperation[]; role: string; planFact: ReactNode;
@@ -88,7 +89,7 @@ export function FieldWorkBoard({ field, season, year, ops, role, planFact, onBac
 
         <Block title="Завершённые" count={done.length} testId="block-completed">
           {done.length === 0 ? <p className="text-[11px] text-muted-foreground">Завершённых работ нет.</p> : done.map((o) => <Card key={o.id} cost={costByOp.get(o.id)} costsReady={costsReady} op={o} testId={`row-fact-done-${o.id}`}
-            meta={<p className="text-muted-foreground">{o.actualRatePerHa === null ? "Ожидает расценки диспетчера" : `Расценка ${o.actualRatePerHa} ₸/га`}</p>}
+            meta={<p className="text-muted-foreground">{o.progressReports.some(r => r.machineReports?.length) ? `Начислено по технике: ${(o.actualPayAmount ?? 0).toLocaleString("ru-RU")} ₸` : o.actualRatePerHa === null ? "Ожидает расценки диспетчера" : `Расценка ${o.actualRatePerHa} ₸/га`}</p>}
             actions={gd ? <VoidBtn op={o} onVoid={onVoid} /> : null} history />)}
         </Block>
       </div>}
@@ -118,6 +119,7 @@ function Card({ op: o, cost, costsReady, meta, actions, tone, history, testId }:
         <div className="flex flex-wrap items-center gap-1.5"><span className="text-[12px] font-bold">{o.name}</span>{o.isUnplanned && <span className="rounded-full bg-[hsl(38_92%_50%/.14)] px-2 py-0.5 text-[10px] font-bold text-[hsl(30_80%_30%)]">Вне плана</span>}{(o.actualStart || !o.isUnplanned) && <StatusPill op={o} />}{o.requiresChemicals && <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(200_45%_92%)] px-2 py-0.5 text-[10px] font-bold text-[hsl(203_60%_28%)]"><FlaskConical size={10} />химия{o.chemicalPlan?.length ? ` · ${o.chemicalPlan.length}` : " · нормы не заданы"}</span>}</div>
         <p className="font-mono text-muted-foreground">{o.isUnplanned ? `предложено ${dateFmt(o.plannedStart)}` : `план ${dateFmt(o.plannedStart)} – ${dateFmt(o.plannedEnd)} · ${ha(o.plannedAreaHa)}`}{started ? ` · факт с ${dateFmt(o.actualStart)}${o.actualEnd ? ` по ${dateFmt(o.actualEnd)}` : ""}` : ""}</p>
         <p className="flex items-center gap-1"><Tractor size={11} className="text-muted-foreground" /><span className="font-semibold">{started || o.isUnplanned ? (o.actualMechanic || "—") : (o.responsible || "механизатор не указан")}</span><span className="text-muted-foreground">· {(started || o.isUnplanned ? o.actualEquipment : o.plannedEquipment) || "техника не указана"}{(started || o.isUnplanned ? o.actualImplement : o.plannedImplement) ? ` · ${started || o.isUnplanned ? o.actualImplement : o.plannedImplement}` : ""}</span></p>
+        <MachineAssignmentSummary rows={started ? o.actualAssignments : o.plannedAssignments} />
         {meta}
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1.5">

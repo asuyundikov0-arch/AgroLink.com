@@ -12,6 +12,7 @@ import { activityTable, agroFieldsTable, employeesTable, fleetEquipmentTable, fi
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { grainBusinessDate, validGrainDate } from "../lib/grain-ledger";
 import { fieldNumberKey, fieldOperationState, progressDeltaAres, toAreaAres, validateFieldPlan, validateFieldProgress } from "../lib/field-planning";
+import { resolveFieldAssignments, resolveMachineReports } from "../lib/field-machine-assignments";
 import { fieldPayrollLockedThrough, fieldPayrollWasSubmitted, lockPayrollSources } from "../lib/payroll-source-guard";
 import { fieldOperationSuggestions } from "../lib/field-operation-catalog";
 import { summarizeDailySeeding } from "../lib/daily-seeding";
@@ -98,6 +99,7 @@ function progressReportsJson(rows: (typeof fieldOperationProgressTable.$inferSel
       id: row.id, reportDate: row.reportDate, cumulativeAreaHa: row.cumulativeAreaAres / 100,
       actualRatePerHa: row.actualRatePerHa === null ? null : Number(row.actualRatePerHa),
       dailyAreaHa: dailyAres / 100, actualMechanic: row.actualMechanic, actualMechanicEmployeeId: row.actualMechanicEmployeeId, actualEquipment: row.actualEquipment,
+      machineReports: row.machineReports,
       actualImplement: row.actualImplement, notes: row.notes, version: row.version, updatedBy: row.updatedBy,
       updatedAt: row.updatedAt.toISOString(),
     };
@@ -118,6 +120,11 @@ export function operationJson(row: typeof fieldOperationsTable.$inferSelect, tod
     plannedPayAmount: Math.round((plannedAreaHa * plannedRate + Number.EPSILON) * 100) / 100,
     actualRatePerHa: actualRate,
     actualPayAmount: actualRate === null ? null : Math.round((actualAreaHa * actualRate + Number.EPSILON) * 100) / 100,
+    ...(progressReports.some(r => r.machineReports?.length) ? {
+      actualPayAmount: progressReports.reduce((sum, r) => sum + (r.machineReports?.length
+        ? r.machineReports.reduce((n, m) => n + Math.round(m.dailyAreaHa * m.ratePerHa * 100), 0)
+        : Math.round(r.dailyAreaHa * (r.actualRatePerHa ?? actualRate ?? 0) * 100)), 0) / 100,
+    } : {}),
     actualRateSetAt: actualRateSetAt?.toISOString() ?? null,
     progressReports,
     voidedAt: row.voidedAt?.toISOString() ?? null, updatedAt: row.updatedAt.toISOString(),
@@ -204,7 +211,14 @@ export async function plannedResources(tx: Tx, input: FieldOperationInput, unit:
   } else {
     requireValue(old && input.plannedEquipment.trim() === old.plannedEquipment, "Выберите технику из общего справочника.");
   }
-  return { name, nameKey: fieldNumberKey(name), responsible, plannedEquipment, plannedMechanicEmployeeId: employeeId, plannedEquipmentId: equipmentId };
+  const assignmentInput = input.plannedAssignments ?? (old?.plannedAssignments.length && employeeId && equipmentId ? [
+    { equipmentId, employeeId, implement: input.plannedImplement.trim() }, ...old.plannedAssignments.slice(1),
+  ] : undefined);
+  const plannedAssignments = assignmentInput ? await resolveFieldAssignments(tx, assignmentInput, unit) : [];
+  if (plannedAssignments.length) requireValue(plannedAssignments[0].employeeId === employeeId
+    && plannedAssignments[0].equipmentId === equipmentId && plannedAssignments[0].implement === input.plannedImplement.trim(),
+    "Первая связка должна совпадать с основными сведениями плана.");
+  return { name, nameKey: fieldNumberKey(name), responsible, plannedEquipment, plannedMechanicEmployeeId: employeeId, plannedEquipmentId: equipmentId, plannedAssignments };
 }
 async function getSeason(tx: Tx, id: number) {
   requireValue(positiveId(id), "Выберите корректный сезон поля.");
@@ -522,7 +536,10 @@ router.post("/agro/fields/operations/:id/progress", roles(["dispatcher", "genera
     requireValue(areaAres !== null, "Укажите площадь с точностью до 0,01 га.");
     const progressError = validateFieldProgress(areaAres!, old.actualAreaLimitAres ?? old.plannedAreaAres, previous?.cumulativeAreaAres ?? null, next?.cumulativeAreaAres ?? null);
     requireValue(!progressError, progressError ?? "");
+    const machineReports = resolveMachineReports(input.machineReports, old.actualAssignments,
+      areaAres! - (previous?.cumulativeAreaAres ?? 0), next, areaAres!);
     await tx.insert(fieldOperationProgressTable).values({
+      machineReports,
       operationId: old.id, reportDate: input.reportDate, cumulativeAreaAres: areaAres!,
       actualRatePerHa: input.actualRatePerHa === undefined ? null : input.actualRatePerHa.toFixed(2),
       actualMechanic: old.actualMechanic, actualMechanicEmployeeId: old.actualMechanicEmployeeId, actualEquipment: old.actualEquipment,
@@ -579,7 +596,18 @@ router.patch("/agro/fields/operations/:id/progress/:progressId", roles(["dispatc
     requireValue(areaAres !== null, "Укажите площадь с точностью до 0,01 га.");
     const progressError = validateFieldProgress(areaAres!, old.actualAreaLimitAres ?? old.plannedAreaAres, previous?.cumulativeAreaAres ?? null, next?.cumulativeAreaAres ?? null);
     requireValue(!progressError, progressError ?? "");
+    requireValue(!report.machineReports.length || !!input.machineReports, "Сохраните разбивку по каждой машине.");
+    const machineReports = resolveMachineReports(input.machineReports,
+      report.machineReports.length ? report.machineReports : [{
+        equipmentId: old.actualAssignments[0]?.equipmentId ?? 0,
+        employeeId: report.actualMechanicEmployeeId ?? 0, employeeName: report.actualMechanic,
+        equipmentName: report.actualEquipment, implement: report.actualImplement,
+      }], areaAres! - (previous?.cumulativeAreaAres ?? 0), next, areaAres!);
+    if (confirmedThrough && report.reportDate <= confirmedThrough) requireValue(
+      machineReports.every(m => m.dailyAreaHa === report.machineReports.find(r => r.equipmentId === m.equipmentId)?.dailyAreaHa),
+      "После приёмки тары нельзя менять площадь каждой машины.", 409);
     await tx.update(fieldOperationProgressTable).set({
+      machineReports,
       cumulativeAreaAres: areaAres!,
       actualRatePerHa: input.actualRatePerHa === undefined ? report.actualRatePerHa : input.actualRatePerHa.toFixed(2),
       notes: input.notes.trim(), ...stamp(by, report.version),

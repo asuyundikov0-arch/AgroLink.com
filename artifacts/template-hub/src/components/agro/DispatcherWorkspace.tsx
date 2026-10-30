@@ -28,7 +28,7 @@ export default function DispatcherWorkspace() {
   const activeFields = fieldOperations.filter((operation) => operation.operation && !operation.operation.actualEnd && operation.operation.actualStart).length;
   const unratedFields = completedFields.filter((item) => {
     const reports = item.operation?.progressReports ?? [];
-    return reports.length ? reports.some(r => r.actualRatePerHa == null && item.actualRatePerHa === null) : item.actualRatePerHa === null;
+    return reports.length ? reports.some(r => !r.machineReports?.length && r.actualRatePerHa == null && item.actualRatePerHa === null) : item.actualRatePerHa === null;
   }).length;
   const [view, setView] = useState<View>("fields");
   const [notice, setNotice] = useState("");
@@ -89,10 +89,12 @@ function FieldOperationRow({ operation, onSaved }: { operation: FieldDispatchIte
   useEffect(() => setRate(operation.actualRatePerHa === null ? "" : String(operation.actualRatePerHa)), [operation.id, operation.actualRatePerHa]);
   const parsedRate = parseRate(rate);
   const reports = operation.operation?.progressReports ?? [];
-  const dailyRated = reports.length > 0 && reports.every(r => r.actualRatePerHa != null);
+  const dailyRated = reports.length > 0 && reports.every(r => !!r.machineReports?.length || r.actualRatePerHa != null);
   const amount = reports.length > 0
-    ? reports.some(r => r.actualRatePerHa == null && parsedRate === null) ? null
-      : reports.reduce((total, r) => total + Math.round(r.dailyAreaHa * (r.actualRatePerHa ?? parsedRate ?? 0) * 100), 0) / 100
+    ? reports.some(r => !r.machineReports?.length && r.actualRatePerHa == null && parsedRate === null) ? null
+      : reports.reduce((total, r) => total + (r.machineReports?.length
+        ? r.machineReports.reduce((sum, m) => sum + Math.round(m.dailyAreaHa * m.ratePerHa * 100), 0)
+        : Math.round(r.dailyAreaHa * (r.actualRatePerHa ?? parsedRate ?? 0) * 100)), 0) / 100
     : parsedRate === null ? null : Math.round((operation.actualAreaHa * parsedRate + Number.EPSILON) * 100) / 100;
   const save = async () => {
     if (parsedRate === null) { setError("Укажите положительную расценку за гектар."); return; }

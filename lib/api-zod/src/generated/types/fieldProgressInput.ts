@@ -5,8 +5,14 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { FieldMachineReport } from './fieldMachineReport';
 
 export interface FieldProgressInput {
+  /**
+     * @minItems 1
+     * @maxItems 30
+     */
+  machineReports?: FieldMachineReport[];
   /** @minimum 1 */
   operationVersion: number;
   reportDate: string;

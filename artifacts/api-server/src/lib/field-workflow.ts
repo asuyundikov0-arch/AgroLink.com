@@ -14,6 +14,7 @@ import { isChemicalOperation, requestChemical } from "./chemical-workflow";
 import { fieldPayrollLockedThrough } from "./payroll-source-guard";
 import { toAreaAres } from "./field-planning";
 import { validateSupportingWorks } from "./field-supporting-works";
+import { resolveFieldAssignments } from "./field-machine-assignments";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Operation = typeof operations.$inferSelect;
@@ -71,11 +72,17 @@ export async function startOrChangeFieldWork(tx: Tx, old: Operation, input: Fiel
   const machine = fleet.find(e => `${e.kind} · ${e.registrationNumber || "без госномера"}` === input.actualEquipment.trim());
   check(machine, "Выберите технику нужного хозяйства из справочника.");
   check(input.actualImplement.trim(), "Укажите агрегат.");
+  const assignmentInput = input.actualAssignments ?? [{
+    equipmentId: machine.id, employeeId: mechanic.id, implement: input.actualImplement.trim(),
+  }, ...(old.actualStart ? old.actualAssignments : old.plannedAssignments).slice(1)];
+  const actualAssignments = await resolveFieldAssignments(tx, assignmentInput, field.unit);
+  check(actualAssignments[0].employeeId === mechanic.id && actualAssignments[0].equipmentId === machine.id
+    && actualAssignments[0].implement === input.actualImplement.trim(), "Первая связка должна совпадать с основными сведениями факта.");
   if (!old.actualStart && isChemicalOperation(old)) {
     await validateChemicalPlan(tx, old.chemicalPlan, field.unit, true);
   }
   const [updated] = await tx.update(operations).set({
-    actualStart: input.actualStart, actualSupportingWorks, actualOperationName: old.actualOperationName || old.name,
+    actualStart: input.actualStart, actualSupportingWorks, actualAssignments, actualOperationName: old.actualOperationName || old.name,
     actualMechanic: mechanic.fullName, actualMechanicEmployeeId: mechanic.id,
     actualEquipment: `${machine.kind} · ${machine.registrationNumber || "без госномера"}`,
     actualImplement: input.actualImplement.trim(),

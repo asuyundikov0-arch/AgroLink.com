@@ -5,6 +5,7 @@ import { Progress, dateFmt, ha } from "./shared";
 import { DailyHistory, DispatcherDailyForm, LifecycleDialog, latestChemDate, limitOf } from "./WorkForms";
 import { businessToday } from "../../engineering/repairs/shared";
 import { useChemicalWorkflow } from "../chemicals/Workflow";
+import { MachineAssignmentSummary } from "./MachineAssignments";
 
 
 /** Dispatcher: active field work — daily hectares, completion request. */
@@ -26,6 +27,7 @@ export function DispatcherActiveWorks({ items, onSaved }: { items: FieldDispatch
           <div className="min-w-0 text-xs">
             <div className="flex flex-wrap items-center gap-2"><strong className="text-sm">{title}</strong><span className="rounded-full bg-muted px-2 py-0.5 text-[10px]">{i.farm ?? ""} · {i.cropName} · {i.year}</span>{op.isUnplanned && <span className="rounded-full bg-[hsl(38_92%_50%/.14)] px-2 py-0.5 text-[10px] font-bold text-[hsl(30_80%_30%)]">Вне плана</span>}</div>
             <p className="mt-1 text-muted-foreground">Начата {dateFmt(op.actualStart)} · сейчас: <b className="text-foreground">{op.actualMechanic || "—"}</b> · {op.actualEquipment}{op.actualImplement ? ` · ${op.actualImplement}` : ""}</p>
+            <MachineAssignmentSummary rows={op.actualAssignments} />
             {op.actualMechanicEmployeeId == null && <p className="mt-1 font-semibold text-destructive" data-testid={`dispatch-active-no-mechanic-${op.id}`}>Механизатор не выбран из справочника — агроном должен обновить сведения о работе.</p>}
             {waiting && <p className="mt-1 inline-flex items-center gap-1 font-semibold text-[hsl(30_80%_30%)]" data-testid={`dispatch-active-waiting-${op.id}`}><BellRing size={12} />Завершение на {dateFmt(op.completionRequestedOn)} ждёт агронома</p>}
             {!waiting && op.approvalNote && op.progressReports.length > 0 && <p className="mt-1 text-[hsl(2_57%_40%)]">Агроном вернул: {op.approvalNote}</p>}

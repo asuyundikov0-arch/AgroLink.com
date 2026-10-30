@@ -2274,6 +2274,11 @@ components:
       type: object
       required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, plannedRatePerHa, responsible, plannedEquipment, plannedImplement, notes]
       properties:
+        plannedAssignments:
+          type: array
+          minItems: 1
+          maxItems: 30
+          items: { $ref: "#/components/schemas/FieldMachineAssignment" }
         seeds:
           anyOf:
             - $ref: "#/components/schemas/FieldSeedPlan"
@@ -2299,6 +2304,23 @@ components:
         plannedEquipment: { type: string, maxLength: 200 }
         plannedImplement: { type: string, maxLength: 200 }
         notes: { type: string, maxLength: 3000 }
+    FieldMachineAssignment:
+      type: object
+      required: [equipmentId, employeeId, implement]
+      properties:
+        equipmentId: { type: number, minimum: 1 }
+        employeeId: { type: number, minimum: 1 }
+        equipmentName: { type: string }
+        employeeName: { type: string }
+        implement: { type: string, minLength: 1, maxLength: 200 }
+    FieldMachineReport:
+      allOf:
+        - $ref: "#/components/schemas/FieldMachineAssignment"
+        - type: object
+          required: [dailyAreaHa, ratePerHa]
+          properties:
+            dailyAreaHa: { type: number, minimum: 0, maximum: 1000000, multipleOf: 0.01 }
+            ratePerHa: { type: number, minimum: 0.01, maximum: 1000000000, multipleOf: 0.01 }
     FieldSeedPlan:
       type: object
       required: [name, quantity, unit, unitPrice]
@@ -2352,6 +2374,10 @@ components:
       type: object
       required: [version, actualStart, actualEnd, actualAreaHa, actualOperationName, actualMechanic, actualMechanicEmployeeId, actualEquipment, actualImplement, actualNotes]
       properties:
+        actualAssignments:
+          type: array
+          maxItems: 30
+          items: { $ref: "#/components/schemas/FieldMachineAssignment" }
         actualSupportingWorks:
           type: array
           maxItems: 20
@@ -2376,6 +2402,11 @@ components:
       type: object
       required: [operationVersion, reportDate, cumulativeAreaHa, actualMechanic, actualMechanicEmployeeId, actualEquipment, actualImplement, notes]
       properties:
+        machineReports:
+          type: array
+          minItems: 1
+          maxItems: 30
+          items: { $ref: "#/components/schemas/FieldMachineReport" }
         operationVersion: { type: number, minimum: 1 }
         reportDate: { type: string }
         cumulativeAreaHa: { type: number, minimum: 0, maximum: 1000000 }
@@ -2396,6 +2427,9 @@ components:
       type: object
       required: [id, reportDate, cumulativeAreaHa, dailyAreaHa, actualMechanic, actualMechanicEmployeeId, actualEquipment, actualImplement, notes, version, updatedBy, updatedAt]
       properties:
+        machineReports:
+          type: array
+          items: { $ref: "#/components/schemas/FieldMachineReport" }
         id: { type: number }
         reportDate: { type: string }
         cumulativeAreaHa: { type: number }
@@ -2454,6 +2488,10 @@ components:
       description: Stored plan metadata; unplanned actual work has zero planned hectares.
       required: [seasonId, name, plannedStart, plannedEnd, plannedAreaHa, plannedRatePerHa, plannedFuelCost, responsible, plannedEquipment, plannedImplement, notes, version]
       properties:
+        plannedAssignments:
+          type: array
+          maxItems: 30
+          items: { $ref: "#/components/schemas/FieldMachineAssignment" }
         seeds:
           anyOf:
             - $ref: "#/components/schemas/FieldSeedPlan"

@@ -5,8 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { FieldMachineReport } from './fieldMachineReport';
 
 export interface FieldProgressReport {
+  machineReports?: FieldMachineReport[];
   id: number;
   reportDate: string;
   cumulativeAreaHa: number;

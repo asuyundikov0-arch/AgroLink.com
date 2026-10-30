@@ -2,6 +2,8 @@ import { type ReactNode, useMemo, useState } from "react";
 import { ArrowLeft, ClipboardCheck, CalendarRange, History, LandPlot, Layers, Pencil, Plus, RefreshCw, Sprout, TriangleAlert } from "lucide-react";
 import { type AgroField, type FieldLifecycleInputAction, type FieldOperation, type FieldSeason, getGetFieldDashboardQueryKey, getListFleetEquipmentQueryKey, useGetFieldDashboard, useListFleetEquipment } from "@workspace/api-client-react";
 import { UnplannedForm } from "./UnplannedForm";
+import { MachineAssignmentSummary } from "./MachineAssignments";
+import { DailyHistory } from "./WorkForms";
 import { FieldWorkBoard } from "./FieldWorkBoard";
 import { SupportingWorksSummary } from "./SupportingWorksEditor";
 import { SeedPlanSummary } from "./SeedPlanEditor";
@@ -244,7 +246,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
                       <tr key={o.id} data-testid={`row-plan-op-${o.id}`}>
                         <td className="px-4 py-2.5 font-mono text-[11px]">{dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)}</td>
                         <td><p className="font-bold">{o.name}</p><StatusPill op={o} /><p className="mt-1 text-[10.5px] text-muted-foreground">Расценка: {kzt(o.plannedRatePerHa)}/га<br />План топлива: {kzt(o.plannedFuelCost)}</p><SeedPlanSummary seeds={o.seeds} opName={o.name} testId={`text-season-seeds-${o.id}`} /><SupportingWorksSummary works={o.supportingWorks} title="Сопутствующие работы по плану" testId={`text-season-support-${o.id}`} /></td>
-                        <td className="text-[11px]">{o.plannedEquipment || <span className="text-muted-foreground">не указана</span>}{o.plannedImplement && <p className="text-[10.5px] text-muted-foreground">{o.plannedImplement}</p>}</td>
+                        <td className="text-[11px]">{o.plannedAssignments?.length ? <MachineAssignmentSummary rows={o.plannedAssignments} /> : <>{o.plannedEquipment || <span className="text-muted-foreground">не указана</span>}{o.plannedImplement && <p className="text-[10.5px] text-muted-foreground">{o.plannedImplement}</p>}</>}</td>
                         <td className="text-[11px]" data-testid={`text-plan-mechanic-${o.id}`}>{o.responsible || <span className="text-muted-foreground">не указан</span>}</td>
                         <td className="px-4"><div className="flex justify-end">{manage && <button type="button" className="button button-secondary !min-h-[28px] !px-2 text-[10px]" onClick={() => setModal({ k: "op", op: o })} data-testid={`button-plan-edit-op-${o.id}`}><Pencil size={12} />Изменить</button>}</div></td>
                       </tr>
@@ -280,7 +282,7 @@ export default function FieldsWorkspace({ role }: { role: string }) {
                           </td>
                           <td><StatusPill op={o} /></td>
                           <td className="text-[10.5px] leading-5">{o.isUnplanned ? <UnplannedTag /> : <><span className="font-mono">{dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)}<br />{ha(o.plannedAreaHa)}</span><p className="font-semibold">План: {o.plannedRatePerHa > 0 ? `${kzt(o.plannedRatePerHa)}/га · ${kzt(o.plannedPayAmount)}` : "расценка не задана"}</p>{o.plannedEquipment && <p>Техника: {o.plannedEquipment}</p>}{o.plannedImplement && <p className="text-muted-foreground">Агрегат: {o.plannedImplement}</p>}</>}</td>
-                          <td className="text-[10.5px] leading-5"><span className="font-mono">{dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)}<br />{ha(o.actualAreaHa)}</span>{o.actualEnd && <p className="font-semibold">{o.actualRatePerHa === null ? "Ожидает расценки диспетчера" : `Факт: ${kzt(o.actualRatePerHa)}/га · ${kzt(o.actualPayAmount)}`}</p>}{o.actualStart && <><p>{o.actualMechanic}</p><p className="text-muted-foreground">{o.actualEquipment}{o.actualImplement ? ` · ${o.actualImplement}` : ""}</p></>}{o.progressReports.at(-1) && <p className="text-muted-foreground">Отчёт {dateFmt(o.progressReports.at(-1)!.reportDate)} · +{ha(o.progressReports.at(-1)!.dailyAreaHa)}</p>}</td>
+                          <td className="text-[10.5px] leading-5"><span className="font-mono">{dateFmt(o.actualStart)} – {dateFmt(o.actualEnd)}<br />{ha(o.actualAreaHa)}</span>{o.actualEnd && <p className="font-semibold">{o.progressReports.some(r => r.machineReports?.length) ? `По технике: ${kzt(o.actualPayAmount)}` : o.actualRatePerHa === null ? "Ожидает расценки диспетчера" : `Факт: ${kzt(o.actualRatePerHa)}/га · ${kzt(o.actualPayAmount)}`}</p>}{o.actualStart && <><p>{o.actualMechanic}</p><p className="text-muted-foreground">{o.actualEquipment}{o.actualImplement ? ` · ${o.actualImplement}` : ""}</p><MachineAssignmentSummary rows={o.actualAssignments} /></>}{o.progressReports.at(-1) && <p className="text-muted-foreground">Отчёт {dateFmt(o.progressReports.at(-1)!.reportDate)} · +{ha(o.progressReports.at(-1)!.dailyAreaHa)}</p>}</td>
                           <td>{o.isUnplanned ? <span className="font-mono text-[11px] font-bold">{ha(o.actualAreaHa)}</span> : <Progress value={o.progressPercent} label={`Выполнено ${o.name}`} />}</td>
                           <td className="px-4"><div className="flex justify-end gap-1.5">
                             {f && <button type="button" className="button button-secondary !min-h-[30px] !px-2 text-[11px]" onClick={() => setModal({ k: "history", fieldId: f.id })} data-testid={`button-open-history-op-${o.id}`}><History size={13} />История поля</button>}
@@ -361,10 +363,11 @@ function FieldHistory({ field, role, seasons, ops, onClose, onAddSeason, onAddOp
                     <HistorySeedCosts seasonId={s.id} operationId={o.id} />
                     <SupportingWorksSummary works={o.supportingWorks} title="Сопутствующие работы по плану" testId={`text-history-support-plan-${o.id}`} />
                     {!!o.actualStart && <SupportingWorksSummary works={o.actualSupportingWorks} title="Сопутствующие работы в выполнении" testId={`text-history-support-actual-${o.id}`} />}
-                    {o.actualEnd && <p className="text-[10.5px]">{o.actualRatePerHa === null ? "Ожидает фактической расценки диспетчера" : `Факт: ${kzt(o.actualRatePerHa)}/га · к начислению ${kzt(o.actualPayAmount)}`}</p>}
+                    {o.actualEnd && <p className="text-[10.5px]">{o.progressReports.some(r => r.machineReports?.length) ? `К начислению по технике: ${kzt(o.actualPayAmount)}` : o.actualRatePerHa === null ? "Ожидает фактической расценки диспетчера" : `Факт: ${kzt(o.actualRatePerHa)}/га · к начислению ${kzt(o.actualPayAmount)}`}</p>}
                     {(o.plannedEquipment || o.plannedImplement) && <p className="text-muted-foreground">Плановая техника: {o.plannedEquipment || "не указана"} · агрегат: {o.plannedImplement || "не указан"}</p>}
                     {o.actualStart && <p>Факт: {o.actualOperationName || o.name} · механизатор {o.actualMechanic || "не указан"} · {o.actualEquipment || "техника не указана"} · {o.actualImplement || "агрегат не указан"}</p>}
-                    {o.progressReports.length > 0 && <div className="mt-1 rounded-md bg-muted/30 px-2.5 py-2" data-testid={`history-progress-${o.id}`}><p className="font-semibold">Дневные отчёты</p><ul className="mt-1 space-y-1">{[...o.progressReports].reverse().map((report) => <li key={report.id}>{dateFmt(report.reportDate)} · +{ha(report.dailyAreaHa)} · итого {ha(report.cumulativeAreaHa)} · {report.actualMechanic} · {report.actualEquipment}{report.actualImplement ? ` · ${report.actualImplement}` : ""}</li>)}</ul></div>}
+                    <MachineAssignmentSummary rows={o.actualStart ? o.actualAssignments : o.plannedAssignments} />
+                    {o.progressReports.length > 0 && <div className="mt-1 rounded-md bg-muted/30 px-2.5 py-2" data-testid={`history-progress-${o.id}`}><p className="font-semibold">Дневные отчёты</p><DailyHistory op={o} /></div>}
                     {o.responsible && <p className="text-muted-foreground">Ответственный: {o.responsible}</p>}
                     {o.notes && <p>План: {o.notes}</p>}
                     {o.actualNotes && <p>Факт: {o.actualNotes}</p>}

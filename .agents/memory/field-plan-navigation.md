@@ -47,6 +47,12 @@ The dispatcher sees started operations immediately and requests completion. The 
 
 **How to apply:** Keep an operation active while completion awaits approval, freeze daily entry during that review, and preserve daily hectares and resource history when completion is accepted. Do not let the old agronomist fact form bypass dispatcher entry or approval.
 
+Одна основная агрооперация может выполняться несколькими машинами: в плане и факте у каждой машины отдельный механизатор и агрегат. Выполненная работа и расценка фиксируются по каждой связке, а гектары суммируются по операции.
+
+**Why:** Пользователь потребовал несколько единиц техники в одном плане и факте, отчёт отдельно по каждой машине и двух сотрудников, если машин две. Это не сопутствующие работы и не удвоение площади плана.
+
+**How to apply:** Не назначать одного механизатора одновременно на две машины в одной операции. Сохранять дневной состав как снимок, не переписывать его при последующей смене ресурсов. Начислять каждому сотруднику только его гектары по его дневной ставке; сохранить подтверждение кадров и связь затрат с полем.
+
 Partial daily performance of a planned chemical field operation is still work under that plan, not an unplanned operation.
 
 **Why:** The user explicitly corrected treating a 100-hectare daily fact as unplanned when it was part of the planned chemical treatment.

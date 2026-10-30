@@ -59,6 +59,8 @@ export * from './fieldDispatchItem';
 export * from './fieldDispatchRateInput';
 export * from './fieldLifecycleInput';
 export * from './fieldLifecycleInputAction';
+export * from './fieldMachineAssignment';
+export * from './fieldMachineReport';
 export * from './fieldOperation';
 export * from './fieldOperationCosts';
 export * from './fieldOperationCostsChemicalsItem';

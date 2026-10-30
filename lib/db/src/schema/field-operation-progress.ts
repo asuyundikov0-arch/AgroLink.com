@@ -1,4 +1,5 @@
-import { date, integer, numeric, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { date, integer, jsonb, numeric, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import type { FieldMachineReportRecord } from "./field-operations";
 import { fieldOperationsTable } from "./field-operations";
 import { employeesTable } from "./employees";
 
@@ -7,6 +8,7 @@ export const fieldOperationProgressTable = pgTable("field_operation_progress", {
   operationId: integer("operation_id").notNull().references(() => fieldOperationsTable.id, { onDelete: "cascade" }),
   reportDate: date("report_date", { mode: "string" }).notNull(),
   cumulativeAreaAres: integer("cumulative_area_ares").notNull(),
+  machineReports: jsonb("machine_reports").$type<FieldMachineReportRecord[]>().notNull().default([]),
   actualRatePerHa: numeric("actual_rate_per_ha", { precision: 14, scale: 2 }),
   actualMechanic: text("actual_mechanic").notNull().default(""),
   actualMechanicEmployeeId: integer("actual_mechanic_employee_id").references(() => employeesTable.id, { onDelete: "set null" }),

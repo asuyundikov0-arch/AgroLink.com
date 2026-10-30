@@ -47,7 +47,7 @@ export const payrollRegisterItemsTable = pgTable("payroll_register_items", {
 }, (table) => [
   index("payroll_register_items_register_idx").on(table.registerId, table.id),
   index("payroll_register_items_employee_idx").on(table.employeeId, table.employeeName),
-  uniqueIndex("payroll_register_items_source_unique").on(table.sourceType, table.sourceId),
+  uniqueIndex("payroll_register_items_source_employee_unique").on(table.sourceType, table.sourceId, table.employeeId),
 ]);
 
 export type PayrollRegister = typeof payrollRegistersTable.$inferSelect;

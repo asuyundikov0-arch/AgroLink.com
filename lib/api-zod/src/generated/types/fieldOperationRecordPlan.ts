@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { FieldChemicalPlan } from './fieldChemicalPlan';
+import type { FieldMachineAssignment } from './fieldMachineAssignment';
 import type { FieldOperationRecordPlanApprovalStatus } from './fieldOperationRecordPlanApprovalStatus';
 import type { FieldSeedPlan } from './fieldSeedPlan';
 import type { FieldSupportingWork } from './fieldSupportingWork';
@@ -14,6 +15,8 @@ import type { FieldSupportingWork } from './fieldSupportingWork';
  * Stored plan metadata; unplanned actual work has zero planned hectares.
  */
 export interface FieldOperationRecordPlan {
+  /** @maxItems 30 */
+  plannedAssignments?: FieldMachineAssignment[];
   seeds?: FieldSeedPlan | null;
   /** @maxItems 20 */
   supportingWorks?: FieldSupportingWork[];

@@ -686,6 +686,20 @@ export type FieldSeason = FieldSeasonUpdate & {
   updatedAt: string;
 };
 
+export interface FieldMachineAssignment {
+  /** @minimum 1 */
+  equipmentId: number;
+  /** @minimum 1 */
+  employeeId: number;
+  equipmentName?: string;
+  employeeName?: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  implement: string;
+}
+
 export type FieldSeedPlanUnit = typeof FieldSeedPlanUnit[keyof typeof FieldSeedPlanUnit];
 
 
@@ -776,6 +790,11 @@ export interface FieldChemicalPlan {
 }
 
 export interface FieldOperationInput {
+  /**
+     * @minItems 1
+     * @maxItems 30
+     */
+  plannedAssignments?: FieldMachineAssignment[];
   seeds?: FieldSeedPlan | null;
   /** @maxItems 20 */
   supportingWorks?: FieldSupportingWork[];
@@ -826,6 +845,19 @@ export interface FieldOperationInput {
   notes: string;
 }
 
+export type FieldMachineReport = FieldMachineAssignment & {
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  dailyAreaHa: number;
+  /**
+     * @minimum 0.01
+     * @maximum 1000000000
+     */
+  ratePerHa: number;
+};
+
 export type FieldLifecycleInputAction = typeof FieldLifecycleInputAction[keyof typeof FieldLifecycleInputAction];
 
 
@@ -852,6 +884,8 @@ export type FieldOperationUpdate = FieldOperationInput & {
 };
 
 export interface FieldActualInput {
+  /** @maxItems 30 */
+  actualAssignments?: FieldMachineAssignment[];
   /** @maxItems 20 */
   actualSupportingWorks?: FieldSupportingWork[];
   /** @minimum 1 */
@@ -893,6 +927,11 @@ export interface FieldOperationVoidInput {
 }
 
 export interface FieldProgressInput {
+  /**
+     * @minItems 1
+     * @maxItems 30
+     */
+  machineReports?: FieldMachineReport[];
   /** @minimum 1 */
   operationVersion: number;
   reportDate: string;
@@ -927,6 +966,7 @@ export type FieldProgressUpdate = FieldProgressInput & {
 };
 
 export interface FieldProgressReport {
+  machineReports?: FieldMachineReport[];
   id: number;
   reportDate: string;
   cumulativeAreaHa: number;
@@ -1004,6 +1044,8 @@ export const FieldOperationRecordPlanApprovalStatus = {
  * Stored plan metadata; unplanned actual work has zero planned hectares.
  */
 export interface FieldOperationRecordPlan {
+  /** @maxItems 30 */
+  plannedAssignments?: FieldMachineAssignment[];
   seeds?: FieldSeedPlan | null;
   /** @maxItems 20 */
   supportingWorks?: FieldSupportingWork[];

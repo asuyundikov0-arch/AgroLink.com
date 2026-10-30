@@ -10,6 +10,10 @@ export type FieldSupportingWorkRecord = {
   salaryCost: number; fuelCost: number;
   seedName: string; seedQuantity: number; seedUnit: "kg" | "ton"; seedPrice: number;
 };
+export type FieldMachineAssignmentRecord = {
+  equipmentId: number; employeeId: number; equipmentName: string; employeeName: string; implement: string;
+};
+export type FieldMachineReportRecord = FieldMachineAssignmentRecord & { dailyAreaHa: number; ratePerHa: number };
 
 export const fieldOperationsTable = pgTable("field_operations", {
   id: serial("id").primaryKey(),
@@ -21,6 +25,8 @@ export const fieldOperationsTable = pgTable("field_operations", {
   chemicalModeExplicit: boolean("chemical_mode_explicit").notNull().default(false),
   chemicalPlan: jsonb("chemical_plan").$type<{ batchId: number; ratePerHa: number }[]>().notNull().default([]),
   supportingWorks: jsonb("supporting_works").$type<FieldSupportingWorkRecord[]>().notNull().default([]),
+  plannedAssignments: jsonb("planned_assignments").$type<FieldMachineAssignmentRecord[]>().notNull().default([]),
+  actualAssignments: jsonb("actual_assignments").$type<FieldMachineAssignmentRecord[]>().notNull().default([]),
   seeds: jsonb("seeds").$type<{ name: string; quantity: number; unit: "kg" | "ton"; unitPrice: number }>(),
   actualSupportingWorks: jsonb("actual_supporting_works").$type<FieldSupportingWorkRecord[]>().notNull().default([]),
   approvalStatus: text("approval_status").notNull().default("approved"),

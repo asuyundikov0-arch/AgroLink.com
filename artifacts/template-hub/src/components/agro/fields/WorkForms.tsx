@@ -18,6 +18,8 @@ import {
   useUpdateFieldOperationProgress,
 } from "@workspace/api-client-react";
 import EmployeeSelect from "../../employees/EmployeeSelect";
+import { ExtraMachinesEditor, MachineAssignmentSummary, assignmentRows, collectAssignments } from "./MachineAssignments";
+import { MachineDailyEditor, collectMachineReports, dailyMachineRows } from "./MachineDailyEditor";
 import { ActualFuelField, ActualRateField, AgronomyActualFuelField } from "./ActualCostFields";
 import { SupportingWorksEditor, SupportingWorksSummary, type SupportRow, supportPlanOf, supportRowsFrom } from "./SupportingWorksEditor";
 import { SeedPlanSummary, isSowing, seedTotal } from "./SeedPlanEditor";
@@ -79,6 +81,7 @@ export function WorkResourcesForm({ op, unit, title, fieldLabel, today, fleet, f
     notes: op.actualNotes ?? "",
   });
   const initialSupport = starting ? op.supportingWorks : op.actualSupportingWorks;
+  const [extraMachines, setExtraMachines] = useState(() => assignmentRows(starting ? op.plannedAssignments : op.actualAssignments));
   const [supportOn, setSupportOn] = useState(!!initialSupport?.length);
   const [supportRows, setSupportRows] = useState<SupportRow[]>(() => supportRowsFrom(initialSupport));
   const [supportErrs, setSupportErrs] = useState<Record<string, string>>({});
@@ -97,6 +100,11 @@ export function WorkResourcesForm({ op, unit, title, fieldLabel, today, fleet, f
     if (!f.mechanicId) er.mechanic = "Выберите механизатора из справочника";
     if (!f.equipment) er.equipment = "Выберите технику хозяйства";
     if (!f.implement.trim()) er.implement = "Укажите агрегат"; else if (f.implement.length > 200) er.implement = "Не более 200 символов";
+    const assignments = collectAssignments({
+      equipmentId: unitFleet.find(x => eqLabel(x) === f.equipment)?.id ?? null,
+      employeeId: f.mechanicId, employeeName: f.mechanic, implement: f.implement,
+    }, extraMachines);
+    if (assignments.error) er.machines = assignments.error;
     const support = supportPlanOf(supportOn ? supportRows : []);
     if (supportOn && !supportRows.length) support.errors.general = "Добавьте хотя бы одну работу или снимите отметку";
     if (Object.keys(support.errors).length) er.support = "Проверьте сопутствующие работы";
@@ -105,6 +113,7 @@ export function WorkResourcesForm({ op, unit, title, fieldLabel, today, fleet, f
     if (Object.keys(er).length) return;
     try {
       await mut.mutateAsync({ id: op.id, data: {
+        actualAssignments: assignments.rows,
         actualSupportingWorks: supportOn ? support.works : [],
         version: op.version, actualStart: starting ? f.start : op.actualStart, actualEnd: null, actualAreaHa: op.actualAreaHa,
         actualOperationName: op.actualOperationName || op.name, actualMechanic: f.mechanic.trim(), actualMechanicEmployeeId: f.mechanicId,
@@ -146,6 +155,7 @@ export function WorkResourcesForm({ op, unit, title, fieldLabel, today, fleet, f
             </div>
           </Field>
           <Field label="Агрегат *" error={errs.implement} htmlFor="wr-implement"><input id="wr-implement" className="text-input" maxLength={200} value={f.implement} onChange={(ev) => setF({ ...f, implement: ev.target.value })} data-testid="input-work-implement" /></Field>
+          <div className="sm:col-span-2"><ExtraMachinesEditor rows={extraMachines} onChange={setExtraMachines} fleet={unitFleet} disabled={pending || fleetLoading || fleetError || blocked} error={errs.machines} prefix="actual" /></div>
           <ActualRateField rate={op.actualRatePerHa} prefix="work" />
           <AgronomyActualFuelField op={op} />
           {starting && <Field label="Дата начала *" error={errs.start} htmlFor="wr-start"><input id="wr-start" type="date" max={today} className="text-input" value={f.start} onChange={(ev) => setF({ ...f, start: ev.target.value })} data-testid="input-work-start" /></Field>}
@@ -221,6 +231,7 @@ export function OpSummary({ op }: { op: FieldOperation }) {
     <p className="font-bold">{op.name}{op.isUnplanned ? " · внеплановая" : ""}</p>
     <p className="font-mono">{op.actualStart ? `начата ${dateFmt(op.actualStart)} · выполнено ${ha(op.actualAreaHa)} из ${ha(limitOf(op))}` : op.isUnplanned ? `предложено ${dateFmt(op.plannedStart)} · до ${ha(limitOf(op))}` : `план ${dateFmt(op.plannedStart)} – ${dateFmt(op.plannedEnd)}`}</p>
     <p>{op.actualMechanic || op.responsible || "механизатор не указан"} · {op.actualEquipment || op.plannedEquipment || "техника не указана"}{(op.actualImplement || op.plannedImplement) ? ` · ${op.actualImplement || op.plannedImplement}` : ""}</p>
+    <MachineAssignmentSummary rows={op.actualStart ? op.actualAssignments : op.plannedAssignments} />
     {op.actualNotes && <p className="text-muted-foreground">{op.actualNotes}</p>}
   </div>;
 }
@@ -233,6 +244,9 @@ export function DailyHistory({ op, onEdit, lockedThrough }: { op: FieldOperation
     const locked = !!lockedThrough && r.reportDate.slice(0, 10) <= lockedThrough;
     return <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5 text-[10.5px]" data-testid={`row-daily-${r.id}`}>
       <span><b className="font-mono">{dateFmt(r.reportDate)}</b> · +{ha(r.dailyAreaHa)} · итого {ha(r.cumulativeAreaHa)}{r.actualRatePerHa != null && <span className="block font-mono">Ставка {r.actualRatePerHa.toLocaleString("ru-RU")} ₸/га · сумма {(Math.round(r.dailyAreaHa * r.actualRatePerHa * 100) / 100).toLocaleString("ru-RU")} ₸</span>}<span className="block text-muted-foreground">{r.actualMechanic} · {r.actualEquipment}{r.actualImplement ? ` · ${r.actualImplement}` : ""}{r.notes ? ` · ${r.notes}` : ""}</span></span>
+      {!!r.machineReports?.length && <ul className="w-full space-y-1 text-[11px]" data-testid={`daily-machine-history-${r.id}`}>{r.machineReports.map(m => <li key={m.equipmentId}>
+        {m.equipmentName} · {m.employeeName} · {m.implement} · {ha(m.dailyAreaHa)} × {m.ratePerHa.toLocaleString("ru-RU")} ₸/га = {(Math.round(m.dailyAreaHa * m.ratePerHa * 100) / 100).toLocaleString("ru-RU")} ₸
+      </li>)}</ul>}
       {locked && <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground" title="Площадь закрыта: расход химии подтверждён складом"><Lock size={11} />химия подтверждена</span>}
       {onEdit && (<button type="button" className="button button-secondary !min-h-[26px] !px-2 text-[10px]" onClick={() => onEdit(r)} data-testid={`button-daily-edit-${r.id}`}>{locked ? "Примечание" : "Изменить"}</button>)}
     </li>;
@@ -250,12 +264,18 @@ export function DispatcherDailyForm({ op, report, title, fieldLabel, fuelCost, t
   const [date, setDate] = useState(report?.reportDate.slice(0, 10) ?? today);
   const [daily, setDaily] = useState(report ? haStr(report.dailyAreaHa) : "");
   const [rate, setRate] = useState(String(report?.actualRatePerHa ?? op.actualRatePerHa ?? ""));
+  const [machineRows, setMachineRows] = useState(() => dailyMachineRows(
+    report ? report.machineReports ?? [] : (op.actualAssignments?.length ?? 0) > 1 ? op.actualAssignments! : [],
+    report?.machineReports, op.actualRatePerHa,
+  ));
+  const machineMode = machineRows.length > 0;
+  const machineResult = collectMachineReports(machineRows);
   const [notes, setNotes] = useState(report?.notes ?? "");
   const [errs, setErrs] = useState<Record<string, string>>({});
   const existing = report ?? reports.find((r) => r.reportDate.slice(0, 10) === date) ?? null;
   const prev = reports.filter((r) => r.reportDate.slice(0, 10) < date).at(-1);
   const next = reports.find((r) => r.reportDate.slice(0, 10) > date);
-  const d = daily.trim() === "" ? null : parseHa(daily);
+  const d = machineMode ? machineResult.area : daily.trim() === "" ? null : parseHa(daily);
   const actualRate = Number(rate.trim().replace(",", "."));
   const validRate = rate.trim() !== "" && Number.isFinite(actualRate) && actualRate > 0 && actualRate <= 1_000_000_000
     && Math.abs(actualRate * 100 - Math.round(actualRate * 100)) < 0.00001;
@@ -278,12 +298,14 @@ export function DispatcherDailyForm({ op, report, title, fieldLabel, fuelCost, t
     else if (cumulative !== null && next && cumulative > next.cumulativeAreaHa) er.daily = `Итог не может превышать следующую запись (${ha(next.cumulativeAreaHa)} на ${dateFmt(next.reportDate)})`;
     if (!report && lastChem && date <= lastChem) er.date = `Расход химии подтверждён по ${dateFmt(lastChem)} — новые записи только позже`;
     if (chemLocked && d !== null && existing && d !== existing.dailyAreaHa) er.daily = "Расход химии за день подтверждён — площадь не меняется";
-    if (!validRate) er.rate = "Укажите ставку больше нуля с точностью до 0,01 ₸/га";
+    if (machineMode ? !!machineResult.error : !validRate) er.rate = machineMode ? machineResult.error : "Укажите ставку больше нуля с точностью до 0,01 ₸/га";
+    if (machineMode && chemLocked && existing && machineResult.reports.some(m =>
+      m.dailyAreaHa !== existing.machineReports?.find(x => x.equipmentId === m.equipmentId)?.dailyAreaHa)) er.rate = "После приёмки тары площадь по каждой машине защищена от изменений.";
     setErrs(er); e.clear();
     if (Object.keys(er).length || cumulative === null) return;
     const base = {
       operationVersion: op.version, reportDate: date, cumulativeAreaHa: cumulative,
-      actualRatePerHa: actualRate,
+      ...(machineMode ? { machineReports: machineResult.reports } : { actualRatePerHa: actualRate }),
       actualMechanic: existing?.actualMechanic ?? op.actualMechanic, actualMechanicEmployeeId: (existing ? existing.actualMechanicEmployeeId ?? null : op.actualMechanicEmployeeId ?? null),
       actualEquipment: existing?.actualEquipment ?? op.actualEquipment, actualImplement: existing?.actualImplement ?? op.actualImplement, notes: notes.trim(),
     };
@@ -303,21 +325,22 @@ export function DispatcherDailyForm({ op, report, title, fieldLabel, fuelCost, t
         {noMechanic && <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-[11px] font-semibold text-destructive" data-testid="text-dispatch-daily-no-mechanic">У работы не указан механизатор из справочника. Попросите агронома заполнить «Изменить сведения о выполняемой работе», затем вносите площадь.</p>}
         {op.completionRequestedOn && <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-[11px] text-amber-900" data-testid="text-dispatch-daily-blocked">По работе запрошено завершение. Записи недоступны, пока агроном не подтвердит или не вернёт работу.</p>}
         <OpSummary op={op} />
+        {machineMode && <MachineDailyEditor rows={machineRows} onChange={setMachineRows} areaLocked={chemLocked} error={errs.rate} />}
         <p className="text-[10.5px] text-muted-foreground">Механизатор, техника и агрегат сохраняются автоматически по текущим сведениям агронома и в старых записях не меняются.</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Поле" hint="Закреплено за работой. Изменение недоступно." htmlFor="dd-field" wide><input id="dd-field" className="text-input" readOnly value={fieldLabel} data-testid="input-dispatch-daily-field" /></Field>
           <Field label="Выполнено за день, га *" error={errs.daily} hint={cumulative !== null ? `Итог на дату: ${ha(cumulative)} · осталось ${ha(Math.max(0, limitOf(op) - cumulative))}` : `Предыдущий итог: ${ha(prev?.cumulativeAreaHa ?? 0)}`} htmlFor="dd-daily">
-            <input id="dd-daily" className="text-input font-mono" inputMode="decimal" value={daily} readOnly={chemLocked} onChange={(ev) => setDaily(ev.target.value)} data-testid="input-dispatch-daily-area" />
+            <input id="dd-daily" className="text-input font-mono" inputMode="decimal" value={machineMode ? d === null ? "" : haStr(d) : daily} readOnly={chemLocked || machineMode} onChange={(ev) => setDaily(ev.target.value)} data-testid="input-dispatch-daily-area" />
           </Field>
           <Field label="Операция" htmlFor="dd-operation"><input id="dd-operation" className="text-input" readOnly value={op.actualOperationName || op.name} /></Field>
           <Field label="Сотрудник" htmlFor="dd-employee"><input id="dd-employee" className="text-input" readOnly value={existing?.actualMechanic ?? op.actualMechanic} /></Field>
           <Field label="Техника" htmlFor="dd-equipment"><input id="dd-equipment" className="text-input" readOnly value={existing?.actualEquipment ?? op.actualEquipment} /></Field>
           <Field label="Агрегат" htmlFor="dd-implement"><input id="dd-implement" className="text-input" readOnly value={existing?.actualImplement ?? op.actualImplement} /></Field>
-          <Field label="Фактическая расценка, ₸/га *" error={errs.rate} hint="Ставка сохраняется для этого дня и не меняет другие дневные записи." htmlFor="dispatch-daily-rate">
+          {!machineMode && <Field label="Фактическая расценка, ₸/га *" error={errs.rate} hint="Ставка сохраняется для этого дня и не меняет другие дневные записи." htmlFor="dispatch-daily-rate">
             <input id="dispatch-daily-rate" className="text-input font-mono" inputMode="decimal" value={rate} onChange={(ev) => setRate(ev.target.value)} data-testid="input-dispatch-daily-actual-rate" />
-          </Field>
+          </Field>}
           <Field label="Сумма за день, ₸" htmlFor="dispatch-daily-pay">
-            <input id="dispatch-daily-pay" className="text-input font-mono" readOnly value={validRate && d !== null ? (Math.round(d * actualRate * 100) / 100).toLocaleString("ru-RU") : "—"} data-testid="input-dispatch-daily-pay" />
+            <input id="dispatch-daily-pay" className="text-input font-mono" readOnly value={machineMode ? machineResult.error ? "—" : (machineResult.reports.reduce((s, r) => s + Math.round(r.dailyAreaHa * r.ratePerHa * 100), 0) / 100).toLocaleString("ru-RU") : validRate && d !== null ? (Math.round(d * actualRate * 100) / 100).toLocaleString("ru-RU") : "—"} data-testid="input-dispatch-daily-pay" />
           </Field>
           <ActualFuelField amount={fuelCost} planned={op.plannedFuelCost} prefix="dispatch-daily" />
           <Field label="Дата *" error={errs.date} htmlFor="dd-date"><input id="dd-date" type="date" min={op.actualStart?.slice(0, 10)} max={today} className="text-input" value={date} disabled={!!report} onChange={(ev) => setDate(ev.target.value)} data-testid="input-dispatch-daily-date" /></Field>

@@ -256,6 +256,18 @@ export async function calculateAutomaticAccruals(tx: Tx, sourceGroup?: SourceGro
         const dailyAreaAres = report.cumulativeAreaAres - previousCumulativeAres;
         previousCumulativeAres = report.cumulativeAreaAres;
         if (dailyAreaAres <= 0) continue;
+        if (report.machineReports.length) {
+          for (const machine of report.machineReports) {
+            if (machine.dailyAreaHa <= 0) continue;
+            addSource({
+              workDate: report.reportDate, unit: row.field.unit, sourceType: "field_progress", sourceId: report.id,
+              employeeId: machine.employeeId, employeeName: machine.employeeName, workType,
+              details: detailsFor(Math.round(machine.dailyAreaHa * 100), machine.equipmentName, machine.ratePerHa),
+              amountKzt: cents(machine.dailyAreaHa * machine.ratePerHa),
+            });
+          }
+          continue;
+        }
         const dailyRate = Number(report.actualRatePerHa ?? operation.actualRatePerHa);
         if (!Number.isFinite(dailyRate) || dailyRate <= 0) continue;
         addSource({
@@ -296,17 +308,18 @@ export async function calculateAutomaticAccruals(tx: Tx, sourceGroup?: SourceGro
   const savedItems = await tx.select({
       sourceType: payrollRegisterItemsTable.sourceType,
       sourceId: payrollRegisterItemsTable.sourceId,
+      employeeId: payrollRegisterItemsTable.employeeId,
     }).from(payrollRegisterItemsTable);
   const existingSources = new Set(savedItems
     .filter((item) => item.sourceId !== null)
-    .map((item) => `${item.sourceType}\u0000${item.sourceId}`));
+    .map((item) => `${item.sourceType}\u0000${item.sourceId}\u0000${item.employeeId}`));
   return [...groups.values()]
     .map((group) => {
       const entries = group.entries
-        .filter((entry) => !existingSources.has(`${entry.sourceType}\u0000${entry.sourceId}`))
+        .filter((entry) => !existingSources.has(`${entry.sourceType}\u0000${entry.sourceId}\u0000${entry.employeeId}`))
         .sort((a, b) => a.sourceType.localeCompare(b.sourceType) || a.sourceId - b.sourceId);
       const unassignedSources = group.unassignedSources
-        .filter((source) => !existingSources.has(`${source.sourceType}\u0000${source.sourceId}`))
+        .filter((source) => !existingSources.has(`${source.sourceType}\u0000${source.sourceId}\u0000${null}`))
         .sort((a, b) => a.sourceType.localeCompare(b.sourceType) || a.sourceId - b.sourceId);
       const totalCents = entries.reduce((sum, entry) => sum + Math.round(entry.amountKzt * 100), 0);
       const snapshot = {
