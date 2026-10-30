@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 import { getGetFieldDashboardQueryKey, useCreateSeedMovement, useGetFieldDashboard, type GrainBalance as GrainBalanceRow, type GrainCrop, type GrainLocation, type SeedMovementInput, type SeedStock } from "@workspace/api-client-react";
 import { isSowing } from "../fields/SeedPlanEditor";
 import { Drawer, ErrorBox, Field, UNITS, type Unit, cx, dateFmt, errorInfo, isProcessor } from "../grain/shared";
@@ -6,8 +6,8 @@ import { SEED_KIND_LABEL, kzt, newRequestId, parsePos, tn, useInvalidateSeeds } 
 
 type Kind = SeedMovementInput["kind"];
 
-export default function SeedForm({ role, crops, locations, balances, stocks, asOfDate, defaultUnit, onClose, onDone }: {
-  role: string; crops: GrainCrop[]; locations: GrainLocation[]; balances: GrainBalanceRow[]; stocks: SeedStock[]; asOfDate: string; defaultUnit: Unit; onClose: () => void; onDone: (msg: string) => void;
+export default function SeedForm({ role, crops, locations, balances, stocks, asOfDate, defaultUnit, onClose, onDone, operationSwitcher }: {
+  role: string; crops: GrainCrop[]; locations: GrainLocation[]; balances: GrainBalanceRow[]; stocks: SeedStock[]; asOfDate: string; defaultUnit: Unit; onClose: () => void; onDone: (msg: string) => void; operationSwitcher?: (busy: boolean) => ReactNode;
 }) {
   const [f, setF] = useState({ kind: "receipt" as Kind, unit: defaultUnit, cropId: "", occurredOn: asOfDate, qty: "", price: "", invoiceNumber: "", supplier: "", fromLocationId: "", seasonId: "", operationId: "", notes: "" });
   const [errs, setErrs] = useState<Record<string, string>>({});
@@ -79,6 +79,7 @@ export default function SeedForm({ role, crops, locations, balances, stocks, asO
     <Drawer title="Операция склада семян" eyebrow={gd ? "Проводится сразу" : "Требует согласования заведующего током"} onClose={onClose} testId="drawer-seed-form"
       footer={<><button type="button" className="button button-ghost" onClick={onClose} data-testid="button-seed-cancel">Отмена</button>
         <button type="button" className="button button-primary" disabled={create.isPending} onClick={() => void submit()} data-testid="button-seed-submit">{create.isPending ? "Сохранение…" : "Сохранить"}</button></>}>
+      {operationSwitcher?.(create.isPending)}
       <div className="grid grid-cols-3 gap-1 rounded-lg border border-border p-0.5" role="radiogroup">
         {(["receipt", "from_grain", "issue"] as const).map((k) => (
           <button key={k} type="button" aria-pressed={f.kind === k} onClick={() => changeKind(k)} data-testid={`button-seed-kind-${k}`}

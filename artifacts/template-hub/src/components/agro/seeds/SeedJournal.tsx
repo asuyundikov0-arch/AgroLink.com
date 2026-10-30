@@ -6,22 +6,23 @@ import { SEED_KIND_LABEL, SEED_STATUS_LABEL, kzt, tn, useInvalidateSeeds } from 
 
 type Status = "all" | SeedMovement["approvalStatus"];
 
-export default function SeedJournal({ movements, canReview, placeName }: { movements: SeedMovement[]; canReview: boolean; placeName: (id: number | null) => string }) {
+export default function SeedJournal({ movements, canReview, placeName, reviewOnly = false }: { movements: SeedMovement[]; canReview: boolean; placeName: (id: number | null) => string; reviewOnly?: boolean }) {
   const [status, setStatus] = useState<Status>("all");
-  const rows = movements.filter((m) => status === "all" || m.approvalStatus === status)
+  const selectedStatus = reviewOnly ? "pending" : status;
+  const rows = movements.filter((m) => selectedStatus === "all" || m.approvalStatus === selectedStatus)
     .slice().sort((a, b) => (a.approvalStatus === "pending" ? 0 : 1) - (b.approvalStatus === "pending" ? 0 : 1) || b.occurredOn.localeCompare(a.occurredOn) || b.id - a.id);
   const count = (s: Status) => (s === "all" ? movements.length : movements.filter((m) => m.approvalStatus === s).length);
   return (
     <section className="surface-card" data-testid="section-seed-journal">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
-        <h3 className="text-sm font-bold">Журнал склада семян</h3>
-        <div className="inline-flex rounded-lg border border-border p-0.5" role="tablist">
+        <h3 className="text-sm font-bold">{reviewOnly ? "Согласование операций с семенами" : "Журнал склада семян"}</h3>
+        {!reviewOnly && <div className="inline-flex rounded-lg border border-border p-0.5" role="tablist">
           {(["all", "pending", "approved", "rejected"] as const).map((s) => (
             <button key={s} type="button" role="tab" aria-selected={status === s} onClick={() => setStatus(s)} data-testid={`tab-seed-status-${s}`}
               className={cx("rounded-md px-2.5 py-1 text-[10.5px] font-bold", status === s ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>
               {s === "all" ? "Все" : SEED_STATUS_LABEL[s]} ({count(s)})</button>
           ))}
-        </div>
+        </div>}
       </div>
       {rows.length === 0 ? (
         <div className="empty-state !min-h-[160px]" data-testid="status-seed-journal-empty"><p className="text-sm font-bold">Записей нет</p><p className="mt-1 text-xs text-muted-foreground">Покупки, перевод зерна в семена и выдачи на поля появятся здесь.</p></div>

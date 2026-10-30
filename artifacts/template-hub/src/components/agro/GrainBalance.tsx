@@ -1,16 +1,18 @@
 import { type ReactNode, useMemo, useState } from "react";
 import { ArrowLeftRight, Check, Droplets, Flame, Plus, Trash2, RefreshCw, ShoppingCart, Sprout, Warehouse } from "lucide-react";
-import { getGetGrainDashboardQueryKey, useGetGrainDashboard } from "@workspace/api-client-react";
+import { getGetGrainDashboardQueryKey, getGetSeedWarehouseQueryKey, useGetGrainDashboard, useGetSeedWarehouse } from "@workspace/api-client-react";
 import Directory from "./grain/Directory";
 import Journal from "./grain/Journal";
-import MovementForm from "./grain/MovementForm";
+import BalanceOperationForm from "./grain/BalanceOperationForm";
 import ApprovalQueue from "./grain/ApprovalQueue";
-import SeedWorkspace from "./seeds/SeedWorkspace";
+import { SeedKpis, SeedStockOverview } from "./seeds/SeedOverview";
+import SeedJournal from "./seeds/SeedJournal";
+import { SEED_POLL_MS } from "./seeds/shared";
 import ProcessingPanel from "./grain/ProcessingPanel";
 import StockOverview, { type Cell } from "./grain/StockOverview";
 import { POLL_MS, UNITS, type Unit, canManageDir, canRead, canRecord, canReview, cx, dateFmt, errorInfo, isProcessor, kg, n0, type StockKind, tonsKg } from "./grain/shared";
 
-type View = "seeds" | "stock" | "processing" | "journal" | "directory" | "approval";
+type View = "stock" | "processing" | "journal" | "directory" | "approval";
 
 export default function GrainBalance({ role }: { role: string }) {
   const allowed = canRead(role);
@@ -20,6 +22,7 @@ export default function GrainBalance({ role }: { role: string }) {
   const [formOpen, setFormOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const q = useGetGrainDashboard({ query: { queryKey: getGetGrainDashboardQueryKey(), refetchInterval: POLL_MS, enabled: allowed } });
+  const seeds = useGetSeedWarehouse({ query: { queryKey: getGetSeedWarehouseQueryKey(), refetchInterval: SEED_POLL_MS, enabled: allowed } });
   const d = q.data;
   const crops = useMemo(() => d?.crops ?? [], [d]);
   const locations = useMemo(() => d?.locations ?? [], [d]);
@@ -30,6 +33,9 @@ export default function GrainBalance({ role }: { role: string }) {
   const cells: Cell[] = useMemo(() => fBal.filter((b) => (b.stockKind ?? "grain") === "grain").map((b) => ({ cropId: b.cropId, locationId: b.locationId, kg: kg(b.quantityTons) })), [fBal]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const movements = useMemo(() => (d?.movements ?? []).filter((m) => okU(m.unit) && okC(m.cropId)), [d, unit, cropF]);
+  const seedStocks = (seeds.data?.stocks ?? []).filter(s => okU(s.unit) && okC(s.cropId));
+  const seedMovements = (seeds.data?.movements ?? []).filter(m => okU(m.unit) && okC(m.cropId));
+  const seedPlaceName = (id: number | null) => id === null ? "—" : locations.find(l => l.id === id)?.name ?? `#${id}`;
   const postedMovements = useMemo(() => movements.filter((m) => m.approvalStatus === "approved"), [movements]);
   const kpi = useMemo(() => {
     const live = postedMovements.filter((m) => !m.voidedAt);
@@ -82,23 +88,26 @@ export default function GrainBalance({ role }: { role: string }) {
             <Kpi icon={<Sprout size={16} />} label="Зерновые отходы" value={tonsKg(kpi.waste)} sub="отдельно, не в остатке зерна" testId="text-kpi-grain-waste" />
             <Kpi icon={<Trash2 size={16} />} label="Мёртвый сор" value={tonsKg(kpi.dead)} sub="списано нарастающим итогом" testId="text-kpi-dead-waste" />
             <Kpi icon={<Droplets size={16} />} label="Усушка" value={tonsKg(kpi.moist)} sub="влага нарастающим итогом" testId="text-kpi-moisture" />
+            <SeedKpis stocks={seedStocks} movements={seedMovements} loading={seeds.isLoading} failed={seeds.isError || !seeds.data} onRetry={() => void seeds.refetch()} />
           </section>
           {!canRecord(role) && <p className="text-[11px] text-muted-foreground" data-testid="text-readonly">Режим просмотра: ваша роль не вносит операции.</p>}
           <div className="inline-flex flex-wrap rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Раздел">
-            {([["stock", "Остатки"], ["processing", "Обработка и отходы"], ["journal", "Журнал"], ["seeds", "Склад семян"], ["directory", "Справочники"]] as const).map(([k, l]) => (
+            {([["stock", "Остатки"], ["processing", "Обработка и отходы"], ["journal", "Журнал"], ["directory", "Справочники"]] as const).map(([k, l]) => (
               <button key={k} type="button" role="tab" aria-selected={view === k} onClick={() => setView(k)} data-testid={`tab-grain-${k}`}
                 className={cx("rounded-md px-3 py-1.5 text-[11px] font-bold", view === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>{l}</button>
             ))}
             {canReview(role) && <button type="button" role="tab" aria-selected={view === "approval"} onClick={() => setView("approval")} data-testid="tab-grain-approval"
-              className={cx("rounded-md px-3 py-1.5 text-[11px] font-bold", view === "approval" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>Согласование ({movements.filter((m) => m.approvalStatus === "pending" && !m.voidedAt && m.operation !== "seed_transfer").length})</button>}
+              className={cx("rounded-md px-3 py-1.5 text-[11px] font-bold", view === "approval" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>Согласование ({movements.filter((m) => m.approvalStatus === "pending" && !m.voidedAt && m.operation !== "seed_transfer").length + seedMovements.filter(m => m.approvalStatus === "pending").length})</button>}
           </div>
-          {view === "stock" && <StockOverview cells={cells} crops={crops} locations={locations} />}
+          {view === "stock" && <><StockOverview cells={cells} crops={crops} locations={locations} />{seeds.data && !seeds.isError && <SeedStockOverview stocks={seedStocks} />}</>}
           {view === "processing" && <ProcessingPanel balances={fBal} movements={postedMovements} crops={crops} locations={locations} />}
-          {view === "journal" && <Journal role={role} movements={movements} crops={crops} locations={locations} />}
-          {view === "seeds" && <SeedWorkspace role={role} enabled={allowed} crops={crops} locations={locations} balances={d.balances ?? []} asOfDate={d.asOfDate.slice(0, 10)} />}
+          {view === "journal" && <><Journal role={role} movements={movements} crops={crops} locations={locations} />{seeds.data && !seeds.isError && <SeedJournal movements={seedMovements} canReview={canReview(role)} placeName={seedPlaceName} />}</>}
           {view === "directory" && <Directory crops={crops} locations={locations} canEdit={canManageDir(role)} />}
-          {view === "approval" && canReview(role) && <ApprovalQueue movements={movements} crops={crops} locations={locations} />}
-          {formOpen && <MovementForm role={role} crops={crops} locations={locations} stock={stock} asOfDate={d.asOfDate.slice(0, 10)} defaultUnit={unit === "all" ? UNITS[0] : unit} onClose={() => setFormOpen(false)} onDone={setNotice} />}
+          {view === "approval" && canReview(role) && <><ApprovalQueue movements={movements} crops={crops} locations={locations} />{seeds.data && !seeds.isError && <SeedJournal movements={seedMovements} canReview={true} placeName={seedPlaceName} reviewOnly />}</>}
+          {formOpen && <BalanceOperationForm
+            grain={{ role, crops, locations, stock, asOfDate: d.asOfDate.slice(0, 10), defaultUnit: unit === "all" ? UNITS[0] : unit, onClose: () => setFormOpen(false), onDone: setNotice }}
+            seeds={{ role, crops, locations, balances: d.balances ?? [], stocks: seeds.data?.stocks ?? [], asOfDate: d.asOfDate.slice(0, 10), defaultUnit: unit === "all" ? UNITS[0] : unit, onClose: () => setFormOpen(false), onDone: setNotice }}
+            seedsReady={!!seeds.data && !seeds.isError} />}
         </>
       )}
     </div>

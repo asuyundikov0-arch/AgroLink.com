@@ -1,5 +1,5 @@
 import EmployeeSelect from "../../employees/EmployeeSelect";
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { useCreateGrainMovement, type GrainCrop, type GrainLocation, type GrainMovement } from "@workspace/api-client-react";
 import { Drawer, ErrorBox, Field, KIND_LABEL, OP_LABEL, STOCK_LABEL, type StockKind, UNITS, type Unit, errorInfo, isProcessor, kg, pct, tonsKg, useInvalidateGrain } from "./shared";
 
@@ -17,7 +17,7 @@ function parseKg(v: string, allowZero: boolean): { kg: number | null; err?: stri
   return { kg: Math.round(q * 1000) };
 }
 
-export default function MovementForm({ role, crops, locations, stock, asOfDate, defaultUnit, onClose, onDone }: { role: string; crops: GrainCrop[]; locations: GrainLocation[]; stock: (unit: string, crop: number, loc: number, kind: StockKind) => number; asOfDate: string; defaultUnit: Unit; onClose: () => void; onDone: (message: string) => void }) {
+export default function MovementForm({ role, crops, locations, stock, asOfDate, defaultUnit, onClose, onDone, operationSwitcher }: { role: string; crops: GrainCrop[]; locations: GrainLocation[]; stock: (unit: string, crop: number, loc: number, kind: StockKind) => number; asOfDate: string; defaultUnit: Unit; onClose: () => void; onDone: (message: string) => void; operationSwitcher?: (busy: boolean) => ReactNode }) {
   const [requestId] = useState(uuid);
   const [f, setF] = useState({ unit: defaultUnit as Unit, operation: "receipt" as Op, stockKind: "grain" as StockKind, cropId: "", occurredOn: asOfDate, qty: "", out: "", dead: "", gw: "", wasteTo: "", from: "", to: "", fieldName: "", truckNumber: "", driverName: "", driverId: null as number | null, counterparty: "", notes: "", payBasis: "per_trip" as "per_trip" | "ton_km", distance: "" });
   const [errs, setErrs] = useState<Record<string, string>>({});
@@ -117,6 +117,7 @@ export default function MovementForm({ role, crops, locations, stock, asOfDate, 
     <Drawer title="Новая операция с зерном" eyebrow="Журнал движения" onClose={close} testId="form-grain-movement"
       footer={<><button type="button" className="button button-secondary" onClick={close} disabled={create.isPending} data-testid="button-movement-cancel">Отмена</button>
         <button type="button" className="button button-primary" onClick={submit} disabled={create.isPending} data-testid="button-movement-submit">{create.isPending ? "Отправляем..." : role === "weigher" ? "Отправить на согласование" : "Провести"}</button></>}>
+      {operationSwitcher?.(create.isPending)}
       <div className="grid grid-cols-3 gap-1 rounded-lg border border-border p-0.5" role="group" aria-label="Операция">
         {(Object.keys(OP_LABEL) as Op[]).filter((o) => o !== "seed_transfer").map((o) => (
           <button key={o} type="button" aria-pressed={f.operation === o} onClick={() => setOp(o)} data-testid={`button-op-${o}`}
