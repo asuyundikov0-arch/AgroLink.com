@@ -34,7 +34,7 @@ const ops: FieldOperation[] = [
 const noop = () => {};
 function render(role = "agronomist", input = field) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity, staleTime: Infinity } } });
-  const totals = { chemicalCost: 0, seedCost: 0, fuelCost: 12345, fuelLiters: 100, salaryCost: 22000, totalCost: 34345 };
+  const totals = { chemicalCost: 0, seedCost: 42000, fuelCost: 12345, fuelLiters: 100, salaryCost: 22000, totalCost: 76345 };
   const costs: FieldCosts = {
     ...totals, fieldId: 1, seasonId: 10, unallocatedChemicalCost: 0, unallocatedSeedCost: 0,
     operations: [{ ...totals, operationId: 20, name: "Посев", fuels: [], chemicals: [], salaries: [], seedIssues: [] }],
@@ -51,6 +51,9 @@ test("actual rows retain every machine and real fuel/HR salary costs below resou
   const html = render();
   for (const a of assignment) for (const value of [a.employeeName, a.equipmentName, a.implement]) assert.ok(html.includes(value));
   assert.match(html, /text-fact-fuel-20">12\s345 ₸/); assert.match(html, /text-fact-hr-20">22\s000 ₸/);
+  assert.match(html, /Семена факт/);
+  assert.match(html, /text-fact-seeds-20">42\s000 ₸/);
+  assert.match(html, /text-fact-seeds-21">не выдавались/);
   assert.ok(html.indexOf("text-fact-fuel-20") > html.indexOf("Сеялка Б"));
   assert.ok(!/9\s999/.test(html), "planned fuel never shown as actual");
   assert.match(html, /text-fact-fuel-21">не выдавалось/);
@@ -89,6 +92,7 @@ test("unavailable actual costs are labelled without fabricated values", () => {
       onBack={noop} onHistory={noop} onUnplanned={noop} onWork={noop} onLifecycle={noop} onVoid={noop} />
   </QueryClientProvider>);
   assert.match(html, /text-fact-fuel-20">нет данных/);
+  assert.match(html, /text-fact-seeds-20">нет данных/);
   assert.match(html, /text-op-cost-unavailable-20/);
   assert.ok(html.includes("button-fact-resources-20"));
 });

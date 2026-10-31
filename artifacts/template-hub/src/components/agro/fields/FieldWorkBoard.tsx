@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from "react";
-import { ArrowLeft, Ban, Banknote, BellRing, CalendarRange, ChevronDown, Cog, FlaskConical, Fuel, History, Layers, MapPin, Play, Plus, Settings2, ShieldCheck, Tractor, UserRound } from "lucide-react";
+import { ArrowLeft, Ban, Banknote, BellRing, CalendarRange, ChevronDown, Cog, FlaskConical, Fuel, History, Layers, MapPin, Play, Plus, Settings2, ShieldCheck, Sprout, Tractor, UserRound } from "lucide-react";
 import { OP_KINDS, kzt, opKind } from "./PlanOperationCard";
 import { type AgroField, type FieldCosts, type FieldLifecycleInputAction, type FieldOperation, type FieldSeason, getGetFieldCostsQueryKey, useGetFieldCosts } from "@workspace/api-client-react";
 import { FieldCostsPanel, OperationCost } from "./FieldCostsPanel";
@@ -126,6 +126,7 @@ function Card({ op: o, field, crop, year, role, cost, costsReady, meta, actions,
   const rate = !started ? "работа не начата" : perMachine ? "По технике" : o.actualRatePerHa === null ? "ожидает диспетчера" : `${kzt(o.actualRatePerHa)}/га`;
   const earned = !started ? "—" : perMachine || o.actualRatePerHa !== null ? kzt(o.actualPayAmount) : "нет расценки";
   const fuel = !costsReady ? "нет данных" : cost ? kzt(cost.fuelCost) : "не выдавалось";
+  const seeds = !costsReady ? "нет данных" : cost ? kzt(cost.seedCost ?? 0) : "не выдавались";
   return <article className={cx("op-card text-xs", tone === "alert" && "ring-1 ring-[hsl(30_80%_45%/.6)]")} style={{ ["--op" as string]: K.hue }} data-kind={kind} data-testid={testId}>
     <div className="grid gap-4 p-4 pl-5 md:grid-cols-[minmax(220px,0.9fr)_minmax(0,1.5fr)] md:gap-6">
       <div className="min-w-0">
@@ -163,6 +164,7 @@ function Card({ op: o, field, crop, year, role, cost, costsReady, meta, actions,
         <div className="mt-3 grid grid-cols-1 gap-2 border-t border-border/60 pt-3 sm:grid-cols-2 xl:grid-cols-4" data-testid={`text-fact-metrics-${o.id}`}>
           <Metric icon={<Banknote size={18} />} tone="op-m-rate" label="Факт. расценка" value={rate} testId={`text-fact-rate-${o.id}`} />
           <Metric icon={<UserRound size={18} />} tone="op-m-pay" label="Начислено (расчёт)" value={earned} testId={`text-fact-earned-${o.id}`} />
+          <Metric icon={<Sprout size={18} />} tone="op-m-rate" label="Семена факт" value={seeds} testId={`text-fact-seeds-${o.id}`} />
           <Metric icon={<Fuel size={18} />} tone="op-m-fuel" label="ГСМ факт (выдано)" value={fuel} testId={`text-fact-fuel-${o.id}`} />
           <Metric icon={<ShieldCheck size={18} />} tone="op-m-rate" label="ЗП подтв. ОК" value={!costsReady ? "нет данных" : cost ? kzt(cost.salaryCost) : "не подтверждено"} testId={`text-fact-hr-${o.id}`} />
         </div>
