@@ -13,8 +13,9 @@ export interface SupportingTaskInput {
   /**
      * @minimum 0
      * @maximum 19
+     * @nullable
      */
-  sourceIndex: number;
+  sourceIndex: number | null;
   /**
      * @minLength 1
      * @maxLength 150

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { Router, type IRouter } from "express";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db, agroFieldsTable, fieldOperationsTable, fieldSeasonsTable, supportingTasksTable, type SupportingService, type SupportingTaskDetails } from "@workspace/db";
-import { CreateSupportingTaskBody, UpdateSupportingTaskBody, SendSupportingTaskBody, AcceptSupportingTaskBody, type SupportingTaskInput } from "@workspace/api-zod";
+import { CreateSupportingTaskBody, CreateSupportingTaskBatchBody, UpdateSupportingTaskBody, SendSupportingTaskBody, AcceptSupportingTaskBody, type SupportingTaskInput } from "@workspace/api-zod";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { validateSupportingWorks } from "../lib/field-supporting-works";
 import { validGrainDate } from "../lib/grain-ledger";
@@ -21,7 +21,7 @@ function check(value: unknown, message: string, status = 400): asserts value {
 }
 const editable = (a: RoleAccess, row?: Row) => a.role === "general_director" || (a.role === "agronomist" && (!row || row.createdByUserId === a.userId));
 const serialize = (r: Row) => ({
-  id: r.id, operationId: r.operationId, sourceIndex: r.sourceIndex, ...r.details, ...r.context,
+  id: r.id, operationId: r.operationId, sourceIndex: r.sourceIndex, batchId: r.batchId, ...r.details, ...r.context,
   sourceSnapshot: r.sourceSnapshot, version: r.version, status: r.status, requestId: r.requestId,
   createdBy: r.createdBy, createdByUserId: r.createdByUserId, createdAt: r.createdAt.toISOString(),
   sentAt: r.sentAt?.toISOString() ?? null, deliveries: r.deliveries,
@@ -32,17 +32,18 @@ const idOf = (raw: unknown) => {
   return id;
 };
 async function context(tx: Tx, operationId: number, lock = false) {
+  idOf(operationId);
   if (lock) await tx.execute(sql`select id from field_operations where id = ${operationId} for update`);
   const [r] = await tx.select({ op: fieldOperationsTable, season: fieldSeasonsTable, field: agroFieldsTable })
     .from(fieldOperationsTable).innerJoin(fieldSeasonsTable, eq(fieldOperationsTable.seasonId, fieldSeasonsTable.id))
     .innerJoin(agroFieldsTable, eq(fieldSeasonsTable.fieldId, agroFieldsTable.id)).where(eq(fieldOperationsTable.id, operationId));
   check(r, "Плановая операция не найдена.", 404);
-  check(r.field.isActive && !r.op.isUnplanned && r.op.approvalStatus === "approved" &&
-    !r.op.actualEnd && !r.op.voidedAt, "Задания доступны только для действующей плановой операции.", 409);
+  check(r.field.isActive && r.op.approvalStatus === "approved" &&
+    !r.op.actualEnd && !r.op.voidedAt, "Задания доступны только для действующей согласованной операции.", 409);
   return r;
 }
 async function details(tx: Tx, input: SupportingTaskInput, farm: string): Promise<SupportingTaskDetails> {
-  check(Number.isSafeInteger(input.operationId) && Number.isSafeInteger(input.sourceIndex), "Некорректная ссылка на план.");
+  check(Number.isSafeInteger(input.operationId) && (input.sourceIndex === null || Number.isSafeInteger(input.sourceIndex)), "Некорректная ссылка на план.");
   check(validGrainDate(input.startDate) && validGrainDate(input.endDate) && input.startDate <= input.endDate, "Укажите корректные даты начала и окончания задания.");
   check(input.title.trim(), "Введите название задания.");
   check(input.services.length > 0 && new Set(input.services).size === input.services.length &&
@@ -94,6 +95,52 @@ router.get("/agro/supporting-tasks", async (req, res, next) => {
     res.json(rows.map(serialize));
   } catch (err) { next(err); }
 });
+router.post("/agro/supporting-tasks/batch", async (req, res, next) => {
+  try {
+    const access = res.locals.access as RoleAccess;
+    check(editable(access), "Создавать задания может агроном хозяйства.", 403);
+    const parsed = CreateSupportingTaskBatchBody.safeParse(req.body);
+    check(parsed.success, "Проверьте работы и получателей задания.");
+    const input = parsed.data!;
+    const operationId = input.items[0].operationId;
+    check(input.items.every((item) => item.operationId === operationId), "Все работы задания должны относиться к одной операции и полю.");
+    const sourceIndices = input.items.filter((item) => item.sourceIndex !== null).map((item) => item.sourceIndex);
+    check(new Set(sourceIndices).size === sourceIndices.length, "Плановая сопутствующая работа не должна повторяться.");
+    const digest = createHash("sha256").update(JSON.stringify({ sendNow: input.sendNow, items: input.items.map(fingerprint) })).digest("hex");
+    const result = await db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${access.userId + ":batch:" + input.requestId}))`);
+      const existing = await tx.select().from(supportingTasksTable).where(and(
+        eq(supportingTasksTable.createdByUserId, access.userId), eq(supportingTasksTable.batchId, input.requestId),
+      )).orderBy(supportingTasksTable.id);
+      if (existing.length) {
+        check(existing.length === input.items.length && existing.every((row) => row.createFingerprint === digest),
+          "Этот запрос уже использован для другого состава задания. Обновите форму.", 409);
+        return existing;
+      }
+      const r = await context(tx, operationId, true);
+      const rows: typeof supportingTasksTable.$inferInsert[] = [];
+      for (const [i, item] of input.items.entries()) {
+        check(item.sourceIndex === null || Number.isSafeInteger(item.sourceIndex), "Некорректный источник сопутствующей работы.");
+        const source = item.sourceIndex === null ? null : r.op.supportingWorks[item.sourceIndex];
+        check(item.sourceIndex === null || source, "Одна из сопутствующих работ уже отсутствует в плане. Обновите сведения.", 409);
+        const resolved = await details(tx, item, r.field.unit);
+        rows.push({
+          operationId, sourceIndex: item.sourceIndex, sourceSnapshot: source ?? null, batchId: input.requestId,
+          context: { fieldId: r.field.id, fieldNumber: r.field.number, farm: r.field.unit, year: r.season.year, operationName: r.op.name },
+          details: resolved, requestId: `batch:${input.requestId}:${i}`, createFingerprint: digest,
+          createdByUserId: access.userId, createdBy: access.displayName,
+          status: input.sendNow ? "sent" : "draft", sentAt: input.sendNow ? new Date() : null,
+          deliveries: input.sendNow ? resolved.services.map((service) => ({
+            service, status: "sent" as const, acceptedBy: "", acceptedAt: null,
+          })) : [],
+        });
+      }
+      // Validate every row before a single insert: no half-sent assignment on a bad later row.
+      return tx.insert(supportingTasksTable).values(rows).returning();
+    });
+    res.status(201).json(result.map(serialize));
+  } catch (err) { next(err); }
+});
 router.post("/agro/supporting-tasks", async (req, res, next) => {
   try {
     const access = res.locals.access as RoleAccess;
@@ -110,12 +157,12 @@ router.post("/agro/supporting-tasks", async (req, res, next) => {
         return existing;
       }
       const r = await context(tx, input.operationId, true);
-      check(Number.isSafeInteger(input.sourceIndex), "Выберите сопутствующую работу из плана.");
-      const source = r.op.supportingWorks[input.sourceIndex];
-      check(source, "Сопутствующая работа отсутствует в плане. Обновите список.", 409);
+      check(input.sourceIndex === null || Number.isSafeInteger(input.sourceIndex), "Выберите сопутствующую работу из плана.");
+      const source = input.sourceIndex === null ? null : r.op.supportingWorks[input.sourceIndex];
+      check(input.sourceIndex === null || source, "Сопутствующая работа отсутствует в плане. Обновите список.", 409);
       const resolved = await details(tx, input, r.field.unit);
       const [created] = await tx.insert(supportingTasksTable).values({
-        operationId: r.op.id, sourceIndex: input.sourceIndex, sourceSnapshot: source,
+        operationId: r.op.id, sourceIndex: input.sourceIndex, sourceSnapshot: source ?? null,
         context: { fieldId: r.field.id, fieldNumber: r.field.number, farm: r.field.unit, year: r.season.year, operationName: r.op.name },
         details: resolved, requestId: input.requestId, createFingerprint: fingerprint(input),
         createdByUserId: access.userId, createdBy: access.displayName,

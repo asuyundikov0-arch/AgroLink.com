@@ -20,8 +20,9 @@ export interface SupportingTaskInput {
   /**
      * @minimum 0
      * @maximum 19
+     * @nullable
      */
-  sourceIndex: number;
+  sourceIndex: number | null;
   /**
      * @minLength 1
      * @maxLength 150
@@ -71,6 +72,20 @@ export interface SupportingTaskInput {
      * @maxItems 3
      */
   services: SupportingService[];
+}
+
+export interface SupportingTaskBatchInput {
+  /**
+     * @minLength 8
+     * @maxLength 80
+     */
+  requestId: string;
+  sendNow: boolean;
+  /**
+     * @minItems 1
+     * @maxItems 20
+     */
+  items: SupportingTaskInput[];
 }
 
 export type SupportingTaskCreateInput = SupportingTaskInput & {
@@ -173,7 +188,9 @@ export type SupportingTask = SupportingTaskInput & ({
   version: number;
   status: SupportingTaskStatus;
   requestId: string;
-  sourceSnapshot: FieldSupportingWork;
+  sourceSnapshot: FieldSupportingWork | null;
+  /** @nullable */
+  batchId?: string | null;
   fieldId: number;
   fieldNumber: string;
   farm: string;

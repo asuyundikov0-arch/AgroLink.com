@@ -15,7 +15,9 @@ export type SupportingTask = SupportingTaskInput & ({
   version: number;
   status: SupportingTaskStatus;
   requestId: string;
-  sourceSnapshot: FieldSupportingWork;
+  sourceSnapshot: FieldSupportingWork | null;
+  /** @nullable */
+  batchId?: string | null;
   fieldId: number;
   fieldNumber: string;
   farm: string;

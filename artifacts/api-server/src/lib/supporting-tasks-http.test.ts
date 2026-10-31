@@ -60,14 +60,14 @@ test("supporting tasks: immutable plan, editable owned drafts, durable multi-ser
     await call("agronomist", "POST", base, { ...body, services: ["tok", "tok"] }, 400);
     let task = await call("agronomist", "POST", base, body, 201);
     assert.equal(task.fieldId, fieldId); assert.equal(task.fieldNumber, key);
-    assert.equal(task.sourceSnapshot.salaryCost, 5000); assert.equal(task.salaryBudget, 1000);
+    assert.equal(task.sourceSnapshot?.salaryCost, 5000); assert.equal(task.salaryBudget, 1000);
     const repeat = await call("agronomist", "POST", base, body, 201);
     assert.equal(repeat.id, task.id);
     await call("agronomist", "POST", base, { ...body, title: "Другой запрос" }, 409);
     assert.ok((await call<SupportingTask[]>("grain_manager", "GET", base + "?service=tok")).every((t) => t.id !== task.id));
     await call("agronomist", "PATCH", `${base}/${task.id}`, { ...body, version: task.version }, 403, key + "-other");
     task = await call("agronomist", "PATCH", `${base}/${task.id}`, { ...body, salaryBudget: 1500, version: task.version });
-    assert.equal(task.salaryBudget, 1500); assert.equal(task.sourceSnapshot.salaryCost, 5000);
+    assert.equal(task.salaryBudget, 1500); assert.equal(task.sourceSnapshot?.salaryCost, 5000);
     await call("agronomist", "PATCH", `${base}/${task.id}`, { ...body, version: 1 }, 409);
     await call("agronomist", "PATCH", `${base}/${task.id}`, { ...body, sourceIndex: 1, version: task.version }, 400);
     task = await call("agronomist", "POST", `${base}/${task.id}/send`, { version: task.version });
@@ -94,6 +94,51 @@ test("supporting tasks: immutable plan, editable owned drafts, durable multi-ser
     assert.deepEqual(unchanged.actualSupportingWorks, []);
     assert.ok((await call<SupportingTask[]>("chief_agronomist", "GET", base)).some((t) => t.id === task.id));
     assert.ok((await call<SupportingTask[]>("agronomist", "GET", base, undefined, 200, key + "-other")).every((t) => t.id !== task.id));
+    const source2 = { ...source, name: "Заправка сеялки", salaryCost: 2500 };
+    await db.update(fieldOperationsTable).set({ supportingWorks: [source, source2] }).where(eq(fieldOperationsTable.id, operationId));
+    const batch = {
+      requestId: randomUUID(), sendNow: true,
+      items: [
+        { ...body, services: ["motor_pool"], salaryBudget: 5500 },
+        { ...body, sourceIndex: 1, title: "Заправка сеялки сегодня", services: ["tok"] },
+        { ...body, sourceIndex: null, title: "Незапланированный подвоз воды", services: ["fuel"] },
+      ],
+    };
+    await call("chief_agronomist", "POST", base + "/batch", batch, 403);
+    const invalid = { ...batch, requestId: randomUUID(), items: [batch.items[0], { ...batch.items[1], salaryBudget: 0.001 }] };
+    await call("agronomist", "POST", base + "/batch", invalid, 400);
+    assert.equal((await db.select().from(supportingTasksTable).where(eq(supportingTasksTable.batchId, invalid.requestId))).length, 0);
+    await call("agronomist", "POST", base + "/batch", { ...batch, items: [batch.items[0], batch.items[0]] }, 400);
+    const createdBatch = await call<SupportingTask[]>("agronomist", "POST", base + "/batch", batch, 201);
+    assert.equal(createdBatch.length, 3);
+    assert.ok(createdBatch.every((item) => item.status === "sent" && item.batchId === batch.requestId && item.deliveries.length === 1));
+    assert.equal(createdBatch[1].sourceSnapshot?.salaryCost, 2500);
+    assert.equal(createdBatch[2].sourceIndex, null); assert.equal(createdBatch[2].sourceSnapshot, null);
+    assert.deepEqual(createdBatch.map((item) => item.id),
+      (await call<SupportingTask[]>("agronomist", "POST", base + "/batch", batch, 201)).map((item) => item.id));
+    await call("agronomist", "POST", base + "/batch", { ...batch, sendNow: false }, 409);
+    for (const [role, service, index] of [["grain_manager", "tok", 1], ["motor_pool_manager", "motor_pool", 0], ["fuel_manager", "fuel", 2]] as const) {
+      const inbox = await call<SupportingTask[]>(role, "GET", `${base}?service=${service}`);
+      assert.ok(inbox.some((item) => item.id === createdBatch[index].id));
+      assert.ok(createdBatch.filter((_, i) => i !== index).every((other) => !inbox.some((item) => item.id === other.id)));
+    }
+    const [planAfterBatch] = await db.select().from(fieldOperationsTable).where(eq(fieldOperationsTable.id, operationId));
+    assert.deepEqual(planAfterBatch.supportingWorks, [source, source2]);
+    // No planned supporting work is required for unforeseen support during an approved operation.
+    await db.update(fieldOperationsTable).set({ supportingWorks: [] }).where(eq(fieldOperationsTable.id, operationId));
+    const manualPayload = { ...body, sourceIndex: null, title: "Погрузка вне плана" };
+    const manualDraft = (await call<SupportingTask[]>("agronomist", "POST", base + "/batch",
+      { requestId: randomUUID(), sendNow: false, items: [manualPayload] }, 201))[0];
+    assert.equal(manualDraft.status, "draft"); assert.equal(manualDraft.sourceSnapshot, null);
+    const editedManual = await call("agronomist", "PATCH", `${base}/${manualDraft.id}`,
+      { ...manualPayload, title: "Погрузка вручную", version: manualDraft.version });
+    assert.equal(editedManual.sourceIndex, null); assert.equal(editedManual.sourceSnapshot, null);
+    assert.equal((await call("agronomist", "POST", `${base}/${editedManual.id}/send`, { version: editedManual.version })).status, "sent");
+    await db.update(fieldOperationsTable).set({ approvalStatus: "pending", isUnplanned: true }).where(eq(fieldOperationsTable.id, operationId));
+    await call("agronomist", "POST", base + "/batch", { requestId: randomUUID(), sendNow: true, items: [manualPayload] }, 409);
+    await db.update(fieldOperationsTable).set({ approvalStatus: "approved" }).where(eq(fieldOperationsTable.id, operationId));
+    assert.equal((await call<SupportingTask[]>("agronomist", "POST", base + "/batch",
+      { requestId: randomUUID(), sendNow: true, items: [manualPayload] }, 201))[0].status, "sent");
     console.log("Created, edited, dispatched, accepted by three services; no change to chief plan or actual expenses.");
   } finally {
     if (operationId) {

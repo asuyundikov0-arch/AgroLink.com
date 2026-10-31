@@ -15,8 +15,9 @@ export type SupportingDelivery = {
 export const supportingTasksTable = pgTable("supporting_tasks", {
   id: serial("id").primaryKey(),
   operationId: integer("operation_id").notNull().references(() => fieldOperationsTable.id, { onDelete: "restrict" }),
-  sourceIndex: integer("source_index").notNull(),
-  sourceSnapshot: jsonb("source_snapshot").$type<FieldSupportingWorkRecord>().notNull(),
+  sourceIndex: integer("source_index"),
+  sourceSnapshot: jsonb("source_snapshot").$type<FieldSupportingWorkRecord>(),
+  batchId: text("batch_id"),
   context: jsonb("context").$type<{ fieldId: number; fieldNumber: string; farm: string; year: number; operationName: string }>().notNull(),
   details: jsonb("details").$type<SupportingTaskDetails>().notNull(),
   status: text("status").$type<"draft" | "sent">().notNull().default("draft"),

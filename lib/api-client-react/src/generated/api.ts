@@ -127,6 +127,7 @@ import type {
   SparePartRequestItemInput,
   SupportingTask,
   SupportingTaskAcceptInput,
+  SupportingTaskBatchInput,
   SupportingTaskCreateInput,
   SupportingTaskUpdateInput,
   SupportingTaskVersionInput,
@@ -164,6 +165,71 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getCreateSupportingTaskBatchUrl = () => {
+
+
+
+
+  return `/api/agro/supporting-tasks/batch`
+}
+
+export const createSupportingTaskBatch = async (supportingTaskBatchInput: SupportingTaskBatchInput, options?: Parameters<typeof customFetch>[1]): Promise<SupportingTask[]> => {
+
+  return customFetch<SupportingTask[]>(getCreateSupportingTaskBatchUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(supportingTaskBatchInput)
+  }
+);}
+
+
+
+
+
+export const getCreateSupportingTaskBatchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSupportingTaskBatch>>, TError,{data: BodyType<SupportingTaskBatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSupportingTaskBatch>>, TError,{data: BodyType<SupportingTaskBatchInput>}, TContext> => {
+
+const mutationKey = ['createSupportingTaskBatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSupportingTaskBatch>>, {data: BodyType<SupportingTaskBatchInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createSupportingTaskBatch(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateSupportingTaskBatchMutationResult = NonNullable<Awaited<ReturnType<typeof createSupportingTaskBatch>>>
+    export type CreateSupportingTaskBatchMutationBody = BodyType<SupportingTaskBatchInput>
+    export type CreateSupportingTaskBatchMutationError = ErrorType<unknown>
+
+    export const useCreateSupportingTaskBatch = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSupportingTaskBatch>>, TError,{data: BodyType<SupportingTaskBatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createSupportingTaskBatch>>,
+        TError,
+        {data: BodyType<SupportingTaskBatchInput>},
+        TContext
+      > => {
+      return useMutation(getCreateSupportingTaskBatchMutationOptions(options));
+    }
 
 export const getListSupportingTasksUrl = (params?: ListSupportingTasksParams,) => {
   const normalizedParams = new URLSearchParams();

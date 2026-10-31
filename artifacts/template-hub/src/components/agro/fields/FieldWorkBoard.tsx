@@ -9,7 +9,7 @@ import { SeedPlanSummary } from "./SeedPlanEditor";
 import { DailyHistory, approvalOf, chemNormsMissing, isPendingCompletion, isPendingUnplanned, limitOf, ReviewButtons } from "./WorkForms";
 import { CropBadge, cropStyle } from "./PlanRegister";
 import { SupportingTasksPanel } from "../supporting-tasks/SupportingTasksPanel";
-import { PlannedSupportingTasks } from "../supporting-tasks/PlannedSupportingTasks";
+import { PlannedSupportingTasks, SupportingTaskBatchButton } from "../supporting-tasks/PlannedSupportingTasks";
 
 type Props = {
   field: AgroField; season?: FieldSeason; predecessor?: FieldSeason; year: number; ops: FieldOperation[]; role: string; planFact: ReactNode;
@@ -124,7 +124,7 @@ function Card({ op: o, field, year, role, cost, costsReady, meta, actions, tone,
         {started && <p className="font-semibold text-foreground">{dateFmt(o.actualStart)} – {o.actualEnd ? dateFmt(o.actualEnd) : "…"}<span className="ml-1 font-normal text-muted-foreground">факт</span></p>}
       </div>
       <div className="min-w-0 space-y-1 text-[10.5px]">
-        <p className="text-[12px] font-bold">{o.name}</p>
+        <div className="flex flex-wrap items-center gap-2"><p className="text-[12px] font-bold">{o.name}</p><SupportingTaskBatchButton operation={o} field={field} year={year} role={role} /></div>
         <div className="flex flex-wrap items-center gap-1.5">{o.isUnplanned && <span className="rounded-full bg-[hsl(38_92%_50%/.14)] px-2 py-0.5 text-[10px] font-bold text-[hsl(30_80%_30%)]">Вне плана</span>}{(o.actualStart || !o.isUnplanned) && <StatusPill op={o} />}{o.requiresChemicals && <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(200_45%_92%)] px-2 py-0.5 text-[10px] font-bold text-[hsl(203_60%_28%)]"><FlaskConical size={10} />химия{o.chemicalPlan?.length ? ` · ${o.chemicalPlan.length}` : " · нормы не заданы"}</span>}</div>
         {!o.isUnplanned && <p className="font-mono text-muted-foreground">план {ha(o.plannedAreaHa)}</p>}
         {started && <div className="max-w-[200px]">{o.isUnplanned ? <p className="font-mono text-[11px] font-bold">{ha(o.actualAreaHa)} из {ha(limitOf(o))}</p> : <><Progress value={o.progressPercent} label={`Выполнено ${o.name}`} /><p className="font-mono text-[10px] text-muted-foreground">{ha(o.actualAreaHa)} из {ha(o.plannedAreaHa)}</p></>}</div>}

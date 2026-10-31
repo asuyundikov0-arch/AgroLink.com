@@ -18,7 +18,8 @@ export function TaskForm({ candidates, task, defaultOpId, defaultSourceIndex = 0
   const [requestId] = useState(() => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `st-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`));
   const [opId, setOpId] = useState<number>(task?.operationId ?? defaultOpId ?? candidates[0]?.op.id ?? 0);
   const ctx = candidates.find((c) => c.op.id === opId);
-  const [sourceIndex, setSourceIndex] = useState<number>(task?.sourceIndex ?? defaultSourceIndex);
+  const [sourceIndex, setSourceIndex] = useState<number>(task?.sourceIndex ?? defaultSourceIndex)
+  const manual = editing && task!.sourceIndex === null;;
   const init = plannedTaskDefaults;
   const [f, setF] = useState(() => task ? {
     title: task.title, startDate: task.startDate, endDate: task.endDate, equipmentId: task.equipmentId, employeeIds: task.employeeIds,
@@ -51,7 +52,7 @@ export function TaskForm({ candidates, task, defaultOpId, defaultSourceIndex = 0
   const qty = parseAmount(quantity || "0", 1e6, 3);
   const errors: string[] = [];
   if (!opId || (!editing && !ctx)) errors.push("Выберите плановую операцию с сопутствующими работами.");
-  if (!source) errors.push("Выберите строку сопутствующей работы.");
+  if (!source && !manual) errors.push("Выберите строку сопутствующей работы.");
   if (!f.title.trim()) errors.push("Название не может быть пустым.");
   if (f.title.length > 150) errors.push("Название — не более 150 символов.");
   if (!isIsoDate(f.startDate) || !isIsoDate(f.endDate)) errors.push("Даты в формате ГГГГ-ММ-ДД.");
@@ -93,7 +94,7 @@ export function TaskForm({ candidates, task, defaultOpId, defaultSourceIndex = 0
 
       <div>
         <label className={lbl}>Основная операция</label>
-        {editing || lockSource ? <p className="font-semibold" data-testid="text-task-operation-fixed">{task?.operationName ?? ctx?.op.name} · строка {(task?.sourceIndex ?? sourceIndex) + 1}</p> :
+        {editing || lockSource ? <p className="font-semibold" data-testid="text-task-operation-fixed">{task?.operationName ?? ctx?.op.name} · {manual ? <span data-testid="text-task-manual-source">Внеплановая сопутствующая работа</span> : `строка ${(task?.sourceIndex ?? sourceIndex) + 1}`}</p> :
           <select className="text-input" value={opId} onChange={(e) => pickOp(Number(e.target.value))} data-testid="select-task-operation">
             {candidates.map((c) => <option key={c.op.id} value={c.op.id}>Поле № {c.fieldNumber} · {c.op.name} · {dt(c.op.plannedStart)}–{dt(c.op.plannedEnd)}</option>)}
           </select>}

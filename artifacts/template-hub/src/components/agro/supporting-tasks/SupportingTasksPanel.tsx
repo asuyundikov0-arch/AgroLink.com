@@ -51,7 +51,7 @@ export function SupportingTasksPanel({ role, demo = false, fieldId, seasonId, ye
     </div>
     {!canCreateTasks(role) && enabled && <p className="px-4 pt-2 text-[10.5px] text-muted-foreground sm:px-5" data-testid="text-tasks-readonly">Режим просмотра: задания создают агрономы.</p>}
     {creator && dash.isError && <p className="px-4 pt-2 text-[10.5px] text-destructive sm:px-5">Не удалось загрузить операции: {errorInfo(dash.error).message} <button type="button" className="underline" onClick={() => { void dash.refetch(); }} data-testid="button-tasks-dash-retry">повторить</button></p>}
-    {creator && compact && <p className="mt-2 text-[10.5px] text-muted-foreground">Создайте задание кнопкой рядом с нужной сопутствующей работой в операции ниже.</p>}
+    {creator && compact && <p className="mt-2 text-[10.5px] text-muted-foreground">Создайте задания кнопкой «Создать задание» рядом с названием операции ниже — все сопутствующие работы операции в одной форме.</p>}
     {creator && !dash.isLoading && !dash.isError && candidates.length === 0 && <p className="px-4 pt-2 text-[10.5px] text-muted-foreground sm:px-5" data-testid="text-tasks-no-candidates">Нет действующих плановых операций с сопутствующими работами{fieldId !== undefined ? " на этом поле" : ""}.</p>}
     {notice && <div className="notice-banner mx-4 mt-2 sm:mx-5" role="status" data-testid="text-tasks-notice">{notice}<button type="button" aria-label="Скрыть" onClick={() => setNotice("")}>×</button></div>}
     <div className={cx("space-y-2", compact ? "mt-2" : "p-4 sm:p-5")}>

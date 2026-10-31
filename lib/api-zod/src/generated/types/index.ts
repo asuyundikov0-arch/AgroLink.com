@@ -237,6 +237,7 @@ export * from './sparePartRequestStatus';
 export * from './supportingService';
 export * from './supportingTask';
 export * from './supportingTaskAcceptInput';
+export * from './supportingTaskBatchInput';
 export * from './supportingTaskCreateInput';
 export * from './supportingTaskDelivery';
 export * from './supportingTaskDeliveryStatus';
