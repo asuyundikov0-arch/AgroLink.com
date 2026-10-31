@@ -18,6 +18,7 @@ import { aggregatePayrollByEmployee, type CumulativeEmployee } from "./payrollCu
 
 const sourceLabel: Record<string, string> = {
   grain_trip: "Рейс зерна",
+  seed_trip: "Доставка семян",
   field_progress: "Дневной отчёт поля",
   field_operation: "Полевая операция",
   manual: "Ручная строка",

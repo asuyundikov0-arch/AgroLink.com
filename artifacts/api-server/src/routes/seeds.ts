@@ -4,11 +4,13 @@ import { db, grainCropsTable, seedMovementsTable } from "@workspace/db";
 import {
   CreateSeedMovementBody, CreateSeedMovementResponse, GetSeedWarehouseResponse,
   ReviewSeedMovementBody, ReviewSeedMovementParams,
+  UpdateSeedTransportRateBody,
 } from "@workspace/api-zod";
 import { requireApprovedRole, type RoleAccess } from "../middlewares/auth";
 import { SeedError, seedBalances } from "../lib/seed-ledger";
 import { reviewSeedMovement, submitSeedMovement } from "../lib/seed-warehouse";
 import { grainBusinessDate } from "../lib/grain-ledger";
+import { rateSeedTrip, seedTransportTrips } from "../lib/seed-transport";
 
 const router: IRouter = Router();
 const roles = (allowed: string[]): RequestHandler => (_req, res, next) => {
@@ -32,6 +34,15 @@ async function responseFor(row: typeof seedMovementsTable.$inferSelect) {
   const [crop] = await db.select().from(grainCropsTable).where(eq(grainCropsTable.id, row.cropId));
   return dto(row, crop.name);
 }
+router.patch("/agro/seeds/transport-trips/:id/rate", roles(["motor_pool_manager", "general_director"]), safe(async (req, res) => {
+  const id = Number(req.params.id);
+  const input = UpdateSeedTransportRateBody.safeParse(req.body);
+  if (!Number.isSafeInteger(id) || id <= 0 || !input.success) {
+    res.status(400).json({ error: "Укажите корректную расценку и версию рейса." }); return;
+  }
+  await db.transaction(tx => rateSeedTrip(tx, id, input.data, res.locals.access));
+  res.json((await seedTransportTrips()).find(t => t.id === id));
+}));
 router.get("/agro/seeds", roles(["agronomist", "chief_agronomist", "grain_manager", "weigher", "general_director"]), safe(async (_req, res) => {
   const access = res.locals.access as RoleAccess;
   const snapshot = await db.transaction(async tx => {

@@ -52,6 +52,8 @@ function Row({ m, canReview, placeName }: { m: SeedMovement; canReview: boolean;
     m.kind === "receipt" && `накладная ${m.invoiceNumber || "—"} · ${m.supplier || "—"}`,
     m.kind === "from_grain" && `из: ${placeName(m.fromLocationId)}`,
     m.kind === "issue" && `поле ${m.fieldNumber || "—"}${m.operationId ? ` · операция #${m.operationId}` : ""}`,
+    m.supportingTaskId && `задание №${m.supportingTaskId}`,
+    m.truckNumber && `машина ${m.truckNumber} · водитель ${m.driverName || "—"}`,
     `внёс: ${m.createdBy}`, m.reviewedBy && `проверил: ${m.reviewedBy}`].filter(Boolean).join(" · ");
   return (
     <li className="px-4 py-3" data-testid={`row-seed-movement-${m.id}`}>

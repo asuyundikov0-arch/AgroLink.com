@@ -57,8 +57,8 @@ export function DeliveryPill({ task, service }: { task: SupportingTask; service:
   const d = task.deliveries.find((x) => x.service === service);
   const accepted = d?.status === "accepted";
   return <span className={cx("inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold", accepted ? "border-foreground bg-foreground/10 text-foreground" : d ? "border-border text-foreground" : "border-dashed border-border text-muted-foreground")} data-testid={`status-delivery-${task.id}-${service}`}
-    title={accepted ? `Принял ${d?.acceptedBy} · ${dtTime(d?.acceptedAt)}` : undefined}>
+    title={accepted ? `Исполнение начал ${d?.acceptedBy} · ${dtTime(d?.acceptedAt)}` : undefined}>
     <span className={cx("h-1.5 w-1.5 rounded-full", accepted ? "bg-[hsl(152_50%_42%)]" : d ? "bg-[hsl(38_90%_50%)]" : "bg-muted-foreground/40")} />
-    {serviceLabel(service)} · {accepted ? "в работе" : d ? "отправлено" : task.status === "draft" ? "не отправлено" : "—"}
+    {serviceLabel(service)} · {accepted ? "в исполнении" : d ? "отправлено" : task.status === "draft" ? "не отправлено" : "—"}
   </span>;
 }

@@ -3129,6 +3129,72 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getCreateSeedMovementMutationOptions(options));
     }
 
+export const getUpdateSeedTransportRateUrl = (id: number,) => {
+
+
+
+
+  return `/api/agro/seeds/transport-trips/${id}/rate`
+}
+
+export const updateSeedTransportRate = async (id: number,
+    grainTransportRateInput: GrainTransportRateInput, options?: Parameters<typeof customFetch>[1]): Promise<GrainTransportTrip> => {
+
+  return customFetch<GrainTransportTrip>(getUpdateSeedTransportRateUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(grainTransportRateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateSeedTransportRateMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSeedTransportRate>>, TError,{id: number;data: BodyType<GrainTransportRateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateSeedTransportRate>>, TError,{id: number;data: BodyType<GrainTransportRateInput>}, TContext> => {
+
+const mutationKey = ['updateSeedTransportRate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateSeedTransportRate>>, {id: number;data: BodyType<GrainTransportRateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateSeedTransportRate(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateSeedTransportRateMutationResult = NonNullable<Awaited<ReturnType<typeof updateSeedTransportRate>>>
+    export type UpdateSeedTransportRateMutationBody = BodyType<GrainTransportRateInput>
+    export type UpdateSeedTransportRateMutationError = ErrorType<unknown>
+
+    export const useUpdateSeedTransportRate = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSeedTransportRate>>, TError,{id: number;data: BodyType<GrainTransportRateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateSeedTransportRate>>,
+        TError,
+        {id: number;data: BodyType<GrainTransportRateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateSeedTransportRateMutationOptions(options));
+    }
+
 export const getReviewSeedMovementUrl = (id: number,) => {
 
 

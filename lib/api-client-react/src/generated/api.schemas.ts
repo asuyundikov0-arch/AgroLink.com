@@ -461,6 +461,9 @@ export type FieldOperationCostsFuelsItem = {
 };
 
 export type FieldOperationCostsSalariesItem = {
+  sourceType?: string;
+  /** @nullable */
+  supportingTaskId?: number | null;
   /** @nullable */
   employeeId: number | null;
   employeeName: string;
@@ -469,6 +472,8 @@ export type FieldOperationCostsSalariesItem = {
 };
 
 export interface SeedFieldCost {
+  /** @nullable */
+  supportingTaskId?: number | null;
   movementId: number;
   cropName: string;
   occurredOn: string;
@@ -477,6 +482,7 @@ export interface SeedFieldCost {
 }
 
 export type FieldOperationCosts = FieldCostTotals & {
+  transportSalaryCost?: number;
   seedIssues?: SeedFieldCost[];
   operationId: number;
   name: string;
@@ -2067,6 +2073,7 @@ export type PayrollAccrualEntrySourceType = typeof PayrollAccrualEntrySourceType
 
 export const PayrollAccrualEntrySourceType = {
   grain_trip: 'grain_trip',
+  seed_trip: 'seed_trip',
   field_progress: 'field_progress',
   field_operation: 'field_operation',
   tok_work: 'tok_work',
@@ -2087,6 +2094,7 @@ export type PayrollUnassignedSourceSourceType = typeof PayrollUnassignedSourceSo
 
 export const PayrollUnassignedSourceSourceType = {
   grain_trip: 'grain_trip',
+  seed_trip: 'seed_trip',
   field_progress: 'field_progress',
   field_operation: 'field_operation',
   tok_work: 'tok_work',
@@ -2383,6 +2391,14 @@ export const SeedMovementInputKind = {
   issue: 'issue',
 } as const;
 
+export type SeedMovementInputTransportPayBasis = typeof SeedMovementInputTransportPayBasis[keyof typeof SeedMovementInputTransportPayBasis];
+
+
+export const SeedMovementInputTransportPayBasis = {
+  per_trip: 'per_trip',
+  ton_km: 'ton_km',
+} as const;
+
 export interface SeedMovementInput {
   /**
      * @minLength 16
@@ -2423,6 +2439,24 @@ export interface SeedMovementInput {
      * @nullable
      */
   operationId?: number | null;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  supportingTaskId?: number | null;
+  /** @maxLength 50 */
+  truckNumber?: string;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  driverEmployeeId?: number | null;
+  transportPayBasis?: SeedMovementInputTransportPayBasis;
+  /**
+     * @minimum 0
+     * @maximum 100000
+     */
+  distanceKm?: number;
   /** @maxLength 3000 */
   notes?: string;
 }
@@ -2477,6 +2511,12 @@ export interface SeedMovement {
   seasonId: number | null;
   /** @nullable */
   operationId: number | null;
+  /** @nullable */
+  supportingTaskId?: number | null;
+  truckNumber?: string;
+  /** @nullable */
+  driverEmployeeId?: number | null;
+  driverName?: string;
   fieldNumber: string;
   notes: string;
   approvalStatus: SeedMovementApprovalStatus;
@@ -2675,6 +2715,14 @@ export interface GrainTransportRateInput {
   version?: number;
 }
 
+export type GrainTransportTripSourceType = typeof GrainTransportTripSourceType[keyof typeof GrainTransportTripSourceType];
+
+
+export const GrainTransportTripSourceType = {
+  grain_trip: 'grain_trip',
+  seed_trip: 'seed_trip',
+} as const;
+
 export type GrainTransportTripTransportPayBasis = typeof GrainTransportTripTransportPayBasis[keyof typeof GrainTransportTripTransportPayBasis];
 
 
@@ -2704,6 +2752,9 @@ export const GrainTransportTripApprovalStatus = {
 } as const;
 
 export interface GrainTransportTrip {
+  sourceType?: GrainTransportTripSourceType;
+  /** @nullable */
+  supportingTaskId?: number | null;
   transportPayBasis?: GrainTransportTripTransportPayBasis;
   distanceKm?: number;
   tonKm?: number;

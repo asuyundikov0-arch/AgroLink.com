@@ -31,6 +31,7 @@ import {
   grainCropsTable,
   grainLocationsTable,
   grainMovementsTable,
+  seedMovementsTable,
   payrollRegisterItemsTable,
   payrollRegistersTable,
   tokPayrollEntriesTable,
@@ -65,7 +66,7 @@ router.use("/economic/payroll-accruals", requireApprovedRole, (req, res, next) =
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type LineInput = { employeeName: string; workType: string; details: string; amountKzt: number };
-type PayrollSourceType = "grain_trip" | "field_progress" | "field_operation" | "tok_work";
+type PayrollSourceType = "grain_trip" | "seed_trip" | "field_progress" | "field_operation" | "tok_work";
 type AutomaticEntry = {
   sourceType: PayrollSourceType;
   sourceId: number;
@@ -186,7 +187,7 @@ export async function calculateAutomaticAccruals(tx: Tx, sourceGroup?: SourceGro
     details: string;
     amountKzt: number;
   }) => {
-    if (sourceGroup && (source.sourceType === "grain_trip" ? "motor_pool" : source.sourceType === "tok_work" ? "tok" : "brigade") !== sourceGroup) return;
+    if (sourceGroup && (["grain_trip", "seed_trip"].includes(source.sourceType) ? "motor_pool" : source.sourceType === "tok_work" ? "tok" : "brigade") !== sourceGroup) return;
     const group = groupFor(source.workDate, source.unit);
     const employee = employeeFor(source.employeeId, source.employeeName);
     if (!employee) {
@@ -236,6 +237,26 @@ export async function calculateAutomaticAccruals(tx: Tx, sourceGroup?: SourceGro
       workType: payrollOperationLabels[movement.operation] ?? "Перевозка зерна",
       details,
       amountKzt: Number(movement.transportRate),
+    });
+  }
+
+  const seedTrips = await tx.select().from(seedMovementsTable).where(and(
+    eq(seedMovementsTable.kind, "issue"), eq(seedMovementsTable.approvalStatus, "approved"),
+  ));
+  for (const trip of seedTrips) {
+    if (!trip.transportRate || !trip.driverEmployeeId || !trip.truckNumber) continue;
+    addSource({
+      workDate: trip.occurredOn, unit: trip.unit, sourceType: "seed_trip", sourceId: trip.id,
+      employeeId: trip.driverEmployeeId, employeeName: trip.driverName,
+      workType: "Автобаза · доставка семян",
+      details: [
+        `Поле №${trip.fieldNumber}`, `Машина ${trip.truckNumber}`, `${trip.quantityKg / 1000} т семян`,
+        trip.supportingTaskId ? `Задание №${trip.supportingTaskId}` : "",
+        trip.transportPayBasis === "ton_km"
+          ? `${trip.quantityKg / 1000} т × ${Number(trip.distanceKm)} км × ${Number(trip.transportTariff)} ₸/т·км`
+          : "Оплата за рейс",
+      ].filter(Boolean).join(" · "),
+      amountKzt: Number(trip.transportRate),
     });
   }
 
@@ -397,7 +418,7 @@ async function loadRegisters(role: string, sourceGroup?: SourceGroup) {
     if (!sourceGroup) return true;
     if (row.sourceGroup) return row.sourceGroup === sourceGroup;
     const lines = itemsByRegister.get(row.id) ?? [];
-    const belongs = (type: string) => sourceGroup === "motor_pool" ? type === "grain_trip" : sourceGroup === "tok" ? type === "tok_work" : ["field_progress", "field_operation"].includes(type);
+    const belongs = (type: string) => sourceGroup === "motor_pool" ? ["grain_trip", "seed_trip"].includes(type) : sourceGroup === "tok" ? type === "tok_work" : ["field_progress", "field_operation"].includes(type);
     return lines.length > 0 && lines.every(line => belongs(line.sourceType));
   }).map((row) => normalizeRegister(row, itemsByRegister.get(row.id) ?? []));
 }

@@ -8,6 +8,8 @@ import {
   type GrainTransportTrip,
   useGetGrainTransportTrips,
   useUpdateGrainTransportRate,
+  useUpdateSeedTransportRate,
+  getGetSeedWarehouseQueryKey,
 } from "@workspace/api-client-react";
 import { dateFmt, errorInfo } from "../agro/grain/shared";
 import { money } from "./repairs/shared";
@@ -81,7 +83,7 @@ export default function MotorPoolWorkspace({ role, demoActive = false }: { role:
         {notice && <p className="notice-banner" role="status" data-testid="motor-pool-notice"><Check size={15} />{notice}</p>}
 
         <div className="inline-flex flex-wrap rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Работа автобазы">
-          <button type="button" role="tab" aria-selected={view === "trips"} onClick={() => setView("trips")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "trips" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-motor-trips">Рейсы зерна ({trips.length})</button>
+          <button type="button" role="tab" aria-selected={view === "trips"} onClick={() => setView("trips")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "trips" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-motor-trips">Рейсы зерна и семян ({trips.length})</button>
           <button type="button" role="tab" aria-selected={view === "payroll"} onClick={() => setView("payroll")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "payroll" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-motor-payroll">Наряды автобазы</button>
         </div>
 
@@ -101,7 +103,7 @@ export default function MotorPoolWorkspace({ role, demoActive = false }: { role:
             {tripsQuery.isLoading ? <div className="mt-4 space-y-3"><div className="skeleton h-24 rounded-lg" /><div className="skeleton h-24 rounded-lg" /></div>
               : tripsQuery.isError ? <div className="py-8 text-center" role="alert" data-testid="motor-trips-error"><p className="text-xs text-destructive">{errorInfo(tripsQuery.error).message}</p><button type="button" className="button button-secondary mt-3 text-xs" onClick={() => void tripsQuery.refetch()}>Повторить</button></div>
                 : visible.length === 0 ? <div className="flex flex-col items-center py-10 text-center" data-testid="motor-trips-empty"><div className="empty-icon"><Truck size={20} /></div><p className="mt-3 text-sm font-semibold">{trips.length ? "По фильтру рейсов нет" : "Рейсов пока нет"}</p><p className="mt-1 max-w-md text-xs text-muted-foreground">Приход с поля, перемещения, отправки на элеватор и продажи появятся после внесения весовщиком.</p></div>
-                  : <ul className="mt-3 divide-y divide-border">{visible.map((trip) => <TripRow key={trip.id} trip={trip} onSaved={setNotice} />)}</ul>}
+                  : <ul className="mt-3 divide-y divide-border">{visible.map((trip) => <TripRow key={`${trip.sourceType ?? "grain_trip"}-${trip.id}`} trip={trip} onSaved={setNotice} />)}</ul>}
           </section>
         )}
       </>}
@@ -111,7 +113,10 @@ export default function MotorPoolWorkspace({ role, demoActive = false }: { role:
 
 function TripRow({ trip, onSaved }: { trip: GrainTransportTrip; onSaved: (m: string) => void }) {
   const queryClient = useQueryClient();
-  const mutation = useUpdateGrainTransportRate();
+  const grainM = useUpdateGrainTransportRate();
+  const seedM = useUpdateSeedTransportRate();
+  const isSeed = trip.sourceType === "seed_trip";
+  const mutation = { isPending: seedM.isPending || grainM.isPending };
   const tonKmMode = trip.transportPayBasis === "ton_km";
   const initial = tonKmMode ? (trip.tariffPerTonKm == null ? "" : String(trip.tariffPerTonKm)) : (trip.rateKzt == null ? "" : String(trip.rateKzt));
   const [value, setValue] = useState(initial);
@@ -121,20 +126,22 @@ function TripRow({ trip, onSaved }: { trip: GrainTransportTrip; onSaved: (m: str
   const tonKm = trip.tonKm ?? trip.quantityTons * (trip.distanceKm ?? 0);
   const parsed = tonKmMode ? parsePositive(value, 1_000_000_000, 4) : parsePositive(value, 1_000_000_000_000, 2);
   const preview = parsed === null ? null : tonKmMode ? Math.round(tonKm * parsed * 100) / 100 : parsed;
-  const id = `motor-trip-${trip.id}`;
+  const id = `motor-trip-${isSeed ? "seed" : "grain"}-${trip.id}`;
 
   const save = async () => {
     if (!approved) return;
     if (parsed === null) { setError(tonKmMode ? "Укажите положительный тариф за т·км (до 4 знаков)." : "Укажите положительную сумму за рейс (до 2 знаков)."); return; }
     setError("");
     try {
-      await mutation.mutateAsync({ id: trip.id, data: { version: trip.version, ...(tonKmMode ? { tariffPerTonKm: parsed } : { rateKzt: parsed }) } });
+      const payload = { id: trip.id, data: { version: trip.version, ...(tonKmMode ? { tariffPerTonKm: parsed } : { rateKzt: parsed }) } };
+      if (isSeed) await seedM.mutateAsync(payload); else await grainM.mutateAsync(payload);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getGetGrainTransportTripsQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getListPayrollAccrualsQueryKey({ sourceGroup: "motor_pool" }) }),
         queryClient.invalidateQueries({ queryKey: getListPayrollRegistersQueryKey({ sourceGroup: "motor_pool" }) }),
+        ...(isSeed ? [queryClient.invalidateQueries({ queryKey: getGetSeedWarehouseQueryKey() }), queryClient.invalidateQueries({ predicate: (q) => typeof q.queryKey[0] === "string" && (q.queryKey[0] as string).startsWith("/api/agro/fields") })] : []),
       ]);
-      onSaved(`Расценка по рейсу №${trip.id} сохранена.`);
+      onSaved(`Расценка по рейсу ${isSeed ? "семян " : ""}№${trip.id} сохранена.`);
     } catch (err) {
       const info = errorInfo(err);
       setError(info.status === 409 ? "Рейс изменился или начисление уже отправлено в отдел кадров. Данные обновлены." : info.message);
@@ -143,21 +150,22 @@ function TripRow({ trip, onSaved }: { trip: GrainTransportTrip; onSaved: (m: str
   };
 
   return (
-    <li className="flex flex-col gap-3 py-4 lg:flex-row lg:items-start lg:justify-between" data-testid={`motor-trip-row-${trip.id}`}>
+    <li className="flex flex-col gap-3 py-4 lg:flex-row lg:items-start lg:justify-between" data-testid={`motor-trip-row-${isSeed ? "seed" : "grain"}-${trip.id}`}>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <strong className="text-sm">{operationLabel[trip.operation] ?? trip.operation} · {trip.cropName}</strong>
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${approvalTone[trip.approvalStatus]}`} data-testid={`status-motor-trip-${trip.id}`}>{approvalLabel[trip.approvalStatus]}</span>
+          <strong className="text-sm">{isSeed ? "Доставка семян" : operationLabel[trip.operation] ?? trip.operation} · {trip.cropName}</strong>
+          {isSeed && trip.supportingTaskId != null && <span className="meta-chip" data-testid={`text-motor-trip-task-${trip.id}`}>Задание № {trip.supportingTaskId}</span>}
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${approvalTone[trip.approvalStatus]}`} data-testid={`status-${id}`}>{approvalLabel[trip.approvalStatus]}</span>
           <span className="meta-chip">{tonKmMode ? "За тонно-км" : "За рейс"}</span>
           <span className="text-[10px] text-muted-foreground">№ {trip.id}</span>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">{trip.unit} · {dateFmt(trip.occurredOn)} · <span className="font-mono">{num(trip.quantityTons)} т</span>{tonKmMode && <> · <span className="font-mono">{num(trip.distanceKm ?? 0)} км</span> · <span className="font-mono">{num(tonKm)} т·км</span></>}{trip.fieldName ? ` · поле ${trip.fieldName}` : ""}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{trip.unit} · {dateFmt(trip.occurredOn)} · <span className="font-mono">{num(trip.quantityTons)} т</span>{tonKmMode && <> · <span className="font-mono">{num(trip.distanceKm ?? 0)} км</span> · <span className="font-mono">{num(tonKm)} т·км</span></>}{trip.fieldName ? ` · поле ${trip.fieldName}` : ""}{isSeed ? " · сезонные затраты поля: Автобаза (доставка семян)" : ""}</p>
         <p className="mt-1 text-xs font-semibold">Машина {trip.truckNumber || "—"} · водитель {trip.driverName || "—"}{trip.driverEmployeeId === null && <span className="ml-1.5 text-[10px] font-semibold text-amber-700">нет в справочнике</span>}</p>
         <p className="mt-0.5 text-[11px] text-muted-foreground">{trip.fromLocationName ? `из ${trip.fromLocationName}` : trip.operation === "receipt" ? "с поля" : "—"}{trip.toLocationName ? ` → ${trip.toLocationName}` : trip.operation === "sale" ? " → покупателю" : ""}</p>
         {trip.rateSetBy && <p className="mt-1 text-[10px] text-muted-foreground">Расценку внёс {trip.rateSetBy}{trip.rateSetAt ? ` · ${dateFmt(trip.rateSetAt)}` : ""}{trip.rateKzt !== null ? ` · начислено ${money(trip.rateKzt)}` : ""}</p>}
       </div>
       <div className="w-full shrink-0 lg:w-[280px]">
-        {!approved ? <p className="rounded-lg bg-muted/60 p-3 text-[11px] leading-5 text-muted-foreground" data-testid={`text-motor-trip-locked-${trip.id}`}><Lock size={11} className="mr-1 inline" />{trip.approvalStatus === "pending" ? "Расценка станет доступна после согласования заведующим током." : "Запись возвращена весовщику на исправление. Расценка недоступна."}</p> : <>
+        {!approved ? <p className="rounded-lg bg-muted/60 p-3 text-[11px] leading-5 text-muted-foreground" data-testid={`text-${id}-locked`}><Lock size={11} className="mr-1 inline" />{trip.approvalStatus === "pending" ? "Расценка станет доступна после согласования заведующим током." : "Запись возвращена весовщику на исправление. Расценка недоступна."}</p> : <>
           <div className="flex items-end gap-2">
             <label className="form-label flex-1" htmlFor={`${id}-input`}>{tonKmMode ? "Тариф, ₸ за т·км" : "Оплата за рейс, ₸"}<input id={`${id}-input`} inputMode="decimal" className="text-input mt-1 font-mono" value={value} onChange={(e) => { setValue(e.target.value); setError(""); }} aria-invalid={!!error} data-testid={`${id}-input`} /></label>
             <button type="button" className="button button-primary shrink-0 text-xs" onClick={() => void save()} disabled={mutation.isPending} data-testid={`${id}-save`}>{mutation.isPending ? "Сохраняем…" : "Сохранить"}</button>

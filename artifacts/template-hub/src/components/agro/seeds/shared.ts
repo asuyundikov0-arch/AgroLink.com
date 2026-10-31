@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { getGetGrainDashboardQueryKey, getGetSeedWarehouseQueryKey, type SeedMovement } from "@workspace/api-client-react";
+import { getGetGrainDashboardQueryKey, getGetGrainTransportTripsQueryKey, getListPayrollAccrualsQueryKey, getGetSeedWarehouseQueryKey, type SeedMovement } from "@workspace/api-client-react";
 
 export const SEED_POLL_MS = 15000;
 export const SEED_KIND_LABEL: Record<SeedMovement["kind"], string> = { receipt: "Покупка семян", from_grain: "Из зерна", issue: "Выдача на поле" };
@@ -28,6 +28,8 @@ export function useInvalidateSeeds() {
   return () => Promise.all([
     qc.invalidateQueries({ queryKey: getGetSeedWarehouseQueryKey() }),
     qc.invalidateQueries({ queryKey: getGetGrainDashboardQueryKey() }),
+    qc.invalidateQueries({ queryKey: getGetGrainTransportTripsQueryKey() }),
+    qc.invalidateQueries({ queryKey: getListPayrollAccrualsQueryKey({ sourceGroup: "motor_pool" }) }),
     qc.invalidateQueries({ predicate: (q) => typeof q.queryKey[0] === "string" && (q.queryKey[0] as string).startsWith("/api/agro/fields") }),
   ]);
 }

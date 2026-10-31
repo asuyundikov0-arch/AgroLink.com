@@ -7,9 +7,13 @@
  */
 import type { GrainTransportTripApprovalStatus } from './grainTransportTripApprovalStatus';
 import type { GrainTransportTripOperation } from './grainTransportTripOperation';
+import type { GrainTransportTripSourceType } from './grainTransportTripSourceType';
 import type { GrainTransportTripTransportPayBasis } from './grainTransportTripTransportPayBasis';
 
 export interface GrainTransportTrip {
+  sourceType?: GrainTransportTripSourceType;
+  /** @nullable */
+  supportingTaskId?: number | null;
   transportPayBasis?: GrainTransportTripTransportPayBasis;
   distanceKm?: number;
   tonKm?: number;

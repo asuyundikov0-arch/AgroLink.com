@@ -3,6 +3,7 @@ import { grainCropsTable } from "./grain-crops";
 import { grainMovementsTable } from "./grain-movements";
 import { fieldSeasonsTable } from "./field-seasons";
 import { fieldOperationsTable } from "./field-operations";
+import { supportingTasksTable } from "./supporting-tasks";
 
 export const seedMovementsTable = pgTable("seed_movements", {
   id: serial("id").primaryKey(),
@@ -21,6 +22,17 @@ export const seedMovementsTable = pgTable("seed_movements", {
   grainMovementId: integer("grain_movement_id").unique().references(() => grainMovementsTable.id, { onDelete: "restrict" }),
   seasonId: integer("season_id").references(() => fieldSeasonsTable.id, { onDelete: "restrict" }),
   operationId: integer("operation_id").references(() => fieldOperationsTable.id, { onDelete: "restrict" }),
+  supportingTaskId: integer("supporting_task_id").references(() => supportingTasksTable.id, { onDelete: "restrict" }),
+  truckNumber: text("truck_number").notNull().default(""),
+  driverEmployeeId: integer("driver_employee_id"),
+  driverName: text("driver_name").notNull().default(""),
+  transportPayBasis: text("transport_pay_basis").notNull().default("per_trip"),
+  distanceKm: numeric("distance_km", { precision: 12, scale: 3 }).notNull().default("0"),
+  transportRate: numeric("transport_rate", { precision: 16, scale: 2 }),
+  transportTariff: numeric("transport_tariff", { precision: 16, scale: 4 }),
+  transportVersion: integer("transport_version").notNull().default(1),
+  transportRateSetBy: text("transport_rate_set_by").notNull().default(""),
+  transportRateSetAt: timestamp("transport_rate_set_at", { withTimezone: true }),
   fieldNumber: text("field_number").notNull().default(""),
   notes: text("notes").notNull().default(""),
   approvalStatus: text("approval_status").notNull().default("pending"),

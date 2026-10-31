@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { SeedMovementInputKind } from './seedMovementInputKind';
+import type { SeedMovementInputTransportPayBasis } from './seedMovementInputTransportPayBasis';
 import type { SeedMovementInputUnit } from './seedMovementInputUnit';
 
 export interface SeedMovementInput {
@@ -48,6 +49,24 @@ export interface SeedMovementInput {
      * @nullable
      */
   operationId?: number | null;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  supportingTaskId?: number | null;
+  /** @maxLength 50 */
+  truckNumber?: string;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  driverEmployeeId?: number | null;
+  transportPayBasis?: SeedMovementInputTransportPayBasis;
+  /**
+     * @minimum 0
+     * @maximum 100000
+     */
+  distanceKm?: number;
   /** @maxLength 3000 */
   notes?: string;
 }

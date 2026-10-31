@@ -7,6 +7,9 @@
  */
 
 export type FieldOperationCostsSalariesItem = {
+  sourceType?: string;
+  /** @nullable */
+  supportingTaskId?: number | null;
   /** @nullable */
   employeeId: number | null;
   employeeName: string;

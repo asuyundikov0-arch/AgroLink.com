@@ -47,7 +47,7 @@ export function buildHRRoster(employees: Employee[], registers: PayrollRegister[
     for (const entry of register.entries) {
       const candidates = aliases.get(normalizeEmployeeName(entry.employeeName));
       const id = entry.employeeId ?? (candidates?.size === 1 ? [...candidates][0] : null);
-      const sourceGroup = entry.sourceType === "grain_trip" ? "motor_pool" : entry.sourceType === "tok_work" ? "grain_floor"
+      const sourceGroup = ["grain_trip", "seed_trip"].includes(entry.sourceType) ? "motor_pool" : entry.sourceType === "tok_work" ? "grain_floor"
         : ["field_progress", "field_operation"].includes(entry.sourceType) ? "brigade" : undefined;
       const row = getRow(id, entry.employeeName, sourceGroup);
       if (register.status === "pending_hr") {

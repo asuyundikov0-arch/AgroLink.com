@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import {
   db, seedMovementsTable as seeds, grainMovementsTable as grain, grainCropsTable as crops,
   grainLocationsTable as locations, fieldSeasonsTable as seasons, agroFieldsTable as fields,
-  fieldOperationsTable as operations, activityTable,
+  fieldOperationsTable as operations, activityTable, supportingTasksTable as tasks, employeesTable,
 } from "@workspace/db";
 import type { SeedMovementInput } from "@workspace/api-zod";
 import type { RoleAccess } from "../middlewares/auth";
@@ -18,8 +18,23 @@ const positiveId = (n: unknown) => Number.isSafeInteger(n) && Number(n) > 0;
 // Same lock as commodity grain: conversion is atomic across both ledgers.
 const lock = (tx: Tx) => tx.execute(sql`select pg_advisory_xact_lock(718392005)`);
 
+async function validateTask(tx: Tx, row: Pick<Row, "supportingTaskId" | "operationId" | "seasonId" | "unit">) {
+  if (!row.supportingTaskId) return;
+  const [task] = await tx.select().from(tasks).where(eq(tasks.id, row.supportingTaskId)).for("share");
+  const [operation] = task ? await tx.select().from(operations).where(eq(operations.id, task.operationId)).for("share") : [];
+  const [season] = operation ? await tx.select().from(seasons).where(eq(seasons.id, operation.seasonId)) : [];
+  seedCheck(task && task.status === "sent" && task.details.services.includes("tok") &&
+    task.deliveries.some(d => d.service === "tok" && d.status === "accepted") &&
+    operation && !operation.voidedAt && !operation.actualEnd &&
+    operation.approvalStatus === "approved" && operation.id === row.operationId &&
+    season && season.id === row.seasonId && season.fieldId === task.context.fieldId &&
+    task.context.farm === row.unit && season.year === task.context.year,
+  "Выберите действующее задание этого поля, которое ток уже принял к исполнению.", 409);
+}
+
 async function valueForPosting(tx: Tx, row: Row) {
   if (row.kind === "issue") {
+    await validateTask(tx, row);
     const [season] = await tx.select().from(seasons).where(eq(seasons.id, row.seasonId!)).for("share");
     const [field] = season ? await tx.select().from(fields).where(eq(fields.id, season.fieldId)).for("share") : [];
     seedCheck(field && field.isActive && field.unit === row.unit &&
@@ -69,6 +84,11 @@ export async function submitSeedMovement(tx: Tx, input: SeedMovementInput, acces
     fromLocationId: input.kind === "from_grain" ? input.fromLocationId ?? null : null,
     seasonId: input.kind === "issue" ? input.seasonId ?? null : null,
     operationId: input.kind === "issue" ? input.operationId ?? null : null,
+    supportingTaskId: input.kind === "issue" ? input.supportingTaskId ?? null : null,
+    truckNumber: input.kind === "issue" ? input.truckNumber?.trim() ?? "" : "",
+    driverEmployeeId: input.kind === "issue" ? input.driverEmployeeId ?? null : null,
+    transportPayBasis: input.kind === "issue" ? input.transportPayBasis ?? "per_trip" : "per_trip",
+    distanceKm: input.kind === "issue" ? input.distanceKm ?? 0 : 0,
     notes: input.notes?.trim() ?? "",
   };
   const fingerprint = JSON.stringify(normalized);
@@ -83,6 +103,9 @@ export async function submitSeedMovement(tx: Tx, input: SeedMovementInput, acces
   seedCheck(crop, "Культура не найдена.");
   let amountCents = 0n, pricePerTonCents = 0n;
   let fieldNumber = "";
+  let driverName = "";
+  seedCheck(input.kind === "issue" || (!input.supportingTaskId && !input.truckNumber && !input.driverEmployeeId),
+    "Задание и рейс можно указать только при отправке семян на поле.");
   if (input.kind !== "issue") {
     const price = input.pricePerTon;
     seedCheck(typeof price === "number" && Number.isFinite(price) && price > 0 && price <= 1e9 &&
@@ -96,6 +119,22 @@ export async function submitSeedMovement(tx: Tx, input: SeedMovementInput, acces
     seedCheck(normalized.invoiceNumber && normalized.supplier, "Укажите номер накладной и поставщика.");
   }
   if (input.kind === "issue") {
+    seedCheck(!normalized.supportingTaskId || positiveId(normalized.supportingTaskId), "Выберите корректное задание.");
+    seedCheck(!normalized.supportingTaskId || (normalized.truckNumber && normalized.driverEmployeeId),
+      "Для исполнения задания укажите машину и водителя из справочника.");
+    seedCheck(Boolean(normalized.truckNumber) === Boolean(normalized.driverEmployeeId),
+      "Укажите и машину, и водителя либо оставьте оба поля пустыми.");
+    if (normalized.driverEmployeeId) {
+      seedCheck(positiveId(normalized.driverEmployeeId), "Выберите водителя из справочника.");
+      const [driver] = await tx.select().from(employeesTable).where(eq(employeesTable.id, normalized.driverEmployeeId));
+      seedCheck(driver && driver.isActive, "Выберите действующего сотрудника.");
+      driverName = driver.fullName;
+    }
+    seedCheck(Number.isFinite(normalized.distanceKm) && normalized.distanceKm >= 0 &&
+      normalized.distanceKm <= 100000 && Math.abs(normalized.distanceKm * 1000 - Math.round(normalized.distanceKm * 1000)) < .00001,
+    "Расстояние указывается до трёх знаков после запятой.");
+    seedCheck(normalized.transportPayBasis !== "ton_km" || (normalized.distanceKm > 0 && normalized.driverEmployeeId),
+      "Для расчёта за тонно-километр укажите расстояние и водителя.");
     seedCheck(positiveId(input.seasonId), "Выберите поле и сезон отправки семян.");
     const [season] = await tx.select().from(seasons).where(eq(seasons.id, input.seasonId!));
     const [field] = season ? await tx.select().from(fields).where(eq(fields.id, season.fieldId)) : [];
@@ -109,6 +148,7 @@ export async function submitSeedMovement(tx: Tx, input: SeedMovementInput, acces
         operation.approvalStatus === "approved" && isSeedingOperation(operation.name),
       "Для семян можно выбрать только согласованную операцию посева этого поля.");
     }
+    await validateTask(tx, normalized);
   }
   let grainMovementId: number | null = null;
   if (input.kind === "from_grain") {
@@ -126,7 +166,7 @@ export async function submitSeedMovement(tx: Tx, input: SeedMovementInput, acces
   }
   const { pricePerTon: _price, ...storageValues } = normalized;
   const [row] = await tx.insert(seeds).values({
-    requestId: input.requestId, fingerprint, ...storageValues,
+    requestId: input.requestId, fingerprint, ...storageValues, distanceKm: String(normalized.distanceKm), driverName,
     pricePerTonCents: pricePerTonCents.toString(), amountCents: amountCents.toString(),
     grainMovementId, fieldNumber, createdByUserId: access.userId, createdBy: actor(access),
   }).returning();

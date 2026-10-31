@@ -11,6 +11,7 @@ import { calculateGrainLedger, grainBusinessDate, grainNameKey, toGrainKg, valid
 import { processingWeights } from "../lib/grain-processing";
 import { grainTripWasSubmitted, lockPayrollSources } from "../lib/payroll-source-guard";
 import { transportPay } from "../lib/transport-pay";
+import { seedTransportTrips } from "../lib/seed-transport";
 
 const router: IRouter = Router();
 const readers = ["agronomist", "chief_agronomist", "grain_manager", "weigher", "general_director"];
@@ -54,6 +55,7 @@ async function transportTrips() {
   return movements.filter((row) => transportOperations.has(row.operation) && !row.voidedAt
     && (row.operation !== "sale" || !!row.truckNumber || row.driverEmployeeId !== null)).map((row) => ({
     id: row.id,
+    sourceType: "grain_trip" as const,
     unit: row.unit,
     operation: row.operation as "receipt" | "transfer" | "sale" | "drying" | "cleaning",
     transportPayBasis: row.transportPayBasis as "per_trip" | "ton_km",
@@ -119,7 +121,8 @@ router.get("/agro/grain", roles(readers), safe(async (_req, res) => {
 }));
 router.get("/agro/grain/transport-trips", roles(["motor_pool_manager", "general_director"]), safe(async (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
-  res.json(GetGrainTransportTripsResponse.parse(await transportTrips()));
+  const [grain, seeds] = await Promise.all([transportTrips(), seedTransportTrips()]);
+  res.json(GetGrainTransportTripsResponse.parse([...grain, ...seeds].sort((a, b) => b.occurredOn.localeCompare(a.occurredOn) || b.id - a.id)));
 }));
 router.patch("/agro/grain/transport-trips/:id/rate", roles(["motor_pool_manager", "general_director"]), safe(async (req, res) => {
   const params = UpdateGrainTransportRateParams.safeParse(req.params);

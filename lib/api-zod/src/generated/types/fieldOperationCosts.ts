@@ -12,6 +12,7 @@ import type { FieldOperationCostsSalariesItem } from './fieldOperationCostsSalar
 import type { SeedFieldCost } from './seedFieldCost';
 
 export type FieldOperationCosts = FieldCostTotals & {
+  transportSalaryCost?: number;
   seedIssues?: SeedFieldCost[];
   operationId: number;
   name: string;

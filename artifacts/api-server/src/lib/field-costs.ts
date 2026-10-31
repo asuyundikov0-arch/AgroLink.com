@@ -19,6 +19,7 @@ export async function fieldCosts(tx: Tx, seasonId: number): Promise<FieldCosts |
   const result: FieldCosts = {
     ...emptyTotals(), seasonId, fieldId: season.fieldId, unallocatedChemicalCost: 0, unallocatedSeedCost: 0,
     operations: operations.map((o) => ({ ...emptyTotals(), operationId: o.id,
+      transportSalaryCost: 0,
       name: o.actualOperationName || o.name, chemicals: [], fuels: [], salaries: [], seedIssues: [] })),
   };
   const byId = new Map<number, FieldOperationCosts>(result.operations.map((o) => [o.operationId, o]));
@@ -67,15 +68,22 @@ export async function fieldCosts(tx: Tx, seasonId: number): Promise<FieldCosts |
     .innerJoin(fieldOperationsTable, eq(fieldOperationProgressTable.operationId, fieldOperationsTable.id))
     .where(eq(fieldOperationsTable.seasonId, seasonId));
   const progressToOperation = new Map(progress.map((p) => [p.field_operation_progress.id, p.field_operations.id]));
+  const seedTrips = await tx.select().from(seedMovementsTable).where(and(
+    eq(seedMovementsTable.seasonId, seasonId), eq(seedMovementsTable.kind, "issue"),
+    eq(seedMovementsTable.approvalStatus, "approved"),
+  ));
+  const seedTripById = new Map(seedTrips.map(t => [t.id, t]));
   for (const { item, register } of wages) {
+    const trip = item.sourceType === "seed_trip" ? seedTripById.get(item.sourceId!) : undefined;
     const id = item.sourceType === "field_progress" ? progressToOperation.get(item.sourceId!) :
-      item.sourceType === "field_operation" ? item.sourceId : null;
+      item.sourceType === "field_operation" ? item.sourceId : trip?.operationId;
     const op = id ? byId.get(id) : null;
     if (!op) continue; // Transport/manual rows are not guessed from free-text field names.
     const amount = Number(item.amountKzt);
     op.salaries.push({ employeeId: item.employeeId, employeeName: item.employeeName,
-      workDate: register.workDate, amount });
+      workDate: register.workDate, amount, sourceType: item.sourceType, supportingTaskId: trip?.supportingTaskId ?? null });
     op.salaryCost = addMoney(op.salaryCost, amount);
+    if (trip) op.transportSalaryCost = addMoney(op.transportSalaryCost ?? 0, amount);
   }
   const seedIssues = await tx.select({ movement: seedMovementsTable, crop: grainCropsTable })
     .from(seedMovementsTable).innerJoin(grainCropsTable, eq(seedMovementsTable.cropId, grainCropsTable.id))
@@ -86,7 +94,8 @@ export async function fieldCosts(tx: Tx, seasonId: number): Promise<FieldCosts |
     const op = movement.operationId ? byId.get(movement.operationId) : undefined;
     if (op) {
       op.seedCost = addMoney(op.seedCost ?? 0, amount);
-      op.seedIssues!.push({ movementId: movement.id, cropName: crop.name, occurredOn: movement.occurredOn,
+      op.seedIssues!.push({ movementId: movement.id, supportingTaskId: movement.supportingTaskId,
+        cropName: crop.name, occurredOn: movement.occurredOn,
         quantityTons: movement.quantityKg / 1000, amount });
     } else result.unallocatedSeedCost = addMoney(result.unallocatedSeedCost ?? 0, amount);
   }

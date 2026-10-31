@@ -1265,7 +1265,9 @@ export const GetFieldCostsResponse = zod.object({
   "totalCost": zod.number(),
   "fuelLiters": zod.number()
 }).and(zod.object({
+  "transportSalaryCost": zod.number().optional(),
   "seedIssues": zod.array(zod.object({
+  "supportingTaskId": zod.number().nullish(),
   "movementId": zod.number(),
   "cropName": zod.string(),
   "occurredOn": zod.string(),
@@ -1287,6 +1289,8 @@ export const GetFieldCostsResponse = zod.object({
   "amount": zod.number()
 })),
   "salaries": zod.array(zod.object({
+  "sourceType": zod.string().optional(),
+  "supportingTaskId": zod.number().nullish(),
   "employeeId": zod.number().nullable(),
   "employeeName": zod.string(),
   "workDate": zod.string(),
@@ -5431,6 +5435,8 @@ export const GetGrainDashboardResponse = zod.object({
 
 
 export const GetGrainTransportTripsResponseItem = zod.object({
+  "sourceType": zod.enum(['grain_trip', 'seed_trip']).optional(),
+  "supportingTaskId": zod.number().nullish(),
   "transportPayBasis": zod.enum(['per_trip', 'ton_km']).optional(),
   "distanceKm": zod.number().optional(),
   "tonKm": zod.number().optional(),
@@ -5480,6 +5486,8 @@ export const UpdateGrainTransportRateBody = zod.object({
 })
 
 export const UpdateGrainTransportRateResponse = zod.object({
+  "sourceType": zod.enum(['grain_trip', 'seed_trip']).optional(),
+  "supportingTaskId": zod.number().nullish(),
   "transportPayBasis": zod.enum(['per_trip', 'ton_km']).optional(),
   "distanceKm": zod.number().optional(),
   "tonKm": zod.number().optional(),
@@ -5572,6 +5580,10 @@ export const GetSeedWarehouseResponse = zod.object({
   "fromLocationId": zod.number().nullable(),
   "seasonId": zod.number().nullable(),
   "operationId": zod.number().nullable(),
+  "supportingTaskId": zod.number().nullish(),
+  "truckNumber": zod.string().optional(),
+  "driverEmployeeId": zod.number().nullish(),
+  "driverName": zod.string().optional(),
   "fieldNumber": zod.string(),
   "notes": zod.string(),
   "approvalStatus": zod.enum(['pending', 'approved', 'rejected']),
@@ -5599,6 +5611,13 @@ export const createSeedMovementBodySupplierMax = 200;
 
 
 
+
+export const createSeedMovementBodyTruckNumberMax = 50;
+
+
+export const createSeedMovementBodyDistanceKmMin = 0;
+export const createSeedMovementBodyDistanceKmMax = 100000;
+
 export const createSeedMovementBodyNotesMax = 3000;
 
 
@@ -5616,6 +5635,11 @@ export const CreateSeedMovementBody = zod.object({
   "fromLocationId": zod.number().min(1).nullish(),
   "seasonId": zod.number().min(1).nullish(),
   "operationId": zod.number().min(1).nullish(),
+  "supportingTaskId": zod.number().min(1).nullish(),
+  "truckNumber": zod.string().max(createSeedMovementBodyTruckNumberMax).optional(),
+  "driverEmployeeId": zod.number().min(1).nullish(),
+  "transportPayBasis": zod.enum(['per_trip', 'ton_km']).optional(),
+  "distanceKm": zod.number().min(createSeedMovementBodyDistanceKmMin).max(createSeedMovementBodyDistanceKmMax).optional(),
   "notes": zod.string().max(createSeedMovementBodyNotesMax).optional()
 })
 
@@ -5634,12 +5658,63 @@ export const CreateSeedMovementResponse = zod.object({
   "fromLocationId": zod.number().nullable(),
   "seasonId": zod.number().nullable(),
   "operationId": zod.number().nullable(),
+  "supportingTaskId": zod.number().nullish(),
+  "truckNumber": zod.string().optional(),
+  "driverEmployeeId": zod.number().nullish(),
+  "driverName": zod.string().optional(),
   "fieldNumber": zod.string(),
   "notes": zod.string(),
   "approvalStatus": zod.enum(['pending', 'approved', 'rejected']),
   "createdBy": zod.string(),
   "reviewedBy": zod.string(),
   "reviewNote": zod.string()
+})
+
+
+export const UpdateSeedTransportRateParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateSeedTransportRateBodyRateKztMin = 0.01;
+export const updateSeedTransportRateBodyRateKztMax = 1000000000000;
+
+export const updateSeedTransportRateBodyTariffPerTonKmMin = 0.0001;
+export const updateSeedTransportRateBodyTariffPerTonKmMax = 1000000000;
+
+
+
+
+export const UpdateSeedTransportRateBody = zod.object({
+  "rateKzt": zod.number().min(updateSeedTransportRateBodyRateKztMin).max(updateSeedTransportRateBodyRateKztMax).optional(),
+  "tariffPerTonKm": zod.number().min(updateSeedTransportRateBodyTariffPerTonKmMin).max(updateSeedTransportRateBodyTariffPerTonKmMax).optional(),
+  "version": zod.number().min(1).optional()
+})
+
+export const UpdateSeedTransportRateResponse = zod.object({
+  "sourceType": zod.enum(['grain_trip', 'seed_trip']).optional(),
+  "supportingTaskId": zod.number().nullish(),
+  "transportPayBasis": zod.enum(['per_trip', 'ton_km']).optional(),
+  "distanceKm": zod.number().optional(),
+  "tonKm": zod.number().optional(),
+  "tariffPerTonKm": zod.number().nullish(),
+  "version": zod.number().optional(),
+  "id": zod.number(),
+  "unit": zod.string(),
+  "operation": zod.enum(['receipt', 'transfer', 'sale', 'drying', 'cleaning']),
+  "cropName": zod.string(),
+  "occurredOn": zod.string(),
+  "quantityTons": zod.number(),
+  "fromLocationName": zod.string().nullable(),
+  "toLocationName": zod.string().nullable(),
+  "fieldName": zod.string(),
+  "truckNumber": zod.string(),
+  "driverName": zod.string(),
+  "driverEmployeeId": zod.number().nullable(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'returned']),
+  "rateKzt": zod.number().nullable(),
+  "rateSetBy": zod.string(),
+  "rateSetAt": zod.string().nullable(),
+  "createdBy": zod.string()
 })
 
 
@@ -5671,6 +5746,10 @@ export const ReviewSeedMovementResponse = zod.object({
   "fromLocationId": zod.number().nullable(),
   "seasonId": zod.number().nullable(),
   "operationId": zod.number().nullable(),
+  "supportingTaskId": zod.number().nullish(),
+  "truckNumber": zod.string().optional(),
+  "driverEmployeeId": zod.number().nullish(),
+  "driverName": zod.string().optional(),
   "fieldNumber": zod.string(),
   "notes": zod.string(),
   "approvalStatus": zod.enum(['pending', 'approved', 'rejected']),
@@ -7116,7 +7195,7 @@ export const ListPayrollAccrualsResponseItem = zod.object({
   "totalAmount": zod.number(),
   "sourceHash": zod.string(),
   "entries": zod.array(zod.object({
-  "sourceType": zod.enum(['grain_trip', 'field_progress', 'field_operation', 'tok_work']),
+  "sourceType": zod.enum(['grain_trip', 'seed_trip', 'field_progress', 'field_operation', 'tok_work']),
   "sourceId": zod.number(),
   "employeeId": zod.number(),
   "employeeName": zod.string(),
@@ -7126,7 +7205,7 @@ export const ListPayrollAccrualsResponseItem = zod.object({
 })),
   "unassignedCount": zod.number(),
   "unassignedSources": zod.array(zod.object({
-  "sourceType": zod.enum(['grain_trip', 'field_progress', 'field_operation', 'tok_work']),
+  "sourceType": zod.enum(['grain_trip', 'seed_trip', 'field_progress', 'field_operation', 'tok_work']),
   "sourceId": zod.number(),
   "employeeName": zod.string(),
   "workType": zod.string(),

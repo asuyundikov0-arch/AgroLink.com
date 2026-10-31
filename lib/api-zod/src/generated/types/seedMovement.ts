@@ -26,6 +26,12 @@ export interface SeedMovement {
   seasonId: number | null;
   /** @nullable */
   operationId: number | null;
+  /** @nullable */
+  supportingTaskId?: number | null;
+  truckNumber?: string;
+  /** @nullable */
+  driverEmployeeId?: number | null;
+  driverName?: string;
   fieldNumber: string;
   notes: string;
   approvalStatus: SeedMovementApprovalStatus;

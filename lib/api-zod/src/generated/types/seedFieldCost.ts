@@ -7,6 +7,8 @@
  */
 
 export interface SeedFieldCost {
+  /** @nullable */
+  supportingTaskId?: number | null;
   movementId: number;
   cropName: string;
   occurredOn: string;

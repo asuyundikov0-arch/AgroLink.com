@@ -1,7 +1,9 @@
 import { type ReactNode, useMemo, useRef, useState } from "react";
-import { getGetFieldDashboardQueryKey, useCreateSeedMovement, useGetFieldDashboard, type GrainBalance as GrainBalanceRow, type GrainCrop, type GrainLocation, type SeedMovementInput, type SeedStock } from "@workspace/api-client-react";
+import { getGetFieldDashboardQueryKey, getGetGrainTransportTripsQueryKey, getListEmployeesQueryKey, getListPayrollAccrualsQueryKey, getListSupportingTasksQueryKey, useCreateSeedMovement, useGetFieldDashboard, useListEmployees, useListSupportingTasks, type GrainBalance as GrainBalanceRow, type GrainCrop, type GrainLocation, type SeedMovementInput, type SeedStock } from "@workspace/api-client-react";
 import { isSowing } from "../fields/SeedPlanEditor";
 import { Drawer, ErrorBox, Field, UNITS, type Unit, cx, dateFmt, errorInfo, isProcessor } from "../grain/shared";
+import { useQueryClient } from "@tanstack/react-query";
+import { eligibleSeedTasks, validateSeedTransport } from "./seedTask";
 import { SEED_KIND_LABEL, kzt, newRequestId, parsePos, tn, useInvalidateSeeds } from "./shared";
 
 type Kind = SeedMovementInput["kind"];
@@ -9,7 +11,7 @@ type Kind = SeedMovementInput["kind"];
 export default function SeedForm({ role, crops, locations, balances, stocks, asOfDate, defaultUnit, onClose, onDone, operationSwitcher }: {
   role: string; crops: GrainCrop[]; locations: GrainLocation[]; balances: GrainBalanceRow[]; stocks: SeedStock[]; asOfDate: string; defaultUnit: Unit; onClose: () => void; onDone: (msg: string) => void; operationSwitcher?: (busy: boolean) => ReactNode;
 }) {
-  const [f, setF] = useState({ kind: "receipt" as Kind, unit: defaultUnit, cropId: "", occurredOn: asOfDate, qty: "", price: "", invoiceNumber: "", supplier: "", fromLocationId: "", seasonId: "", operationId: "", notes: "" });
+  const [f, setF] = useState({ kind: "receipt" as Kind, unit: defaultUnit, cropId: "", occurredOn: asOfDate, qty: "", price: "", invoiceNumber: "", supplier: "", fromLocationId: "", seasonId: "", operationId: "", notes: "", forTask: false, taskId: "", truckNumber: "", driverEmployeeId: "", basis: "per_trip" as "per_trip" | "ton_km", distanceKm: "" });
   const [errs, setErrs] = useState<Record<string, string>>({});
   const [serverErr, setServerErr] = useState("");
   const reqRef = useRef<{ key: string; id: string } | null>(null);
@@ -19,6 +21,11 @@ export default function SeedForm({ role, crops, locations, balances, stocks, asO
   const gd = role === "general_director";
 
   const fd = useGetFieldDashboard({ query: { queryKey: getGetFieldDashboardQueryKey(), enabled: f.kind === "issue" } });
+  const qc = useQueryClient();
+  const taskParams = { service: "tok" as const };
+  const tasksQ = useListSupportingTasks(taskParams, { query: { queryKey: getListSupportingTasksQueryKey(taskParams), enabled: f.kind === "issue" && !!f.seasonId, refetchInterval: 20000 } });
+  const empQ = useListEmployees({ query: { queryKey: getListEmployeesQueryKey(), enabled: f.kind === "issue" } });
+  const drivers = useMemo(() => (empQ.data ?? []).filter((e) => e.isActive).sort((a, b) => a.fullName.localeCompare(b.fullName, "ru")), [empQ.data]);
   const cropId = Number(f.cropId) || 0;
   const crop = crops.find((c) => c.id === cropId);
   const stock = stocks.find((s) => s.unit === f.unit && s.cropId === cropId);
@@ -38,14 +45,17 @@ export default function SeedForm({ role, crops, locations, balances, stocks, asO
   }, [fd.data, f.unit]);
   const season = seasons.find((x) => String(x.s.id) === f.seasonId);
   const ops = useMemo(() => (fd.data?.operations ?? []).filter((o) => String(o.seasonId) === f.seasonId && o.status !== "cancelled" && !o.voidedAt && (o.approvalStatus ?? "approved") === "approved" && isSowing(o.name)), [fd.data, f.seasonId]);
+  const tasks = useMemo(() => eligibleSeedTasks(tasksQ.data ?? [], season?.s, ops), [tasksQ.data, season, ops]);
+  const task = f.forTask ? tasks.find((t) => String(t.id) === f.taskId) : undefined;
+  const pickTask = (id: string) => { const t = tasks.find((x) => String(x.id) === id); setF((p) => ({ ...p, taskId: id, operationId: t ? String(t.operationId) : "" })); };
   const cropMismatch = season && crop && season.s.cropName.trim().toLowerCase() !== crop.name.trim().toLowerCase();
 
   const qtyParsed = parsePos(f.qty, 3, 1e6);
   const priceParsed = parsePos(f.price, 2, 1e9);
   const estIssue = f.kind === "issue" && stock && qtyParsed.value ? qtyParsed.value * stock.pricePerTon : null;
 
-  const changeKind = (k: Kind) => { setF((p) => ({ ...p, kind: k, price: "", invoiceNumber: "", supplier: "", fromLocationId: "", seasonId: "", operationId: "" })); setErrs({}); setServerErr(""); };
-  const changeUnit = (u: Unit) => setF((p) => ({ ...p, unit: u, fromLocationId: "", seasonId: "", operationId: "" }));
+  const changeKind = (k: Kind) => { setF((p) => ({ ...p, kind: k, price: "", invoiceNumber: "", supplier: "", fromLocationId: "", seasonId: "", operationId: "", forTask: false, taskId: "" })); setErrs({}); setServerErr(""); };
+  const changeUnit = (u: Unit) => setF((p) => ({ ...p, unit: u, fromLocationId: "", seasonId: "", operationId: "", forTask: false, taskId: "" }));
 
   const submit = async () => {
     if (create.isPending) return;
@@ -57,12 +67,12 @@ export default function SeedForm({ role, crops, locations, balances, stocks, asO
     if (f.kind !== "issue" && priceParsed.err) e.price = priceParsed.err;
     if (f.kind === "receipt") { if (!f.invoiceNumber.trim()) e.invoiceNumber = "Укажите номер накладной"; if (!f.supplier.trim()) e.supplier = "Укажите поставщика"; }
     if (f.kind === "from_grain") { if (!f.fromLocationId) e.fromLocationId = "Выберите место хранения зерна"; else if (qtyParsed.value && qtyParsed.value > srcTons + 1e-9) e.qty = `Доступно зерна: ${tn(srcTons)}`; }
-    if (f.kind === "issue") { if (!f.seasonId) e.seasonId = "Выберите поле и сезон"; const av = stock?.quantityTons ?? 0; if (qtyParsed.value && qtyParsed.value > av + 1e-9) e.qty = `Доступно семян: ${tn(av)}`; }
+    if (f.kind === "issue") { if (!f.seasonId) e.seasonId = "Выберите поле и сезон"; const av = stock?.quantityTons ?? 0; if (qtyParsed.value && qtyParsed.value > av + 1e-9) e.qty = `Доступно семян: ${tn(av)}`; if (f.forTask && !task) e.taskId = "Выберите задание в исполнении"; Object.assign(e, validateSeedTransport(f, f.forTask).errors); }
     setErrs(e); if (Object.keys(e).length) return;
     const base: Omit<SeedMovementInput, "requestId"> = { unit: f.unit, cropId, kind: f.kind, occurredOn: f.occurredOn, quantityTons: qtyParsed.value!, ...(f.notes.trim() ? { notes: f.notes.trim() } : {}) };
     if (f.kind === "receipt") Object.assign(base, { pricePerTon: priceParsed.value!, invoiceNumber: f.invoiceNumber.trim(), supplier: f.supplier.trim() });
     if (f.kind === "from_grain") Object.assign(base, { pricePerTon: priceParsed.value!, fromLocationId: Number(f.fromLocationId) });
-    if (f.kind === "issue") Object.assign(base, { seasonId: Number(f.seasonId), operationId: f.operationId ? Number(f.operationId) : null });
+    if (f.kind === "issue") Object.assign(base, { seasonId: Number(f.seasonId), operationId: f.operationId ? Number(f.operationId) : null, ...(task ? { supportingTaskId: task.id } : {}), ...(validateSeedTransport(f, !!task).payload ?? {}) });
     const key = JSON.stringify(base);
     if (!reqRef.current || reqRef.current.key !== key) reqRef.current = { key, id: newRequestId() };
     setServerErr("");
@@ -72,7 +82,7 @@ export default function SeedForm({ role, crops, locations, balances, stocks, asO
       onDone(`${SEED_KIND_LABEL[f.kind]}: ${tn(base.quantityTons)} ${gd ? "проведено" : "отправлено на согласование"}`);
       onClose();
     } catch (err) { setServerErr(errorInfo(err).message); }
-    finally { void invalidate(); }
+    finally { void invalidate(); void qc.invalidateQueries({ queryKey: getGetGrainTransportTripsQueryKey() }); void qc.invalidateQueries({ queryKey: getListPayrollAccrualsQueryKey({ sourceGroup: "motor_pool" }) }); }
   };
 
   return (
@@ -113,16 +123,33 @@ export default function SeedForm({ role, crops, locations, balances, stocks, asO
           <Field label="Поле и сезон" htmlFor="seed-season" error={errs.seasonId} wide hint={cropMismatch ? `Внимание: в сезоне культура «${season!.s.cropName}», выбрана «${crop!.name}»` : undefined}>
             {fd.isLoading ? <div className="skeleton h-[38px] rounded-lg" data-testid="status-seed-seasons-loading" />
               : fd.isError ? <div className="flex items-center gap-2 text-[11px] text-destructive" data-testid="status-seed-seasons-error">Не удалось загрузить поля<button type="button" className="button button-secondary !min-h-[28px] !px-2 text-[10px]" onClick={() => fd.refetch()}>Повторить</button></div>
-              : <select id="seed-season" className="text-input" value={f.seasonId} onChange={(e) => setF((p) => ({ ...p, seasonId: e.target.value, operationId: "" }))} data-testid="select-seed-season">
+              : <select id="seed-season" className="text-input" value={f.seasonId} onChange={(e) => setF((p) => ({ ...p, seasonId: e.target.value, operationId: "", forTask: false, taskId: "" }))} data-testid="select-seed-season">
                 <option value="">{seasons.length ? "Выберите сезон" : "Нет сезонов в хозяйстве"}</option>
                 {seasons.map(({ s, field }) => <option key={s.id} value={s.id}>Поле {field.number} · {s.cropName}{s.variety ? ` (${s.variety})` : ""} · {s.year}</option>)}
               </select>}
           </Field>
-          <Field label="Операция посева (необязательно)" htmlFor="seed-op" wide>
-            <select id="seed-op" className="text-input" value={f.operationId} onChange={(e) => set("operationId", e.target.value)} disabled={!f.seasonId} data-testid="select-seed-operation">
+          {f.seasonId && <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-2.5 sm:col-span-2" data-testid="section-seed-task">
+            <label className="flex items-center gap-2 text-[12px] font-bold"><input type="checkbox" checked={f.forTask} onChange={(e) => setF((p) => ({ ...p, forTask: e.target.checked, taskId: "", operationId: e.target.checked ? "" : p.operationId }))} data-testid="checkbox-seed-for-task" />Семена для действующего задания</label>
+            {f.forTask && (tasksQ.isLoading ? <div className="skeleton h-[38px] rounded-lg" />
+              : tasksQ.isError ? <div className="flex items-center gap-2 text-[11px] text-destructive">Не удалось загрузить задания<button type="button" className="button button-secondary !min-h-[28px] !px-2 text-[10px]" onClick={() => void tasksQ.refetch()} data-testid="button-seed-tasks-retry">Повторить</button></div>
+              : <Field label="Задание в исполнении (ток)" htmlFor="seed-task" error={errs.taskId}>
+                <select id="seed-task" className="text-input" value={f.taskId} onChange={(e) => pickTask(e.target.value)} data-testid="select-seed-task">
+                  <option value="">{tasks.length ? "Выберите задание" : "Нет заданий в исполнении по этому полю"}</option>
+                  {tasks.map((t) => <option key={t.id} value={t.id}>№ {t.id} · {t.title} · поле {t.fieldNumber} · {t.operationName}</option>)}
+                </select></Field>)}
+          </div>}
+          <Field label={task ? "Операция посева (из задания)" : "Операция посева (необязательно)"} htmlFor="seed-op" wide>
+            <select id="seed-op" className="text-input" value={f.operationId} onChange={(e) => set("operationId", e.target.value)} disabled={!f.seasonId || f.forTask} data-testid="select-seed-operation">
               <option value="">{!f.seasonId ? "Сначала выберите сезон" : ops.length ? "Без привязки к операции" : "Посевных операций нет"}</option>
               {ops.map((o) => <option key={o.id} value={o.id}>{o.name} · {dateFmt(o.actualStart ?? o.plannedStart)}</option>)}
             </select></Field>
+          <div className="grid gap-3 rounded-lg border border-border p-2.5 sm:col-span-2 sm:grid-cols-2" data-testid="section-seed-transport">
+            <p className="text-[11px] font-bold sm:col-span-2">Доставка семян · Автобаза <span className="font-normal text-muted-foreground">{f.forTask ? "(обязательно для задания)" : "(необязательно — машина и водитель вместе)"}</span></p>
+            <Field label="Машина" htmlFor="seed-truck" error={errs.truckNumber}><input id="seed-truck" maxLength={50} className="text-input font-mono" value={f.truckNumber} onChange={(e) => set("truckNumber", e.target.value)} data-testid="input-seed-truck" /></Field>
+            <Field label="Водитель" htmlFor="seed-driver" error={errs.driverEmployeeId}><select id="seed-driver" className="text-input" value={f.driverEmployeeId} onChange={(e) => set("driverEmployeeId", e.target.value)} data-testid="select-seed-driver"><option value="">{empQ.isLoading ? "Загрузка…" : empQ.isError ? "Ошибка загрузки сотрудников" : "Не указан"}</option>{drivers.map((d) => <option key={d.id} value={d.id}>{d.fullName}{d.position ? ` · ${d.position}` : ""}</option>)}</select></Field>
+            <Field label="Оплата" htmlFor="seed-basis"><select id="seed-basis" className="text-input" value={f.basis} onChange={(e) => set("basis", e.target.value as "per_trip" | "ton_km")} data-testid="select-seed-basis"><option value="per_trip">За рейс</option><option value="ton_km">За тонно-км</option></select></Field>
+            {f.basis === "ton_km" && <Field label="Расстояние, км" htmlFor="seed-dist" error={errs.distanceKm}><input id="seed-dist" inputMode="decimal" className="text-input font-mono" value={f.distanceKm} onChange={(e) => set("distanceKm", e.target.value)} data-testid="input-seed-distance" /></Field>}
+          </div>
           <div className="rounded-lg border border-[hsl(39_100%_52%/.4)] bg-[hsl(39_100%_52%/.08)] p-2.5 text-[11px] leading-5 sm:col-span-2" data-testid="text-seed-issue-estimate">
             Стоимость рассчитывается по средней цене склада семян.{estIssue !== null ? <> Оценка: <b className="font-mono">{kzt(estIssue)}</b>.</> : null}{!gd && " До согласования сумма предварительная."}
           </div>

@@ -648,6 +648,23 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SeedMovement" }
+  /agro/seeds/transport-trips/{id}/rate:
+    patch:
+      operationId: updateSeedTransportRate
+      tags: [Agro]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GrainTransportRateInput" }
+      responses:
+        "200":
+          description: Updated seed trip
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GrainTransportTrip" }
   /agro/seeds/movements/{id}/review:
     post:
       operationId: reviewSeedMovement
@@ -2086,6 +2103,7 @@ components:
         - type: object
           required: [operationId, name, chemicals, fuels, salaries]
           properties:
+            transportSalaryCost: { type: number }
             seedIssues:
               type: array
               items: { $ref: "#/components/schemas/SeedFieldCost" }
@@ -2117,6 +2135,8 @@ components:
                 type: object
                 required: [employeeId, employeeName, workDate, amount]
                 properties:
+                  sourceType: { type: string }
+                  supportingTaskId: { type: ["number", "null"] }
                   employeeId: { type: [number, "null"] }
                   employeeName: { type: string }
                   workDate: { type: string }
@@ -2138,6 +2158,7 @@ components:
       type: object
       required: [movementId, cropName, occurredOn, quantityTons, amount]
       properties:
+        supportingTaskId: { type: ["number", "null"] }
         movementId: { type: number }
         cropName: { type: string }
         occurredOn: { type: string }
@@ -3251,7 +3272,7 @@ components:
       type: object
       required: [sourceType, sourceId, employeeId, employeeName, workType, details, amountKzt]
       properties:
-        sourceType: { type: string, enum: [grain_trip, field_progress, field_operation, tok_work] }
+        sourceType: { type: string, enum: [grain_trip, seed_trip, field_progress, field_operation, tok_work] }
         sourceId: { type: number }
         employeeId: { type: number }
         employeeName: { type: string }
@@ -3262,7 +3283,7 @@ components:
       type: object
       required: [sourceType, sourceId, employeeName, workType, details]
       properties:
-        sourceType: { type: string, enum: [grain_trip, field_progress, field_operation, tok_work] }
+        sourceType: { type: string, enum: [grain_trip, seed_trip, field_progress, field_operation, tok_work] }
         sourceId: { type: number }
         employeeName: { type: string }
         workType: { type: string }
@@ -3442,6 +3463,11 @@ components:
         fromLocationId: { type: ["number", "null"], minimum: 1 }
         seasonId: { type: ["number", "null"], minimum: 1 }
         operationId: { type: ["number", "null"], minimum: 1 }
+        supportingTaskId: { type: ["number", "null"], minimum: 1 }
+        truckNumber: { type: string, maxLength: 50 }
+        driverEmployeeId: { type: ["number", "null"], minimum: 1 }
+        transportPayBasis: { type: string, enum: [per_trip, ton_km] }
+        distanceKm: { type: number, minimum: 0, maximum: 100000 }
         notes: { type: string, maxLength: 3000 }
     SeedReviewInput:
       type: object
@@ -3467,6 +3493,10 @@ components:
         fromLocationId: { type: ["number", "null"] }
         seasonId: { type: ["number", "null"] }
         operationId: { type: ["number", "null"] }
+        supportingTaskId: { type: ["number", "null"] }
+        truckNumber: { type: string }
+        driverEmployeeId: { type: ["number", "null"] }
+        driverName: { type: string }
         fieldNumber: { type: string }
         notes: { type: string }
         approvalStatus: { type: string, enum: [pending, approved, rejected] }
@@ -3550,6 +3580,8 @@ components:
       type: object
       required: [id, unit, operation, cropName, occurredOn, quantityTons, fromLocationName, toLocationName, fieldName, truckNumber, driverName, driverEmployeeId, approvalStatus, rateKzt, rateSetBy, rateSetAt, createdBy]
       properties:
+        sourceType: { type: string, enum: [grain_trip, seed_trip] }
+        supportingTaskId: { type: ["number", "null"] }
         transportPayBasis: { type: string, enum: [per_trip, ton_km] }
         distanceKm: { type: number }
         tonKm: { type: number }
