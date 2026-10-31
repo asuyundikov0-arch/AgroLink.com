@@ -50,9 +50,13 @@ function render(role = "agronomist", input = field) {
 test("actual rows retain every machine and real fuel/HR salary costs below resources", () => {
   const html = render();
   for (const a of assignment) for (const value of [a.employeeName, a.equipmentName, a.implement]) assert.ok(html.includes(value));
-  assert.match(html, /section-op-cost-20/);
-  assert.match(html, /12 345 ₸/); assert.match(html, /22 000 ₸/);
-  assert.ok(html.indexOf("section-op-cost-20") > html.indexOf("Сеялка Б"));
+  assert.match(html, /text-fact-fuel-20">12\s345 ₸/); assert.match(html, /text-fact-hr-20">22\s000 ₸/);
+  assert.ok(html.indexOf("text-fact-fuel-20") > html.indexOf("Сеялка Б"));
+  assert.ok(!/9\s999/.test(html), "planned fuel never shown as actual");
+  assert.match(html, /text-fact-fuel-21">не выдавалось/);
+  assert.match(html, /text-fact-rate-20">ожидает диспетчера/);
+  assert.match(html, /row-fact-machine-20-1/);
+  assert.match(html, /data-kind="sowing"/);
   assert.match(html, /button-daily-toggle-20/);
   for (const block of ["block-active", "block-completion-requests", "block-plan", "block-completed"]) assert.ok(html.includes(block));
 });
@@ -76,4 +80,26 @@ test("chief and read-only roles do not gain actual-work editing", () => {
   const archived = render("agronomist", { ...field, isActive: false });
   assert.ok(!archived.includes("button-fact-start-21"));
   assert.ok(!archived.includes("button-fact-resources-20"));
+});
+
+test("unavailable actual costs are labelled without fabricated values", () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, enabled: false } } });
+  const html = renderToStaticMarkup(<QueryClientProvider client={client}>
+    <FieldWorkBoard field={field} season={season} year={2026} ops={ops} role="agronomist" planFact={<span />}
+      onBack={noop} onHistory={noop} onUnplanned={noop} onWork={noop} onLifecycle={noop} onVoid={noop} />
+  </QueryClientProvider>);
+  assert.match(html, /text-fact-fuel-20">нет данных/);
+  assert.match(html, /text-op-cost-unavailable-20/);
+  assert.ok(html.includes("button-fact-resources-20"));
+});
+
+test("multi-machine reports show per-machine rate label and earnings", () => {
+  const client = new QueryClient();
+  const op = { ...base, progressReports: [{ id: 1, reportDate: "2026-05-02", cumulativeAreaHa: 30, dailyAreaHa: 30, machineReports: [{ ...assignment[0], dailyAreaHa: 10, ratePerHa: 1000 }, { ...assignment[1], dailyAreaHa: 20, ratePerHa: 1250 }] }] } as unknown as FieldOperation;
+  const html = renderToStaticMarkup(<QueryClientProvider client={client}>
+    <FieldWorkBoard field={field} season={season} year={2026} ops={[op]} role="agronomist" planFact={<span />}
+      onBack={noop} onHistory={noop} onUnplanned={noop} onWork={noop} onLifecycle={noop} onVoid={noop} />
+  </QueryClientProvider>);
+  assert.match(html, /text-fact-rate-20">По технике/);
+  assert.match(html, /text-fact-machine-earned-20-0/); assert.match(html, /10\s000 ₸/); assert.match(html, /25\s000 ₸/);
 });
