@@ -46,12 +46,13 @@ export function SupportingTasksPanel({ role, demo = false, fieldId, seasonId, ye
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
         <div className="inline-flex rounded-md border border-border p-0.5">{(["all", "draft", "sent"] as const).map((k) => <button key={k} type="button" onClick={() => setFilter(k)} className={cx("rounded px-2 py-0.5 text-[10.5px] font-bold", filter === k ? "bg-foreground text-background" : "text-muted-foreground")} data-testid={`tab-tasks-filter-${k}`}>{k === "all" ? "Все" : k === "draft" ? "Черновики" : "Отправленные"}</button>)}</div>
-        {creator && <button type="button" className="button button-primary !min-h-[30px] !px-2.5 text-[11px]" disabled={dash.isLoading || candidates.length === 0} title={candidates.length === 0 ? "Нет плановых операций с сопутствующими работами" : undefined} onClick={() => setForm({})} data-testid="button-task-new"><Plus size={13} />Новое задание</button>}
+        {creator && !compact && <button type="button" className="button button-primary !min-h-[30px] !px-2.5 text-[11px]" disabled={dash.isLoading || candidates.length === 0} title={candidates.length === 0 ? "Нет плановых операций с сопутствующими работами" : undefined} onClick={() => setForm({})} data-testid="button-task-new"><Plus size={13} />Новое задание</button>}
       </div>
     </div>
     {!canCreateTasks(role) && enabled && <p className="px-4 pt-2 text-[10.5px] text-muted-foreground sm:px-5" data-testid="text-tasks-readonly">Режим просмотра: задания создают агрономы.</p>}
     {creator && dash.isError && <p className="px-4 pt-2 text-[10.5px] text-destructive sm:px-5">Не удалось загрузить операции: {errorInfo(dash.error).message} <button type="button" className="underline" onClick={() => { void dash.refetch(); }} data-testid="button-tasks-dash-retry">повторить</button></p>}
-    {creator && !dash.isLoading && !dash.isError && candidates.length === 0 && <p className="px-4 pt-2 text-[10.5px] text-muted-foreground sm:px-5" data-testid="text-tasks-no-candidates">Нет плановых (не начатых) операций с сопутствующими работами{fieldId !== undefined ? " на этом поле" : ""}.</p>}
+    {creator && compact && <p className="mt-2 text-[10.5px] text-muted-foreground">Создайте задание кнопкой рядом с нужной сопутствующей работой в операции ниже.</p>}
+    {creator && !dash.isLoading && !dash.isError && candidates.length === 0 && <p className="px-4 pt-2 text-[10.5px] text-muted-foreground sm:px-5" data-testid="text-tasks-no-candidates">Нет действующих плановых операций с сопутствующими работами{fieldId !== undefined ? " на этом поле" : ""}.</p>}
     {notice && <div className="notice-banner mx-4 mt-2 sm:mx-5" role="status" data-testid="text-tasks-notice">{notice}<button type="button" aria-label="Скрыть" onClick={() => setNotice("")}>×</button></div>}
     <div className={cx("space-y-2", compact ? "mt-2" : "p-4 sm:p-5")}>
       {demo ? <p className="text-[11px] text-muted-foreground" data-testid="status-tasks-demo">В демо-режиме задания службам не загружаются и не отправляются.</p>

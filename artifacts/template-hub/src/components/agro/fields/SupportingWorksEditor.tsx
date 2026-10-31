@@ -1,6 +1,7 @@
 import { Plus, Trash2, Users, X } from "lucide-react";
 import { type FieldSupportingWork, type FleetEquipment } from "@workspace/api-client-react";
 import EmployeeSelect from "../../employees/EmployeeSelect";
+import type { ReactNode } from "react";
 
 export const SUPPORT_TOGGLE_LABEL = "Имеются сопутствующие работы при выполнении операции";
 export const MAX_WORKS = 20;
@@ -164,7 +165,7 @@ function BudgetBox({ mainBudget, support, parts, testId }: { mainBudget?: { pay:
 }
 
 /** Read-only summary of saved supporting works. */
-export function SupportingWorksSummary({ works, title, testId }: { works?: FieldSupportingWork[] | null; title: string; testId: string }) {
+export function SupportingWorksSummary({ works, title, testId, renderAction }: { works?: FieldSupportingWork[] | null; title: string; testId: string; renderAction?: (index: number) => ReactNode }) {
   if (!works?.length) return null;
   return (
     <div className="mt-2 rounded-md border border-border/70 bg-muted/20 px-2.5 py-2 text-[10.5px] leading-5" data-testid={testId}>
@@ -174,6 +175,7 @@ export function SupportingWorksSummary({ works, title, testId }: { works?: Field
           <span className="font-semibold">{w.name}</span>
           <span className="text-muted-foreground"> · {w.equipmentName || (w.equipmentId ? `техника № ${w.equipmentId}` : "без техники")} · {w.employeeIds.length ? (w.employeeNames?.length ? w.employeeNames.join(", ") : `${w.employeeIds.length} сотр.`) : "без сотрудников"}</span>
           <span className="block font-mono text-muted-foreground">зарплата {kzt(w.salaryCost)} · топливо {kzt(w.fuelCost)} · итого {kzt(workTotal(w))}</span>
+          {renderAction && <div className="mt-1">{renderAction(i)}</div>}
         </li>))}</ul>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Check, RefreshCw, Save, X } from "lucide-react";
 import {
   type FieldOperation, type SupportingService, type SupportingTask, type SupportingTaskInput,
@@ -6,28 +7,23 @@ import {
 } from "@workspace/api-client-react";
 import { Drawer, cx } from "../fields/shared";
 import { NOT_EXPENSE_TEXT, SERVICES, amountStr, dt, isIsoDate, money, parseAmount, taskErr, useInvalidateTasks } from "./shared";
+import { plannedTaskDefaults } from "./taskDefaults";
 
 export type OpContext = { op: FieldOperation; fieldNumber: string; farm: string; year: number };
 
-type Props = { candidates: OpContext[]; task?: SupportingTask; defaultOpId?: number; onClose: () => void; onSaved: (t: SupportingTask, msg: string) => void };
+type Props = { candidates: OpContext[]; task?: SupportingTask; defaultOpId?: number; defaultSourceIndex?: number; lockSource?: boolean; onClose: () => void; onSaved: (t: SupportingTask, msg: string) => void };
 
-export function TaskForm({ candidates, task, defaultOpId, onClose, onSaved }: Props) {
+export function TaskForm({ candidates, task, defaultOpId, defaultSourceIndex = 0, lockSource = false, onClose, onSaved }: Props) {
   const editing = !!task;
   const [requestId] = useState(() => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `st-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`));
   const [opId, setOpId] = useState<number>(task?.operationId ?? defaultOpId ?? candidates[0]?.op.id ?? 0);
   const ctx = candidates.find((c) => c.op.id === opId);
-  const [sourceIndex, setSourceIndex] = useState<number>(task?.sourceIndex ?? 0);
-  const init = (o: FieldOperation | undefined, i: number) => {
-    const w = o?.supportingWorks?.[i];
-    return {
-      title: w?.name ?? "", startDate: o?.plannedStart?.slice(0, 10) ?? "", endDate: o?.plannedEnd?.slice(0, 10) ?? "",
-      equipmentId: w?.equipmentId ?? null, employeeIds: w?.employeeIds ?? [], salary: w ? amountStr(w.salaryCost) : "0", fuel: w ? amountStr(w.fuelCost) : "0",
-    };
-  };
+  const [sourceIndex, setSourceIndex] = useState<number>(task?.sourceIndex ?? defaultSourceIndex);
+  const init = plannedTaskDefaults;
   const [f, setF] = useState(() => task ? {
     title: task.title, startDate: task.startDate, endDate: task.endDate, equipmentId: task.equipmentId, employeeIds: task.employeeIds,
     salary: amountStr(task.salaryBudget), fuel: amountStr(task.fuelBudget),
-  } : init(ctx?.op, 0));
+  } : init(ctx?.op, defaultSourceIndex));
   const [quantity, setQuantity] = useState(task ? amountStr(task.quantity) : "0");
   const [quantityUnit, setQuantityUnit] = useState(task?.quantityUnit ?? "");
   const [notes, setNotes] = useState(task?.notes ?? "");
@@ -86,7 +82,8 @@ export function TaskForm({ candidates, task, defaultOpId, onClose, onSaved }: Pr
   const toggleEmp = (id: number) => setF({ ...f, employeeIds: f.employeeIds.includes(id) ? f.employeeIds.filter((x) => x !== id) : [...f.employeeIds, id] });
   const lbl = "mb-1 block text-[10.5px] font-bold uppercase tracking-[.1em] text-muted-foreground";
 
-  return <Drawer title={editing ? `Черновик задания № ${task!.id}` : "Новое задание службам"} eyebrow={ctx ? `Поле № ${ctx.fieldNumber} · ${ctx.farm} · ${ctx.year}` : task ? `Поле № ${task.fieldNumber} · ${task.farm} · ${task.year}` : "Задания службам"} onClose={onClose} testId="drawer-supporting-task"
+  if (typeof document === "undefined") return null;
+  return createPortal(<Drawer title={editing ? `Черновик задания № ${task!.id}` : "Новое задание службам"} eyebrow={ctx ? `Поле № ${ctx.fieldNumber} · ${ctx.farm} · ${ctx.year}` : task ? `Поле № ${task.fieldNumber} · ${task.farm} · ${task.year}` : "Задания службам"} onClose={onClose} testId="drawer-supporting-task"
     footer={<div className="flex flex-wrap items-center justify-end gap-2">
       <button type="button" className="button button-ghost" onClick={onClose} data-testid="button-task-cancel"><X size={14} />Закрыть</button>
       <button type="button" className="button button-primary" disabled={pending || (touched && errors.length > 0)} onClick={save} data-testid="button-task-save">{pending ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}{editing ? "Сохранить черновик" : "Сохранить как черновик"}</button>
@@ -96,13 +93,13 @@ export function TaskForm({ candidates, task, defaultOpId, onClose, onSaved }: Pr
 
       <div>
         <label className={lbl}>Основная операция</label>
-        {editing ? <p className="font-semibold" data-testid="text-task-operation-fixed">{task!.operationName} · строка {task!.sourceIndex + 1}</p> :
+        {editing || lockSource ? <p className="font-semibold" data-testid="text-task-operation-fixed">{task?.operationName ?? ctx?.op.name} · строка {(task?.sourceIndex ?? sourceIndex) + 1}</p> :
           <select className="text-input" value={opId} onChange={(e) => pickOp(Number(e.target.value))} data-testid="select-task-operation">
             {candidates.map((c) => <option key={c.op.id} value={c.op.id}>Поле № {c.fieldNumber} · {c.op.name} · {dt(c.op.plannedStart)}–{dt(c.op.plannedEnd)}</option>)}
           </select>}
       </div>
 
-      {!editing && works.length > 0 && <div>
+      {!editing && !lockSource && works.length > 0 && <div>
         <label className={lbl}>Сопутствующая работа из плана</label>
         <div className="grid gap-1.5">{works.map((w, i) => <button key={i} type="button" onClick={() => pickSource(i)} className={cx("rounded-md border px-2.5 py-1.5 text-left", i === sourceIndex ? "border-foreground bg-foreground/5" : "border-border hover:border-foreground/40")} data-testid={`button-task-source-${i}`}>
           <span className="font-semibold">{i + 1}. {w.name}</span><span className="ml-2 font-mono text-[10.5px] text-muted-foreground">ЗП {money(w.salaryCost)} · ГСМ {money(w.fuelCost)}</span>
@@ -161,5 +158,5 @@ export function TaskForm({ candidates, task, defaultOpId, onClose, onSaved }: Pr
       {error && <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-[11px] font-semibold text-destructive" role="alert" data-testid="text-task-save-error">{error.message}
         {error.conflict && <button type="button" className="button button-secondary mt-2 !min-h-[30px] text-foreground" onClick={() => { void invalidate(); onClose(); }} data-testid="button-task-conflict-reload"><RefreshCw size={12} />Обновить и закрыть</button>}</div>}
     </div>
-  </Drawer>;
+  </Drawer>, document.body);
 }
