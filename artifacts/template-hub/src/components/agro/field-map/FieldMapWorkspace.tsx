@@ -28,12 +28,19 @@ export default function FieldMapWorkspace({ role }: { role: string }) {
   const mapReady = allowed && mapQ.isSuccess && boundaries.length > 0;
 
   const mapEl = useRef<HTMLDivElement>(null);
+  const detailsEl = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const layers = useRef(new Map<number, L.Polygon>());
   const me = useRef<{ dot: L.CircleMarker; ring: L.Circle } | null>(null);
   const fitted = useRef(false);
   const selectRef = useRef((id: number) => { void id; });
-  selectRef.current = (id: number) => { setSelectedId(id); setFollow(false); };
+  selectRef.current = (id: number) => {
+    setSelectedId(id); setFollow(false);
+    if (id === selectedId) detailsEl.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  useEffect(() => {
+    if (selectedId !== null && dashQ.data) detailsEl.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selectedId, !!dashQ.data]);
 
   // create map once
   useEffect(() => {
@@ -144,9 +151,8 @@ export default function FieldMapWorkspace({ role }: { role: string }) {
               {dashQ.isError && <div className="absolute inset-x-3 bottom-8 z-[500] rounded-lg border border-border bg-card/95 px-3 py-2 text-[11px]" role="status">История полей не загрузилась. <button type="button" className="font-bold underline" onClick={() => dashQ.refetch()} data-testid="button-map-dashboard-retry">Повторить</button></div>}
             </div>
             <div className="flex min-h-0 flex-col gap-3 lg:max-h-[68vh]">
-              {selected ? (dashQ.isLoading ? <div className="skeleton h-64 rounded-xl" /> :
-                <FieldHistoryPanel key={selected.fieldId} boundary={selected} field={fieldById.get(selected.fieldId)} seasons={dashQ.data?.seasons ?? []} operations={dashQ.data?.operations ?? []} defaultYear={defaultYear} onClose={() => setSelectedId(null)} />)
-                : <div className="surface-card px-4 py-3 text-xs text-muted-foreground" data-testid="text-map-hint">Нажмите на контур или выберите поле в списке, чтобы увидеть историю работ.</div>}
+              {selected ? <div className="surface-card px-4 py-3 text-xs" data-testid="text-map-selected-hint">Выбрано поле <b className="font-mono">№ {selected.fieldNumber}</b> — план и факт работ ниже.</div>
+                : <div className="surface-card px-4 py-3 text-xs text-muted-foreground" data-testid="text-map-hint">Нажмите на контур или выберите поле в списке, чтобы увидеть план и факт работ.</div>}
               <nav className="surface-card min-h-0 overflow-y-auto" aria-label="Список полей на карте">
                 <ul className="divide-y divide-border/70">
                   {boundaries.map((b) => (
@@ -160,6 +166,12 @@ export default function FieldMapWorkspace({ role }: { role: string }) {
               </nav>
             </div>
           </div>
+          {selected && <div ref={detailsEl} className="scroll-mt-24">
+            {dashQ.isLoading ? <div className="skeleton h-64 rounded-xl" data-testid="status-map-field-loading" /> : dashQ.isError && !dashQ.data ? null :
+            <FieldHistoryPanel key={selected.fieldId} role={role} boundary={selected} field={fieldById.get(selected.fieldId)} seasons={dashQ.data?.seasons ?? []} operations={dashQ.data?.operations ?? []} defaultYear={defaultYear} onClose={() => {
+              setSelectedId(null); mapEl.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }} />}
+          </div>}
           <p className="text-[10.5px] text-muted-foreground">Геопозиция используется только на этой странице, пока она открыта и включена кнопкой «Где я». Координаты не сохраняются и не отправляются на сервер; фонового отслеживания нет.</p>
         </>
       )}
