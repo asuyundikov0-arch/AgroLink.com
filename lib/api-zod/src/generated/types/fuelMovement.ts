@@ -22,6 +22,8 @@ export interface FuelMovement {
   equipment: string;
   /** @nullable */
   operationId: number | null;
+  /** @nullable */
+  supportingTaskId?: number | null;
   fieldNumber: string;
   operationName: string;
   invoiceNumber: string;

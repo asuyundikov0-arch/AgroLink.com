@@ -34,6 +34,11 @@ export interface FuelIssueInput {
      * @nullable
      */
   operationId: number | null;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  supportingTaskId?: number | null;
   /** @maxLength 3000 */
   notes: string;
 }

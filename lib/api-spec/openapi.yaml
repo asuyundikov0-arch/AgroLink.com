@@ -2018,6 +2018,7 @@ components:
         liters: { type: number, minimum: 0.001, maximum: 1000000 }
         fleetId: { type: number, minimum: 1 }
         operationId: { type: [number, "null"], minimum: 1 }
+        supportingTaskId: { type: [number, "null"], minimum: 1 }
         notes: { type: string, maxLength: 3000 }
     FuelMovement:
       type: object
@@ -2035,6 +2036,7 @@ components:
         fleetId: { type: [number, "null"] }
         equipment: { type: string }
         operationId: { type: [number, "null"] }
+        supportingTaskId: { type: [number, "null"] }
         fieldNumber: { type: string }
         operationName: { type: string }
         invoiceNumber: { type: string }
@@ -2126,6 +2128,7 @@ components:
                 type: object
                 required: [fuelType, liters, amount]
                 properties:
+                  supportingTaskId: { type: [number, "null"] }
                   fuelType: { type: string }
                   liters: { type: number }
                   amount: { type: number }

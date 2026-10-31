@@ -1101,6 +1101,7 @@ export const GetFuelWarehouseResponse = zod.object({
   "fleetId": zod.number().nullable(),
   "equipment": zod.string(),
   "operationId": zod.number().nullable(),
+  "supportingTaskId": zod.number().nullish(),
   "fieldNumber": zod.string(),
   "operationName": zod.string(),
   "invoiceNumber": zod.string(),
@@ -1179,6 +1180,7 @@ export const CreateFuelReceiptResponse = zod.object({
   "fleetId": zod.number().nullable(),
   "equipment": zod.string(),
   "operationId": zod.number().nullable(),
+  "supportingTaskId": zod.number().nullish(),
   "fieldNumber": zod.string(),
   "operationName": zod.string(),
   "invoiceNumber": zod.string(),
@@ -1199,6 +1201,7 @@ export const createFuelIssueBodyLitersMax = 1000000;
 
 
 
+
 export const createFuelIssueBodyNotesMax = 3000;
 
 
@@ -1212,6 +1215,7 @@ export const CreateFuelIssueBody = zod.object({
   "liters": zod.number().min(createFuelIssueBodyLitersMin).max(createFuelIssueBodyLitersMax),
   "fleetId": zod.number().min(1),
   "operationId": zod.number().min(1).nullable(),
+  "supportingTaskId": zod.number().min(1).nullish(),
   "notes": zod.string().max(createFuelIssueBodyNotesMax)
 })
 
@@ -1228,6 +1232,7 @@ export const CreateFuelIssueResponse = zod.object({
   "fleetId": zod.number().nullable(),
   "equipment": zod.string(),
   "operationId": zod.number().nullable(),
+  "supportingTaskId": zod.number().nullish(),
   "fieldNumber": zod.string(),
   "operationName": zod.string(),
   "invoiceNumber": zod.string(),
@@ -1284,6 +1289,7 @@ export const GetFieldCostsResponse = zod.object({
   "amount": zod.number()
 })),
   "fuels": zod.array(zod.object({
+  "supportingTaskId": zod.number().nullish(),
   "fuelType": zod.string(),
   "liters": zod.number(),
   "amount": zod.number()

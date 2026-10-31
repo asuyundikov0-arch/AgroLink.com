@@ -1,7 +1,7 @@
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import {
   activityTable, agroFieldsTable, db, fieldOperationProgressTable, fieldOperationsTable,
-  fieldSeasonsTable, fleetEquipmentTable, fuelMovementsTable,
+  fieldSeasonsTable, fleetEquipmentTable, fuelMovementsTable, supportingTasksTable,
 } from "@workspace/db";
 import type { FuelIssueInput, FuelReceiptInput } from "@workspace/api-zod";
 import type { RoleAccess } from "../middlewares/auth";
@@ -66,6 +66,28 @@ export function assignmentMatches(
   if (date === grainBusinessDate() && assignment.endDate === null) labels.push(assignment.equipment);
   return labels.some((label) => grainNameKey(label) === grainNameKey(equipmentLabel(fleet)));
 }
+
+async function validateFuelTask(tx: Tx, input: FuelIssueInput) {
+  fuelCheck(input.forFieldWork === true && input.operationId !== null,
+    "Для исполнения задания отметьте полевую заправку и выберите операцию.");
+  fuelCheck(Number.isSafeInteger(input.supportingTaskId) && Number(input.supportingTaskId) > 0, "Выберите корректное задание.");
+  const [task] = await tx.select().from(supportingTasksTable)
+    .where(eq(supportingTasksTable.id, input.supportingTaskId!)).for("share");
+  fuelCheck(task && task.status === "sent" && task.details.services.includes("fuel") &&
+    task.deliveries.some(d => d.service === "fuel" && d.status === "accepted"),
+  "Нефтебаза должна сначала принять это задание к исполнению.", 409);
+  const [operation] = await tx.select().from(fieldOperationsTable).where(eq(fieldOperationsTable.id, task.operationId)).for("share");
+  const [season] = operation ? await tx.select().from(fieldSeasonsTable).where(eq(fieldSeasonsTable.id, operation.seasonId)) : [];
+  const [field] = season ? await tx.select().from(agroFieldsTable).where(eq(agroFieldsTable.id, season.fieldId)) : [];
+  fuelCheck(operation && !operation.voidedAt && !operation.actualEnd && operation.approvalStatus === "approved" &&
+    operation.id === input.operationId && season && season.year === Number(input.occurredOn.slice(0, 4)) &&
+    season.year === task.context.year && field?.isActive && field.unit === input.farm &&
+    task.context.farm === input.farm && task.context.fieldId === field.id,
+  "Задание не относится к действующей операции выбранного поля, хозяйства и сезона.", 409);
+  fuelCheck(task.details.equipmentId === null || task.details.equipmentId === input.fleetId,
+    "В задании указана другая техника. Выберите технику задания.", 409);
+}
+
 export async function postFuelMovement(
   tx: Tx, kind: "receipt" | "issue", input: FuelReceiptInput | FuelIssueInput, access: RoleAccess,
 ) {
@@ -98,7 +120,8 @@ export async function postFuelMovement(
       existing.notes === input.notes.trim() &&
       (receipt ? Number(existing.pricePerLiterCents) === price &&
         existing.invoiceNumber === receipt.invoiceNumber.trim() && existing.supplier === receipt.supplier.trim()
-        : existing.fleetId === issue!.fleetId && existing.operationId === issue!.operationId),
+        : existing.fleetId === issue!.fleetId && existing.operationId === issue!.operationId &&
+          (existing.supportingTaskId ?? null) === (issue!.supportingTaskId ?? null)),
     "Этот запрос уже проведён с другими данными. Обновите форму.", 409);
     return existing;
   }
@@ -117,7 +140,9 @@ export async function postFuelMovement(
     const [fleet] = await tx.select().from(fleetEquipmentTable).where(eq(fleetEquipmentTable.id, issue!.fleetId));
     fuelCheck(fleet && fleet.unit === input.farm, "Выберите технику из справочника этого хозяйства.");
     const matching = (await fuelAssignments(tx)).filter((a) => assignmentMatches(a, fleet, input.occurredOn));
-    if (issue!.operationId !== null) {
+    if (issue!.supportingTaskId != null) {
+      await validateFuelTask(tx, issue!);
+    } else if (issue!.operationId !== null) {
       fuelCheck(matching.some((a) => a.operationId === issue!.operationId),
         "Техника не назначена на эту полевую работу в выбранную дату.", 409);
     } else if (issue!.forFieldWork !== false) {
@@ -135,6 +160,7 @@ export async function postFuelMovement(
     requestId: input.requestId, kind, farm: input.farm, fuelType, occurredOn: input.occurredOn,
     quantityMillis, amountCents: String(amountCents), pricePerLiterCents: String(pricePerLiterCents),
     fleetId: issue?.fleetId ?? null, operationId: issue?.operationId ?? null,
+    supportingTaskId: issue?.supportingTaskId ?? null,
     invoiceNumber: receipt?.invoiceNumber.trim() ?? "", supplier: receipt?.supplier.trim() ?? "",
     notes: input.notes.trim(), createdBy: `${access.displayName} · ${access.role}`,
   }).returning();

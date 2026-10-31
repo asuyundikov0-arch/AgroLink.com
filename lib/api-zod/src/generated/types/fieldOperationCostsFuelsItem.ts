@@ -7,6 +7,8 @@
  */
 
 export type FieldOperationCostsFuelsItem = {
+  /** @nullable */
+  supportingTaskId?: number | null;
   fuelType: string;
   liters: number;
   amount: number;

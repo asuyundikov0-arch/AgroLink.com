@@ -55,9 +55,10 @@ export async function fieldCosts(tx: Tx, seasonId: number): Promise<FieldCosts |
     if (!op) continue;
     const amount = Number(movement.amountCents) / 100;
     const liters = movement.quantityMillis / 1000;
-    const line = op.fuels.find((item) => item.fuelType === movement.fuelType);
+    const line = op.fuels.find((item) => item.fuelType === movement.fuelType &&
+      (item.supportingTaskId ?? null) === (movement.supportingTaskId ?? null));
     if (line) { line.liters = addQuantity(line.liters, liters); line.amount = addMoney(line.amount, amount); }
-    else op.fuels.push({ fuelType: movement.fuelType, liters, amount });
+    else op.fuels.push({ fuelType: movement.fuelType, liters, amount, supportingTaskId: movement.supportingTaskId });
     op.fuelCost = addMoney(op.fuelCost, amount); op.fuelLiters = addQuantity(op.fuelLiters, liters);
   }
   const wages = await tx.select({ item: payrollRegisterItemsTable, register: payrollRegistersTable })

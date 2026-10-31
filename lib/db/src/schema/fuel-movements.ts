@@ -1,6 +1,7 @@
 import { date, index, integer, numeric, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { fleetEquipmentTable } from "./fleet-equipment";
 import { fieldOperationsTable } from "./field-operations";
+import { supportingTasksTable } from "./supporting-tasks";
 
 // Immutable receipt/issue ledger. Quantity is thousandths of a litre; value is kopecks.
 export const fuelMovementsTable = pgTable("fuel_movements", {
@@ -15,6 +16,7 @@ export const fuelMovementsTable = pgTable("fuel_movements", {
   pricePerLiterCents: numeric("price_per_liter_cents", { precision: 16, scale: 0 }).notNull(),
   fleetId: integer("fleet_id").references(() => fleetEquipmentTable.id, { onDelete: "restrict" }),
   operationId: integer("operation_id").references(() => fieldOperationsTable.id, { onDelete: "restrict" }),
+  supportingTaskId: integer("supporting_task_id").references(() => supportingTasksTable.id, { onDelete: "restrict" }),
   invoiceNumber: text("invoice_number").notNull().default(""),
   supplier: text("supplier").notNull().default(""),
   notes: text("notes").notNull().default(""),

@@ -46,7 +46,7 @@ export function OperationCost({ cost, opId }: { cost?: OpCost; opId: number }) {
     <div className="mt-1.5 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
       <List title="Семена" empty="не выдавались" rows={(cost.seedIssues ?? []).map((s) => [`${s.cropName} · ${dateFmt(s.occurredOn)}${s.supportingTaskId ? ` · задание №${s.supportingTaskId}` : ""}`, `${qty.format(s.quantityTons)} т · ${kzt(s.amount)}`])} />
       <List title="Химия" empty="не выдавалась" rows={cost.chemicals.map((c) => [`${c.name}`, `${qty.format(c.quantity)} ${c.unit} · ${kzt(c.amount)}`])} />
-      <List title="Топливо" empty="не выдавалось" rows={cost.fuels.map((f) => [f.fuelType, `${liters(f.liters)} · ${kzt(f.amount)}`])} />
+      <List title="Топливо" empty="не выдавалось" rows={cost.fuels.map((f) => [`${f.fuelType}${f.supportingTaskId != null ? ` · задание № ${f.supportingTaskId}` : ""}`, `${liters(f.liters)} · ${kzt(f.amount)}`])} />
       <List title="Зарплата" empty="нет подтверждённых начислений" rows={cost.salaries.filter((s) => !isTransport(s)).map((s) => [label(s), kzt(s.amount)])} />
       {cost.salaries.some(isTransport) && <List title="Автобаза (доставка семян)" empty="" rows={cost.salaries.filter(isTransport).map((s) => [label(s), kzt(s.amount)])} />}
     </div>

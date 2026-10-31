@@ -349,6 +349,11 @@ export interface FuelIssueInput {
      * @nullable
      */
   operationId: number | null;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  supportingTaskId?: number | null;
   /** @maxLength 3000 */
   notes: string;
 }
@@ -376,6 +381,8 @@ export interface FuelMovement {
   equipment: string;
   /** @nullable */
   operationId: number | null;
+  /** @nullable */
+  supportingTaskId?: number | null;
   fieldNumber: string;
   operationName: string;
   invoiceNumber: string;
@@ -455,6 +462,8 @@ export type FieldOperationCostsChemicalsItem = {
 };
 
 export type FieldOperationCostsFuelsItem = {
+  /** @nullable */
+  supportingTaskId?: number | null;
   fuelType: string;
   liters: number;
   amount: number;

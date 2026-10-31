@@ -1,6 +1,6 @@
 import { Router, type IRouter, type RequestHandler } from "express";
 import { asc, eq, sql } from "drizzle-orm";
-import { db, fleetEquipmentTable, fuelMovementsTable } from "@workspace/db";
+import { db, fleetEquipmentTable, fuelMovementsTable, fieldOperationsTable, fieldSeasonsTable, agroFieldsTable } from "@workspace/db";
 import {
   CreateFuelIssueBody, CreateFuelReceiptBody, CreateFuelIssueResponse, CreateFuelReceiptResponse,
   GetFuelWarehouseResponse,
@@ -27,6 +27,14 @@ export async function fuelWarehouse(tx: Parameters<Parameters<typeof db.transact
     .orderBy(asc(fuelMovementsTable.occurredOn), asc(fuelMovementsTable.id));
   const equipment = await tx.select().from(fleetEquipmentTable).orderBy(asc(fleetEquipmentTable.id));
   const workAssignments = await fuelAssignments(tx);
+  // Task vehicles need not be assigned to the main operation, and task execution
+  // may start before it. Resolve journal labels independently of refuelling eligibility.
+  const operationLabels = await tx.select({ id: fieldOperationsTable.id, name: fieldOperationsTable.name,
+    actualName: fieldOperationsTable.actualOperationName, fieldNumber: agroFieldsTable.number })
+    .from(fieldOperationsTable)
+    .innerJoin(fieldSeasonsTable, eq(fieldOperationsTable.seasonId, fieldSeasonsTable.id))
+    .innerJoin(agroFieldsTable, eq(fieldSeasonsTable.fieldId, agroFieldsTable.id));
+  const labelById = new Map(operationLabels.map(o => [o.id, o]));
   const groups = new Map<string, typeof movements>();
   for (const row of movements) {
     const key = `${row.farm}\u0000${row.fuelType}`;
@@ -45,10 +53,10 @@ export async function fuelWarehouse(tx: Parameters<Parameters<typeof db.transact
     workAssignments,
     movements: movements.reverse().map((row) => {
       const fleet = equipment.find((e) => e.id === row.fleetId);
-      const work = workAssignments.find((o) => o.operationId === row.operationId);
+      const work = row.operationId === null ? undefined : labelById.get(row.operationId);
       return { ...row, liters: row.quantityMillis / 1000, amount: Number(row.amountCents) / 100,
         pricePerLiter: Number(row.pricePerLiterCents) / 100, equipment: fleet ? equipmentLabel(fleet) : "",
-        fieldNumber: work?.fieldNumber ?? "", operationName: work?.operationName ?? "",
+        fieldNumber: work?.fieldNumber ?? "", operationName: work ? work.actualName || work.name : "",
         createdAt: row.createdAt.toISOString() };
     }),
   });

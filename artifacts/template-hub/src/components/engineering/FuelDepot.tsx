@@ -3,8 +3,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ArrowDownToLine, ArrowUpFromLine, Fuel, Link2Off, RefreshCw, X } from "lucide-react";
 import {
   type FleetEquipment, type FuelMovement, type FuelWarehouse, FuelReceiptInputFarm,
-  getGetFuelWarehouseQueryKey, useCreateFuelIssue, useCreateFuelReceipt, useGetFuelWarehouse,
+  getGetFuelWarehouseQueryKey, getListSupportingTasksQueryKey, useCreateFuelIssue, useListSupportingTasks, useCreateFuelReceipt, useGetFuelWarehouse,
 } from "@workspace/api-client-react";
+import { eligibleFuelTasks, fuelTaskFields, pickValidTask } from "./fuelTask";
 import { businessToday } from "./repairs/shared";
 
 const POLL = 30000;
@@ -95,7 +96,7 @@ function Row({ m }: { m: FuelMovement }) {
     <td className={`px-3 py-2.5 text-right font-mono font-semibold ${issue ? "fuel-qty-out" : "fuel-qty-in"}`}>{issue ? "−" : "+"}{lit(m.liters)}</td>
     <td className="px-3 py-2.5 text-right font-mono">{money.format(m.pricePerLiter)} ₸</td>
     <td className="px-3 py-2.5 text-right font-mono font-bold">{kzt(m.amount)}</td>
-    <td className="px-3 py-2.5">{issue ? <><p className="font-semibold">{m.equipment || "—"}</p>{m.operationId ? <p className="text-[10.5px] text-muted-foreground">Поле № {m.fieldNumber} · {m.operationName}</p> : <p className="inline-flex items-center gap-1 text-[10.5px] text-muted-foreground"><Link2Off size={10} />без привязки к полю</p>}</> : <span className="text-muted-foreground">—</span>}</td>
+    <td className="px-3 py-2.5">{issue ? <><p className="font-semibold">{m.equipment || "—"}</p>{m.operationId ? <p className="text-[10.5px] text-muted-foreground">Поле № {m.fieldNumber} · {m.operationName}{m.supportingTaskId != null && <span className="font-semibold" data-testid={`text-fuel-row-task-${m.id}`}> · задание № {m.supportingTaskId}</span>}</p> : <p className="inline-flex items-center gap-1 text-[10.5px] text-muted-foreground"><Link2Off size={10} />без привязки к полю</p>}</> : <span className="text-muted-foreground">—</span>}</td>
     <td className="px-5 py-2.5"><p>{issue ? "Выдача" : `Накл. ${m.invoiceNumber}`}{!issue && m.supplier ? ` · ${m.supplier}` : ""}</p><p className="text-[10.5px] text-muted-foreground">{m.createdBy}{m.notes ? ` · ${m.notes}` : ""}</p></td>
   </tr>;
 }
@@ -182,6 +183,10 @@ function IssueForm({ data, onClose }: { data: FuelWarehouse; onClose: () => void
   const [fieldChoice, setFieldChoice] = useState<number | "">("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
+  const [taskMode, setTaskMode] = useState(false);
+  const [taskChoice, setTaskChoice] = useState<number | "">("");
+  const taskParams = { service: "fuel" as const };
+  const tasksQ = useListSupportingTasks(taskParams, { query: { queryKey: getListSupportingTasksQueryKey(taskParams), enabled: forFieldWork && taskMode, refetchInterval: 20000 } });
   const fleet = data.equipment.filter((f) => f.unit === b.farm);
   const vehicle = fleet.find((f) => f.id === fleetId);
   const matches = useMemo(() => {
@@ -202,6 +207,13 @@ function IssueForm({ data, onClose }: { data: FuelWarehouse; onClose: () => void
   const fieldWorks = matches.filter((work) => work.fieldId === selectedField);
   const operationId = !forFieldWork ? null : fieldWorks.length === 1 ? fieldWorks[0].operationId :
     fieldWorks.some((work) => work.operationId === opChoice) ? (opChoice as number) : null;
+  const taskList = useMemo(() => eligibleFuelTasks(tasksQ.data ?? [], b.farm, b.occurredOn, fleetId), [tasksQ.data, b.farm, b.occurredOn, fleetId]);
+  const taskFields = fuelTaskFields(taskList);
+  const taskField = taskFields.some((f) => f.id === fieldChoice) ? fieldChoice : "";
+  const fieldTasks = taskList.filter((t) => t.fieldId === taskField);
+  const task = taskMode ? pickValidTask(taskList, taskField, taskChoice) : null;
+  const resetSel = () => { setFieldChoice(""); setOpChoice(""); setTaskChoice(""); };
+  const finalOpId = taskMode ? (task?.operationId ?? null) : operationId;
   const l = num(liters);
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setError("");
@@ -210,23 +222,42 @@ function IssueForm({ data, onClose }: { data: FuelWarehouse; onClose: () => void
     if (!(l > 0 && l <= 1_000_000)) return setError("Литры: больше 0 и не более 1 000 000.");
     if (b.stock && l > b.stock.liters) return setError(`На остатке только ${lit(b.stock.liters)}.`);
     if (!b.stock) return setError("Этого топлива нет на остатке выбранного хозяйства.");
-    if (forFieldWork && selectedField === "") return setError("Выберите поле, для работы на котором заправляется техника.");
-    if (forFieldWork && operationId === null) return setError("Выберите полевую операцию, на которую выдаётся топливо.");
+    if (forFieldWork && taskMode && !task) return setError("Выберите поле и задание в исполнении.");
+    if (forFieldWork && !taskMode && selectedField === "") return setError("Выберите поле, для работы на котором заправляется техника.");
+    if (forFieldWork && !taskMode && operationId === null) return setError("Выберите полевую операцию, на которую выдаётся топливо.");
     if (b.occurredOn > today()) return setError("Дата не может быть в будущем.");
-    m.mutate({ data: { requestId: b.requestId, farm: b.farm, fuelType: b.fuelType.trim(), occurredOn: b.occurredOn, liters: Math.round(l * 1000) / 1000, fleetId: vehicle.id, forFieldWork, operationId, notes: notes.trim() } }, {
+    m.mutate({ data: { requestId: b.requestId, farm: b.farm, fuelType: b.fuelType.trim(), occurredOn: b.occurredOn, liters: Math.round(l * 1000) / 1000, fleetId: vehicle.id, forFieldWork, operationId: forFieldWork ? finalOpId : null, ...(forFieldWork && taskMode && task ? { supportingTaskId: task.id } : {}), notes: notes.trim() } }, {
       onSuccess: () => { void invalidate(); onClose(); },
       onError: (err) => setError(errText(err)),
     });
   };
   return <Sheet title="Выдача топлива" onClose={onClose} onSubmit={submit} pending={m.isPending} error={error} submitLabel="Выдать" testId="form-fuel-issue">
     <Common b={b} testPrefix="fuel-issue" />
-    <label className="form-label">Техника<select className="text-input mt-2" value={fleetId} onChange={(e) => { setFleetId(e.target.value ? Number(e.target.value) : ""); setFieldChoice(""); setOpChoice(""); }} data-testid="select-fuel-issue-fleet"><option value="">{fleet.length ? "Выберите технику" : "Нет техники в хозяйстве"}</option>{fleet.map((f) => <option key={f.id} value={f.id}>{fleetLabel(f)}</option>)}</select></label>
+    <label className="form-label">Техника<select className="text-input mt-2" value={fleetId} onChange={(e) => { setFleetId(e.target.value ? Number(e.target.value) : ""); resetSel(); }} data-testid="select-fuel-issue-fleet"><option value="">{fleet.length ? "Выберите технику" : "Нет техники в хозяйстве"}</option>{fleet.map((f) => <option key={f.id} value={f.id}>{fleetLabel(f)}</option>)}</select></label>
     <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-xs font-semibold">
-      <input type="checkbox" className="mt-0.5" checked={forFieldWork} disabled={!vehicle} onChange={(e) => { setForFieldWork(e.target.checked); setFieldChoice(""); setOpChoice(""); }} data-testid="checkbox-fuel-issue-for-field" />
+      <input type="checkbox" className="mt-0.5" checked={forFieldWork} disabled={!vehicle} onChange={(e) => { setForFieldWork(e.target.checked); setTaskMode(false); resetSel(); }} data-testid="checkbox-fuel-issue-for-field" />
       <span>Техника работает в поле<span className="mt-1 block text-[11px] font-normal text-muted-foreground">Отметьте для полевой заправки и выберите поле. Стоимость топлива попадёт в затраты этого поля.</span></span>
     </label>
     {vehicle && !forFieldWork && <p className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground" data-testid="text-fuel-issue-no-field"><Link2Off size={12} />Обычная заправка: расход только по технике, без отнесения на поле.</p>}
-    {vehicle && forFieldWork && <div className="space-y-3 rounded-lg border border-border p-3">
+    {vehicle && forFieldWork && <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-xs font-semibold">
+      <input type="checkbox" className="mt-0.5" checked={taskMode} onChange={(e) => { setTaskMode(e.target.checked); resetSel(); }} data-testid="checkbox-fuel-issue-for-task" />
+      <span>Топливо для действующего задания<span className="mt-1 block text-[11px] font-normal text-muted-foreground">Задания нефтебазе в исполнении для этой техники. Операция берётся из задания.</span></span>
+    </label>}
+    {vehicle && forFieldWork && taskMode && <div className="space-y-3 rounded-lg border border-border p-3" data-testid="section-fuel-issue-task">
+      {tasksQ.isLoading ? <div className="skeleton h-[38px] rounded-lg" />
+        : tasksQ.isError ? <div className="flex items-center gap-2 text-[11px] text-destructive">{errText(tasksQ.error)}<button type="button" className="button button-secondary !min-h-[28px] !px-2 text-[10px]" onClick={() => void tasksQ.refetch()} data-testid="button-fuel-tasks-retry">Повторить</button></div>
+        : taskList.length === 0 ? <p className="text-xs text-muted-foreground" data-testid="text-fuel-issue-no-tasks">Нет заданий в исполнении для этой техники, хозяйства и года.</p>
+        : <>
+          <label className="form-label">Поле *<select className="text-input mt-2" value={taskField} onChange={(e) => { setFieldChoice(e.target.value ? Number(e.target.value) : ""); setTaskChoice(""); }} data-testid="select-fuel-issue-task-field">
+            <option value="">Выберите поле</option>{taskFields.map((f) => <option key={f.id} value={f.id}>Поле № {f.number}</option>)}
+          </select></label>
+          {taskField !== "" && <label className="form-label">Задание в исполнении *<select className="text-input mt-2" value={task?.id ?? ""} onChange={(e) => setTaskChoice(e.target.value ? Number(e.target.value) : "")} data-testid="select-fuel-issue-task">
+            <option value="">Выберите задание</option>{fieldTasks.map((t) => <option key={t.id} value={t.id}>№ {t.id} · {t.title}</option>)}
+          </select></label>}
+          {task && <p className="text-[11px] text-muted-foreground" data-testid="text-fuel-issue-task-operation">Операция: <b className="text-foreground">{task.operationName}</b> · задание № {task.id} в исполнении</p>}
+        </>}
+    </div>}
+    {vehicle && forFieldWork && !taskMode && <div className="space-y-3 rounded-lg border border-border p-3">
       <label className="form-label">Поле *<select className="text-input mt-2" value={selectedField} onChange={(e) => { setFieldChoice(e.target.value ? Number(e.target.value) : ""); setOpChoice(""); }} data-testid="select-fuel-issue-field">
         <option value="">Выберите поле</option>{fields.map((field) => <option key={field.id} value={field.id}>Поле № {field.number}</option>)}
       </select></label>
