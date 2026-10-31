@@ -7507,6 +7507,37 @@ export const SendPayrollRegisterResponse = zod.object({
 
 
 /**
+ * @summary Read GPS work area for a machine, implement and period
+ */
+
+export const getGpsWorkAreaQueryImplementMax = 200;
+
+
+
+export const GetGpsWorkAreaQueryParams = zod.object({
+  "equipmentId": zod.coerce.number().min(1),
+  "implement": zod.coerce.string().min(1).max(getGpsWorkAreaQueryImplementMax),
+  "startsAt": zod.coerce.string(),
+  "endsAt": zod.coerce.string()
+})
+
+export const getGpsWorkAreaResponseAreaHaMin = 0;
+
+
+
+export const GetGpsWorkAreaResponse = zod.object({
+  "status": zod.enum(['not_connected', 'no_data', 'available']),
+  "areaHa": zod.number().min(getGpsWorkAreaResponseAreaHaMin).nullable(),
+  "source": zod.enum(['autograph']),
+  "message": zod.string(),
+  "equipmentId": zod.number(),
+  "implement": zod.string(),
+  "startsAt": zod.string(),
+  "endsAt": zod.string()
+})
+
+
+/**
  * @summary Current equipment repair register and totals
  */
 export const ListEngineeringRepairsQueryParams = zod.object({

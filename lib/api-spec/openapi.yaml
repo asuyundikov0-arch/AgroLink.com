@@ -1374,6 +1374,37 @@ paths:
           description: Register not found
         "409":
           description: Register has already been sent or was changed by another user
+  /agro/gps/work-area:
+    get:
+      operationId: getGpsWorkArea
+      tags: [agro]
+      summary: Read GPS work area for a machine, implement and period
+      parameters:
+        - { name: equipmentId, in: query, required: true, schema: { type: number, minimum: 1 } }
+        - { name: implement, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 200 } }
+        - { name: startsAt, in: query, required: true, schema: { type: string, description: ISO 8601 timestamp with explicit timezone } }
+        - { name: endsAt, in: query, required: true, schema: { type: string, description: ISO 8601 timestamp with explicit timezone } }
+      responses:
+        "200":
+          description: GPS connection status; hectares are null until verified telemetry is available
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, areaHa, source, message, equipmentId, implement, startsAt, endsAt]
+                properties:
+                  status: { type: string, enum: [not_connected, no_data, available] }
+                  areaHa: { type: number, nullable: true, minimum: 0 }
+                  source: { type: string, enum: [autograph] }
+                  message: { type: string }
+                  equipmentId: { type: number }
+                  implement: { type: string }
+                  startsAt: { type: string }
+                  endsAt: { type: string }
+        "400": { description: Invalid selection or period }
+        "401": { description: Authentication required }
+        "403": { description: Only dispatcher and general director may read GPS work area }
+        "404": { description: Machine not found }
   /engineering/repairs:
     get:
       operationId: listEngineeringRepairs

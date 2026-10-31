@@ -3284,6 +3284,54 @@ export const ListPayrollRegistersSourceGroup = {
   tok: 'tok',
 } as const;
 
+export type GetGpsWorkAreaParams = {
+/**
+ * @minimum 1
+ */
+equipmentId: number;
+/**
+ * @minLength 1
+ * @maxLength 200
+ */
+implement: string;
+/**
+ * ISO 8601 timestamp with explicit timezone
+ */
+startsAt: string;
+/**
+ * ISO 8601 timestamp with explicit timezone
+ */
+endsAt: string;
+};
+
+export type GetGpsWorkArea200Status = typeof GetGpsWorkArea200Status[keyof typeof GetGpsWorkArea200Status];
+
+
+export const GetGpsWorkArea200Status = {
+  not_connected: 'not_connected',
+  no_data: 'no_data',
+  available: 'available',
+} as const;
+
+export type GetGpsWorkArea200Source = typeof GetGpsWorkArea200Source[keyof typeof GetGpsWorkArea200Source];
+
+
+export const GetGpsWorkArea200Source = {
+  autograph: 'autograph',
+} as const;
+
+export type GetGpsWorkArea200 = {
+  status: GetGpsWorkArea200Status;
+  /** @minimum 0 */
+  areaHa: number | null;
+  source: GetGpsWorkArea200Source;
+  message: string;
+  equipmentId: number;
+  implement: string;
+  startsAt: string;
+  endsAt: string;
+};
+
 export type ListEngineeringRepairsParams = {
 unit?: ListEngineeringRepairsUnit;
 };

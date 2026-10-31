@@ -73,6 +73,8 @@ import type {
   FuelReceiptInput,
   FuelWarehouse,
   GetDailySeedingReportParams,
+  GetGpsWorkArea200,
+  GetGpsWorkAreaParams,
   GrainCrop,
   GrainCropInput,
   GrainDashboard,
@@ -5978,6 +5980,90 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getSendPayrollRegisterMutationOptions(options));
     }
+
+export const getGetGpsWorkAreaUrl = (params: GetGpsWorkAreaParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/agro/gps/work-area?${stringifiedParams}` : `/api/agro/gps/work-area`
+}
+
+/**
+ * @summary Read GPS work area for a machine, implement and period
+ */
+export const getGpsWorkArea = async (params: GetGpsWorkAreaParams, options?: Parameters<typeof customFetch>[1]): Promise<GetGpsWorkArea200> => {
+
+  return customFetch<GetGpsWorkArea200>(getGetGpsWorkAreaUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGpsWorkAreaQueryKey = (params?: GetGpsWorkAreaParams,) => {
+    return [
+    `/api/agro/gps/work-area`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetGpsWorkAreaQueryOptions = <TData = Awaited<ReturnType<typeof getGpsWorkArea>>, TError = ErrorType<void>>(params: GetGpsWorkAreaParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGpsWorkArea>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGpsWorkAreaQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGpsWorkArea>>> = ({ signal }) => getGpsWorkArea(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGpsWorkArea>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGpsWorkAreaQueryResult = NonNullable<Awaited<ReturnType<typeof getGpsWorkArea>>>
+export type GetGpsWorkAreaQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read GPS work area for a machine, implement and period
+ */
+
+export function useGetGpsWorkArea<TData = Awaited<ReturnType<typeof getGpsWorkArea>>, TError = ErrorType<void>>(
+ params: GetGpsWorkAreaParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGpsWorkArea>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGpsWorkAreaQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListEngineeringRepairsUrl = (params?: ListEngineeringRepairsParams,) => {
   const normalizedParams = new URLSearchParams();

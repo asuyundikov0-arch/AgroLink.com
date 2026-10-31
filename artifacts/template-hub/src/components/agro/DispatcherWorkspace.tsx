@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Banknote, Check, Tractor, Wallet } from "lucide-react";
+import { Banknote, Check, Satellite, Tractor, Wallet } from "lucide-react";
 import {
   getGetFieldDispatchQueueQueryKey,
   getGetFieldDashboardQueryKey,
@@ -14,8 +14,9 @@ import { money } from "../engineering/repairs/shared";
 import ChemicalConsumptionSection from "./chemicals/Consumption";
 import { DispatcherActiveWorks } from "./fields/DispatcherActive";
 import PayrollRegisterWorkspace from "../economic/PayrollRegisterWorkspace";
+import GpsWorkArea from "./gps/GpsWorkArea";
 
-type View = "fields" | "chemicals" | "payroll";
+type View = "fields" | "chemicals" | "payroll" | "gps";
 const parseRate = (value: string) => {
   const parsed = Number(value.trim().replace(",", "."));
   return value.trim() && Number.isFinite(parsed) && parsed > 0 && parsed <= 1_000_000_000 ? parsed : null;
@@ -57,9 +58,10 @@ export default function DispatcherWorkspace() {
         <button type="button" role="tab" aria-selected={view === "fields"} onClick={() => setView("fields")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "fields" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-fields">Полевые работы{activeFields > 0 && <span className="ml-1.5 rounded-full bg-primary px-1.5 py-px text-[10px] text-primary-foreground" data-testid="badge-dispatch-fields-active">{activeFields}</span>}</button>
         <button type="button" role="tab" aria-selected={view === "chemicals"} onClick={() => setView("chemicals")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "chemicals" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-chemicals">Химия по дням</button>
         <button type="button" role="tab" aria-selected={view === "payroll"} onClick={() => setView("payroll")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "payroll" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-payroll"><Wallet size={13} /> Ежедневные наряды</button>
+        <button type="button" role="tab" aria-selected={view === "gps"} onClick={() => setView("gps")} className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${view === "gps" ? "bg-foreground text-background" : "text-muted-foreground"}`} data-testid="tab-dispatch-gps"><Satellite size={13} /> GPS техники</button>
       </div>
 
-      {view === "payroll" ? <PayrollRegisterWorkspace canManage sourceGroup="brigade" /> : view === "chemicals" ? <ChemicalConsumptionSection onSaved={setNotice} /> : (
+      {view === "gps" ? <GpsWorkArea fields={fieldsQuery} /> : view === "payroll" ? <PayrollRegisterWorkspace canManage sourceGroup="brigade" /> : view === "chemicals" ? <ChemicalConsumptionSection onSaved={setNotice} /> : (
         <div className="space-y-5">
         <section className="surface-card p-4 sm:p-5" data-testid="section-dispatch-active">
           <header><p className="eyebrow">Выполняемые полевые работы</p><h2 className="mt-1 text-lg font-bold">Площадь за день и завершение</h2><p className="mt-1 text-xs text-muted-foreground">Механизатор, техника и агрегат берутся из текущих сведений агронома. Завершение подтверждает агроном.</p></header>

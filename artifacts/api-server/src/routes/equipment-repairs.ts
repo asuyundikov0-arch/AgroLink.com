@@ -40,6 +40,7 @@ router.use("/engineering/fleet", requireApprovedRole);
 const fleetReaders = new Set([
   "engineer", "chief_engineer", "general_director", "storekeeper",
   "agronomist", "chief_agronomist", "grain_manager", "weigher",
+  "dispatcher",
 ]);
 const canReadFleet: RequestHandler = (_req, res, next) => {
   if (!fleetReaders.has((res.locals.access as RoleAccess).role ?? "")) {
