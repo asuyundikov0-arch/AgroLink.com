@@ -49,6 +49,7 @@ import HRWorkspace from "@/components/hr/HRWorkspace";
 import PayrollRegisterWorkspace from "@/components/economic/PayrollRegisterWorkspace";
 import FinancialWorkspace from "@/components/economic/FinancialWorkspace";
 import { Toaster } from "@/components/ui/toaster";
+import { ThemeSwitch, useTheme, type AppTheme } from "@/components/theme-switch";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import companyEmblem from "@assets/IMG_0731_1787404427367.jpeg";
 import fieldBackdrop from "@assets/4EEAF023-8B35-41FE-8D91-A04A016B4736_1793193861034.png";
@@ -84,55 +85,49 @@ function roleLabel(value: unknown) {
   return isAppRole(value) ? roleLabels[value] : "Роль больше не используется";
 }
 
-const clerkAppearance = {
-  theme: shadcn,
-  cssLayerName: "clerk",
-  options: {
-    logoPlacement: "inside" as const,
-    logoLinkUrl: basePath || "/",
-    logoImageUrl: companyEmblem,
-  },
-  variables: {
-    colorPrimary: "#ece9e2",
-    colorPrimaryForeground: "#121212",
-    colorForeground: "#ece9e2",
-    colorMutedForeground: "#9a978f",
-    colorBackground: "#151515",
-    colorInput: "#1d1d1d",
-    colorInputForeground: "#ece9e2",
-    colorDanger: "#e0605a",
-    colorNeutral: "#ece9e2",
-    fontFamily: "DM Sans, sans-serif",
-    borderRadius: "0.75rem",
-  },
-  elements: {
-    rootBox: "w-full flex justify-center",
-    cardBox: "w-[440px] max-w-full overflow-hidden rounded-2xl border border-white/10 bg-[#151515]/95 shadow-2xl backdrop-blur",
-    card: "!border-0 !bg-transparent !shadow-none",
-    footer: "!border-0 !bg-transparent !shadow-none",
-    headerTitle: "text-[#ece9e2]",
-    headerSubtitle: "text-[#9a978f]",
-    socialButtonsBlockButtonText: "text-[#ece9e2]",
-    formFieldLabel: "text-[#d8d5ce]",
-    footerActionLink: "text-[#d9b46a]",
-    footerActionText: "text-[#9a978f]",
-    dividerText: "text-[#7d7a73]",
-    identityPreviewEditButton: "text-[#d9b46a]",
-    formFieldSuccessText: "text-[#d9b46a]",
-    alertText: "text-[#ece9e2]",
-    logoBox: "pb-2",
-    logoImage: "h-10 w-10",
-    socialButtonsBlockButton: "border-white/15 bg-[#1d1d1d]",
-    formButtonPrimary: "bg-[#ece9e2] text-[#121212] hover:bg-white/80",
-    formFieldInput: "border-white/15 bg-[#1d1d1d] text-[#ece9e2]",
-    footerAction: "border-white/10",
-    dividerLine: "bg-white/10",
-    alert: "border-white/10 bg-[#1d1d1d]",
-    otpCodeFieldInput: "border-white/15",
-    formFieldRow: "gap-2",
-    main: "gap-4",
-  },
-};
+function clerkAppearanceFor(theme: AppTheme) {
+  const light = theme === "light";
+  const c = light
+    ? { fg: "#0f2238", muted: "#4f6378", bg: "#ffffff", input: "#f3f7fc", primary: "#0d5fb8", primaryFg: "#ffffff", danger: "#c53b33" }
+    : { fg: "#ece9e2", muted: "#9a978f", bg: "#151515", input: "#1d1d1d", primary: "#ece9e2", primaryFg: "#121212", danger: "#e0605a" };
+  return {
+    theme: shadcn,
+    cssLayerName: "clerk",
+    options: { logoPlacement: "inside" as const, logoLinkUrl: basePath || "/", logoImageUrl: companyEmblem },
+    variables: {
+      colorPrimary: c.primary, colorPrimaryForeground: c.primaryFg, colorForeground: c.fg, colorMutedForeground: c.muted,
+      colorBackground: c.bg, colorInput: c.input, colorInputForeground: c.fg, colorDanger: c.danger, colorNeutral: c.fg,
+      fontFamily: "DM Sans, sans-serif", borderRadius: "0.75rem",
+    },
+    elements: {
+      rootBox: "w-full flex justify-center",
+      cardBox: light ? "w-[440px] max-w-full overflow-hidden rounded-2xl border border-[#c9d7e8] bg-white/95 shadow-2xl backdrop-blur" : "w-[440px] max-w-full overflow-hidden rounded-2xl border border-white/10 bg-[#151515]/95 shadow-2xl backdrop-blur",
+      card: "!border-0 !bg-transparent !shadow-none",
+      footer: "!border-0 !bg-transparent !shadow-none",
+      headerTitle: light ? "text-[#0f2238]" : "text-[#ece9e2]",
+      headerSubtitle: light ? "text-[#4f6378]" : "text-[#9a978f]",
+      socialButtonsBlockButtonText: light ? "text-[#0f2238]" : "text-[#ece9e2]",
+      formFieldLabel: light ? "text-[#1d3550]" : "text-[#d8d5ce]",
+      footerActionLink: light ? "text-[#0d5fb8]" : "text-[#d9b46a]",
+      footerActionText: light ? "text-[#4f6378]" : "text-[#9a978f]",
+      dividerText: light ? "text-[#5d7088]" : "text-[#7d7a73]",
+      identityPreviewEditButton: light ? "text-[#0d5fb8]" : "text-[#d9b46a]",
+      formFieldSuccessText: light ? "text-[#0d5fb8]" : "text-[#d9b46a]",
+      alertText: light ? "text-[#0f2238]" : "text-[#ece9e2]",
+      logoBox: "pb-2",
+      logoImage: "h-10 w-10",
+      socialButtonsBlockButton: light ? "border-[#c9d7e8] bg-[#f3f7fc]" : "border-white/15 bg-[#1d1d1d]",
+      formButtonPrimary: light ? "bg-[#0d5fb8] text-white hover:bg-[#0a4d96]" : "bg-[#ece9e2] text-[#121212] hover:bg-white/80",
+      formFieldInput: light ? "border-[#c9d7e8] bg-[#f3f7fc] text-[#0f2238]" : "border-white/15 bg-[#1d1d1d] text-[#ece9e2]",
+      footerAction: light ? "border-[#c9d7e8]" : "border-white/10",
+      dividerLine: light ? "bg-[#c9d7e8]" : "bg-white/10",
+      alert: light ? "border-[#c9d7e8] bg-[#f3f7fc]" : "border-white/10 bg-[#1d1d1d]",
+      otpCodeFieldInput: light ? "border-[#c9d7e8]" : "border-white/15",
+      formFieldRow: "gap-2",
+      main: "gap-4",
+    },
+  };
+}
 
 const backdropStyle = { "--app-backdrop": `url("${fieldBackdrop}")` } as CSSProperties;
 
@@ -170,6 +165,7 @@ function EmptyState({ title, description }: { title: string; description: string
 function PublicLanding() {
   return (
     <main className="auth-landing app-backdrop" style={backdropStyle}>
+      <ThemeSwitch className="theme-switch-floating" />
       <div className="auth-landing-grid" aria-hidden="true" />
       <section className="auth-landing-card">
         <div className="landing-brand"><BrandEmblem size="lg" /><div><p className="landing-brand-name">AgroLink operation</p><p className="landing-brand-caption">Операционная система хозяйства</p></div></div>
@@ -213,7 +209,7 @@ function PublicDemo() {
   const scenario = demoRoleScenarios[role];
   return <main className="app-backdrop min-h-[100dvh] px-4" style={backdropStyle}><div className="py-6 sm:py-10">
     <div className="mx-auto max-w-5xl">
-      <div className="mb-7 flex flex-col justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-center"><div className="flex items-center gap-3"><BrandEmblem /><div><p className="landing-brand-name">AgroLink operation</p><p className="text-xs text-muted-foreground">Интерактивная демо-версия</p></div></div><a href={basePath || "/"} className="button button-secondary text-xs"><ArrowLeft size={14} />К стартовой странице</a></div>
+      <div className="mb-7 flex flex-col justify-between gap-4 border-b border-border pb-5 sm:flex-row sm:items-center"><div className="flex items-center gap-3"><BrandEmblem /><div><p className="landing-brand-name">AgroLink operation</p><p className="text-xs text-muted-foreground">Интерактивная демо-версия</p></div></div><div className="flex items-center gap-2"><ThemeSwitch /><a href={basePath || "/"} className="button button-secondary text-xs"><ArrowLeft size={14} />К стартовой странице</a></div></div>
       <section className="surface-card mb-6 border-l-[4px] border-l-[hsl(var(--accent))] p-5 sm:p-7"><p className="eyebrow">Без регистрации и доступа к данным</p><h1 className="mt-2 font-display text-3xl font-bold tracking-[-0.05em]">Посмотрите работу каждой роли</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">Это безопасная учебная копия интерфейса. Все действия работают только внутри этого экрана и не создают пользователей, записи или заявки.</p><label className="form-label mt-6 block max-w-sm">Роль для демонстрации<select className="text-input mt-2" value={role} onChange={(event) => { setRole(event.target.value as AppRole); setMessage(""); }} data-testid="select-public-demo-role">{appRoles.map((item) => <option key={item} value={item}>{roleLabels[item]}</option>)}</select></label></section>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_330px]"><section className="surface-card overflow-hidden"><div className="border-b border-border bg-muted/25 px-5 py-5 sm:px-7"><p className="eyebrow">{scenario.workspace}</p><h2 className="mt-2 font-display text-2xl font-bold tracking-[-0.045em]">{scenario.title}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{scenario.description}</p></div><div className="p-5 sm:p-7"><article className="rounded-xl border border-border bg-card p-4 sm:p-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div className="flex min-w-0 items-start gap-3"><div className="setting-icon"><ClipboardCheck size={17} /></div><div><div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-bold">{scenario.document}</h3><span className="meta-chip">Демо-запись</span></div><p className="mt-1 text-xs text-muted-foreground">Рабочая операция · маршрут показан на примере</p></div></div><button type="button" className="button button-primary shrink-0 text-xs" onClick={() => setMessage(scenario.result)} data-testid="button-run-demo-action"><Check size={14} />{scenario.action}</button></div></article>{message && <div className="notice-banner mt-5"><Check size={16} />{message}<button type="button" aria-label="Закрыть" onClick={() => setMessage("")}><X size={14} /></button></div>}</div></section>
         <aside className="surface-card p-5 sm:p-6"><div className="section-heading"><div className="setting-icon"><Users size={17} /></div><div><h2>Маршрут роли</h2><p>Без настоящих прав доступа.</p></div></div><ol className="mt-6 space-y-4 text-sm"><li className="flex gap-3"><span className="meta-chip">1</span><span>Выберите роль в списке.</span></li><li className="flex gap-3"><span className="meta-chip">2</span><span>Посмотрите доступный ей рабочий раздел.</span></li><li className="flex gap-3"><span className="meta-chip">3</span><span>Нажмите действие и увидите результат в демо-режиме.</span></li></ol><a href={`${basePath}/sign-up`} className="button button-secondary mt-7 w-full justify-center text-xs">Перейти к настоящей регистрации</a></aside>
@@ -227,11 +223,11 @@ function AuthBackButton() {
 }
 
 function SignInPage() {
-  return <main className="auth-screen app-backdrop" style={backdropStyle}><AuthBackButton /><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></main>;
+  return <main className="auth-screen app-backdrop" style={backdropStyle}><AuthBackButton /><ThemeSwitch className="theme-switch-floating" /><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></main>;
 }
 
 function SignUpPage() {
-  return <main className="auth-screen app-backdrop" style={backdropStyle}><AuthBackButton /><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></main>;
+  return <main className="auth-screen app-backdrop" style={backdropStyle}><AuthBackButton /><ThemeSwitch className="theme-switch-floating" /><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></main>;
 }
 
 function RoleRequestScreen({ request }: { request: RoleRequest | null }) {
@@ -257,6 +253,7 @@ function RoleRequestScreen({ request }: { request: RoleRequest | null }) {
 
   return (
     <main className="access-page app-backdrop" style={backdropStyle}>
+      <ThemeSwitch className="theme-switch-floating" />
       <section className="access-card">
         <div className={cn("access-icon", isPending ? "access-icon-waiting" : isRejected ? "access-icon-rejected" : "")}>
           {isPending ? <Clock3 size={24} /> : isRejected ? <RotateCcw size={24} /> : <ShieldCheck size={24} />}
@@ -387,7 +384,7 @@ function Shell({
       </aside>
       {mobileOpen && <button type="button" aria-label="Закрыть меню" className="fixed inset-0 z-20 bg-sidebar/40 md:hidden" onClick={() => setMobileOpen(false)} />}
       <main className="min-h-[100dvh] md:pl-[256px]">
-        <header className="sticky top-0 z-10 flex h-[68px] items-center justify-between border-b border-border/80 bg-background/90 px-5 backdrop-blur-md md:px-10"><button type="button" aria-label="Открыть меню" className="icon-button md:hidden" onClick={() => setMobileOpen(true)}><Menu size={20} /></button><div className="hidden items-center gap-2 text-xs text-muted-foreground md:flex"><span className="size-1.5 rounded-full bg-emerald-500" />Доступ подтверждён</div><div className="ml-auto flex items-center gap-3"><button type="button" className="icon-button" aria-label="Помощь" onClick={() => setTopNotice("По вопросам доступа обратитесь к руководителю, который согласовал вашу роль.")}><CircleHelp size={18} /></button><div className="avatar avatar-sm avatar-blue">{initials(request.displayName)}</div></div></header>
+        <header className="sticky top-0 z-10 flex h-[68px] items-center justify-between border-b border-border/80 bg-background/90 px-5 backdrop-blur-md md:px-10"><button type="button" aria-label="Открыть меню" className="icon-button md:hidden" onClick={() => setMobileOpen(true)}><Menu size={20} /></button><div className="hidden items-center gap-2 text-xs text-muted-foreground md:flex"><span className="size-1.5 rounded-full bg-emerald-500" />Доступ подтверждён</div><div className="ml-auto flex items-center gap-3"><ThemeSwitch /><button type="button" className="icon-button" aria-label="Помощь" onClick={() => setTopNotice("По вопросам доступа обратитесь к руководителю, который согласовал вашу роль.")}><CircleHelp size={18} /></button><div className="avatar avatar-sm avatar-blue">{initials(request.displayName)}</div></div></header>
         {topNotice && <div className="mx-5 mt-4 md:mx-10"><div className="notice-banner max-w-xl"><CircleHelp size={16} /><span>{topNotice}</span><button type="button" aria-label="Закрыть" onClick={() => setTopNotice("")}><X size={14} /></button></div></div>}
         <div className="page-wrap">{children}</div>
       </main>
@@ -520,8 +517,9 @@ function stripBase(path: string) {
 
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
+  const theme = useTheme();
   return (
-    <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={clerkAppearance} signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} routerPush={(to) => setLocation(stripBase(to))} routerReplace={(to) => setLocation(stripBase(to), { replace: true })}>
+    <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={clerkAppearanceFor(theme)} signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} routerPush={(to) => setLocation(stripBase(to))} routerReplace={(to) => setLocation(stripBase(to), { replace: true })}>
       <QueryClientProvider client={queryClient}><TooltipProvider><ErrorBoundary><Switch><Route path="/sign-in/*?" component={SignInPage} /><Route path="/sign-up/*?" component={SignUpPage} /><Route component={Home} /></Switch></ErrorBoundary><Toaster /></TooltipProvider></QueryClientProvider>
     </ClerkProvider>
   );
