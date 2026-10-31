@@ -17,6 +17,7 @@ async function buildAll() {
   await esbuild({
     entryPoints: [path.resolve(artifactDir, "src/index.ts")],
     platform: "node",
+    loader: { ".kml": "text" },
     bundle: true,
     format: "esm",
     outdir: distDir,

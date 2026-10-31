@@ -4,6 +4,7 @@ import roleApplicationsRouter from "./role-applications";
 import equipmentRepairsRouter from "./equipment-repairs";
 import grainRouter from "./grain";
 import agroFieldsRouter from "./agro-fields";
+import fieldMapRouter from "./field-map";
 import sparePartRequestsRouter from "./spare-part-requests";
 import payrollRegistersRouter from "./payroll-registers";
 import employeesRouter from "./employees";
@@ -24,6 +25,7 @@ router.use(["/templates", "/reports", "/archives", "/dashboard/summary", "/activ
 router.use(roleApplicationsRouter);
 router.use(equipmentRepairsRouter);
 router.use(grainRouter);
+router.use(fieldMapRouter);
 router.use(agroFieldsRouter);
 router.use(sparePartRequestsRouter);
 router.use(payrollRegistersRouter);

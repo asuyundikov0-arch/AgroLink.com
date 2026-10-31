@@ -1934,6 +1934,21 @@ export const GetDailySeedingReportResponse = zod.object({
 })
 
 
+export const GetFieldMapResponse = zod.object({
+  "boundaries": zod.array(zod.object({
+  "fieldId": zod.number(),
+  "fieldNumber": zod.string(),
+  "unit": zod.string(),
+  "areaHa": zod.number(),
+  "contourAreaHa": zod.number(),
+  "geometry": zod.object({
+  "type": zod.enum(['Polygon']),
+  "coordinates": zod.array(zod.array(zod.array(zod.number())))
+})
+}))
+})
+
+
 export const getFieldDashboardResponseFieldsItemOneOneNumberMax = 80;
 
 export const getFieldDashboardResponseFieldsItemOneOneAreaHaMin = 0.01;

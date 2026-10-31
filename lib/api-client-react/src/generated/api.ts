@@ -50,6 +50,7 @@ import type {
   FieldDispatchItem,
   FieldDispatchRateInput,
   FieldLifecycleInput,
+  FieldMapResponse,
   FieldOperation,
   FieldOperationInput,
   FieldOperationUpdate,
@@ -1710,6 +1711,77 @@ export function useGetDailySeedingReport<TData = Awaited<ReturnType<typeof getDa
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetDailySeedingReportQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetFieldMapUrl = () => {
+
+
+
+
+  return `/api/agro/fields/map`
+}
+
+export const getFieldMap = async ( options?: Parameters<typeof customFetch>[1]): Promise<FieldMapResponse> => {
+
+  return customFetch<FieldMapResponse>(getGetFieldMapUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFieldMapQueryKey = () => {
+    return [
+    `/api/agro/fields/map`
+    ] as const;
+    }
+
+
+export const getGetFieldMapQueryOptions = <TData = Awaited<ReturnType<typeof getFieldMap>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFieldMap>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFieldMapQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFieldMap>>> = ({ signal }) => getFieldMap({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFieldMap>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFieldMapQueryResult = NonNullable<Awaited<ReturnType<typeof getFieldMap>>>
+export type GetFieldMapQueryError = ErrorType<unknown>
+
+
+
+export function useGetFieldMap<TData = Awaited<ReturnType<typeof getFieldMap>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFieldMap>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFieldMapQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

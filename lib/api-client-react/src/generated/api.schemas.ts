@@ -1343,6 +1343,31 @@ export interface FieldDispatchItem {
   actualRateSetAt: string | null;
 }
 
+export type FieldBoundaryGeometryType = typeof FieldBoundaryGeometryType[keyof typeof FieldBoundaryGeometryType];
+
+
+export const FieldBoundaryGeometryType = {
+  Polygon: 'Polygon',
+} as const;
+
+export type FieldBoundaryGeometry = {
+  type: FieldBoundaryGeometryType;
+  coordinates: number[][][];
+};
+
+export interface FieldBoundary {
+  fieldId: number;
+  fieldNumber: string;
+  unit: string;
+  areaHa: number;
+  contourAreaHa: number;
+  geometry: FieldBoundaryGeometry;
+}
+
+export interface FieldMapResponse {
+  boundaries: FieldBoundary[];
+}
+
 export interface FieldDashboard {
   fields: AgroField[];
   seasons: FieldSeason[];

@@ -339,6 +339,15 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DailySeedingReport" }
+  /agro/fields/map:
+    get:
+      operationId: getFieldMap
+      responses:
+        "200":
+          description: Authenticated field boundaries linked to the field directory
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FieldMapResponse" }
   /agro/fields:
     get:
       operationId: getFieldDashboard
@@ -2790,6 +2799,34 @@ components:
         actualPayAmount: { type: ["number", "null"] }
         actualRateSetBy: { type: string }
         actualRateSetAt: { type: ["string", "null"] }
+    FieldBoundary:
+      type: object
+      required: [fieldId, fieldNumber, unit, areaHa, contourAreaHa, geometry]
+      properties:
+        fieldId: { type: number }
+        fieldNumber: { type: string }
+        unit: { type: string }
+        areaHa: { type: number }
+        contourAreaHa: { type: number }
+        geometry:
+          type: object
+          required: [type, coordinates]
+          properties:
+            type: { type: string, enum: [Polygon] }
+            coordinates:
+              type: array
+              items:
+                type: array
+                items:
+                  type: array
+                  items: { type: number }
+    FieldMapResponse:
+      type: object
+      required: [boundaries]
+      properties:
+        boundaries:
+          type: array
+          items: { $ref: "#/components/schemas/FieldBoundary" }
     FieldDashboard:
       type: object
       required: [fields, seasons, operations, cropSuggestions, operationSuggestions, asOfDate]
