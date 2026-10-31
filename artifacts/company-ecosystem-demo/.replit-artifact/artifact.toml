@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/company-ecosystem-demo/"
+title = "AgroLink — экосистема компании (демо)"
+description = "Отдельная интерактивная демонстрация общего учёта имущества и ТМЦ компании: склад, сотрудники, выдача, перемещение, возврат, согласование списания и связь подразделений. Только локальные демонстрационные данные, без доступа к рабочему AgroLink."
+version = "1.0.0"
+id = "artifacts/company-ecosystem-demo"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/company-ecosystem-demo/" ]
+localPort = 19056
+
+[services.development]
+run = "pnpm --filter @workspace/company-ecosystem-demo run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/company-ecosystem-demo", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/company-ecosystem-demo/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19056"
+BASE_PATH = "/company-ecosystem-demo/"
