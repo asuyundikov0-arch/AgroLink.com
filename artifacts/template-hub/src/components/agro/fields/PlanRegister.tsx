@@ -1,12 +1,9 @@
 import type { ReactNode } from "react";
-import { ArrowLeft, ChevronRight, History, Pencil, Plus } from "lucide-react";
+import { ArrowLeft, ChevronRight, History, Plus } from "lucide-react";
 import type { AgroField, FieldOperation, FieldSeason } from "@workspace/api-client-react";
-import { SeedPlanSummary } from "./SeedPlanEditor";
-import { SupportingWorksSummary } from "./SupportingWorksEditor";
+import { type ChemBatchInfo, PlanOperationCard } from "./PlanOperationCard";
 import { ChemicalSeasonCost } from "../ChemicalWarehouse";
-import { StatusPill, cx, dateFmt, ha } from "./shared";
-
-const kzt = (v: number | null | undefined) => v == null ? "—" : `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(v)} ₸`;
+import { ha } from "./shared";
 
 /** Latest season of the same field strictly before `year`. */
 export function predecessorOf(seasons: FieldSeason[], fieldId: number, year: number): FieldSeason | undefined {
@@ -30,7 +27,7 @@ export function CropBadge({ crop }: { crop: string }) {
   return <span className="inline-flex max-w-full items-center truncate rounded-md border px-2 py-0.5 text-[11px] font-semibold" style={cropStyle(crop).badge}>{crop}</span>;
 }
 
-const activeOps = (ops: FieldOperation[], seasonId: number) => ops.filter((o) => o.seasonId === seasonId && o.status !== "cancelled" && !o.isUnplanned);
+export const activeOps = (ops: FieldOperation[], seasonId: number) => ops.filter((o) => o.seasonId === seasonId && o.status !== "cancelled" && !o.isUnplanned);
 
 type ListProps = { year: number; unitAll: boolean; fields: AgroField[]; yearSeasons: FieldSeason[]; seasons: FieldSeason[]; ops: FieldOperation[]; onOpen: (id: number) => void; header: ReactNode; empty: ReactNode };
 
@@ -69,19 +66,12 @@ export function PlanFieldsList({ year, unitAll, fields, yearSeasons, seasons, op
   );
 }
 
-type Machine = { equipment: string; employee: string; implement: string };
-export function machinesOf(o: FieldOperation): Machine[] {
-  if (o.plannedAssignments?.length) return o.plannedAssignments.map((r) => ({ equipment: r.equipmentName || `Техника №${r.equipmentId}`, employee: r.employeeName || `Сотрудник №${r.employeeId}`, implement: r.implement || "" }));
-  return [{ equipment: o.plannedEquipment || "", employee: o.responsible || "", implement: o.plannedImplement || "" }];
-}
-
-const dash = (v: string, t = "не указан") => v || <span className="text-muted-foreground">{t}</span>;
-const COLS = "xl:grid-cols-[150px_minmax(140px,1fr)_minmax(130px,1fr)_minmax(130px,1fr)_minmax(110px,0.9fr)_96px]";
+export { machinesOf } from "./PlanOperationCard";
 
 type ScheduleProps = { field: AgroField; season?: FieldSeason; predecessor?: FieldSeason; year: number; ops: FieldOperation[]; manage: boolean;
-  onBack: () => void; onHistory: () => void; onAddOp: () => void; onAddSeason: () => void; onEditOp: (o: FieldOperation) => void; noSeason: ReactNode; noOps: ReactNode };
+  onBack: () => void; onHistory: () => void; onAddOp: () => void; onAddSeason: () => void; onEditOp: (o: FieldOperation) => void; chemBatches?: Map<number, ChemBatchInfo>; noSeason: ReactNode; noOps: ReactNode };
 
-export function PlanFieldSchedule({ field: pf, season: s, predecessor: p, ops, year, manage, onBack, onHistory, onAddOp, onAddSeason, onEditOp, noSeason, noOps }: ScheduleProps) {
+export function PlanFieldSchedule({ field: pf, season: s, predecessor: p, ops, year, manage, onBack, onHistory, onAddOp, onAddSeason, onEditOp, chemBatches, noSeason, noOps }: ScheduleProps) {
   const so = s ? activeOps(ops, s.id).sort((a, b) => a.plannedStart.localeCompare(b.plannedStart) || a.id - b.id) : [];
   return (
     <section className="surface-card overflow-hidden" data-testid="section-plan-field-schedule">
@@ -101,41 +91,8 @@ export function PlanFieldSchedule({ field: pf, season: s, predecessor: p, ops, y
       </div>
       {s && <div className="border-b border-border px-4 py-2.5 sm:px-5"><ChemicalSeasonCost seasonId={s.id} /></div>}
       {!s ? noSeason : so.length === 0 ? noOps : (
-        <div className="text-xs">
-          <div className={cx("hidden gap-3 border-b border-border bg-muted/20 px-4 py-2 text-[10.5px] font-semibold text-muted-foreground xl:grid", COLS)}>
-            <span>Начало – окончание</span><span>Операция</span><span>Механизатор</span><span>Техника</span><span>Агрегат</span><span />
-          </div>
-          <div className="divide-y divide-border">
-            {so.map((o) => {
-              const ms = machinesOf(o);
-              return (
-                <div key={o.id} data-testid={`row-plan-op-${o.id}`} className="px-4 py-3">
-                  <div className={cx("grid grid-cols-1 gap-x-3 gap-y-1.5", COLS)}>
-                    <div className="font-mono text-[11px] font-semibold">{dateFmt(o.plannedStart)} – {dateFmt(o.plannedEnd)}</div>
-                    <div className="min-w-0"><p className="font-bold">{o.name}</p><div className="mt-0.5"><StatusPill op={o} /></div></div>
-                    <div className="min-w-0 space-y-1.5 xl:col-span-3" data-testid={`text-plan-mechanic-${o.id}`}>
-                      {ms.map((m, i) => (
-                        <div key={i} className="grid grid-cols-[88px_minmax(0,1fr)] gap-x-2 text-[11px] [overflow-wrap:anywhere] xl:grid-cols-[minmax(130px,1fr)_minmax(130px,1fr)_minmax(110px,0.9fr)] xl:gap-3">
-                          <span className="text-muted-foreground xl:hidden">Механизатор</span><span>{dash(m.employee)}</span>
-                          <span className="text-muted-foreground xl:hidden">Техника</span><span>{dash(m.equipment, "не указана")}</span>
-                          <span className="text-muted-foreground xl:hidden">Агрегат</span><span>{dash(m.implement)}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex xl:justify-end">{manage && <button type="button" className="button button-secondary !min-h-[28px] !px-2 text-[10px]" onClick={() => onEditOp(o)} data-testid={`button-plan-edit-op-${o.id}`}><Pencil size={12} />Изменить</button>}</div>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 rounded-md bg-muted/30 px-3 py-1.5 text-[10.5px]" data-testid={`text-plan-costs-${o.id}`}>
-                    <span><span className="text-muted-foreground">Площадь операции: </span><span className="font-mono">{ha(o.plannedAreaHa)}</span></span>
-                    <span><span className="text-muted-foreground">План ДТ (стоимость): </span><span className="font-mono">{kzt(o.plannedFuelCost)}</span></span>
-                    <span><span className="text-muted-foreground">Расценка: </span><span className="font-mono">{o.plannedRatePerHa > 0 ? `${kzt(o.plannedRatePerHa)}/га` : "не задана"}</span></span>
-                    <span><span className="text-muted-foreground">ЗП по плану: </span><span className="font-mono font-semibold">{kzt(o.plannedPayAmount)}</span></span>
-                  </div>
-                  <SeedPlanSummary seeds={o.seeds} opName={o.name} testId={`text-season-seeds-${o.id}`} />
-                  <SupportingWorksSummary works={o.supportingWorks} title="Сопутствующие работы по плану" testId={`text-season-support-${o.id}`} />
-                </div>
-              );
-            })}
-          </div>
+        <div className="space-y-3 p-3 sm:p-4">
+          {so.map((o) => <PlanOperationCard key={o.id} op={o} field={pf} season={s} manage={manage} chemBatches={chemBatches} showField={false} onEdit={onEditOp} />)}
         </div>
       )}
     </section>

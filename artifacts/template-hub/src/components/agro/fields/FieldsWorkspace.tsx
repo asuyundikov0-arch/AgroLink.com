@@ -1,6 +1,6 @@
 import { type ReactNode, useMemo, useState } from "react";
 import { ArrowLeft, ChevronRight, ClipboardCheck, CalendarRange, History, LandPlot, Layers, Pencil, Plus, RefreshCw, Sprout, TriangleAlert } from "lucide-react";
-import { type AgroField, type FieldLifecycleInputAction, type FieldOperation, type FieldSeason, getGetFieldDashboardQueryKey, getListFleetEquipmentQueryKey, useGetFieldDashboard, useListFleetEquipment } from "@workspace/api-client-react";
+import { type AgroField, type FieldLifecycleInputAction, type FieldOperation, type FieldSeason, getGetChemicalWarehouseQueryKey, getGetFieldDashboardQueryKey, getListFleetEquipmentQueryKey, useGetChemicalWarehouse, useGetFieldDashboard, useListFleetEquipment } from "@workspace/api-client-react";
 import { UnplannedForm } from "./UnplannedForm";
 import { MachineAssignmentSummary } from "./MachineAssignments";
 import { DailyHistory } from "./WorkForms";
@@ -12,6 +12,7 @@ import { LifecycleDialog, WorkResourcesForm, isPendingCompletion, isPendingUnpla
 import { type PlanFact, planFactBySeason, planFactSummary } from "./planFact";
 import { FieldForm, OperationForm, SeasonForm, VoidDialog } from "./Forms";
 import { FieldDirectory } from "./FieldDirectory";
+import { PlanOverview } from "./PlanOverview";
 import { CropBadge, PlanFieldSchedule, PlanFieldsList, cropStyle, predecessorOf } from "./PlanRegister";
 import { CropAreaChart } from "./Charts";
 import { ChemicalSeasonCost } from "../ChemicalWarehouse";
@@ -19,6 +20,7 @@ import { Drawer, POLL_MS, Progress, StatusPill, UNITS, type Unit, canActual, can
 
 type View = "directory" | "history" | "plan" | "facts" | "inProgress" | "completed";
 type Modal =
+  | { k: "planField" }
   | { k: "field"; field: AgroField | null }
   | { k: "season"; season: FieldSeason | null; fieldId?: number }
   | { k: "op"; op: FieldOperation | null; seasonId?: number }
@@ -46,6 +48,9 @@ export default function FieldsWorkspace({ role }: { role: string }) {
   const [view, setView] = useState<View>("directory");
   const [modal, setModal] = useState<Modal | null>(null);
   const [planFieldId, setPlanFieldId] = useState<number | null>(null);
+  const [planMode, setPlanMode] = useState<"ops" | "fields">("ops");
+  const chemQ = useGetChemicalWarehouse({ query: { queryKey: getGetChemicalWarehouseQueryKey(), refetchInterval: POLL_MS, enabled: allowed && view === "plan" } });
+  const chemBatches = useMemo(() => new Map((chemQ.data?.batches ?? []).map((b) => [b.id, { name: b.name, unit: b.unit, unitPrice: b.unitPrice }])), [chemQ.data]);
   const [factFieldId, setFactFieldId] = useState<number | null>(null);
   const [notice, setNotice] = useState("");
   const manage = canManage(role);
@@ -203,17 +208,40 @@ export default function FieldsWorkspace({ role }: { role: string }) {
           )}
 
           {view === "plan" && (() => {
-            const pf = planFieldId !== null && scopeIds.has(planFieldId) ? fieldById.get(planFieldId) : undefined;
-            if (!pf) return <PlanFieldsList year={year} unitAll={unit === "all"} fields={scopeFields} yearSeasons={yearSeasons} seasons={seasons} ops={ops} onOpen={setPlanFieldId}
-              header={<SectionHead title={`План агроопераций на сезон · ${year}`} text="Поля по номеру. Цвет строки соответствует культуре севооборота." />}
-              empty={<Empty icon={<LandPlot size={18} />} title="Полей нет" text="По выбранному хозяйству поля не внесены." testId="status-plan-fields-empty" />} />;
-            const s = yearSeasons.find((x) => x.fieldId === pf.id);
-            return <PlanFieldSchedule field={pf} season={s} predecessor={predecessorOf(seasons, pf.id, year)} year={year} ops={ops} manage={manage}
-              onBack={() => setPlanFieldId(null)} onHistory={() => setModal({ k: "history", fieldId: pf.id })}
-              onAddOp={() => s && setModal({ k: "op", op: null, seasonId: s.id })} onAddSeason={() => setModal({ k: "season", season: null, fieldId: pf.id })}
-              onEditOp={(o) => setModal({ k: "op", op: o })}
-              noSeason={<Empty icon={<Layers size={18} />} title={`На ${year} год сезона нет`} text={manage ? "Севооборот не задан. Добавьте его, затем планируйте операции." : "Севооборот не задан."} testId="status-plan-no-season" />}
-              noOps={<Empty icon={<CalendarRange size={18} />} title="Операций в графике нет" text={manage ? "Добавьте первую плановую операцию." : "Плановые операции ещё не внесены."} testId="status-plan-schedule-empty" />} />;
+            const pf = planMode === "fields" && planFieldId !== null && scopeIds.has(planFieldId) ? fieldById.get(planFieldId) : undefined;
+            const canAddPlan = manage && yearSeasons.some((x) => fieldById.get(x.fieldId)?.isActive);
+            const openField = (id: number) => { setPlanFieldId(id); setPlanMode("fields"); };
+            return (
+              <section className="space-y-3" data-testid="section-plan">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h2 className="font-display text-2xl font-bold tracking-[-0.04em]">План агроопераций</h2>
+                    <span className="rounded-lg border border-border bg-card px-2.5 py-1 font-mono text-xs font-bold" title="Год выбирается в фильтре выше" data-testid="text-plan-year">Сезон {year}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="inline-flex rounded-lg border border-border bg-card p-0.5" role="tablist" aria-label="Вид плана">
+                      {([["ops", "Операции"], ["fields", "По полям"]] as const).map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={planMode === k} onClick={() => { setPlanMode(k); if (k === "ops") setPlanFieldId(null); }} data-testid={`tab-plan-${k}`} className={cx("rounded-md px-3 py-1.5 text-[11px] font-bold", planMode === k ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}>{l}</button>)}
+                    </div>
+                    {manage && <button type="button" className="button button-primary" disabled={!canAddPlan} title={canAddPlan ? undefined : "Сначала добавьте севооборот активному полю"} onClick={() => {
+                      const selectedSeason = pf?.isActive ? yearSeasons.find((x) => x.fieldId === pf.id) : undefined;
+                      setModal(selectedSeason ? { k: "op", op: null, seasonId: selectedSeason.id } : { k: "planField" });
+                    }} data-testid="button-plan-add"><Plus size={14} />Добавить план</button>}
+                  </div>
+                </div>
+                {planMode === "ops" ? <PlanOverview year={year} fields={scopeFields} yearSeasons={yearSeasons} ops={ops} manage={manage} chemBatches={chemBatches}
+                  onEdit={(o) => setModal({ k: "op", op: o })} onHistory={(fieldId) => setModal({ k: "history", fieldId })} onOpenField={openField}
+                  onAddSeason={(fieldId) => setModal({ k: "season", season: null, fieldId })} />
+                : !pf ? <PlanFieldsList year={year} unitAll={unit === "all"} fields={scopeFields} yearSeasons={yearSeasons} seasons={seasons} ops={ops} onOpen={setPlanFieldId}
+                  header={<SectionHead title={`Поля · ${year}`} text="Поля по номеру. Цвет строки соответствует культуре севооборота." />}
+                  empty={<Empty icon={<LandPlot size={18} />} title="Полей нет" text="По выбранному хозяйству поля не внесены." testId="status-plan-fields-empty" />} />
+                : (() => { const s = yearSeasons.find((x) => x.fieldId === pf.id); return <PlanFieldSchedule field={pf} season={s} predecessor={predecessorOf(seasons, pf.id, year)} year={year} ops={ops} manage={manage} chemBatches={chemBatches}
+                  onBack={() => setPlanFieldId(null)} onHistory={() => setModal({ k: "history", fieldId: pf.id })}
+                  onAddOp={() => s && setModal({ k: "op", op: null, seasonId: s.id })} onAddSeason={() => setModal({ k: "season", season: null, fieldId: pf.id })}
+                  onEditOp={(o) => setModal({ k: "op", op: o })}
+                  noSeason={<Empty icon={<Layers size={18} />} title={`На ${year} год сезона нет`} text={manage ? "Севооборот не задан. Добавьте его, затем планируйте операции." : "Севооборот не задан."} testId="status-plan-no-season" />}
+                  noOps={<Empty icon={<CalendarRange size={18} />} title="Операций в графике нет" text={manage ? "Добавьте первую плановую операцию." : "Плановые операции ещё не внесены."} testId="status-plan-schedule-empty" />} />; })()}
+              </section>
+            );
           })()}
 
           {view === "facts" && <FactsView
@@ -258,6 +286,16 @@ export default function FieldsWorkspace({ role }: { role: string }) {
 
           {modal?.k === "field" && <FieldForm role={role} field={modal.field} fields={fields} defaultUnit={unit === "all" ? UNITS[0] : unit} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "season" && <SeasonForm season={modal.season} fields={fields} seasons={seasons} cropSuggestions={d.cropSuggestions} defaultYear={year} defaultFieldId={modal.fieldId} onClose={() => setModal(null)} onDone={done} />}
+          {modal?.k === "planField" && manage && <Drawer title="Добавить план" eyebrow={`Выберите поле · ${year}`} onClose={() => setModal(null)} footer={<button type="button" className="button button-secondary" onClick={() => setModal(null)}>Отмена</button>} testId="drawer-plan-pick-field">
+            <p className="mb-3 text-xs text-muted-foreground">Выберите поле. В форме планирования оно будет закреплено и не изменится.</p>
+            <div className="space-y-2">{scopeFields.filter((f) => f.isActive).map((f) => {
+              const season = yearSeasons.find((s) => s.fieldId === f.id);
+              return <button key={f.id} type="button" className="flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-card p-3 text-left hover:bg-muted" data-testid={`button-plan-pick-field-${f.id}`} onClick={() => setModal(season ? { k: "op", op: null, seasonId: season.id } : { k: "season", season: null, fieldId: f.id })}>
+                <span><span className="text-sm font-bold">Поле № {f.number}</span><span className="block text-xs text-muted-foreground">{f.unit} · {ha(season?.areaHa ?? f.areaHa)}</span></span>
+                <span className="text-xs">{season ? season.cropName : "Добавить севооборот"}</span><ChevronRight size={14} />
+              </button>;
+            })}</div>
+          </Drawer>}
           {modal?.k === "op" && <OperationForm op={modal.op} seasons={seasons} fields={fields} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} defaultSeasonId={modal.seasonId} operationSuggestions={d.operationSuggestions} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "work" && <WorkResourcesForm op={modal.op} unit={fieldById.get(seasonById.get(modal.op.seasonId)?.fieldId ?? -1)?.unit ?? ""} fieldLabel={`Поле № ${fieldById.get(seasonById.get(modal.op.seasonId)?.fieldId ?? -1)?.number ?? "—"} · ${seasonById.get(modal.op.seasonId)?.year ?? ""}`} title={opTitle(modal.op)} today={today} fleet={fleet} fleetLoading={fleetQ.isLoading} fleetError={fleetQ.isError} onRetry={() => { void fleetQ.refetch(); }} onClose={() => setModal(null)} onDone={done} />}
           {modal?.k === "lifecycle" && <LifecycleDialog op={modal.op} action={modal.action} title={opTitle(modal.op)} today={today} onClose={() => setModal(null)} onDone={done} />}

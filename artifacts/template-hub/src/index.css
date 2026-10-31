@@ -743,3 +743,23 @@ html[data-theme="light"] .fuel-pill-out { background:hsl(40 90% 55% / .14); bord
 html[data-theme="light"] .fuel-error { color:hsl(2 66% 34%); background:hsl(2 70% 96%); border-color:hsl(2 66% 46% / .4); }
 html[data-theme="light"] .auth-back-button { box-shadow:0 8px 24px rgba(13,60,120,.08); }
 @media (max-width: 767px) { .theme-switch-floating { top:16px; right:16px; } }
+
+/* ===== Plan operation cards (Агроплан) ===== */
+.op-card { position:relative; overflow:hidden; border:1px solid hsl(var(--card-border)); border-radius:12px; background:hsl(var(--card) / .92); box-shadow:inset 4px 0 0 hsl(var(--op)), 0 6px 18px rgba(0,0,0,.18); transition:transform .18s ease, box-shadow .18s ease; }
+.op-card:hover { transform:translateY(-1px); }
+.op-card-icon { display:flex; flex:none; align-items:center; justify-content:center; width:46px; height:46px; border-radius:10px; color:hsl(var(--op)); background:hsl(var(--op) / .16); border:1px solid hsl(var(--op) / .3); }
+.op-card-edit { display:flex; flex:none; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; color:hsl(var(--muted-foreground)); transition:background-color .15s, color .15s; }
+.op-card-edit:hover { color:hsl(var(--foreground)); background:hsl(var(--muted)); }
+.op-card-more { display:inline-flex; align-items:center; gap:5px; padding:4px 6px; border-radius:6px; font-size:11px; font-weight:700; color:hsl(var(--op)); }
+.op-card-more:hover { background:hsl(var(--op) / .1); }
+.op-card-link { display:inline-flex; align-items:center; gap:4px; padding:4px 8px; border:1px solid hsl(var(--border)); border-radius:6px; font-size:10.5px; font-weight:700; color:hsl(var(--muted-foreground)); }
+.op-card-link:hover { color:hsl(var(--foreground)); background:hsl(var(--muted)); }
+.op-metric-icon { display:flex; flex:none; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; }
+.op-m-rate { color:hsl(142 50% 55%); background:hsl(142 50% 45% / .15); }
+.op-m-pay { color:hsl(255 60% 72%); background:hsl(255 60% 60% / .15); }
+.op-m-fuel { color:hsl(40 95% 55%); background:hsl(40 95% 50% / .15); }
+html[data-theme="light"] .op-card { background:hsl(0 0% 100% / .97); box-shadow:inset 4px 0 0 hsl(var(--op)), 0 6px 18px rgba(13,60,120,.07); }
+html[data-theme="light"] .op-card-icon { background:hsl(var(--op) / .1); }
+html[data-theme="light"] .op-m-rate { color:hsl(142 60% 30%); background:hsl(142 55% 40% / .12); }
+html[data-theme="light"] .op-m-pay { color:hsl(255 55% 48%); background:hsl(255 60% 55% / .12); }
+html[data-theme="light"] .op-m-fuel { color:hsl(36 95% 38%); background:hsl(40 95% 50% / .16); }

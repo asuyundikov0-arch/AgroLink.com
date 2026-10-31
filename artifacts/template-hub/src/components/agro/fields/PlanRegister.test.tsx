@@ -50,15 +50,15 @@ test("vertical field register preserves identities, neutral unassigned fields an
   assert.ok(html.indexOf("row-plan-field-1") < html.indexOf("row-plan-field-2"));
 });
 
-test("one operation row keeps both machine assignments and all budgets below the main columns", () => {
+test("schedule renders one colour-coded card per operation with every machine and total budgets", () => {
   const html = renderSchedule();
-  const headers = ["Начало – окончание", "Операция", "Механизатор", "Техника", "Агрегат"];
-  headers.forEach((h, i) => { assert.match(html, new RegExp(h)); if (i) assert.ok(html.indexOf(headers[i - 1]) < html.indexOf(h)); });
+  assert.match(html, /row-plan-op-20/); assert.match(html, /data-kind="sowing"/);
   for (const text of ["Первый", "Второй", "Трактор 1", "Трактор 2", "Сеялка 1", "Сеялка 2"]) assert.ok(html.includes(text));
-  assert.match(html, /text-plan-costs-20/);
+  assert.match(html, /row-plan-machine-20-1/);
   assert.ok(html.indexOf("text-plan-costs-20") > html.indexOf("Сеялка 2"));
-  assert.match(html, /План ДТ \(стоимость\)/); assert.match(html, /ЗП по плану/);
-  assert.match(html, /110 000 ₸/); assert.match(html, /45 000 ₸/);
+  assert.match(html, /1\s100\s₸\/га/); assert.match(html, /110\s000\s₸/); assert.match(html, /45\s000\s₸/);
+  assert.match(html, /ГСМ \(стоимость\)/); assert.ok(!/45\s000\s₸\/га/.test(html));
+  assert.match(html, /button-plan-details-20/);
   assert.match(html, /button-plan-edit-op-20/); assert.match(html, /button-plan-add-op-1/);
   assert.equal(machinesOf({ ...op, plannedAssignments: [] })[0].employee, "Первый");
 });
