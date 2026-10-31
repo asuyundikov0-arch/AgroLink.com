@@ -18,3 +18,4 @@
 - [Visual direction](visual-style.md) — преимущественно чёрно-белое оформление и изображение AgroLink с полем на фоне кабинетов и всех отделов.
 - [Modal containment](modal-containment.md) — blurred cards trap fixed overlays; portal the complete native form and verify real clicks and saving.
 - [Field map import](field-map-import.md) — номера из KML действительные; культуры из названий не переносить, неизвестные номера и хозяйство уточнять.
+- [GPS техники](equipment-gps.md) — пользователь использует АвтоГРАФ и хочет показывать диспетчеру обработанную площадь прямо в AgroLink.
