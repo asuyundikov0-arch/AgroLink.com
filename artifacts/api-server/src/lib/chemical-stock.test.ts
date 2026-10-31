@@ -37,8 +37,8 @@ test("generated contract supports multi-line invoices and null per-hectare cost"
   assert.ok(CreateChemicalInvoiceBody.safeParse({
     requestId: "chemical-test-request", number: "N-1", occurredOn: "2026-10-27", supplier: "Поставщик",
     farm: "АПК Арыстан Grain", lines: [
-      { name: "Гербицид", unit: "л", quantity: 100, unitPrice: 1500 },
-      { name: "Удобрение", unit: "кг", quantity: 200, unitPrice: 500 },
+      { name: "Гербицид", unit: "л", quantity: 100, unitPrice: 1500, containerVolume: 10, containerCount: 10 },
+      { name: "Удобрение", unit: "кг", quantity: 200, unitPrice: 500, containerVolume: 20, containerCount: 10 },
     ],
   }).success);
   assert.ok(!CreateChemicalIssueBody.safeParse({

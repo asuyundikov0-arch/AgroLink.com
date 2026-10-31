@@ -341,9 +341,24 @@ router.post("/engineering/spare-parts/receipts", safe(async (req, res) => {
   }
   const by = actor(res.locals.access);
   const result = await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(718392011, hashtext(${input.requestId}))`);
     const [existing] = await tx.select().from(sparePartMovementsTable)
       .where(eq(sparePartMovementsTable.requestId, input.requestId));
-    if (existing) return { movement: await movementById(tx, existing.id) };
+    if (existing) {
+      const movement = await movementById(tx, existing.id);
+      if (!movement || existing.movementKind !== "receipt"
+        || movement.part.nameKey !== input.name.trim().toLocaleLowerCase("ru-RU")
+        || movement.part.articleKey !== input.articleNumber.trim().toLocaleLowerCase("ru-RU")
+        || movement.part.unitKey !== input.unit.trim().toLocaleLowerCase("ru-RU")
+        || Number(existing.quantity) !== input.quantity || Number(existing.unitPrice) !== input.unitPrice
+        || existing.occurredOn !== input.occurredOn || existing.invoiceNumber !== input.invoiceNumber.trim()
+        || existing.invoiceDate !== input.invoiceDate || existing.supplier !== input.supplier.trim()
+        || existing.description !== input.description.trim()
+        || existing.purchaseRequestItemId !== (input.requestItemId ?? null)) {
+        return { error: "Эта форма уже отправлена с другими данными. Обновите склад и оформите новую операцию.", status: 409 as const };
+      }
+      return { movement };
+    }
 
     const name = input.name.trim();
     const articleNumber = input.articleNumber.trim();
@@ -428,9 +443,18 @@ router.post("/engineering/spare-parts/issues", safe(async (req, res) => {
   }
   const by = actor(res.locals.access);
   const result = await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(718392011, hashtext(${input.requestId}))`);
     const [existing] = await tx.select().from(sparePartMovementsTable)
       .where(eq(sparePartMovementsTable.requestId, input.requestId));
-    if (existing) return { movement: await movementById(tx, existing.id) };
+    if (existing) {
+      if (existing.movementKind !== "issue" || existing.sparePartId !== input.sparePartId
+        || existing.fleetId !== input.fleetId || Number(existing.quantity) !== input.quantity
+        || existing.repairCategory !== input.category || existing.occurredOn !== input.occurredOn
+        || existing.description !== input.description.trim()) {
+        return { error: "Эта форма уже отправлена с другими данными. Обновите склад и оформите новую операцию.", status: 409 as const };
+      }
+      return { movement: await movementById(tx, existing.id) };
+    }
 
     const [part] = await tx.select().from(sparePartsTable)
       .where(eq(sparePartsTable.id, input.sparePartId)).for("update");
