@@ -16,3 +16,4 @@
 - [Бюджет и Cash Flow](economic-budget-cash-flow.md) — две независимые помесячные таблицы план/факт; ручные затраты, поступления и выплаты, отметка денег экономистом и ГД.
 - [Fuel and field costs](fuel-and-field-costs.md) — нефтебаза, средняя стоимость топлива, привязка к технике и операции; затраты поля: тара, ГСМ и подтверждённая кадрами зарплата.
 - [Visual direction](visual-style.md) — преимущественно чёрно-белое оформление и изображение AgroLink с полем на фоне кабинетов и всех отделов.
+- [Modal containment](modal-containment.md) — blurred cards trap fixed overlays; portal the complete native form and verify real clicks and saving.

@@ -8,7 +8,7 @@ import {
   useDeleteFleetEquipment,
   useUpdateFleetEquipment,
 } from "@workspace/api-client-react";
-import { CONFLICT_TEXT, ConfirmDialog, Drawer, Field, SaveError, UNITS, type Unit, canManageFleet, dateFmt, errorInfo, isDirector, useInvalidateRepairs } from "./shared";
+import { CONFLICT_TEXT, ConfirmDialog, Drawer, Field, OverlayForm, SaveError, UNITS, type Unit, canManageFleet, dateFmt, errorInfo, isDirector, useInvalidateRepairs } from "./shared";
 
 type Form = { kind: string; registrationNumber: string; unit: Unit };
 
@@ -113,7 +113,7 @@ export default function FleetDirectory({ role, fleet, plan, expenses }: { role: 
       )}
 
       {editing && (
-        <form onSubmit={submit} noValidate>
+        <OverlayForm onSubmit={submit} noValidate>
           <Drawer title={editing.id === null ? "Новая техника" : "Карточка техники"} eyebrow={editing.id === null ? "Справочник" : `№${editing.id} · версия ${editing.version}`} onClose={() => !pending && setEditing(null)} testId="form-fleet"
             footer={<><button type="button" className="button button-ghost" onClick={() => setEditing(null)} disabled={pending} data-testid="button-cancel-fleet">Отмена</button>
               <button type="submit" className="button button-primary" disabled={pending || conflict} data-testid="button-save-fleet">{pending ? "Сохраняем..." : "Сохранить"}</button></>}>
@@ -124,7 +124,7 @@ export default function FleetDirectory({ role, fleet, plan, expenses }: { role: 
               <Field label="Хозяйство" htmlFor="fleet-unit"><select id="fleet-unit" className="text-input" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value as Unit })} data-testid="select-fleet-unit">{UNITS.map((u) => <option key={u} value={u}>{u}</option>)}</select></Field>
             </div>
           </Drawer>
-        </form>
+        </OverlayForm>
       )}
       {toDelete && <ConfirmDialog title="Удалить технику из справочника?" testId="dialog-delete-fleet" error={delError} pending={remove.isPending}
         body={<>«{toDelete.kind} · {toDelete.registrationNumber ?? "без госномера"}» будет удалена. Удаление возможно только для техники без плана и затрат.</>}

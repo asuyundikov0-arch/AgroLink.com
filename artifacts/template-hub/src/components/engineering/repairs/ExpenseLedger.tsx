@@ -1,7 +1,7 @@
 import { type FormEvent, useMemo, useState } from "react";
 import { Pencil, Receipt, Trash2 } from "lucide-react";
 import { type FleetEquipment, type RepairExpense, useDeleteRepairExpense, useUpdateRepairExpense } from "@workspace/api-client-react";
-import { CATEGORY_LABEL, CATEGORY_ORDER, CONFLICT_TEXT, ConfirmDialog, Drawer, Field, FleetPicker, SaveError, businessToday, dateFmt, errorInfo, fleetLabel, isDirector, money, useInvalidateRepairs } from "./shared";
+import { CATEGORY_LABEL, CATEGORY_ORDER, CONFLICT_TEXT, ConfirmDialog, Drawer, Field, FleetPicker, OverlayForm, SaveError, businessToday, dateFmt, errorInfo, fleetLabel, isDirector, money, useInvalidateRepairs } from "./shared";
 
 type Form = { fleetId: number | null; incurredOn: string; category: RepairExpense["category"]; amount: string; description: string };
 const today = businessToday;
@@ -101,7 +101,7 @@ export default function ExpenseLedger({ role, expenses, fleet, fleetById }: { ro
       )}
 
       {editing && (
-        <form onSubmit={submit} noValidate>
+        <OverlayForm onSubmit={submit} noValidate>
         <Drawer title="Изменить затрату" eyebrow={`№${editing.id} · версия ${editing.version}`} onClose={() => !pending && setEditing(null)} testId="form-expense"
             footer={<><button type="button" className="button button-ghost" onClick={() => setEditing(null)} disabled={pending} data-testid="button-cancel-expense">Отмена</button>
               <button type="submit" className="button button-primary" disabled={pending || conflict} data-testid="button-save-expense">{pending ? "Сохраняем..." : "Сохранить"}</button></>}>
@@ -115,7 +115,7 @@ export default function ExpenseLedger({ role, expenses, fleet, fleetById }: { ro
               <Field label="Описание" error={errors.description} htmlFor="exp-desc" wide><textarea id="exp-desc" className="text-input min-h-[80px]" maxLength={3000} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} data-testid="input-expense-description" /></Field>
             </div>
           </Drawer>
-        </form>
+        </OverlayForm>
       )}
       {toDelete && <ConfirmDialog title="Удалить затрату?" testId="dialog-delete-expense" error={delError} pending={remove.isPending}
         body={<>{label(toDelete.fleetId)} · {CATEGORY_LABEL[toDelete.category]} · {money(toDelete.amount)}. Итоги пересчитаются для всех пользователей.</>}

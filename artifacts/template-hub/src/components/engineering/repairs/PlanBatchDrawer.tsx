@@ -1,6 +1,6 @@
 import { type FormEvent, useMemo, useState } from "react";
 import { type FleetEquipment, useCreateRepairPlanBatch } from "@workspace/api-client-react";
-import { Drawer, SaveError, cx, errorInfo, fleetLabel, useInvalidateRepairs } from "./shared";
+import { Drawer, OverlayForm, SaveError, cx, errorInfo, fleetLabel, useInvalidateRepairs } from "./shared";
 
 type Row = { responsible: string; plannedStart: string; plannedEnd: string };
 
@@ -48,7 +48,7 @@ export default function PlanBatchDrawer({ available, onClose, onDone }: { availa
   };
 
   return (
-    <form onSubmit={submit} noValidate>
+    <OverlayForm onSubmit={submit} noValidate>
       <Drawer wide title="Добавить технику в план" eyebrow="Общий план ремонта" onClose={() => !batch.isPending && onClose()} testId="form-plan-batch"
         footer={<><span className="mr-auto self-center text-[11px] text-muted-foreground" data-testid="text-plan-batch-count">Выбрано: {rows.size}</span>
           <button type="button" className="button button-ghost" onClick={onClose} disabled={batch.isPending} data-testid="button-cancel-plan-batch">Отмена</button>
@@ -98,6 +98,6 @@ export default function PlanBatchDrawer({ available, onClose, onDone }: { availa
           </ul>
         )}
       </Drawer>
-    </form>
+    </OverlayForm>
   );
 }

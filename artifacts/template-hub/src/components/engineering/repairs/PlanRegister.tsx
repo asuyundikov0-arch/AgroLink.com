@@ -2,7 +2,7 @@ import { type FormEvent, useState } from "react";
 import { Activity, CalendarClock, Pencil, Plus, Trash2 } from "lucide-react";
 import { type FleetEquipment, type RepairEntry, useDeleteEngineeringRepair, useUpdateEngineeringRepair } from "@workspace/api-client-react";
 import PlanBatchDrawer from "./PlanBatchDrawer";
-import { CONFLICT_TEXT, ConfirmDialog, Drawer, Field, SaveError, cx, dateFmt, effReadiness, errorInfo, isDirector, money, num, statusMeta, useInvalidateRepairs } from "./shared";
+import { CONFLICT_TEXT, ConfirmDialog, Drawer, Field, OverlayForm, SaveError, cx, dateFmt, effReadiness, errorInfo, isDirector, money, num, statusMeta, useInvalidateRepairs } from "./shared";
 
 type Mode = "plan" | "progress";
 type Form = { responsible: string; plannedStart: string; plannedEnd: string; notes: string; actualStart: string; actualEnd: string; readiness: string };
@@ -140,7 +140,7 @@ export default function PlanRegister({ role, items, fleetById, available, costBy
       {batchOpen && canEditPlan && <PlanBatchDrawer available={available} onClose={() => setBatchOpen(false)} onDone={(n) => { setBatchOpen(false); setNotice(`В план добавлено единиц техники: ${n}.`); }} />}
 
       {edit && form && (
-        <form onSubmit={submit} noValidate>
+        <OverlayForm onSubmit={submit} noValidate>
           <Drawer title={edit.mode === "plan" ? "Плановые параметры" : "Фактический ход ремонта"} eyebrow={`${name(edit.entry)} · ${reg(edit.entry) ?? "без госномера"} · версия ${edit.entry.version}`} onClose={() => !update.isPending && setEdit(null)} testId={edit.mode === "plan" ? "form-plan-edit" : "form-plan-progress"}
             footer={<><button type="button" className="button button-ghost" onClick={() => setEdit(null)} disabled={update.isPending} data-testid="button-cancel-plan-edit">Отмена</button>
               <button type="submit" className="button button-primary" disabled={update.isPending || conflict} data-testid="button-save-plan-edit">{update.isPending ? "Сохраняем..." : "Сохранить"}</button></>}>
@@ -161,7 +161,7 @@ export default function PlanRegister({ role, items, fleetById, available, costBy
               </div>
             )}
           </Drawer>
-        </form>
+        </OverlayForm>
       )}
 
       {toDelete && <ConfirmDialog title="Убрать технику из плана?" testId="dialog-delete-plan" error={delError} pending={remove.isPending}

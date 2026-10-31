@@ -1,4 +1,5 @@
-import { type ReactNode, useMemo, useState } from "react";
+import { type ComponentProps, type ReactNode, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { RefreshCw, X } from "lucide-react";
 import {
@@ -94,6 +95,15 @@ export function Field({ label, error, hint, children, wide, htmlFor }: { label: 
   );
 }
 
+export function OverlayPortal({ children }: { children: ReactNode }) {
+  return typeof document === "undefined" ? <>{children}</> : createPortal(children, document.body);
+}
+
+// Portal the whole form, not only its fields: native submit buttons must retain their form owner.
+export function OverlayForm(props: ComponentProps<"form">) {
+  return <OverlayPortal><form {...props} /></OverlayPortal>;
+}
+
 export function Drawer({ title, eyebrow, onClose, children, footer, testId, wide }: { title: string; eyebrow?: string; onClose: () => void; children: ReactNode; footer: ReactNode; testId: string; wide?: boolean }) {
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-[hsl(210_43%_17%/.35)]" onMouseDown={(ev) => { if (ev.target === ev.currentTarget) onClose(); }}>
@@ -128,6 +138,7 @@ export function SaveError({ message, conflict, testId }: { message: string; conf
 
 export function ConfirmDialog({ title, body, error, pending, onCancel, onConfirm, testId }: { title: string; body: ReactNode; error: string; pending: boolean; onCancel: () => void; onConfirm: () => void; testId: string }) {
   return (
+    <OverlayPortal>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[hsl(210_43%_17%/.4)] p-4" role="alertdialog" aria-modal="true" aria-label={title} data-testid={testId}>
       <div className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-2xl animate-in zoom-in-95 duration-150">
         <h2 className="text-base font-bold">{title}</h2>
@@ -139,6 +150,7 @@ export function ConfirmDialog({ title, body, error, pending, onCancel, onConfirm
         </div>
       </div>
     </div>
+    </OverlayPortal>
   );
 }
 
