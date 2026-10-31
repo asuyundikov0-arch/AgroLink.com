@@ -17,3 +17,4 @@
 - [Fuel and field costs](fuel-and-field-costs.md) — нефтебаза, средняя стоимость топлива, привязка к технике и операции; затраты поля: тара, ГСМ и подтверждённая кадрами зарплата.
 - [Visual direction](visual-style.md) — преимущественно чёрно-белое оформление и изображение AgroLink с полем на фоне кабинетов и всех отделов.
 - [Modal containment](modal-containment.md) — blurred cards trap fixed overlays; portal the complete native form and verify real clicks and saving.
+- [Field map import](field-map-import.md) — номера из KML действительные; культуры из названий не переносить, неизвестные номера и хозяйство уточнять.
